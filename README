@@ -1,0 +1,98 @@
+Open IP Fast Path
+--
+
+Intent and purpose:
+--
+The intent of this project is to enable accelerated routing/forwarding
+for IPv4 and IPv6, tunneling and termination for a variety of protocols.
+Unsupported functionality is provided by the host OS networking stack;
+aka slowpath.
+
+The implemented IP fastpath stack functionality is provided as an library
+to Fast Path applications that use ODP execution model and framework.
+See an example application: example/fpm/app_main.c
+
+Termination of protocols with POSIX interface for legacy applications
+is also supported.
+
+Architecture:
+--
+State is kept by the slowpath stack, i.e. routing tables, arp tables are
+only written to by the slowpath side. All control and CLI functionality
+works against slowpath. Fastpath receives state notifications and information
+through NETLINK API.
+
+An end goal could be to have a full ODP IP fastpath stack that can work
+independently of a slowpath in a Bare Metal environment.
+
+Classification API should be used to further improve the fastpath performance.
+
+Any crypto, checksum or other operation will be offloaded by ODP API
+with HW support.
+
+File structure definition
+--
+./docs/        - This is where you can find more detailed documentation
+./example/fpm/ - Template application example that uses the project library
+./include/api/ - Public interface headers used by an application.
+./include/     - Internal interface headers that are used in fastpath library.
+./scripts/     - Scripts that start/stop the application and configure system.
+./src/         - .c files with fastpath library implementation.
+./src/cli/     - Command Line Interface implementation used mainly for debug.
+./test/cunit/  - CUnit testcases implementation
+
+Coding Style:
+--
+Project code uses Linux kernel style that is verified through checkpatch.pl
+
+Licensing:
+--
+Project uses BSD 3-CLause License as default license. One should not use code
+that is licensed under any GPL type.
+
+Mailing list
+--
+We have a mailing list, reached via the address:
+odp-fp@lists.enea.com
+
+
+Building:
+--
+This project is currently building on a generic 32/64bit Linux machine
+with X86 arch.
+Autotools are required for building.
+
+Build and install ODP from:
+git clone git://git.linaro.org/lng/odp.git
+./bootstrap
+./configure
+./make
+./make install
+
+Get this repository
+
+Build library and examples:
+./bootstrap
+./configure
+./make
+
+Build library, CUnit testcases and examples.
+make check will build everything and run testcases.
+./bootstrap
+./configure --enable-cunit
+./make check
+
+Running:
+--
+A start_device.sh/stop_device.sh script is available in the scripts directory
+to start/stop the fpm example application.
+By default the eth0 interface is used for the fastpath processing but any
+other interface/interfaces names can be supplied to the script as parameter.
+
+When using ethX interface for fastpath processing this will be disconnected
+from Linux. A fpY TUN/TAP interface is created by fastpath application and
+this can be used by Linux to send and receive packets.
+The sent packets from Linux on fpY interface are forwarded to ethX (wire).
+The packets received by the ethX interface are captured by ODP and then these
+are received by FPM fastpath application.
+When no fastpath operation is aplicable the packet is forwarded to slowpath.

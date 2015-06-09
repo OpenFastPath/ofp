@@ -1,0 +1,11 @@
+* Reuse libnl for NETLINK if (LGPL & dynlink) is OK for control plane.
+** ARP monitoring
+Fixup code to get initial snapshot when connecting.
+** Route monitoring
+Fixup code to get initial snapshot when connecting.
+
+* ARP cache, SPMC table, fast lookup
+
+* SPMC IPv4 routing cache, fast lookup.
+* SPMC IPv6 routing cache, fast lookup.
+

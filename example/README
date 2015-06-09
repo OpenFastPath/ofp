@@ -1,0 +1,48 @@
+Examples in this directory:
+
+-------------------------------------------------------------------------------
+fpm
+
+fpm is a good starting point for application development.
+It includes basically everything needed to run an application.
+
+-------------------------------------------------------------------------------
+socket
+
+-------------------------------------------------------------------------------
+udpecho
+
+udpecho demonstrates usage of event based UDP sockets. Application receives
+data as odp packets, not via sockets. Application sends data back using two
+optional methods:
+1. standard socket interface, or
+2. reusing the same packet and sending it using a packet send function.
+-------------------------------------------------------------------------------
+webserver
+
+This is a simple web server that uses sockets as expected.
+
+-------------------------------------------------------------------------------
+webserver2
+
+This web server receives requests as odp packets and sends responses
+using normal sockets. Benefit is that it is not necessary to have
+bookkeeping for the sockets. For example accept is executed to create
+necessary data structures but the result (new socket) is ignored.
+At the moment there is one restriction: reply length is limited to 63
+socket writings.
+
+-------------------------------------------------------------------------------
+ioctl_test
+
+Examples how to use ioctl to control sockets, interfaces, and routes.
+
+-------------------------------------------------------------------------------
+sysctl
+
+Management Information Base (MIB) is a hierarchical database that
+describes an application. Object Identifiers (OID) can be used to
+read and write variables. Sysctl example demonstrates how to create
+new nodes and variables and how to read and write them.
+
+-------------------------------------------------------------------------------

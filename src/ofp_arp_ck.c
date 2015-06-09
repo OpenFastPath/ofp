@@ -1,0 +1,296 @@
+/* Copyright (c) 2014, ENEA Software AB
+ * Copyright (c) 2014, Nokia
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier:	BSD-3-Clause
+ *
+ * SPMC ARP table in shmem
+ * Needs a writelock on writes to become MPMC for controlplane
+ * to scale properly.
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+#include <netinet/if_ether.h>
+#include <ck_epoch.h>
+#include <ck_queue.h>
+#include <ck_pr.h>
+#include <odp.h>
+
+#include "ofpi_portconf.h"
+#include "ofpi_arp.h"
+#include "ofpi_hash.h"
+#include "ofpi_log.h"
+#include "ofpi_util.h"
+
+#include <config.h>
+
+#define ENTRIES_PER_CACHE_LINE (ODP_CACHE_LINE_SIZE / sizeof(struct arp_entry))
+#define ENTRIES_PER_SET (ENTRIES_PER_CACHE_LINE * 4)
+#define NUM_SETS 2048 /* Must be power of two */
+
+#if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)
+#define hashfunc ofp_hashlittle
+#else
+#define hashfunc ofp_hashbig
+#endif
+
+struct arp_tbl {
+	struct arp_entry *slh_first;
+};
+
+struct ofp_arp_mem {
+	struct arp_tbl arp_table[NUM_SETS] ODP_ALIGNED_CACHE;
+	struct arp_entry arp_entries[NUM_SETS][ENTRIES_PER_SET] ODP_ALIGNED_CACHE;
+};
+
+static __thread struct ofp_arp_mem *shm;
+
+static ck_epoch_t arp_epoch ODP_ALIGNED_CACHE;
+static __thread ck_epoch_record_t record ODP_ALIGNED_CACHE;
+
+static inline uint32_t ipv4_hash(struct arp_key *key)
+{
+	uint32_t set;
+
+	set = hashfunc(key, sizeof(*key), 0) & (NUM_SETS - 1);
+#if 0
+	printf("Hashed %x to %x\n", key->ipv4_addr, set);
+#endif
+	return set;
+}
+
+static inline void *arp_malloc(int index, struct arp_key *key)
+{
+	uint32_t i;
+
+	for (i = 0; i < ENTRIES_PER_SET; i++) {
+		if (ck_pr_cas_32(&(shm->arp_entries[index][i].key.ipv4_addr), 0,
+				 key->ipv4_addr)) {
+			ck_pr_store_32(&(shm->arp_entries[index][i].key.vrf),
+				       key->vrf);
+
+			/* Success */
+			return (void *)&(shm->arp_entries[index][i]);
+		}
+	}
+
+	OFP_ERR("Arp table bucket size error.\n");
+	return NULL;
+}
+
+static inline void arp_free(void *p)
+{
+	struct arp_entry *entry = (struct arp_entry *)p;
+
+	memset(&entry->key, 0, sizeof(entry->key));
+	odp_sync_stores();
+}
+
+static inline struct arp_entry *arp_lookup(struct arp_key *key)
+{
+	struct arp_entry *new;
+	int set;
+
+	set = ipv4_hash(key);
+
+	CK_SLIST_FOREACH(new, &(shm->arp_table[set]), next) {
+		if (odp_likely((new->key.ipv4_addr == key->ipv4_addr) &&
+			       (new->key.vrf == key->vrf))) {
+			return new;
+		}
+	}
+
+	return NULL;
+}
+
+inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
+				 struct ofp_ifnet *dev)
+{
+	struct arp_entry *new;
+	struct arp_key key;
+	int set;
+
+	key.vrf = dev->vrf;
+	key.ipv4_addr = ipv4_addr;
+	set = ipv4_hash(&key);
+
+	ck_epoch_begin(&arp_epoch, &record);
+	new = arp_lookup(&key);
+	/*
+	  TODO: when mac is changing for an existing node and read while
+	  changing. We should always alloc, and if we find an existing entry
+	  we should swap the addresses atomically.
+	*/
+	if (odp_unlikely(new != NULL)) {
+		new->ifx = dev->port;
+		memcpy(&new->macaddr, ll_addr, ETH_ALEN);
+		odp_sync_stores();
+		ck_epoch_end(&arp_epoch, &record);
+		return 0;
+	}
+
+	new = arp_malloc(set, &key);
+	if (odp_unlikely(new == NULL))
+		return -1;
+
+	new->ifx = dev->port;
+	memcpy(&new->macaddr, ll_addr, ETH_ALEN);
+	CK_SLIST_INSERT_HEAD(&(shm->arp_table[set]), new, next);
+	ck_epoch_end(&arp_epoch, &record);
+
+	return 0;
+}
+
+inline int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev)
+{
+	struct arp_entry *new;
+	struct arp_key key;
+	int ret = -1;
+	int set;
+
+	key.vrf = dev->vrf;
+	key.ipv4_addr = ipv4_addr;
+	set = ipv4_hash(&key);
+
+	ck_epoch_begin(&arp_epoch, &record);
+	new = arp_lookup(&key);
+
+	if (odp_likely(new != NULL)) {
+		CK_SLIST_REMOVE(&(shm->arp_table[set]), new, arp_entry, next);
+		ret = 0;
+	}
+
+	ck_epoch_end(&arp_epoch, &record);
+	if (odp_likely(ret == 0)) {
+		/* Blocking RCU cleanup from controlplane side */
+		ck_epoch_barrier(&arp_epoch, &record);
+		/* epoch has passed, we can now safely free object */
+		arp_free(new);
+	}
+
+	return ret;
+}
+
+inline int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
+				 struct ofp_ifnet *dev)
+{
+	struct arp_entry *new;
+	struct arp_key key;
+	int ret;
+
+	key.vrf = dev->vrf;
+	key.ipv4_addr = ipv4_addr;
+
+	ck_epoch_begin(&arp_epoch, &record);
+	new = arp_lookup(&key);
+
+	if (odp_likely(new != NULL)) {
+		memcpy(ll_addr, &new->macaddr, ETH_ALEN);
+		ret = new->ifx;
+	} else {
+		ret = -1;
+	}
+	ck_epoch_end(&arp_epoch, &record);
+
+	return ret;
+}
+
+static inline void show_arp_entry(int fd, int s, int e)
+{
+	if (shm->arp_entries[s][e].key.ipv4_addr)
+		ofp_sendf(fd, "%3d  %-15s %s\r\n",
+			    shm->arp_entries[s][e].key.vrf,
+			    ofp_print_ip_addr(shm->arp_entries[s][e].key.ipv4_addr),
+			    ofp_print_mac((uint8_t *)&shm->arp_entries[s][e].macaddr));
+}
+
+void ofp_arp_show_table(int fd)
+{
+	uint32_t i, j;
+
+	ck_epoch_begin(&arp_epoch, &record);
+	for (i = 0; i < NUM_SETS; ++i)
+		for (j = 0; j < ENTRIES_PER_SET; ++j)
+			show_arp_entry(fd, i, j);
+	ck_epoch_end(&arp_epoch, &record);
+}
+
+/*
+ * TODO, stubs
+ */
+int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
+			    uint32_t ipv4_addr, struct ofp_ifnet *dev)
+{
+	(void) pkt;
+	(void) nh_param;
+	(void) ipv4_addr;
+	(void) dev;
+
+	return OFP_DROP;
+}
+
+void ofp_arp_cleanup(void *arg)
+{
+	(void) arg;
+}
+
+void ofp_arp_show_saved_packets(int fd)
+{
+	(void) fd;
+}
+
+void ofp_arp_init_tables(void)
+{
+}
+
+/******************************************************************************/
+
+void ofp_arp_alloc_shared_memory(void)
+{
+	odp_shm_t shm_h;
+
+	/* Reserve memory for args from shared mem */
+	shm_h = odp_shm_reserve("OfpArpShMem",
+				sizeof(*shm), ODP_CACHE_LINE_SIZE, 0);
+	shm = odp_shm_addr(shm_h);
+
+	if (shm == NULL) {
+		OFP_ABORT("Error: OfpArpShMem shared mem alloc failed on core: %u.\n",
+			  odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
+
+	memset(shm, 0, sizeof(*shm));
+}
+
+void ofp_arp_lookup_shared_memory(void)
+{
+	odp_shm_t shm_h;
+
+	shm_h = odp_shm_lookup("OfpArpShMem");
+	shm = odp_shm_addr(shm_h);
+
+	if (shm == NULL) {
+		OFP_ABORT("Error: OfpArpShMem shared mem lookup failed on core: %u.\n",
+			  odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
+}
+
+void ofp_arp_global_init(void)
+{
+	memset((void *)&(shm->arp_table[0]), 0x0, sizeof(shm->arp_table));
+	memset((void *)&(shm->arp_entries[0][0]), 0x0,
+	       sizeof(shm->arp_entries));
+	ck_epoch_init(&arp_epoch);
+	odp_sync_stores();
+}
+
+void ofp_arp_local_init(void)
+{
+	ck_epoch_register(&arp_epoch, &record);
+	odp_sync_stores();
+}

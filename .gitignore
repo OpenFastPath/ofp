@@ -1,0 +1,37 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+*.lo
+
+# Temporary files
+*~
+*.tmp 
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# ignore byproducts of autotools (bootstrap,configure)
+*.log
+*.patch
+*.in
+*.m4
+*.guess
+*.status
+*.sub
