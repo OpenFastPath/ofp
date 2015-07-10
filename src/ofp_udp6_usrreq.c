@@ -69,43 +69,15 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD: release/9.1.0/sys/netinet6/udp6_usrreq.c 238247 2012-07-08 14:21:36Z bz $");
 
-#include "opt_inet.h"
-#include "opt_inet6.h"
-#include "opt_ipfw.h"
-#include "opt_ipsec.h"
-
-#include <sys/param.h>
-#include <sys/jail.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/mbuf.h>
-#include <sys/priv.h>
-#include <sys/proc.h>
-#include <sys/protosw.h>
-#include <sys/signalvar.h>
-#include <sys/socket.h>
-#include <sys/socketvar.h>
-#include <sys/sx.h>
-#include <sys/sysctl.h>
-#include <sys/syslog.h>
-#include <sys/systm.h>
-
 #include <net/if.h>
 #include <net/if_types.h>
 #include <net/route.h>
 
-#include <netinet/in.h>
-#include <netinet/in_pcb.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_var.h>
-#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
-#include <netinet/ip6.h>
 #include <netinet/icmp_var.h>
-#include <netinet/icmp6.h>
 #include <netinet/ip_var.h>
-
-#include <netinet6/scope6_var.h>
 
 #ifdef IPSEC
 #include <netipsec/ipsec.h>
@@ -135,6 +107,7 @@ __FBSDID("$FreeBSD: release/9.1.0/sys/netinet6/udp6_usrreq.c 238247 2012-07-08 1
 #include "ofpi_in6_pcb.h"
 #include "ofpi_ip6.h"
 #include "ofpi_udp6_var.h"
+#include "ofpi_icmp6.h"
 #include "ofpi_pkt_processing.h"
 #include "ofpi_hook.h"
 #include "ofpi_util.h"
@@ -498,9 +471,9 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 #endif
 
 #ifndef SP
-		/*
-		icmp6_error(m, ICMP6_DST_UNREACH, ICMP6_DST_UNREACH_NOPORT, 0);
-		*/
+		ofp_icmp6_error(pkt, OFP_ICMP6_DST_UNREACH,
+				OFP_ICMP6_DST_UNREACH_NOPORT, 0);
+
 		*nxt = OFP_IPPROTO_DONE;
 		return OFP_PKT_PROCESSED;
 #else

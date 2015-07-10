@@ -34,6 +34,7 @@ void ofp_in6_sin_2_v4mapsin6 __P((struct ofp_sockaddr_in *sin,
 void ofp_in6_sin6_2_sin_in_sock(struct ofp_sockaddr *nam);
 
 uint16_t ofp_in6_getscope(struct ofp_in6_addr *);
+int ofp_in6_clearscope(struct ofp_in6_addr *);
 
 struct ofp_ip6_hdr;
 int ofp_in6_cksum_pseudo(struct ofp_ip6_hdr *, uint32_t, uint8_t, uint16_t);

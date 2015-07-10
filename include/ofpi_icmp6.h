@@ -12,9 +12,9 @@
 #include "ofpi_vnet.h"
 /*
 void	icmp6_paramerror(struct mbuf *, int);
-void	icmp6_error(struct mbuf *, int, int, int);
-void	icmp6_error2(struct mbuf *, int, int, int, struct ifnet *);
 */
+void	ofp_icmp6_error(odp_packet_t, int, int, int);
+void	ofp_icmp6_error2(odp_packet_t, int, int, int, struct ofp_ifnet *);
 int	ofp_icmp6_input(odp_packet_t, int *, int *);
 /*
 void	icmp6_fasttimo(void);
@@ -44,5 +44,7 @@ void ofp_nd6_ns_input(odp_packet_t, int, int);
 enum ofp_return_code ofp_nd6_ns_output(struct ofp_ifnet *,
 	uint8_t *, uint8_t *);
 void ofp_nd6_na_input(odp_packet_t, int, int);
+enum ofp_return_code ofp_nd6_na_output(struct ofp_ifnet *,
+	uint8_t *, uint8_t *, uint8_t *);
 
 #endif /* not _OFPI_ICMP6_H_ */

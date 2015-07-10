@@ -2887,3 +2887,20 @@ ofp_in6_getscope(struct ofp_in6_addr *in6)
 	return (0);
 }
 
+/*
+ * Clear the embedded scope identifier.  Return 0 if the original address
+ * is intact; return non 0 if the address is modified.
+ */
+int ofp_in6_clearscope(struct ofp_in6_addr *in6)
+{
+	int modified = 0;
+
+	if (OFP_IN6_IS_SCOPE_LINKLOCAL(in6) ||
+		OFP_IN6_IS_ADDR_MC_INTFACELOCAL(in6)) {
+		if (in6->ofp_s6_addr16[1] != 0)
+			modified = 1;
+		in6->ofp_s6_addr16[1] = 0;
+	}
+
+	return modified;
+}

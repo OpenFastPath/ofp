@@ -228,74 +228,62 @@ icmp6_errcount(struct icmp6errstat *stat, int type, int code)
 	}
 	stat->icp6errs_unknown++;
 }
-
+#endif
 /*
  * A wrapper function for icmp6_error() necessary when the erroneous packet
  * may not contain enough scope zone information.
  */
 void
-icmp6_error2(struct mbuf *m, int type, int code, int param,
-    struct ifnet *ifp)
+ofp_icmp6_error2(odp_packet_t m, int type, int code, int param,
+	struct ofp_ifnet *ifp)
 {
-	struct ip6_hdr *ip6;
+	struct ofp_ip6_hdr *ip6;
 
 	if (ifp == NULL)
 		return;
 
-#ifndef PULLDOWN_TEST
-	IP6_EXTHDR_CHECK(m, 0, sizeof(struct ip6_hdr), );
-#else
-	if (m->m_len < sizeof(struct ip6_hdr)) {
-		m = m_pullup(m, sizeof(struct ip6_hdr));
-		if (m == NULL)
+	if (odp_packet_len(m) < odp_packet_l3_offset(m) +
+		sizeof(struct ofp_ip6_hdr))
 			return;
-	}
-#endif
 
-	ip6 = mtod(m, struct ip6_hdr *);
-
+	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(m, NULL);
+	(void)ip6;
+#if 0
+	/*ToDo: add in6_setscope()*/
 	if (in6_setscope(&ip6->ip6_src, ifp, NULL) != 0)
 		return;
 	if (in6_setscope(&ip6->ip6_dst, ifp, NULL) != 0)
 		return;
-
-	icmp6_error(m, type, code, param);
+#endif
+	ofp_icmp6_error(m, type, code, param);
 }
-
 /*
  * Generate an error packet of type error in response to bad IP6 packet.
  */
 void
-icmp6_error(struct mbuf *m, int type, int code, int param)
+ofp_icmp6_error(odp_packet_t m, int type, int code, int param)
 {
-	struct ip6_hdr *oip6, *nip6;
-	struct icmp6_hdr *icmp6;
-	u_int preplen;
-	int off;
-	int nxt;
+	struct ofp_ip6_hdr *oip6;
+	int oip6_len;
+	int oip6_cpy_len;
+	odp_packet_t pkt;
+	uint32_t preplen;
+	struct ofp_ip6_hdr *nip6;
+	struct ofp_icmp6_hdr *nicmp6;
 
-	ICMP6STAT_INC(icp6s_error);
+	/*ICMP6STAT_INC(icp6s_error);*/
 
 	/* count per-type-code statistics */
-	icmp6_errcount(&V_icmp6stat.icp6s_outerrhist, type, code);
+	/*icmp6_errcount(&V_icmp6stat.icp6s_outerrhist, type, code);*/
 
-#ifdef M_DECRYPTED	/*not openbsd*/
-	if (m->m_flags & M_DECRYPTED) {
-		ICMP6STAT_INC(icp6s_canterror);
-		goto freeit;
-	}
-#endif
+	if (odp_packet_len(m) < odp_packet_l3_offset(m) +
+		sizeof(struct ofp_ip6_hdr))
+			goto freeit;
 
-#ifndef PULLDOWN_TEST
-	IP6_EXTHDR_CHECK(m, 0, sizeof(struct ip6_hdr), );
-#else
-	if (m->m_len < sizeof(struct ip6_hdr)) {
-		m = m_pullup(m, sizeof(struct ip6_hdr));
-		if (m == NULL)
-			return;
-	}
-#endif
-	oip6 = mtod(m, struct ip6_hdr *);
+
+	oip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(m, NULL);
+	oip6_len = odp_be_to_cpu_16(oip6->ofp_ip6_plen) +
+		sizeof(struct ofp_ip6_hdr);
 
 	/*
 	 * If the destination address of the erroneous packet is a multicast
@@ -308,25 +296,27 @@ icmp6_error(struct mbuf *m, int type, int code, int param)
 	 *   in the option type field.  This check has been done in
 	 *   ip6_unknown_opt(), so we can just check the type and code.
 	 */
-	if ((m->m_flags & (M_BCAST|M_MCAST) ||
-	     IN6_IS_ADDR_MULTICAST(&oip6->ip6_dst)) &&
-	    (type != ICMP6_PACKET_TOO_BIG &&
-	     (type != ICMP6_PARAM_PROB ||
-	      code != ICMP6_PARAMPROB_OPTION)))
+	if (OFP_IN6_IS_ADDR_MULTICAST(&oip6->ip6_dst) &&
+	    (type != OFP_ICMP6_PACKET_TOO_BIG &&
+	     (type != OFP_ICMP6_PARAM_PROB ||
+	      code != OFP_ICMP6_PARAMPROB_OPTION)))
 		goto freeit;
 
 	/*
 	 * RFC 2463, 2.4 (e.5): source address check.
 	 * XXX: the case of anycast source?
 	 */
-	if (IN6_IS_ADDR_UNSPECIFIED(&oip6->ip6_src) ||
-	    IN6_IS_ADDR_MULTICAST(&oip6->ip6_src))
+	if (OFP_IN6_IS_ADDR_UNSPECIFIED(&oip6->ip6_src) ||
+	    OFP_IN6_IS_ADDR_MULTICAST(&oip6->ip6_src))
 		goto freeit;
-
+#if 0
 	/*
 	 * If we are about to send ICMPv6 against ICMPv6 error/redirect,
 	 * don't do it.
 	 */
+	int off;
+	int nxt;
+
 	nxt = -1;
 	off = ip6_lasthdr(m, 0, IPPROTO_IPV6, &nxt);
 	if (off >= 0 && nxt == IPPROTO_ICMPV6) {
@@ -358,64 +348,68 @@ icmp6_error(struct mbuf *m, int type, int code, int param)
 	} else {
 		/* non-ICMPv6 - send the error */
 	}
+#endif
 
-	oip6 = mtod(m, struct ip6_hdr *); /* adjust pointer */
 
+#if 0
 	/* Finally, do rate limitation check. */
 	if (icmp6_ratelimit(&oip6->ip6_src, type, code)) {
 		ICMP6STAT_INC(icp6s_toofreq);
 		goto freeit;
 	}
-
+#endif
 	/*
 	 * OK, ICMP6 can be generated.
 	 */
 
-	if (m->m_pkthdr.len >= ICMPV6_PLD_MAXLEN)
-		m_adj(m, ICMPV6_PLD_MAXLEN - m->m_pkthdr.len);
+	preplen = sizeof(struct ofp_ip6_hdr) + sizeof(struct ofp_icmp6_hdr);
 
-	preplen = sizeof(struct ip6_hdr) + sizeof(struct icmp6_hdr);
-	M_PREPEND(m, preplen, M_DONTWAIT);	/* FIB is also copied over. */
-	if (m && m->m_len < preplen)
-		m = m_pullup(m, preplen);
-	if (m == NULL) {
-		nd6log((LOG_DEBUG, "ENOBUFS in icmp6_error %d\n", __LINE__));
-		return;
-	}
+	oip6_cpy_len = oip6_len;
+	if (oip6_cpy_len > OFP_ICMPV6_PLD_MAXLEN)
+		oip6_cpy_len = OFP_ICMPV6_PLD_MAXLEN;
 
-	nip6 = mtod(m, struct ip6_hdr *);
+	pkt  = odp_packet_alloc(odp_packet_pool(m),
+		odp_packet_l3_offset(m) + preplen + oip6_cpy_len);
+	if (pkt == ODP_PACKET_INVALID)
+		goto freeit;
+
+	odp_packet_l2_offset_set(pkt, odp_packet_l2_offset(m));
+	odp_packet_l3_offset_set(pkt, odp_packet_l3_offset(m));
+
+	memcpy((uint8_t *)odp_packet_l3_ptr(pkt, NULL) + preplen,
+		odp_packet_l3_ptr(m, NULL),
+		oip6_cpy_len);
+	odp_packet_free(m);
+
+	oip6 = (struct ofp_ip6_hdr *)((uint8_t *)odp_packet_l3_ptr(pkt, NULL) +
+			preplen);
+
+	nip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(pkt, NULL);
 	nip6->ip6_src  = oip6->ip6_src;
 	nip6->ip6_dst  = oip6->ip6_dst;
+	nip6->ofp_ip6_plen = odp_cpu_to_be_16(sizeof(struct ofp_icmp6_hdr) +
+				oip6_cpy_len);
 
-	in6_clearscope(&oip6->ip6_src);
-	in6_clearscope(&oip6->ip6_dst);
+	ofp_in6_clearscope(&oip6->ip6_src);
+	ofp_in6_clearscope(&oip6->ip6_dst);
 
-	icmp6 = (struct icmp6_hdr *)(nip6 + 1);
-	icmp6->icmp6_type = type;
-	icmp6->icmp6_code = code;
-	icmp6->icmp6_pptr = htonl((u_int32_t)param);
+	nicmp6 = (struct ofp_icmp6_hdr *)(nip6 + 1);
+	nicmp6->icmp6_type = type;
+	nicmp6->icmp6_code = code;
+	nicmp6->ofp_icmp6_pptr = odp_cpu_to_be_32((u_int32_t)param);
 
-	/*
-	 * icmp6_reflect() is designed to be in the input path.
-	 * icmp6_error() can be called from both input and output path,
-	 * and if we are in output path rcvif could contain bogus value.
-	 * clear m->m_pkthdr.rcvif for safety, we should have enough scope
-	 * information in ip header (nip6).
-	 */
-	m->m_pkthdr.rcvif = NULL;
-
-	ICMP6STAT_INC(icp6s_outhist[type]);
-	icmp6_reflect(m, sizeof(struct ip6_hdr)); /* header order: IPv6 - ICMPv6 */
+	/*ICMP6STAT_INC(icp6s_outhist[type]);*/
+	ofp_icmp6_reflect(pkt, sizeof(struct ofp_ip6_hdr));
 
 	return;
-
-  freeit:
+ freeit:
 	/*
 	 * If we can't tell whether or not we can generate ICMP6, free it.
 	 */
-	m_freem(m);
+	odp_packet_free(m);
+
 }
-#endif
+
 
 /*
  * Process a received ICMP6 message.
@@ -430,11 +424,12 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 	uint32_t icmp6len;
 	int off = *offp;
 	int code, sum;
-	/*struct ofp_ifnet *ifp;*/
+	struct ofp_ifnet *ifp;
 
 	*nxt = OFP_IPPROTO_DONE;
-	/*ifp = odp_packet_user_ptr(m);
-	eth = (struct ofp_ether_header *) odp_packet_l2_ptr(m, NULL);*/
+	ifp = odp_packet_user_ptr(m);
+	(void)ifp;
+	/*eth = (struct ofp_ether_header *) odp_packet_l2_ptr(m, NULL);*/
 
 	OFP_IP6_EXTHDR_CHECK(m, off, sizeof(struct ofp_icmp6_hdr),
 		OFP_PKT_DROP);
@@ -445,7 +440,8 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 	 */
 
 	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(m, NULL);
-	ip6len = sizeof(struct ofp_ip6_hdr) + odp_be_to_cpu_16(ip6->ofp_ip6_plen);
+	ip6len = sizeof(struct ofp_ip6_hdr) +
+		odp_be_to_cpu_16(ip6->ofp_ip6_plen);
 	(void)ip6len;
 
 #if 0
@@ -476,7 +472,8 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 
 	code = icmp6->icmp6_code;
 
-	if ((sum = ofp_in6_cksum(m, OFP_IPPROTO_ICMPV6, off, icmp6len)) != 0) {
+	sum = ofp_in6_cksum(m, OFP_IPPROTO_ICMPV6, off, icmp6len);
+	if (sum != 0) {
 		OFP_ERR("ICMP6 checksum error(%d|%x) %s\n",
 		    icmp6->icmp6_type, sum,
 		    ofp_print_ip6_addr(&ip6->ip6_src.ofp_s6_addr[0]));
@@ -532,7 +529,6 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 			goto badcode;
 		}
 		goto deliver;
-		break;
 
 	case ICMP6_PACKET_TOO_BIG:
 		icmp6_ifstat_inc(ifp, ifs6_in_pkttoobig);
@@ -546,7 +542,6 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 		 * intermediate extension headers.
 		 */
 		goto deliver;
-		break;
 
 	case ICMP6_TIME_EXCEEDED:
 		icmp6_ifstat_inc(ifp, ifs6_in_timeexceed);
@@ -561,7 +556,6 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 			goto badcode;
 		}
 		goto deliver;
-		break;
 
 	case ICMP6_PARAM_PROB:
 		icmp6_ifstat_inc(ifp, ifs6_in_paramprob);
@@ -577,7 +571,6 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 			goto badcode;
 		}
 		goto deliver;
-		break;
 #endif
 	case OFP_ICMP6_ECHO_REQUEST:
 		ofp_icmp6_ifstat_inc(ifp, ifs6_in_echo);
@@ -799,7 +792,22 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 		if (icmp6len < sizeof(struct ofp_nd_neighbor_solicit))
 			goto badlen;
 		ofp_nd6_ns_input(m, off, icmp6len);
+#ifndef SP
+		if (icmp6len < (sizeof(struct ofp_nd_neighbor_solicit)  + 8) &&
+			icmp6->ofp_icmp6_data8[20] !=
+				OFP_ND_OPT_SOURCE_LINKADDR)
+			goto badlen;
+
+		ofp_nd6_na_output(ifp, ip6->ip6_src.ofp_s6_addr,
+			&icmp6->ofp_icmp6_data8[4],
+			&icmp6->ofp_icmp6_data8[22]);
+
+		odp_packet_free(m);
+
+		return OFP_PKT_PROCESSED;
+#else
 		break;
+#endif
 
 	case OFP_ND_NEIGHBOR_ADVERT:
 		ofp_icmp6_ifstat_inc(ifp, ifs6_in_neighboradvert);
@@ -858,14 +866,14 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 
 	return OFP_PKT_CONTINUE; /* send to SP*/
 
-/*deliver:*/
 #if 0
+deliver:
 	if (icmp6_notify_error(&m, off, icmp6len, code) != 0) {
 		/* In this case, m should've been freed. */
 		goto freeit
 	}
-#endif /* 0 */
 	return OFP_PKT_PROCESSED;
+#endif /* 0 */
 
 badcode:
 badlen:
@@ -2056,7 +2064,7 @@ icmp6_rip6_input(struct mbuf **mp, int off)
 #endif /*0*/
 /*
  * Reflect the ip6 packet back to the source.
- * OFF points to the icmp6 header, counted from the top of the mbuf.
+ * OFF points to the icmp6 header, counted from the L3 offset.
  */
 void
 ofp_icmp6_reflect(odp_packet_t m, size_t off)
