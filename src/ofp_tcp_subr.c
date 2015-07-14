@@ -1397,10 +1397,15 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 }
 #endif /* INET */
 
-#ifdef _INET6
+#ifdef INET6
 void
-tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
+ofp_tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 {
+	(void)cmd;
+	(void)sa;
+	(void)d;
+	OFP_LOG("UNIMPLEMENTED FUNCTION CALLED!\n");
+#if 0
 	struct ofp_tcphdr th;
 	struct inpcb *(*notify)(struct inpcb *, int) = tcp_notify;
 	struct ip6_hdr *ip6;
@@ -1475,6 +1480,7 @@ tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 	} else
 		in6_pcbnotify(&V_tcbinfo, sa, 0, (const struct ofp_sockaddr *)sa6_src,
 			      0, cmd, NULL, notify);
+#endif /*0*/
 }
 #endif /* INET6 */
 

@@ -59,6 +59,8 @@ struct protosw ofp_inetsw[] = {
 		.pr_destroy =		ofp_ip_destroy,
 #endif
 		.pr_input =		ofp_ip_input,
+		.pr_ctlinput =		NULL,
+		.pr_ctloutput =		NULL,
 		.pr_usrreqs =		&nousrreqs
 	},
 	{
@@ -78,8 +80,8 @@ struct protosw ofp_inetsw[] = {
 		.pr_protocol =		OFP_IPPROTO_TCP,
 		.pr_flags =		PR_CONNREQUIRED|PR_IMPLOPCL|PR_WANTRCVD,
 		.pr_input =		ofp_tcp_input,
-		/*.pr_ctlinput =		ofp_tcp_ctlinput,
-		  .pr_ctloutput =		ofp_tcp_ctloutput,*/
+		.pr_ctlinput =		ofp_tcp_ctlinput,
+		.pr_ctloutput =		ofp_tcp_ctloutput,
 		.pr_init =		ofp_tcp_init,
 		.pr_slowtimo =		ofp_tcp_slowtimo,
 		.pr_drain =		ofp_tcp_drain,
@@ -129,8 +131,9 @@ struct protosw ofp_inetsw[] = {
 		.pr_protocol =		OFP_IPPROTO_GRE,
 		.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 		.pr_input =		ofp_gre_input,
-		/*.pr_ctloutput =	rip_ctloutput,*/
 		.pr_init =		NULL,
+		.pr_ctlinput =		NULL,
+		.pr_ctloutput =		NULL/*rip_ctloutput*/,
 		.pr_usrreqs =		&nousrreqs
 	},
 	{
@@ -140,9 +143,8 @@ struct protosw ofp_inetsw[] = {
 		.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 		.pr_input =		ofp_icmp_input,
 		.pr_init =              NULL,
-/*
-		.pr_ctloutput =		rip_ctloutput,
-*/
+		.pr_ctlinput =		NULL,
+		.pr_ctloutput =		NULL/*rip_ctloutput*/,
 		.pr_usrreqs =           &nousrreqs
 	}
 };

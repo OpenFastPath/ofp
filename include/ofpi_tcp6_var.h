@@ -73,9 +73,9 @@ VNET_DECLARE(int, ofp_tcp_v6mssdflt);	/* XXX */
 #endif
 
 struct	ofp_ip6_hdr;
-/*
-void	tcp6_ctlinput __P((int, struct sockaddr *, void *));
-void	tcp6_init __P((void));*/
+
+void	ofp_tcp6_ctlinput __P((int, struct ofp_sockaddr *, void *));
+/*void	tcp6_init __P((void));*/
 int	ofp_tcp6_input __P((odp_packet_t, int *, int *));
 /*
 struct	rtentry *tcp_rtlookup6(struct in_conninfo *);

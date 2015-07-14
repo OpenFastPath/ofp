@@ -100,6 +100,8 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_destroy =		ofp_ip6_destroy,
 #endif
 	.pr_input =		ofp_ip6_input,
+	.pr_ctlinput =		NULL,
+	.pr_ctloutput =		NULL,
 	.pr_usrreqs =		&nousrreqs
 },
 {
@@ -123,8 +125,8 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_protocol =		OFP_IPPROTO_TCP,
 	.pr_flags =		PR_CONNREQUIRED|PR_WANTRCVD|PR_LISTEN,
 	.pr_input =		ofp_tcp6_input,
-/*	.pr_ctlinput =		ofp_tcp6_ctlinput,
-	.pr_ctloutput =		ofp_tcp_ctloutput,*/
+	.pr_ctlinput =		ofp_tcp6_ctlinput,
+	.pr_ctloutput =		ofp_tcp_ctloutput,
 #ifndef INET	/* don't call initialization and timeout routines twice */
 	.pr_init =		ofp_tcp_init,
 	.pr_slowtimo =		ofp_tcp_slowtimo,
@@ -188,11 +190,11 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_protocol =		OFP_IPPROTO_ICMPV6,
 	.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 	.pr_input =		ofp_icmp6_input,
-/*	.pr_output =		rip6_output,
-	.pr_ctlinput =		rip6_ctlinput,
-	.pr_ctloutput =		rip6_ctloutput,
-	.pr_fasttimo =		icmp6_fasttimo,
-	.pr_slowtimo =		icmp6_slowtimo,*/
+	.pr_output =		NULL/*rip6_output*/,
+	.pr_ctlinput =		NULL/*rip6_ctlinput*/,
+	.pr_ctloutput =		NULL/*rip6_ctloutput*/,
+	.pr_fasttimo =		NULL/*icmp6_fasttimo*/,
+	.pr_slowtimo =		NULL/*icmp6_slowtimo*/,
 	.pr_usrreqs =		&nousrreqs
 },
 {
@@ -202,6 +204,8 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_init =		NULL,
 	.pr_destroy =		NULL,
 	.pr_input =		ofp_ip6_none_input,
+	.pr_ctlinput =		NULL,
+	.pr_ctloutput =		NULL,
 	.pr_usrreqs =		&nousrreqs
 },
 };

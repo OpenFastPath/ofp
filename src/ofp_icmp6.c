@@ -61,13 +61,14 @@
  */
 
 #include "ofpi.h"
-#include "ofpi_ip6.h"
-#include "ofpi_icmp6.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 #include "ofpi_protosw.h"
 #include "ofpi_route.h"
+#include "ofpi_ip6.h"
 #include "ofpi_ip6_var.h"
+#include "ofpi_ip6protosw.h"
+#include "ofpi_icmp6.h"
 #include "ofpi_pkt_processing.h"
 
 #if 0
@@ -110,7 +111,6 @@ __FBSDID("$FreeBSD: release/9.1.0/sys/netinet6/icmp6.c 238242 2012-07-08 12:34:1
 
 #include <netinet6/in6_ifattach.h>
 #include <netinet6/in6_pcb.h>
-#include <netinet6/ip6protosw.h>
 #include <netinet6/ip6_var.h>
 #include <netinet6/scope6_var.h>
 #include <netinet6/mld6_var.h>
@@ -154,8 +154,9 @@ static int ni6_addrs __P((struct icmp6_nodeinfo *, struct mbuf *,
 			  struct ifnet **, struct in6_addr *));
 static int ni6_store_addrs __P((struct icmp6_nodeinfo *, struct icmp6_nodeinfo *,
 				struct ifnet *, int));
-static int icmp6_notify_error(struct mbuf **, int, int, int);
 #endif /* 0*/
+static int icmp6_notify_error(odp_packet_t, int, int, int);
+
 
 
 #if 0
@@ -504,38 +505,37 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 #endif
 
 	switch (icmp6->icmp6_type) {
-#if 0
-	case ICMP6_DST_UNREACH:
-		icmp6_ifstat_inc(ifp, ifs6_in_dstunreach);
+	case OFP_ICMP6_DST_UNREACH:
+		ofp_icmp6_ifstat_inc(ifp, ifs6_in_dstunreach);
 		switch (code) {
-		case ICMP6_DST_UNREACH_NOROUTE:
-			code = PRC_UNREACH_NET;
+		case OFP_ICMP6_DST_UNREACH_NOROUTE:
+			code = OFP_PRC_UNREACH_NET;
 			break;
-		case ICMP6_DST_UNREACH_ADMIN:
-			icmp6_ifstat_inc(ifp, ifs6_in_adminprohib);
-			code = PRC_UNREACH_PROTOCOL; /* is this a good code? */
+		case OFP_ICMP6_DST_UNREACH_ADMIN:
+			ofp_icmp6_ifstat_inc(ifp, ifs6_in_adminprohib);
+			code = OFP_PRC_UNREACH_PROTOCOL;
 			break;
-		case ICMP6_DST_UNREACH_ADDR:
-			code = PRC_HOSTDEAD;
+		case OFP_ICMP6_DST_UNREACH_ADDR:
+			code = OFP_PRC_HOSTDEAD;
 			break;
-		case ICMP6_DST_UNREACH_BEYONDSCOPE:
+		case OFP_ICMP6_DST_UNREACH_BEYONDSCOPE:
 			/* I mean "source address was incorrect." */
-			code = PRC_PARAMPROB;
+			code = OFP_PRC_PARAMPROB;
 			break;
-		case ICMP6_DST_UNREACH_NOPORT:
-			code = PRC_UNREACH_PORT;
+		case OFP_ICMP6_DST_UNREACH_NOPORT:
+			code = OFP_PRC_UNREACH_PORT;
 			break;
 		default:
 			goto badcode;
 		}
 		goto deliver;
 
-	case ICMP6_PACKET_TOO_BIG:
-		icmp6_ifstat_inc(ifp, ifs6_in_pkttoobig);
+	case OFP_ICMP6_PACKET_TOO_BIG:
+		ofp_icmp6_ifstat_inc(ifp, ifs6_in_pkttoobig);
 
 		/* validation is made in icmp6_mtudisc_update */
 
-		code = PRC_MSGSIZE;
+		code = OFP_PRC_MSGSIZE;
 
 		/*
 		 * Updating the path MTU will be done after examining
@@ -543,35 +543,35 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 		 */
 		goto deliver;
 
-	case ICMP6_TIME_EXCEEDED:
-		icmp6_ifstat_inc(ifp, ifs6_in_timeexceed);
+	case OFP_ICMP6_TIME_EXCEEDED:
+		ofp_icmp6_ifstat_inc(ifp, ifs6_in_timeexceed);
 		switch (code) {
-		case ICMP6_TIME_EXCEED_TRANSIT:
-			code = PRC_TIMXCEED_INTRANS;
+		case OFP_ICMP6_TIME_EXCEED_TRANSIT:
+			code = OFP_PRC_TIMXCEED_INTRANS;
 			break;
-		case ICMP6_TIME_EXCEED_REASSEMBLY:
-			code = PRC_TIMXCEED_REASS;
+		case OFP_ICMP6_TIME_EXCEED_REASSEMBLY:
+			code = OFP_PRC_TIMXCEED_REASS;
 			break;
 		default:
 			goto badcode;
 		}
 		goto deliver;
 
-	case ICMP6_PARAM_PROB:
-		icmp6_ifstat_inc(ifp, ifs6_in_paramprob);
+	case OFP_ICMP6_PARAM_PROB:
+		ofp_icmp6_ifstat_inc(ifp, ifs6_in_paramprob);
 		switch (code) {
-		case ICMP6_PARAMPROB_NEXTHEADER:
-			code = PRC_UNREACH_PROTOCOL;
+		case OFP_ICMP6_PARAMPROB_NEXTHEADER:
+			code = OFP_PRC_UNREACH_PROTOCOL;
 			break;
-		case ICMP6_PARAMPROB_HEADER:
-		case ICMP6_PARAMPROB_OPTION:
-			code = PRC_PARAMPROB;
+		case OFP_ICMP6_PARAMPROB_HEADER:
+		case OFP_ICMP6_PARAMPROB_OPTION:
+			code = OFP_PRC_PARAMPROB;
 			break;
 		default:
 			goto badcode;
 		}
 		goto deliver;
-#endif
+
 	case OFP_ICMP6_ECHO_REQUEST:
 		ofp_icmp6_ifstat_inc(ifp, ifs6_in_echo);
 		if (code != 0)
@@ -846,15 +846,15 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 			icmp6_redirect_input(n, off);
 		/* m stays. */
 		break;
-
-	case ICMP6_ROUTER_RENUMBERING:
-		if (code != ICMP6_ROUTER_RENUMBERING_COMMAND &&
-		    code != ICMP6_ROUTER_RENUMBERING_RESULT)
+#endif
+	case OFP_ICMP6_ROUTER_RENUMBERING:
+		if (code != OFP_ICMP6_ROUTER_RENUMBERING_COMMAND &&
+		    code != OFP_ICMP6_ROUTER_RENUMBERING_RESULT)
 			goto badcode;
-		if (icmp6len < sizeof(struct icmp6_router_renum))
+		if (icmp6len < sizeof(struct ofp_icmp6_router_renum))
 			goto badlen;
 		break;
-#endif
+
 	default:
 		OFP_DBG("icmp6_input: unknown type %d(src=%s, dst=%s)\n",
 			icmp6->icmp6_type,
@@ -866,64 +866,65 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 
 	return OFP_PKT_CONTINUE; /* send to SP*/
 
-#if 0
 deliver:
-	if (icmp6_notify_error(&m, off, icmp6len, code) != 0) {
-		/* In this case, m should've been freed. */
-		goto freeit
-	}
+	if (icmp6_notify_error(m, off, icmp6len, code) != 0)
+		goto freeit;
+
 	return OFP_PKT_PROCESSED;
-#endif /* 0 */
 
 badcode:
 badlen:
 freeit:
-	odp_packet_free(m);
 	return OFP_PKT_DROP;
 }
 
-#if 0
 static int
-icmp6_notify_error(struct mbuf **mp, int off, int icmp6len, int code)
+icmp6_notify_error(odp_packet_t m, int off, int icmp6len, int code)
 {
-	struct mbuf *m = *mp;
-	struct icmp6_hdr *icmp6;
-	struct ip6_hdr *eip6;
+	struct ofp_ip6_hdr *ip6;
+	uint32_t ip6len;
+	struct ofp_icmp6_hdr *icmp6;
+	struct ofp_ip6_hdr *eip6;
+	struct ofp_sockaddr_in6 icmp6src, icmp6dst;
+#if 0
 	u_int32_t notifymtu;
-	struct sockaddr_in6 icmp6src, icmp6dst;
+#endif
 
-	if (icmp6len < sizeof(struct icmp6_hdr) + sizeof(struct ip6_hdr)) {
-		ICMP6STAT_INC(icp6s_tooshort);
+	if ((uint32_t)icmp6len < sizeof(struct ofp_icmp6_hdr) +
+		sizeof(struct ofp_ip6_hdr)) {
+		/*ICMP6STAT_INC(icp6s_tooshort);*/
 		goto freeit;
 	}
-#ifndef PULLDOWN_TEST
-	IP6_EXTHDR_CHECK(m, off,
-	    sizeof(struct icmp6_hdr) + sizeof(struct ip6_hdr), -1);
-	icmp6 = (struct icmp6_hdr *)(mtod(m, caddr_t) + off);
-#else
-	IP6_EXTHDR_GET(icmp6, struct icmp6_hdr *, m, off,
-	    sizeof(*icmp6) + sizeof(struct ip6_hdr));
-	if (icmp6 == NULL) {
-		ICMP6STAT_INC(icp6s_tooshort);
-		return (-1);
-	}
-#endif
-	eip6 = (struct ip6_hdr *)(icmp6 + 1);
 
-	/* Detect the upper level protocol */
+	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(m, &ip6len);
+	if (ip6 == NULL)
+		goto freeit;
+
+	/* check continuity of headers: IPv6(+opts) + ICMP6 + IPv6 */
+	if (ip6len  < off + sizeof(struct ofp_icmp6_hdr) +
+		sizeof(struct ofp_ip6_hdr))
+		goto freeit;
+
+	icmp6 = (struct ofp_icmp6_hdr *)((uint8_t *)ip6 + off);
+	eip6 = (struct ofp_ip6_hdr *)(icmp6 + 1);
+
 	{
-		void (*ctlfunc)(int, struct sockaddr *, void *);
-		u_int8_t nxt = eip6->ip6_nxt;
-		int eoff = off + sizeof(struct icmp6_hdr) +
-		    sizeof(struct ip6_hdr);
-		struct ip6ctlparam ip6cp;
-		struct in6_addr *finaldst = NULL;
+		void (*ctlfunc)(int, struct ofp_sockaddr *, void *);
+		u_int8_t nxt = eip6->ofp_ip6_nxt;
+		struct ofp_ip6ctlparam ip6cp;
+		struct ofp_in6_addr *finaldst = NULL;
+		int eoff = off + sizeof(struct ofp_icmp6_hdr) +
+		    sizeof(struct ofp_ip6_hdr);
+
+#if 0
+		/* No Options support */
 		int icmp6type = icmp6->icmp6_type;
 		struct ip6_frag *fh;
 		struct ip6_rthdr *rth;
 		struct ip6_rthdr0 *rth0;
 		int rthlen;
 
+		/* Detect the upper level protocol */
 		while (1) { /* XXX: should avoid infinite loop explicitly? */
 			struct ip6_ext *eh;
 
@@ -1043,56 +1044,42 @@ icmp6_notify_error(struct mbuf **mp, int off, int icmp6len, int code)
 				goto notify;
 			}
 		}
-	  notify:
-#ifndef PULLDOWN_TEST
-		icmp6 = (struct icmp6_hdr *)(mtod(m, caddr_t) + off);
-#else
-		IP6_EXTHDR_GET(icmp6, struct icmp6_hdr *, m, off,
-		    sizeof(*icmp6) + sizeof(struct ip6_hdr));
-		if (icmp6 == NULL) {
-			ICMP6STAT_INC(icp6s_tooshort);
-			return (-1);
-		}
-#endif
-
-		/*
-		 * retrieve parameters from the inner IPv6 header, and convert
-		 * them into sockaddr structures.
-		 * XXX: there is no guarantee that the source or destination
-		 * addresses of the inner packet are in the same scope as
-		 * the addresses of the icmp packet.  But there is no other
-		 * way to determine the zone.
-		 */
-		eip6 = (struct ip6_hdr *)(icmp6 + 1);
-
+notify:
+#endif /* 0 */
 		bzero(&icmp6dst, sizeof(icmp6dst));
-		icmp6dst.sin6_len = sizeof(struct sockaddr_in6);
-		icmp6dst.sin6_family = AF_INET6;
+
+		icmp6dst.sin6_len = sizeof(struct ofp_sockaddr_in6);
+		icmp6dst.sin6_family = OFP_AF_INET6;
 		if (finaldst == NULL)
 			icmp6dst.sin6_addr = eip6->ip6_dst;
 		else
 			icmp6dst.sin6_addr = *finaldst;
+#if 0
 		if (in6_setscope(&icmp6dst.sin6_addr, m->m_pkthdr.rcvif, NULL))
 			goto freeit;
+#endif
 		bzero(&icmp6src, sizeof(icmp6src));
-		icmp6src.sin6_len = sizeof(struct sockaddr_in6);
-		icmp6src.sin6_family = AF_INET6;
+		icmp6src.sin6_len = sizeof(struct ofp_sockaddr_in6);
+		icmp6src.sin6_family = OFP_AF_INET6;
 		icmp6src.sin6_addr = eip6->ip6_src;
+#if 0
 		if (in6_setscope(&icmp6src.sin6_addr, m->m_pkthdr.rcvif, NULL))
 			goto freeit;
+#endif
 		icmp6src.sin6_flowinfo =
-		    (eip6->ip6_flow & IPV6_FLOWLABEL_MASK);
+		    (eip6->ofp_ip6_flow & OFP_IPV6_FLOWLABEL_MASK);
 
 		if (finaldst == NULL)
 			finaldst = &eip6->ip6_dst;
+
 		ip6cp.ip6c_m = m;
 		ip6cp.ip6c_icmp6 = icmp6;
-		ip6cp.ip6c_ip6 = (struct ip6_hdr *)(icmp6 + 1);
+		ip6cp.ip6c_ip6 = (struct ofp_ip6_hdr *)(icmp6 + 1);
 		ip6cp.ip6c_off = eoff;
 		ip6cp.ip6c_finaldst = finaldst;
 		ip6cp.ip6c_src = &icmp6src;
 		ip6cp.ip6c_nxt = nxt;
-
+#if 0
 		m_addr_changed(m);
 
 		if (icmp6type == ICMP6_PACKET_TOO_BIG) {
@@ -1100,22 +1087,22 @@ icmp6_notify_error(struct mbuf **mp, int off, int icmp6len, int code)
 			ip6cp.ip6c_cmdarg = (void *)&notifymtu;
 			icmp6_mtudisc_update(&ip6cp, 1);	/*XXX*/
 		}
-
-		ctlfunc = (void (*)(int, struct sockaddr *, void *))
-		    (inet6sw[ip6_protox[nxt]].pr_ctlinput);
-		if (ctlfunc) {
-			(void) (*ctlfunc)(code, (struct sockaddr *)&icmp6dst,
-			    &ip6cp);
-		}
+#endif
+		ctlfunc = (void (*)(int, struct ofp_sockaddr *, void *))
+		    (ofp_inet6sw[ofp_ip6_protox[nxt]].pr_ctlinput);
+		if (ctlfunc)
+			(void)(*ctlfunc)(code,
+				(struct ofp_sockaddr *)&icmp6dst,
+				&ip6cp);
 	}
-	*mp = m;
+
 	return (0);
 
-  freeit:
-	m_freem(m);
+freeit:
 	return (-1);
 }
 
+#if 0
 void
 icmp6_mtudisc_update(struct ip6ctlparam *ip6cp, int validated)
 {

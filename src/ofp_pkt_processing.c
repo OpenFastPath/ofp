@@ -961,7 +961,6 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 				ip6->ip6_dst.ofp_s6_addr) == OFP_PKT_DROP) {
 				OFP_ERR("MAC not set: gw = %x %x\n", nh->gw[0],
 					nh->gw[15]);
-				odp_packet_free(pkt);
 				return OFP_PKT_DROP;
 			}
 			return ofp_route_save_ipv6_pkt(pkt,
@@ -1040,12 +1039,15 @@ enum ofp_return_code ofp_sp_input(odp_packet_t pkt,
 	struct ofp_ifnet *ifnet)
 {
 #ifdef SP
-	odp_queue_enq(ifnet->spq_def, odp_packet_to_event(pkt));
+	if (odp_queue_enq(ifnet->spq_def, odp_packet_to_event(pkt)) < 0) {
+		odp_packet_free(pkt);
+		return OFP_PKT_DROP;
+	}
 	return OFP_PKT_PROCESSED;
 #else
-	(void)pkt;
 	(void)ifnet;
 
+	odp_packet_free(pkt);
 	return OFP_PKT_DROP;
 #endif
 }

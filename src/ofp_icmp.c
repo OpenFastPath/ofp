@@ -310,6 +310,8 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 	struct ofp_sockaddr_in icmpsrc, icmpdst, icmpgw;
 	int icmplen = odp_be_to_cpu_16(ip->ip_len);
 	int code;
+	pr_ctlinput_t *ctlfunc;
+
 #ifdef PROMISCUOUS_INET
 	/* XXX ICMP plumbing is currently incomplete for promiscuous mode interfaces not in fib 0 */
 	if ((m->m_pkthdr.rcvif->if_flags & IFF_PROMISCINET) &&
@@ -446,12 +448,10 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 		 * XXX if the packet contains [IPv4 AH TCP], we can't make a
 		 * notification to TCP layer.
 		 */
-/*TODO notify other protocols of the ICMP msg receive
-		ctlfunc = inetsw[ip_protox[icp->icmp_ip.ip_p]].pr_ctlinput;
+		ctlfunc = ofp_inetsw[ofp_ip_protox[icp->ofp_icmp_ip.ip_p]].pr_ctlinput;
 		if (ctlfunc)
-			(*ctlfunc)(code, (struct sockaddr *)&icmpsrc,
-				   (void *)&icp->icmp_ip);
-*/
+			(*ctlfunc)(code, (struct ofp_sockaddr *)&icmpsrc,
+				   (void *)&icp->ofp_icmp_ip);
 		break;
 
 	badcode:

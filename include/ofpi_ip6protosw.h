@@ -101,19 +101,18 @@ struct pr_usrreqs;
  *	(beware of flowlabel, if you try to compare it against others)
  * ip6c_dst: ip6c_finaldst + scope info
  */
-#if 0
-struct ip6ctlparam {
-	struct mbuf *ip6c_m;		/* start of mbuf chain */
-	struct icmp6_hdr *ip6c_icmp6;	/* icmp6 header of target packet */
-	struct ip6_hdr *ip6c_ip6;	/* ip6 header of target packet */
+
+struct ofp_ip6ctlparam {
+	odp_packet_t ip6c_m;		/* start of odp packet chain */
+	struct ofp_icmp6_hdr *ip6c_icmp6;	/* icmp6 header of target packet */
+	struct ofp_ip6_hdr *ip6c_ip6;	/* ip6 header of target packet */
 	int ip6c_off;			/* offset of the target proto header */
-	struct sockaddr_in6 *ip6c_src;	/* srcaddr w/ additional info */
-	struct sockaddr_in6 *ip6c_dst;	/* (final) dstaddr w/ additional info */
-	struct in6_addr *ip6c_finaldst;	/* final destination address */
+	struct ofp_sockaddr_in6 *ip6c_src;	/* srcaddr w/ additional info */
+	struct ofp_sockaddr_in6 *ip6c_dst;	/* (final) dstaddr w/ additional info */
+	struct ofp_in6_addr *ip6c_finaldst;	/* final destination address */
 	void *ip6c_cmdarg;		/* control command dependent data */
 	u_int8_t ip6c_nxt;		/* final next header field */
 };
-#endif
 
 struct ip6protosw {
 	short	pr_type;		/* socket type used for */
