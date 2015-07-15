@@ -66,6 +66,7 @@
 #include "ofpi_ip6_var.h"
 #include "ofpi_protosw.h"
 #include "ofpi_ip6protosw.h"
+#include "ofpi_icmp6.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 
@@ -113,4 +114,15 @@ int ofp_ip6_none_input(odp_packet_t pkt, int *offp, int *nxt)
 
 	*nxt = OFP_IPPROTO_DONE;
 	return OFP_PKT_PROCESSED;
+}
+
+int ofp_ip6_unrecognized_hdr_input(odp_packet_t pkt, int *offp, int *nxt)
+{
+	(void)offp;
+
+	ofp_icmp6_error(pkt, OFP_ICMP6_PARAM_PROB,
+		OFP_ICMP6_PARAMPROB_NEXTHEADER, 0);
+
+	*nxt = OFP_IPPROTO_DONE;
+	return OFP_PKT_DROP;
 }

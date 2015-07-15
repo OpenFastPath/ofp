@@ -915,43 +915,35 @@ icmp6_notify_error(odp_packet_t m, int off, int icmp6len, int code)
 		struct ofp_in6_addr *finaldst = NULL;
 		int eoff = off + sizeof(struct ofp_icmp6_hdr) +
 		    sizeof(struct ofp_ip6_hdr);
-
-#if 0
-		/* No Options support */
-		int icmp6type = icmp6->icmp6_type;
-		struct ip6_frag *fh;
-		struct ip6_rthdr *rth;
-		struct ip6_rthdr0 *rth0;
+		struct ofp_ip6_frag *fh;
+		struct ofp_ip6_rthdr *rth;
+		struct ofp_ip6_rthdr0 *rth0;
 		int rthlen;
+#if 0
+		int icmp6type = icmp6->icmp6_type;
+#endif
 
 		/* Detect the upper level protocol */
 		while (1) { /* XXX: should avoid infinite loop explicitly? */
-			struct ip6_ext *eh;
+			struct ofp_ip6_ext *eh;
 
 			switch (nxt) {
-			case IPPROTO_HOPOPTS:
-			case IPPROTO_DSTOPTS:
-			case IPPROTO_AH:
-#ifndef PULLDOWN_TEST
-				IP6_EXTHDR_CHECK(m, 0,
-				    eoff + sizeof(struct ip6_ext), -1);
-				eh = (struct ip6_ext *)(mtod(m, caddr_t) + eoff);
-#else
-				IP6_EXTHDR_GET(eh, struct ip6_ext *, m,
-				    eoff, sizeof(*eh));
-				if (eh == NULL) {
-					ICMP6STAT_INC(icp6s_tooshort);
-					return (-1);
-				}
-#endif
+			case OFP_IPPROTO_HOPOPTS:
+			case OFP_IPPROTO_DSTOPTS:
+			case OFP_IPPROTO_AH:
+				if (ip6len < eoff + sizeof(struct ofp_ip6_ext))
+					goto freeit;
+				eh = (struct ofp_ip6_ext *)((uint8_t *)
+					odp_packet_l3_ptr(m, NULL) + eoff);
 
-				if (nxt == IPPROTO_AH)
+				if (nxt == OFP_IPPROTO_AH)
 					eoff += (eh->ip6e_len + 2) << 2;
 				else
 					eoff += (eh->ip6e_len + 1) << 3;
 				nxt = eh->ip6e_nxt;
 				break;
-			case IPPROTO_ROUTING:
+
+			case OFP_IPPROTO_ROUTING:
 				/*
 				 * When the erroneous packet contains a
 				 * routing header, we should examine the
@@ -960,18 +952,12 @@ icmp6_notify_error(odp_packet_t m, int off, int icmp6len, int code)
 				 * information that depends on the final
 				 * destination (e.g. path MTU).
 				 */
-#ifndef PULLDOWN_TEST
-				IP6_EXTHDR_CHECK(m, 0, eoff + sizeof(*rth), -1);
-				rth = (struct ip6_rthdr *)
-				    (mtod(m, caddr_t) + eoff);
-#else
-				IP6_EXTHDR_GET(rth, struct ip6_rthdr *, m,
-				    eoff, sizeof(*rth));
-				if (rth == NULL) {
-					ICMP6STAT_INC(icp6s_tooshort);
-					return (-1);
-				}
-#endif
+				if (ip6len < eoff +
+					sizeof(struct ofp_ip6_rthdr))
+					goto freeit;
+				rth = (struct ofp_ip6_rthdr *)((uint8_t *)
+					odp_packet_l3_ptr(m, NULL) + eoff);
+
 				rthlen = (rth->ip6r_len + 1) << 3;
 				/*
 				 * XXX: currently there is no
@@ -981,55 +967,45 @@ icmp6_notify_error(odp_packet_t m, int off, int icmp6len, int code)
 				 * is 0, all intermediate hops must
 				 * have been passed.
 				 */
+
 				if (rth->ip6r_segleft &&
-				    rth->ip6r_type == IPV6_RTHDR_TYPE_0) {
+				    rth->ip6r_type == OFP_IPV6_RTHDR_TYPE_0) {
 					int hops;
 
-#ifndef PULLDOWN_TEST
-					IP6_EXTHDR_CHECK(m, 0, eoff + rthlen, -1);
-					rth0 = (struct ip6_rthdr0 *)
-					    (mtod(m, caddr_t) + eoff);
-#else
-					IP6_EXTHDR_GET(rth0,
-					    struct ip6_rthdr0 *, m,
-					    eoff, rthlen);
-					if (rth0 == NULL) {
-						ICMP6STAT_INC(icp6s_tooshort);
-						return (-1);
-					}
-#endif
+					if (ip6len < (uint32_t)eoff + rthlen)
+						goto freeit;
+					rth0 = (struct ofp_ip6_rthdr0 *)
+					((uint8_t *)odp_packet_l3_ptr(m, NULL) +
+						eoff);
 					/* just ignore a bogus header */
-					if ((rth0->ip6r0_len % 2) == 0 &&
-					    (hops = rth0->ip6r0_len/2))
-						finaldst = (struct in6_addr *)(rth0 + 1) + (hops - 1);
+					hops = rth0->ip6r0_len/2;
+					if ((rth0->ip6r0_len % 2) == 0 && hops)
+						finaldst =
+							(struct ofp_in6_addr *)
+							(rth0 + 1) +
+							(hops - 1);
 				}
+
 				eoff += rthlen;
 				nxt = rth->ip6r_nxt;
 				break;
-			case IPPROTO_FRAGMENT:
-#ifndef PULLDOWN_TEST
-				IP6_EXTHDR_CHECK(m, 0, eoff +
-				    sizeof(struct ip6_frag), -1);
-				fh = (struct ip6_frag *)(mtod(m, caddr_t) +
-				    eoff);
-#else
-				IP6_EXTHDR_GET(fh, struct ip6_frag *, m,
-				    eoff, sizeof(*fh));
-				if (fh == NULL) {
-					ICMP6STAT_INC(icp6s_tooshort);
-					return (-1);
-				}
-#endif
+			case OFP_IPPROTO_FRAGMENT:
+				if (ip6len < eoff + sizeof(struct ofp_ip6_frag))
+					goto freeit;
+				fh = (struct ofp_ip6_frag *)
+					((uint8_t *)odp_packet_l3_ptr(m, NULL) +
+					 eoff);
+
 				/*
 				 * Data after a fragment header is meaningless
 				 * unless it is the first fragment, but
 				 * we'll go to the notify label for path MTU
 				 * discovery.
 				 */
-				if (fh->ip6f_offlg & IP6F_OFF_MASK)
+				if (fh->ip6f_offlg & OFP_IP6F_OFF_MASK)
 					goto notify;
 
-				eoff += sizeof(struct ip6_frag);
+				eoff += sizeof(struct ofp_ip6_frag);
 				nxt = fh->ip6f_nxt;
 				break;
 			default:
@@ -1045,7 +1021,6 @@ icmp6_notify_error(odp_packet_t m, int off, int icmp6len, int code)
 			}
 		}
 notify:
-#endif /* 0 */
 		bzero(&icmp6dst, sizeof(icmp6dst));
 
 		icmp6dst.sin6_len = sizeof(struct ofp_sockaddr_in6);

@@ -272,6 +272,10 @@ extern const struct ofp_in6_addr ofp_in6addr_linklocal_allv2routers;
 	((OFP_IN6_IS_ADDR_LINKLOCAL(a)) ||	\
 	 (OFP_IN6_IS_ADDR_MC_LINKLOCAL(a)))
 
+#define OFP_IPV6_RTHDR_LOOSE     0 /* this hop need not be a neighbor. XXX old spec */
+#define OFP_IPV6_RTHDR_STRICT    1 /* this hop must be a neighbor. XXX old spec */
+#define OFP_IPV6_RTHDR_TYPE_0    0 /* IPv6 routing header type 0 */
+
 /*
  * Argument structure for IPV6_JOIN_GROUP and IPV6_LEAVE_GROUP.
  */

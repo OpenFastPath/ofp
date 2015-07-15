@@ -188,6 +188,7 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_type =		OFP_SOCK_RAW,
 	.pr_domain =		&ofp_inet6domain,
 	.pr_protocol =		OFP_IPPROTO_ICMPV6,
+	.pr_init =		NULL,
 	.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 	.pr_input =		ofp_icmp6_input,
 	.pr_output =		NULL/*rip6_output*/,
@@ -195,6 +196,46 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_ctloutput =		NULL/*rip6_ctloutput*/,
 	.pr_fasttimo =		NULL/*icmp6_fasttimo*/,
 	.pr_slowtimo =		NULL/*icmp6_slowtimo*/,
+	.pr_usrreqs =		&nousrreqs
+},
+{
+	.pr_type =		OFP_SOCK_RAW,
+	.pr_domain =		&ofp_inet6domain,
+	.pr_protocol =		OFP_IPPROTO_DSTOPTS,
+	.pr_init =		NULL,
+	.pr_destroy =		NULL,
+	.pr_flags =		PR_ATOMIC|PR_ADDR,
+	.pr_input =		ofp_ip6_unrecognized_hdr_input,
+	.pr_usrreqs =		&nousrreqs
+},
+{
+	.pr_type =		OFP_SOCK_RAW,
+	.pr_domain =		&ofp_inet6domain,
+	.pr_protocol =		OFP_IPPROTO_ROUTING,
+	.pr_init =		NULL,
+	.pr_destroy =		NULL,
+	.pr_flags =		PR_ATOMIC|PR_ADDR,
+	.pr_input =		ofp_ip6_unrecognized_hdr_input,
+	.pr_usrreqs =		&nousrreqs
+},
+{
+	.pr_type =		OFP_SOCK_RAW,
+	.pr_domain =		&ofp_inet6domain,
+	.pr_protocol =		OFP_IPPROTO_FRAGMENT,
+	.pr_init =		NULL,
+	.pr_destroy =		NULL,
+	.pr_flags =		PR_ATOMIC|PR_ADDR,
+	.pr_input =		ofp_ip6_unrecognized_hdr_input,
+	.pr_usrreqs =		&nousrreqs
+},
+{
+	.pr_type =		OFP_SOCK_RAW,
+	.pr_domain =		&ofp_inet6domain,
+	.pr_protocol =		OFP_IPPROTO_HOPOPTS,
+	.pr_init =		NULL,
+	.pr_destroy =		NULL,
+	.pr_flags =		PR_ATOMIC|PR_ADDR,
+	.pr_input =		ofp_ip6_unrecognized_hdr_input,
 	.pr_usrreqs =		&nousrreqs
 },
 {
