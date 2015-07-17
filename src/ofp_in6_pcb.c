@@ -75,6 +75,7 @@
 #include "ofpi_tcp_var.h"
 #include "ofpi_ip6_var.h"
 #include "ofpi_portconf.h"
+#include "ofpi_protosw.h"
 #include "ofpi_errno.h"
 
 #if 0
@@ -622,6 +623,7 @@ in6_mapped_peeraddr(struct socket *so, struct sockaddr **nam)
 
 	return error;
 }
+#endif /* 0 */
 
 /*
  * Pass some notification to all connections of a protocol
@@ -633,28 +635,30 @@ in6_mapped_peeraddr(struct socket *so, struct sockaddr **nam)
  * any errors for each matching socket.
  */
 void
-in6_pcbnotify(struct inpcbinfo *pcbinfo, struct sockaddr *dst,
-    u_int fport_arg, const struct sockaddr *src, u_int lport_arg,
-    int cmd, void *cmdarg,
-    struct inpcb *(*notify)(struct inpcb *, int))
+ofp_in6_pcbnotify(struct inpcbinfo *pcbinfo, struct ofp_sockaddr *dst,
+	u_int fport_arg, const struct ofp_sockaddr *src, u_int lport_arg,
+	int cmd, void *cmdarg,
+	struct inpcb *(*notify)(struct inpcb *, int))
 {
 	struct inpcb *inp, *inp_temp;
-	struct sockaddr_in6 sa6_src, *sa6_dst;
+	struct ofp_sockaddr_in6 sa6_src, *sa6_dst;
 	u_short	fport = fport_arg, lport = lport_arg;
 	u_int32_t flowinfo;
-	int errno;
+	int notif_errno;
 
-	if ((unsigned)cmd >= PRC_NCMDS || dst->sa_family != AF_INET6)
+	(void)cmdarg;
+	if ((unsigned)cmd >= OFP_PRC_NCMDS || dst->sa_family != OFP_AF_INET6)
 		return;
 
-	sa6_dst = (struct sockaddr_in6 *)dst;
-	if (IN6_IS_ADDR_UNSPECIFIED(&sa6_dst->sin6_addr))
+	sa6_dst = (struct ofp_sockaddr_in6 *)dst;
+	if (OFP_IN6_IS_ADDR_UNSPECIFIED(&sa6_dst->sin6_addr))
 		return;
 
 	/*
 	 * note that src can be NULL when we get notify by local fragmentation.
 	 */
-	sa6_src = (src == NULL) ? sa6_any : *(const struct sockaddr_in6 *)src;
+	sa6_src = (src == NULL) ? ofp_sa6_any :
+		*(const struct ofp_sockaddr_in6 *)src;
 	flowinfo = sa6_src.sin6_flowinfo;
 
 	/*
@@ -665,15 +669,16 @@ in6_pcbnotify(struct inpcbinfo *pcbinfo, struct sockaddr *dst,
 	 * Otherwise, if we have knowledge of the local port and address,
 	 * deliver only to that socket.
 	 */
-	if (PRC_IS_REDIRECT(cmd) || cmd == PRC_HOSTDEAD) {
+	if (OFP_PRC_IS_REDIRECT(cmd) || cmd == OFP_PRC_HOSTDEAD) {
 		fport = 0;
 		lport = 0;
 		bzero((caddr_t)&sa6_src.sin6_addr, sizeof(sa6_src.sin6_addr));
 
-		if (cmd != PRC_HOSTDEAD)
-			notify = in6_rtchange;
+		if (cmd != OFP_PRC_HOSTDEAD)
+			notify = ofp_in6_rtchange;
 	}
-	errno = inet6ctlerrmap[cmd];
+
+	notif_errno = ofp_inet6ctlerrmap[cmd];
 	INP_INFO_WLOCK(pcbinfo);
 	OFP_LIST_FOREACH_SAFE(inp, pcbinfo->ipi_listhead, inp_list, inp_temp) {
 		INP_WLOCK(inp);
@@ -681,7 +686,7 @@ in6_pcbnotify(struct inpcbinfo *pcbinfo, struct sockaddr *dst,
 			INP_WUNLOCK(inp);
 			continue;
 		}
-
+#if 0
 		/*
 		 * If the error designates a new path MTU for a destination
 		 * and the application (associated with this socket) wanted to
@@ -697,7 +702,7 @@ in6_pcbnotify(struct inpcbinfo *pcbinfo, struct sockaddr *dst,
 			ip6_notify_pmtu(inp, (struct sockaddr_in6 *)dst,
 					(u_int32_t *)cmdarg);
 		}
-
+#endif
 		/*
 		 * Detect if we should notify the error. If no source and
 		 * destination ports are specifed, but non-zero flowinfo and
@@ -708,31 +713,32 @@ in6_pcbnotify(struct inpcbinfo *pcbinfo, struct sockaddr *dst,
 		 */
 		if (lport == 0 && fport == 0 && flowinfo &&
 		    inp->inp_socket != NULL &&
-		    flowinfo == (inp->inp_flow & IPV6_FLOWLABEL_MASK) &&
-		    IN6_ARE_ADDR_EQUAL(&inp->in6p_laddr, &sa6_src.sin6_addr))
+		    flowinfo == (inp->inp_flow & OFP_IPV6_FLOWLABEL_MASK) &&
+		    OFP_IN6_ARE_ADDR_EQUAL(&inp->in6p_laddr,
+			    &sa6_src.sin6_addr))
 			goto do_notify;
-		else if (!IN6_ARE_ADDR_EQUAL(&inp->in6p_faddr,
+		else if (!OFP_IN6_ARE_ADDR_EQUAL(&inp->in6p_faddr,
 					     &sa6_dst->sin6_addr) ||
 			 inp->inp_socket == 0 ||
 			 (lport && inp->inp_lport != lport) ||
-			 (!IN6_IS_ADDR_UNSPECIFIED(&sa6_src.sin6_addr) &&
-			  !IN6_ARE_ADDR_EQUAL(&inp->in6p_laddr,
+			 (!OFP_IN6_IS_ADDR_UNSPECIFIED(&sa6_src.sin6_addr) &&
+			  !OFP_IN6_ARE_ADDR_EQUAL(&inp->in6p_laddr,
 					      &sa6_src.sin6_addr)) ||
 			 (fport && inp->inp_fport != fport)) {
 			INP_WUNLOCK(inp);
 			continue;
 		}
-
-	  do_notify:
+do_notify:
 		if (notify) {
-			if ((*notify)(inp, errno))
+			if ((*notify)(inp, notif_errno))
 				INP_WUNLOCK(inp);
 		} else
 			INP_WUNLOCK(inp);
 	}
+
 	INP_INFO_WUNLOCK(pcbinfo);
 }
-#endif
+
 /*
  * Lookup a PCB based on the local address and port.  Caller must hold the
  * hash lock.  No inpcb locks or references are acquired.
@@ -886,20 +892,23 @@ in6_losing(struct inpcb *in6p)
 	 */
 	return;
 }
+#endif
 
 /*
  * After a routing change, flush old routing
  * and allocate a (hopefully) better one.
  */
 struct inpcb *
-in6_rtchange(struct inpcb *inp, int errno)
+ofp_in6_rtchange(struct inpcb *inp, int errno)
 {
 	/*
 	 * We don't store route pointers in the routing table anymore
 	 */
+	(void)errno;
 	return inp;
 }
 
+#if 0
 #ifdef PCBGROUP
 /*
  * Lookup PCB in hash list, using pcbgroup tables.

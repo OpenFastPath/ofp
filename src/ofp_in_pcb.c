@@ -1105,6 +1105,33 @@ ofp_in_getpeeraddr(struct socket *so, struct ofp_sockaddr **nam)
 	return 0;
 }
 
+void
+ofp_in_pcbnotifyall(struct inpcbinfo *pcbinfo,
+	struct ofp_in_addr faddr, int errno,
+	struct inpcb *(*notify)(struct inpcb *, int))
+{
+	struct inpcb *inp, *inp_temp;
+
+	INP_INFO_WLOCK(pcbinfo);
+	OFP_LIST_FOREACH_SAFE(inp, pcbinfo->ipi_listhead, inp_list, inp_temp) {
+		INP_WLOCK(inp);
+#ifdef INET6
+		if ((inp->inp_vflag & INP_IPV4) == 0) {
+			INP_WUNLOCK(inp);
+			continue;
+		}
+#endif
+		if (inp->inp_faddr.s_addr != faddr.s_addr ||
+		    inp->inp_socket == NULL) {
+			INP_WUNLOCK(inp);
+			continue;
+		}
+		if ((*notify)(inp, errno))
+			INP_WUNLOCK(inp);
+	}
+	INP_INFO_WUNLOCK(pcbinfo);
+}
+
 /*
  * Lookup a PCB based on the local address and port.  Caller must hold the
  * hash lock.  No inpcb locks or references are acquired.

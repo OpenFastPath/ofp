@@ -870,7 +870,7 @@ deliver:
 	if (icmp6_notify_error(m, off, icmp6len, code) != 0)
 		goto freeit;
 
-	return OFP_PKT_PROCESSED;
+	return OFP_PKT_DROP;
 
 badcode:
 badlen:

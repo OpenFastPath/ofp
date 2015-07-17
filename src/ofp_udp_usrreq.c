@@ -559,11 +559,6 @@ ofp_udp_notify(struct inpcb *inp, int err)
 void
 ofp_udp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 {
-	(void)cmd;
-	(void)sa;
-	(void)vip;
-
-#if 0
 	struct ofp_ip *ip = vip;
 	struct ofp_udphdr *uh;
 	struct ofp_in_addr faddr;
@@ -576,7 +571,7 @@ ofp_udp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 	/*
 	 * Redirects don't need to be handled up here.
 	 */
-	if (PRC_IS_REDIRECT(cmd))
+	if (OFP_PRC_IS_REDIRECT(cmd))
 		return;
 
 	/*
@@ -585,9 +580,9 @@ ofp_udp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 	 * XXX: We never get this from ICMP, otherwise it makes an excellent
 	 * DoS attack on machines with many connections.
 	 */
-	if (cmd == PRC_HOSTDEAD)
+	if (cmd == OFP_PRC_HOSTDEAD)
 		ip = NULL;
-	else if ((unsigned)cmd >= PRC_NCMDS || ofp_inetctlerrmap[cmd] == 0)
+	else if ((unsigned)cmd >= OFP_PRC_NCMDS || ofp_inetctlerrmap[cmd] == 0)
 		return;
 	if (ip != NULL) {
 		uh = (struct ofp_udphdr *)((char *)ip + (ip->ip_hl << 2));
@@ -595,20 +590,13 @@ ofp_udp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 		    ip->ip_src, uh->uh_sport, INPLOOKUP_RLOCKPCB, NULL);
 		if (inp != NULL) {
 			INP_RLOCK_ASSERT(inp);
-			if (inp->inp_socket != NULL) {
-#if 0
+			if (inp->inp_socket != NULL)
 				ofp_udp_notify(inp, ofp_inetctlerrmap[cmd]);
-#endif
-			}
 			INP_RUNLOCK(inp);
 		}
-	}
-#if 0
-        else
-		in_pcbnotifyall(&ofp_udbinfo, faddr, ofp_inetctlerrmap[cmd],
+	} else
+		ofp_in_pcbnotifyall(&ofp_udbinfo, faddr, ofp_inetctlerrmap[cmd],
 		    ofp_udp_notify);
-#endif
-#endif
 }
 
 #if 0

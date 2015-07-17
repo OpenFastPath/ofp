@@ -107,6 +107,7 @@ __FBSDID("$FreeBSD: release/9.1.0/sys/netinet6/in6.c 238476 2012-07-15 11:13:09Z
 #include "ofpi_in6.h"
 #include "ofpi_ip6_var.h"
 #include "ofpi_socket.h"
+#include "ofpi_protosw.h"
 #include "api/ofp_types.h"
 #include "api/ofp_route_arp.h"
 #include "api/ofp_errno.h"
@@ -135,10 +136,10 @@ const struct ofp_in6_addr ofp_in6mask64 = OFP_IN6MASK64;
 const struct ofp_in6_addr ofp_in6mask96 = OFP_IN6MASK96;
 const struct ofp_in6_addr ofp_in6mask128 = OFP_IN6MASK128;
 
-#if 0
-const struct sockaddr_in6 sa6_any =
-	{ sizeof(sa6_any), AF_INET6, 0, 0, IN6ADDR_ANY_INIT, 0 };
+const struct ofp_sockaddr_in6 ofp_sa6_any = {
+	sizeof(ofp_sa6_any), OFP_AF_INET6, 0, 0, OFP_IN6ADDR_ANY_INIT, 0};
 
+#if 0
 static int in6_lifaddr_ioctl __P((struct socket *, u_long, caddr_t,
 	struct ifnet *, struct thread *));
 static int in6_ifinit __P((struct ifnet *, struct in6_ifaddr *,
@@ -2904,3 +2905,18 @@ int ofp_in6_clearscope(struct ofp_in6_addr *in6)
 
 	return modified;
 }
+
+
+/*
+ * System control for IP6
+ */
+
+uint8_t ofp_inet6ctlerrmap[OFP_PRC_NCMDS] = {
+	0,		0,		0,		0,
+	0,		OFP_EMSGSIZE,	OFP_EHOSTDOWN,	OFP_EHOSTUNREACH,
+	OFP_EHOSTUNREACH,	OFP_EHOSTUNREACH,	OFP_ECONNREFUSED,
+	OFP_ECONNREFUSED,
+	OFP_EMSGSIZE,	OFP_EHOSTUNREACH,	0,		0,
+	0,		0,		0,		0,
+	OFP_ENOPROTOOPT
+};

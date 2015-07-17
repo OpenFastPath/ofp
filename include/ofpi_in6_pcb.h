@@ -112,13 +112,12 @@ struct	inpcb *
 			struct ofp_in6_addr *,
 			u_int, struct ofp_in6_addr *, u_int, int,
 			struct ofp_ifnet *ifp, odp_packet_t m));
-#if 0
-void	in6_pcbnotify __P((struct inpcbinfo *, struct sockaddr *,
-			   u_int, const struct sockaddr *, u_int, int, void *,
-			   struct inpcb *(*)(struct inpcb *, int)));
+void	ofp_in6_pcbnotify __P((struct inpcbinfo *, struct ofp_sockaddr *,
+			u_int, const struct ofp_sockaddr *, u_int, int, void *,
+			struct inpcb *(*)(struct inpcb *, int)));
 struct inpcb *
-	in6_rtchange __P((struct inpcb *, int));
-#endif
+	ofp_in6_rtchange __P((struct inpcb *, int));
+
 struct ofp_sockaddr *
 	ofp_in6_sockaddr __P((ofp_in_port_t port,
 			struct ofp_in6_addr *addr_p));

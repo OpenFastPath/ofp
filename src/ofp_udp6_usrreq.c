@@ -508,49 +508,44 @@ badunlocked:
 void
 ofp_udp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 {
-	(void)cmd;
-	(void)sa;
-	(void)d;
-#if 0
-	struct udphdr uh;
-	struct ip6_hdr *ip6;
-	struct mbuf *m;
+	struct ofp_udphdr uh;
+	struct ofp_ip6_hdr *ip6;
+	odp_packet_t m;
+	struct ofp_ip6ctlparam *ip6cp = NULL;
 	int off = 0;
-	struct ip6ctlparam *ip6cp = NULL;
-	const struct sockaddr_in6 *sa6_src = NULL;
+	const struct ofp_sockaddr_in6 *sa6_src = NULL;
 	void *cmdarg;
-	struct inpcb *(*notify)(struct inpcb *, int) = udp_notify;
+	struct inpcb *(*notify)(struct inpcb *, int) = ofp_udp_notify;
 	struct udp_portonly {
 		u_int16_t uh_sport;
 		u_int16_t uh_dport;
 	} *uhp;
 
-	if (sa->sa_family != AF_INET6 ||
-	    sa->sa_len != sizeof(struct sockaddr_in6))
-		return;
 
-	if ((unsigned)cmd >= PRC_NCMDS)
+	if (sa->sa_family != OFP_AF_INET6 ||
+	    sa->sa_len != sizeof(struct ofp_sockaddr_in6))
 		return;
-	if (PRC_IS_REDIRECT(cmd))
-		notify = in6_rtchange, d = NULL;
-	else if (cmd == PRC_HOSTDEAD)
+	if ((unsigned)cmd >= OFP_PRC_NCMDS)
+		return;
+	if (OFP_PRC_IS_REDIRECT(cmd))
+		notify = ofp_in6_rtchange, d = NULL;
+	else if (cmd == OFP_PRC_HOSTDEAD)
 		d = NULL;
-	else if (inet6ctlerrmap[cmd] == 0)
+	else if (ofp_inet6ctlerrmap[cmd] == 0)
 		return;
-
 	/* if the parameter is from icmp6, decode it. */
 	if (d != NULL) {
-		ip6cp = (struct ip6ctlparam *)d;
+		ip6cp = (struct ofp_ip6ctlparam *)d;
 		m = ip6cp->ip6c_m;
 		ip6 = ip6cp->ip6c_ip6;
 		off = ip6cp->ip6c_off;
 		cmdarg = ip6cp->ip6c_cmdarg;
 		sa6_src = ip6cp->ip6c_src;
 	} else {
-		m = NULL;
+		m = ODP_PACKET_INVALID;
 		ip6 = NULL;
 		cmdarg = NULL;
-		sa6_src = &sa6_any;
+		sa6_src = &ofp_sa6_any;
 	}
 
 	if (ip6) {
@@ -558,21 +553,22 @@ ofp_udp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 		 * XXX: We assume that when IPV6 is non NULL,
 		 * M and OFF are valid.
 		 */
-
+#if 0
 		/* Check if we can safely examine src and dst ports. */
 		if (m->m_pkthdr.len < off + sizeof(*uhp))
 			return;
+#endif
 
 		bzero(&uh, sizeof(uh));
-		m_copydata(m, off, sizeof(*uhp), (caddr_t)&uh);
-
-		(void) in6_pcbnotify(&V_udbinfo, sa, uh.uh_dport,
-		    (struct sockaddr *)ip6cp->ip6c_src, uh.uh_sport, cmd,
-		    cmdarg, notify);
+		memcpy(&uh, (uint8_t *)odp_packet_l3_ptr(m, NULL) + off,
+			sizeof(*uhp));
+		(void)ofp_in6_pcbnotify(&ofp_udbinfo, sa, uh.uh_dport,
+			(struct ofp_sockaddr *)ip6cp->ip6c_src, uh.uh_sport,
+			 cmd, cmdarg, notify);
 	} else
-		(void) in6_pcbnotify(&V_udbinfo, sa, 0,
-		    (const struct sockaddr *)sa6_src, 0, cmd, cmdarg, notify);
-#endif
+		(void)ofp_in6_pcbnotify(&ofp_udbinfo, sa, 0,
+			(const struct ofp_sockaddr *)sa6_src, 0,
+			cmd, cmdarg, notify);
 }
 
 #if 0

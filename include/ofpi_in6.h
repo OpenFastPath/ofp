@@ -13,6 +13,7 @@
 #include "api/ofp_in6.h"
 
 extern  uint8_t ofp_ip6_protox[];
+extern  uint8_t ofp_inet6ctlerrmap[];
 
 #define OFP_IN6_IS_SOLICITED_NODE_MC(maddr, taddr) \
 	((maddr.ofp_s6_addr16[0] == OFP_IPV6_ADDR_INT16_MLL) && \
