@@ -81,6 +81,11 @@ void *default_event_dispatcher(void *arg)
 
 			if (odp_event_type(ev) == ODP_EVENT_PACKET) {
 				pkt = odp_packet_from_event(ev);
+				if (odp_unlikely(odp_packet_has_error(pkt))) {
+					OFP_DBG("Packet with error dropped.\n");
+					odp_packet_free(pkt);
+					continue;
+				}
 
 				ofp_packet_input(pkt, in_queue, pkt_func);
 				continue;
@@ -113,17 +118,26 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 {
 	uint16_t vlan = 0;
 	struct ofp_ether_header *eth;
-	struct ofp_ifnet *ifnet =  odp_packet_user_ptr(pkt);
+	struct ofp_ifnet *ifnet = odp_packet_user_ptr(pkt);
 
 	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
 	if (odp_unlikely(eth == NULL))
 		return OFP_PKT_DROP;
+
+#ifndef OFP_PERFORMANCE
+	if (odp_unlikely(odp_packet_l3_ptr(pkt, NULL) == NULL)) {
+		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_header));
+	}
+#endif
 
 	if (odp_be_to_cpu_16(eth->ether_type) == OFP_ETHERTYPE_VLAN) {
 		struct ofp_ether_vlan_header *vlan_hdr;
 
 		vlan_hdr = (struct ofp_ether_vlan_header *)eth;
 		vlan = OFP_EVL_VLANOFTAG(vlan_hdr->evl_tag);
+#ifndef OFP_PERFORMANCE
+		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_vlan_header));
+#endif
 	}
 
 	odp_packet_user_ptr_set(pkt, ofp_get_ifnet(ifnet->port, vlan));
@@ -392,6 +406,9 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 	uint16_t vlan = dev->vlan;
 
 	arp = (struct ofp_arphdr *)odp_packet_l3_ptr(pkt, NULL);
+
+	if (odp_unlikely(arp == NULL))
+		return OFP_PKT_DROP;
 
 	/* save the received arp info */
 	if (odp_be_to_cpu_16(arp->op) == OFP_ARPOP_REPLY)

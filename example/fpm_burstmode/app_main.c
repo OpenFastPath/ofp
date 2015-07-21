@@ -84,6 +84,7 @@ static void *pkt_io_recv(void *arg)
 			if (odp_unlikely(odp_packet_has_error(pkt))) {
 				OFP_DBG("Packet with error dropped.\n");
 				odp_packet_free(pkt);
+				continue;
 			}
 
 			ofp_packet_input(pkt, ODP_QUEUE_INVALID, pkt_func);

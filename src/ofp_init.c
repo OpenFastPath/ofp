@@ -44,8 +44,7 @@
 
 #define LINUX_THREADS_MAX	4
 #define SHM_PKT_POOL_SIZE	(512*2048)
-#define SHM_PKT_POOL_BUFFER_SIZE	1896
-#define SHM_PKT_NR_POOL		(4080)
+#define SHM_PKT_POOL_BUFFER_SIZE	1856
 
 int ofp_init_global(ofp_init_global_t *params)
 {
@@ -83,7 +82,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num = SHM_PKT_NR_POOL;
+	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type  = ODP_POOL_PACKET;
 
 	pool = odp_pool_create("packet_pool", ODP_SHM_NULL, &pool_params);
@@ -211,6 +210,14 @@ int ofp_init_global(ofp_init_global_t *params)
 		/* Set interface MTU*/
 		ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
 		OFP_DBG("device %s MTU %d\n", ifnet->if_name, ifnet->if_mtu);
+
+		/* RFC 791, p. 24, "Every internet module must be able
+		 * to forward a datagram of 68 octets without further
+		 * fragmentation."*/
+		if (ifnet->if_mtu < 68) {
+			OFP_DBG("Invalid MTU. Overwrite MTU value to 1500\n");
+			ifnet->if_mtu = 1500;
+		}
 
 		/* Set interface MAC address */
 		if (odp_pktio_mac_addr(ifnet->pktio, ifnet->mac,
