@@ -62,13 +62,35 @@ static uint8_t test_frame[140] = {
 0xa9, 0x59, 0xcd, 0x58
 };
 
+static uint8_t test_frame_vlan[144] = {
+0x40, 0x01, 0xec, 0x36, 0x93, 0x18, 0xc8, 0x35,
+0xb8, 0x28, 0x91, 0x3e, 0x81, 0x00, 0x00, 0xA1, 0x08, 0x00, 0x45, 0x00,
+0x00, 0x7a, 0x00, 0x00, 0x40, 0x00, 0x40, 0x11,
+0xf0, 0x71, 0x0a, 0x00, 0x1a, 0x01, 0x0a, 0x00,
+0x1c, 0x01, 0x00, 0xa1, 0xff, 0xfe, 0x00, 0x66,
+0xd4, 0xc3, 0x30, 0x5c, 0x02, 0x01, 0x01, 0x04,
+0x06, 0x4e, 0x45, 0x54, 0x4d, 0x41, 0x4e, 0xa2,
+0x4f, 0x02, 0x03, 0x0f, 0xb0, 0xc7, 0x02, 0x01,
+0x00, 0x02, 0x01, 0x00, 0x30, 0x42, 0x30, 0x14,
+0x06, 0x0f, 0x2b, 0x06, 0x01, 0x04, 0x01, 0x81,
+0x41, 0x81, 0x31, 0x01, 0x02, 0x02, 0x01, 0x07,
+0x00, 0x02, 0x01, 0x01, 0x30, 0x14, 0x06, 0x0f,
+0x2b, 0x06, 0x01, 0x04, 0x01, 0x81, 0x41, 0x81,
+0x31, 0x01, 0x02, 0x02, 0x01, 0x08, 0x00, 0x02,
+0x01, 0x00, 0x30, 0x14, 0x06, 0x0f, 0x2b, 0x06,
+0x01, 0x04, 0x01, 0x81, 0x41, 0x81, 0x31, 0x01,
+0x02, 0x02, 0x01, 0x09, 0x00, 0x02, 0x01, 0x00,
+0xa9, 0x59, 0xcd, 0x58
+};
+
 #define SHM_PKT_POOL_SIZE      (32*2048)
 #define SHM_PKT_POOL_BUF_SIZE  3000
 
 static uint32_t port = 0, vlan = 0, vrf = 0, def_mtu = 1500;
 static uint32_t dev_ip = 0x650AA8C0;   /* C0.A8.0A.65 = 192.168.10.101 */
 static uint8_t dev_mac[6] = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-static struct ofp_ifnet *dev;
+static uint8_t dev_vlan_mac[6] = {0x11, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+static struct ofp_ifnet *dev, *dev_vlan;
 static uint8_t orig_pkt_data[SHM_PKT_POOL_BUF_SIZE];
 uint16_t greid = 100;
 static uint32_t tun_rem_ip = 0x660AA8C0;   /* C0.A8.0A.66 = 192.168.10.102 */
@@ -86,6 +108,7 @@ static void init_ifnet(void)
 
 	ofp_config_interface_up_v4(port, vlan, vrf, dev_ip, 24);
 
+	/* port 0 */
 	dev = ofp_get_ifnet(port, vlan);
 	memcpy(dev->mac, dev_mac, OFP_ETHER_ADDR_LEN);
 	dev->if_mtu = def_mtu;
@@ -105,6 +128,29 @@ static void init_ifnet(void)
 		return;
 	}
 
+	/* port 0 vlan 1 */
+	ofp_config_interface_up_v4(port, vlan + 1, vrf, dev_ip + 1, 24);
+
+	dev_vlan = ofp_get_ifnet(port, vlan + 1);
+	memcpy(dev_vlan->mac, dev_vlan_mac, OFP_ETHER_ADDR_LEN);
+	dev_vlan->if_mtu = def_mtu;
+#ifdef SP
+	dev_vlan->linux_index = port + 4; /* an if index of Linux != port val */
+	ofp_update_ifindex_lookup_tab(dev_vlan);
+#endif /* SP */
+
+	dev_vlan->pkt_pool = odp_pool_lookup("packet_pool");
+
+	sprintf(str, "out default queue:%d", port);
+	dev_vlan->outq_def = odp_queue_create(str,
+					      ODP_QUEUE_TYPE_POLL,
+					      NULL);
+	if (dev_vlan->outq_def == ODP_QUEUE_INVALID) {
+		fail_with_odp("Out default queue create failed.\n");
+		return;
+	}
+
+	/* Tunnels */
 	ofp_config_interface_up_tun(GRE_PORTS, 100, 0, dev_ip, tun_rem_ip,
 				      tun_p2p, tun_addr, tun_mask);
 
@@ -187,7 +233,9 @@ create_odp_packet_ip4(odp_packet_t *opkt, uint8_t *pkt_data, int plen,
 	odp_pool_t pool;
 	uint8_t *buf;
 	odp_packet_t pkt = ODP_PACKET_INVALID;
+	struct ofp_ether_header *eth;
 	struct ofp_ip *iphdr;
+	uint32_t eth_len;
 
 	memset(orig_pkt_data, 0x0, sizeof(orig_pkt_data));
 
@@ -221,12 +269,18 @@ create_odp_packet_ip4(odp_packet_t *opkt, uint8_t *pkt_data, int plen,
 	}
 	/* END OF changes to the default packet */
 
+	eth = (struct ofp_ether_header *)buf;
+	if (eth->ether_type == odp_cpu_to_be_16(OFP_ETHERTYPE_VLAN))
+		eth_len = OFP_ETHER_HDR_LEN + OFP_ETHER_VLAN_ENCAP_LEN;
+	else
+		eth_len = OFP_ETHER_HDR_LEN;
+
 	odp_packet_has_eth_set(pkt, 1);
 	odp_packet_has_l2_set(pkt, 1);
 	odp_packet_has_ipv4_set(pkt, 1);
 	odp_packet_l2_offset_set(pkt, 0);
-	odp_packet_l3_offset_set(pkt, OFP_ETHER_HDR_LEN);
-	odp_packet_l4_offset_set(pkt, OFP_ETHER_HDR_LEN + (iphdr->ip_hl<<2));
+	odp_packet_l3_offset_set(pkt, eth_len);
+	odp_packet_l4_offset_set(pkt, eth_len + (iphdr->ip_hl<<2));
 
 	*opkt = pkt;
 
@@ -292,8 +346,6 @@ test_packet_output_gre(void)
 		CU_FAIL("Fail to create packet");
 		return;
 	}
-
-	ofp_set_debug_flags(0x1F);
 
 	/*
 	 * Packet's destination is GRE tunnel's p2p address, next hop is GRE
@@ -430,6 +482,154 @@ test_packet_output_ipv6_to_gre(void)
 		CU_FAIL("Inner IP packet error.");
 }
 #endif
+
+static void
+test_send_frame_packet_len_bigger_than_mtu(void)
+{
+	odp_packet_t pkt = ODP_PACKET_INVALID;
+	odp_event_t ev;
+	uint32_t old_mtu;
+	int res;
+
+	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame), 0)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	old_mtu = dev->if_mtu;
+	dev->if_mtu = 120;
+
+	res = ofp_send_frame(dev, pkt);
+	CU_ASSERT_EQUAL(res, OFP_PKT_DROP);
+
+	dev->if_mtu = old_mtu;
+
+	ev = odp_queue_deq(dev->outq_def);
+	CU_ASSERT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
+}
+
+static void
+test_send_frame_novlan_to_novlan(void)
+{
+	odp_packet_t pkt = ODP_PACKET_INVALID;
+	odp_event_t ev;
+	int res;
+
+	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame), 0)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	res = ofp_send_frame(dev, pkt);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	ev = odp_queue_deq(dev->outq_def);
+	CU_ASSERT_NOT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
+
+	pkt = odp_packet_from_event(ev);
+	CU_ASSERT_EQUAL_FATAL(odp_packet_len(pkt), sizeof(test_frame));
+
+	if (memcmp(odp_packet_l2_ptr(pkt, NULL), test_frame,
+		   sizeof(test_frame)))
+		CU_FAIL("Frame data mismatch.");
+}
+
+static void
+test_send_frame_novlan_to_vlan(void)
+{
+	odp_packet_t pkt = ODP_PACKET_INVALID;
+	odp_event_t ev;
+	struct ofp_ether_vlan_header *eth_vlan;
+	uint8_t *buf;
+	int res;
+
+	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame), 0)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	res = ofp_send_frame(dev_vlan, pkt);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	ev = odp_queue_deq(dev->outq_def);
+	CU_ASSERT_NOT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
+
+	pkt = odp_packet_from_event(ev);
+	CU_ASSERT_EQUAL_FATAL(odp_packet_len(pkt), sizeof(test_frame) + 4);
+
+	eth_vlan = odp_packet_l2_ptr(pkt, NULL);
+	if (memcmp(eth_vlan, test_frame, 2 * OFP_ETHER_ADDR_LEN))
+		CU_FAIL("Frame data mismatch.");
+
+	CU_ASSERT_EQUAL(eth_vlan->evl_encap_proto,
+			odp_cpu_to_be_16(OFP_ETHERTYPE_VLAN));
+	CU_ASSERT_EQUAL(eth_vlan->evl_tag,
+			odp_cpu_to_be_16(dev_vlan->vlan));
+
+	buf = (uint8_t *)eth_vlan;
+	if (memcmp(&buf[16], &test_frame[12],
+		   sizeof(test_frame) - 2 * OFP_ETHER_ADDR_LEN))
+		CU_FAIL("Frame data mismatch.");
+}
+
+static void
+test_send_frame_vlan_to_novlan(void)
+{
+	odp_packet_t pkt = ODP_PACKET_INVALID;
+	odp_event_t ev;
+	int res;
+
+	if (create_odp_packet_ip4(&pkt, test_frame_vlan,
+				  sizeof(test_frame_vlan), 0)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	res = ofp_send_frame(dev, pkt);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	ev = odp_queue_deq(dev->outq_def);
+	CU_ASSERT_NOT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
+
+	pkt = odp_packet_from_event(ev);
+	CU_ASSERT_EQUAL_FATAL(odp_packet_len(pkt), sizeof(test_frame));
+
+	if (memcmp(odp_packet_l2_ptr(pkt, NULL), test_frame,
+		   sizeof(test_frame)))
+		CU_FAIL("Frame data mismatch.");
+}
+
+static void
+test_send_frame_vlan_to_vlan(void)
+{
+	odp_packet_t pkt = ODP_PACKET_INVALID;
+	odp_event_t ev;
+	uint8_t check_buf[144];
+	int res;
+
+	if (create_odp_packet_ip4(&pkt, test_frame_vlan,
+				  sizeof(test_frame_vlan), 0)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	memcpy(check_buf, test_frame_vlan, sizeof(test_frame_vlan));
+	check_buf[15] = dev_vlan->vlan;
+
+	res = ofp_send_frame(dev_vlan, pkt);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	ev = odp_queue_deq(dev->outq_def);
+	CU_ASSERT_NOT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
+
+	pkt = odp_packet_from_event(ev);
+	CU_ASSERT_EQUAL_FATAL(odp_packet_len(pkt), sizeof(test_frame_vlan));
+
+	if (memcmp(odp_packet_l2_ptr(pkt, NULL), check_buf,
+		   sizeof(test_frame_vlan)))
+		CU_FAIL("Frame data mismatch.");
+}
+
 /*
  * Main
  */
@@ -469,6 +669,33 @@ main(void)
 		return CU_get_error();
 	}
 #endif
+
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_send_frame_packet_len_bigger_than_mtu)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_send_frame_novlan_to_novlan)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_send_frame_novlan_to_vlan)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_send_frame_vlan_to_novlan)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_send_frame_vlan_to_vlan)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+
 
 #if OFP_TESTMODE_AUTO
 	CU_set_output_filename("CUnit-PKT-OUT");

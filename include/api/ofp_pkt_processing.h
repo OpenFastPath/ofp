@@ -29,6 +29,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt);
 enum ofp_return_code ofp_udp4_processing(odp_packet_t pkt);
 enum ofp_return_code ofp_tcp4_processing(odp_packet_t pkt);
 
+enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt);
 enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	struct ofp_nh_entry *nh_param);
 enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,

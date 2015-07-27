@@ -524,6 +524,77 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 		odp_packet_free(pkt);
 }
 
+enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
+{
+	struct ofp_ether_header *eth, eth_tmp;
+	struct ofp_ether_vlan_header *eth_vlan, eth_vlan_tmp;
+	uint32_t pkt_len, eth_hdr_len;
+
+	if (dev->port == GRE_PORTS) {
+		OFP_ERR("Send frame on GRE port.\n");
+		return OFP_PKT_DROP;
+	}
+
+	/* Contsruct ethernet header */
+	eth = odp_packet_l2_ptr(pkt, NULL);
+	eth_vlan = odp_packet_l2_ptr(pkt, NULL);
+
+	if (odp_be_to_cpu_16(eth->ether_type) == OFP_ETHERTYPE_VLAN) {
+		if (dev->vlan) {
+			/* change vlan */
+			eth_vlan->evl_tag = odp_cpu_to_be_16(dev->vlan);
+		} else {
+			/* remove existing vlan */
+			eth_vlan_tmp = *eth_vlan;
+			eth = odp_packet_pull_head(pkt, 4);
+			if (!eth) {
+				OFP_ERR("Packet pull head failed.\n");
+				return OFP_PKT_DROP;
+			}
+
+			odp_packet_l3_offset_set(pkt,
+						 odp_packet_l3_offset(pkt) - 4);
+			ofp_copy_mac(eth->ether_dhost, eth_vlan_tmp.evl_dhost);
+			ofp_copy_mac(eth->ether_shost, eth_vlan_tmp.evl_shost);
+			eth->ether_type = eth_vlan_tmp.evl_proto;
+		}
+	} else {
+		if (dev->vlan) {
+			/* insert vlan */
+			eth_tmp = *eth;
+			eth_vlan = odp_packet_push_head(pkt, 4);
+			if (!eth_vlan) {
+				OFP_ERR("Packet push head failed.\n");
+				return OFP_PKT_DROP;
+			}
+
+			odp_packet_l3_offset_set(pkt,
+						 odp_packet_l3_offset(pkt) + 4);
+			ofp_copy_mac(eth_vlan->evl_dhost, eth_tmp.ether_dhost);
+			ofp_copy_mac(eth_vlan->evl_shost, eth_tmp.ether_shost);
+			eth_vlan->evl_encap_proto =
+				odp_cpu_to_be_16(OFP_ETHERTYPE_VLAN);
+			eth_vlan->evl_tag = odp_cpu_to_be_16(dev->vlan);
+			eth_vlan->evl_proto = eth_tmp.ether_type;
+		}
+	}
+
+	if (dev->vlan)
+		eth_hdr_len = OFP_ETHER_HDR_LEN + OFP_ETHER_VLAN_ENCAP_LEN;
+	else
+		eth_hdr_len = OFP_ETHER_HDR_LEN;
+
+	pkt_len = odp_packet_len(pkt) - eth_hdr_len;
+
+	if (pkt_len > dev->if_mtu) {
+		OFP_ERR("Packet size bigger than MTU: %d %d\n", pkt_len,
+			dev->if_mtu);
+		return OFP_PKT_DROP;
+	}
+
+	return send_pkt_out(dev, pkt);
+}
+
 static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 			      struct ofp_ifnet *dev_out,
 			      uint8_t is_local_address)
