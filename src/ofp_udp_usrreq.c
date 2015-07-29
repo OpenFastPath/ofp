@@ -103,14 +103,6 @@ static void	udp_detach(struct socket *so);
 static int	udp_output(struct inpcb *, odp_packet_t , struct ofp_sockaddr *,
 		    odp_packet_t , struct thread *);
 
-uint8_t ofp_inetctlerrmap[OFP_PRC_NCMDS] = {
-	0,		0,		0,		0,
-	0,		OFP_EMSGSIZE,	OFP_EHOSTDOWN,	OFP_EHOSTUNREACH,
-	OFP_EHOSTUNREACH,	OFP_EHOSTUNREACH,	OFP_ECONNREFUSED,	OFP_ECONNREFUSED,
-	OFP_EMSGSIZE,	OFP_EHOSTUNREACH,	0,		0,
-	0,		0,		OFP_EHOSTUNREACH,	0,
-	OFP_ENOPROTOOPT,	OFP_ECONNREFUSED
-};
 
 OFP_SYSCTL_INT(_net_inet_udp, UDPCTL_CHECKSUM, checksum, OFP_CTLFLAG_RW,
 	   &ofp_udp_cksum, 0, "compute udp checksum");

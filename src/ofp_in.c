@@ -63,6 +63,16 @@ VNET_DECLARE(struct arpstat, arpstat);  /* ARP statistics, see if_arp.h */
 #define	V_arpstat		VNET(arpstat)
 #endif
 
+uint8_t ofp_inetctlerrmap[OFP_PRC_NCMDS] = {
+	0,		0,		0,		0,
+	0,		OFP_EMSGSIZE,	OFP_EHOSTDOWN,	OFP_EHOSTUNREACH,
+	OFP_EHOSTUNREACH,	OFP_EHOSTUNREACH,	OFP_ECONNREFUSED,
+	OFP_ECONNREFUSED,
+	OFP_EMSGSIZE,	OFP_EHOSTUNREACH,	0,		0,
+	0,		0,		OFP_EHOSTUNREACH,	0,
+	OFP_ENOPROTOOPT,	OFP_ECONNREFUSED
+};
+
 static int
 in_mask2len(struct ofp_in_addr *mask)
 {

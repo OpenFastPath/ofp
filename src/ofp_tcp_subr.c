@@ -53,6 +53,8 @@
 #ifdef INET6
 #include "ofpi_ip6.h"
 #include "ofpi_ip6_var.h"
+#include "ofpi_ip6protosw.h"
+#include "ofpi_in6_pcb.h"
 #endif
 
 #include "ofpi_tcp_fsm.h"
@@ -169,6 +171,7 @@ VNET_DEFINE(uma_zone_t, ofp_sack_hole_zone);
 
 VNET_DEFINE(struct hhook_head *, ofp_tcp_hhh[HHOOK_TCP_LAST+1]);
 
+static struct inpcb *tcp_mtudisc_notify(struct inpcb *, int);
 static char *	tcp_log_addr(struct in_conninfo *inc, struct ofp_tcphdr *th,
 		    void *ip4hdr, const void *ip6hdr);
 
@@ -946,7 +949,7 @@ ofp_tcp_drain(void)
 		return;
 }
 
-#if 0
+
 /*
  * Notify a tcp user of an asynchronous error;
  * store error as soft error, but wake up user
@@ -956,7 +959,7 @@ ofp_tcp_drain(void)
  * reporting soft errors (yet - a kqueue filter may be added).
  */
 static struct inpcb *
-tcp_notify(struct inpcb *inp, int error)
+ofp_tcp_notify(struct inpcb *inp, int error)
 {
 	struct tcpcb *tp;
 
@@ -993,11 +996,13 @@ tcp_notify(struct inpcb *inp, int error)
 		return (inp);
 	}
 
+#if 0
+	/* from freebsd*/
 	wakeup( &so->so_timeo);
 	sorwakeup(so);
 	sowwakeup(so);
-}
 #endif
+}
 
 #if 0 /* HJo */
 static int
@@ -1245,7 +1250,7 @@ OFP_SYSCTL_PROC(_net_inet6_tcp6, OFP_OID_AUTO, getcred,
 #endif /* HJo */
 
 
-#if 0
+
 /*
  * Return the next larger or smaller MTU plateau (table from RFC 1191)
  * given current value MTU.  If DIR is less than zero, a larger plateau
@@ -1274,23 +1279,17 @@ ip_next_mtu(int mtu, int dir)
 	}
 	return 0;
 }
-#endif
 
 #ifdef INET
 void
 ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 {
-	(void)cmd;
-	(void)sa;
-	(void)vip;
-	OFP_LOG("UNIMPLEMENTED FUNCTION CALLED!\n");
-#if 0 /* HJo: FIX */
 	struct ofp_ip *ip = vip;
 	struct ofp_tcphdr *th;
 	struct ofp_in_addr faddr;
 	struct inpcb *inp;
 	struct tcpcb *tp;
-	struct inpcb *(*notify)(struct inpcb *, int) = tcp_notify;
+	struct inpcb *(*notify)(struct inpcb *, int) = ofp_tcp_notify;
 	struct ofp_icmp *icp;
 	struct in_conninfo inc;
 	tcp_seq icmp_tcp_seq;
@@ -1300,30 +1299,32 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 	if (sa->sa_family != OFP_AF_INET || faddr.s_addr == OFP_INADDR_ANY)
 		return;
 
-	if (cmd == PRC_MSGSIZE)
+	if (cmd == OFP_PRC_MSGSIZE)
 		notify = tcp_mtudisc_notify;
-	else if (V_icmp_may_rst && (cmd == PRC_UNREACH_ADMIN_PROHIB ||
-		cmd == PRC_UNREACH_PORT || cmd == PRC_TIMXCEED_INTRANS) && ip)
+	else if (V_icmp_may_rst && (cmd == OFP_PRC_UNREACH_ADMIN_PROHIB ||
+		cmd == OFP_PRC_UNREACH_PORT ||
+		cmd == OFP_PRC_TIMXCEED_INTRANS) && ip)
 		notify = ofp_tcp_drop_syn_sent;
 	/*
 	 * Redirects don't need to be handled up here.
 	 */
-	else if (PRC_IS_REDIRECT(cmd))
+	else if (OFP_PRC_IS_REDIRECT(cmd))
 		return;
 	/*
 	 * Source quench is depreciated.
 	 */
-	else if (cmd == PRC_QUENCH)
+	else if (cmd == OFP_PRC_QUENCH)
 		return;
 	/*
 	 * Hostdead is ugly because it goes linearly through all PCBs.
 	 * XXX: We never get this from ICMP, otherwise it makes an
 	 * excellent DoS attack on machines with many connections.
 	 */
-	else if (cmd == PRC_HOSTDEAD)
+	else if (cmd == OFP_PRC_HOSTDEAD)
 		ip = NULL;
-	else if ((unsigned)cmd >= PRC_NCMDS || ofp_inetctlerrmap[cmd] == 0)
+	else if ((unsigned)cmd >= OFP_PRC_NCMDS || ofp_inetctlerrmap[cmd] == 0)
 		return;
+
 	if (ip != NULL) {
 		icp = (struct ofp_icmp *)((char *)ip
 				      - offsetof(struct ofp_icmp, ofp_icmp_ip));
@@ -1332,15 +1333,18 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 		INP_INFO_WLOCK(&V_tcbinfo);
 		inp = ofp_in_pcblookup(&V_tcbinfo, faddr, th->th_dport,
 		    ip->ip_src, th->th_sport, INPLOOKUP_WLOCKPCB, NULL);
+
 		if (inp != NULL)  {
 			if (!(inp->inp_flags & INP_TIMEWAIT) &&
 			    !(inp->inp_flags & INP_DROPPED) &&
 			    !(inp->inp_socket == NULL)) {
 				icmp_tcp_seq = odp_cpu_to_be_32(th->th_seq);
 				tp = intotcpcb(inp);
+
 				if (SEQ_GEQ(icmp_tcp_seq, tp->snd_una) &&
 				    SEQ_LT(icmp_tcp_seq, tp->snd_max)) {
-					if (cmd == PRC_MSGSIZE) {
+
+					if (cmd == OFP_PRC_MSGSIZE) {
 					    /*
 					     * MTU discovery:
 					     * If we got a needfrag set the MTU
@@ -1352,7 +1356,9 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 					    inc.inc_fibnum =
 						inp->inp_inc.inc_fibnum;
 
-					    mtu = odp_be_to_cpu_16(icp->ofp_icmp_nextmtu);
+					    mtu = odp_be_to_cpu_16(
+					    	icp->ofp_icmp_nextmtu);
+
 					    /*
 					     * If no alternative MTU was
 					     * proposed, try the next smaller
@@ -1361,11 +1367,13 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 					     */
 					    if (!mtu)
 						mtu = ip_next_mtu(ip->ip_len,
-						 1);
+							1);
+
 					    if (mtu < (int)(V_tcp_minmss
 							    + sizeof(struct tcpiphdr)))
 						mtu = V_tcp_minmss
 						 + sizeof(struct tcpiphdr);
+#if 0
 					    /*
 					     * Only cache the MTU if it
 					     * is smaller than the interface
@@ -1374,6 +1382,7 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 					     */
 					    if (mtu <= (int)ofp_tcp_maxmtu(&inc, NULL))
 						tcp_hc_updatemtu(&inc, mtu);
+#endif /* 0 */
 					    ofp_tcp_mtudisc(inp, mtu);
 					} else
 						inp = (*notify)(inp,
@@ -1392,8 +1401,7 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 		}
 		INP_INFO_WUNLOCK(&V_tcbinfo);
 	} else
-		in_pcbnotifyall(&V_tcbinfo, faddr, ofp_inetctlerrmap[cmd], notify);
-#endif
+		ofp_in_pcbnotifyall(&V_tcbinfo, faddr, ofp_inetctlerrmap[cmd], notify);
 }
 #endif /* INET */
 
@@ -1401,16 +1409,11 @@ ofp_tcp_ctlinput(int cmd, struct ofp_sockaddr *sa, void *vip)
 void
 ofp_tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 {
-	(void)cmd;
-	(void)sa;
-	(void)d;
-	OFP_LOG("UNIMPLEMENTED FUNCTION CALLED!\n");
-#if 0
 	struct ofp_tcphdr th;
-	struct inpcb *(*notify)(struct inpcb *, int) = tcp_notify;
-	struct ip6_hdr *ip6;
+	struct inpcb *(*notify)(struct inpcb *, int) = ofp_tcp_notify;
+	struct ofp_ip6_hdr *ip6;
 	odp_packet_t m;
-	struct ip6ctlparam *ip6cp = NULL;
+	struct ofp_ip6ctlparam *ip6cp = NULL;
 	const struct ofp_sockaddr_in6 *sa6_src = NULL;
 	int off;
 	struct tcp_portonly {
@@ -1421,19 +1424,18 @@ ofp_tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 	if (sa->sa_family != OFP_AF_INET6 ||
 	    sa->sa_len != sizeof(struct ofp_sockaddr_in6))
 		return;
-
-	if (cmd == PRC_MSGSIZE)
+	if (cmd == OFP_PRC_MSGSIZE)
 		notify = tcp_mtudisc_notify;
-	else if (!PRC_IS_REDIRECT(cmd) &&
-		 ((unsigned)cmd >= PRC_NCMDS || inet6ctlerrmap[cmd] == 0))
+	else if (!OFP_PRC_IS_REDIRECT(cmd) &&
+		 ((unsigned)cmd >= OFP_PRC_NCMDS || ofp_inet6ctlerrmap[cmd] == 0))
 		return;
 	/* Source quench is depreciated. */
-	else if (cmd == PRC_QUENCH)
+	else if (cmd == OFP_PRC_QUENCH)
 		return;
 
 	/* if the parameter is from icmp6, decode it. */
 	if (d != NULL) {
-		ip6cp = (struct ip6ctlparam *)d;
+		ip6cp = (struct ofp_ip6ctlparam *)d;
 		m = ip6cp->ip6c_m;
 		ip6 = ip6cp->ip6c_ip6;
 		off = ip6cp->ip6c_off;
@@ -1442,7 +1444,7 @@ ofp_tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 		m = NULL;
 		ip6 = NULL;
 		off = 0;	/* fool gcc */
-		sa6_src = &sa6_any;
+		sa6_src = &ofp_sa6_any;
 	}
 
 	if (ip6 != NULL) {
@@ -1452,14 +1454,17 @@ ofp_tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 		 * M and OFF are valid.
 		 */
 
+#if 0
 		/* check if we can safely examine src and dst ports */
-		if (odp_packet_get_len(m) < off + sizeof(*thp))
+		if (odp_packet_len(m) < off + sizeof(*thp))
 			return;
+#endif /* 0 */
 
 		bzero(&th, sizeof(th));
-		m_copydata(m, off, sizeof(*thp), (char *)&th);
+		memcpy((uint8_t *)&th, (uint8_t *)odp_packet_l3_ptr(m, NULL) +
+			off, sizeof(*thp));
 
-		in6_pcbnotify(&V_tcbinfo, sa, th.th_dport,
+		ofp_in6_pcbnotify(&V_tcbinfo, sa, th.th_dport,
 		    (struct ofp_sockaddr *)ip6cp->ip6c_src,
 		    th.th_sport, cmd, NULL, notify);
 
@@ -1478,9 +1483,10 @@ ofp_tcp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 #endif /* PROMISCUOUS_INET */
 		INP_INFO_WUNLOCK(&V_tcbinfo);
 	} else
-		in6_pcbnotify(&V_tcbinfo, sa, 0, (const struct ofp_sockaddr *)sa6_src,
-			      0, cmd, NULL, notify);
-#endif /*0*/
+		ofp_in6_pcbnotify(&V_tcbinfo, sa, 0,
+			(const struct ofp_sockaddr *)sa6_src, 0, cmd,
+			NULL, notify);
+
 }
 #endif /* INET6 */
 
@@ -1632,7 +1638,7 @@ ofp_tcp_drop_syn_sent(struct inpcb *inp, int err)
 		return (NULL);
 }
 
-#if 0
+
 /*
  * When `need fragmentation' ICMP is received, update our idea of the MSS
  * based on the new value. Also nudge TCP to send something, since we
@@ -1645,7 +1651,6 @@ tcp_mtudisc_notify(struct inpcb *inp, int err)
 	(void)err;
 	return (ofp_tcp_mtudisc(inp, -1));
 }
-#endif
 
 struct inpcb *
 ofp_tcp_mtudisc(struct inpcb *inp, int mtuoffer)

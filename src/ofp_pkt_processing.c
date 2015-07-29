@@ -81,12 +81,13 @@ void *default_event_dispatcher(void *arg)
 
 			if (odp_event_type(ev) == ODP_EVENT_PACKET) {
 				pkt = odp_packet_from_event(ev);
+#if 0
 				if (odp_unlikely(odp_packet_has_error(pkt))) {
 					OFP_DBG("Packet with error dropped.\n");
 					odp_packet_free(pkt);
 					continue;
 				}
-
+#endif
 				ofp_packet_input(pkt, in_queue, pkt_func);
 				continue;
 			}

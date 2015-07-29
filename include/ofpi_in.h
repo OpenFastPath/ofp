@@ -44,6 +44,8 @@
 
 #include "ofpi_in6.h"
 
+extern uint8_t ofp_inetctlerrmap[];
+
 union ofp_sockaddr_store {
 	struct ofp_sockaddr_in addr;
 #ifdef INET6
