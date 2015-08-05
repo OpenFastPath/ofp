@@ -11,7 +11,7 @@
 
 #include "ofp.h"
 
-#define MAX_WORKERS		32
+#define MAX_WORKERS		64
 
 /**
  * Parsed command line application arguments

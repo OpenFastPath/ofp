@@ -13,6 +13,8 @@
 #include "api/ofp_pkt_processing.h"
 #include "ofpi_in.h"
 
+enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
+			odp_packet_t pkt);
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 			odp_packet_t pkt);
 enum ofp_return_code send_pkt_loop(struct ofp_ifnet *dev,

@@ -11,7 +11,7 @@
 #include "odp.h"
 #include "odp/helper/linux.h"
 
-#define OFP_IFNAMSIZ  16
+#define OFP_IFNAMSIZ  32
 
 struct ofp_ifnet;
 

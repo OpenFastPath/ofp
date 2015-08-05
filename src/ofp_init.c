@@ -214,7 +214,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		/* RFC 791, p. 24, "Every internet module must be able
 		 * to forward a datagram of 68 octets without further
 		 * fragmentation."*/
-		if (ifnet->if_mtu < 68) {
+		if (ifnet->if_mtu < 68 || ifnet->if_mtu > 9000) {
 			OFP_DBG("Invalid MTU. Overwrite MTU value to 1500\n");
 			ifnet->if_mtu = 1500;
 		}
@@ -224,6 +224,11 @@ int ofp_init_global(ofp_init_global_t *params)
 			sizeof(ifnet->mac)) < 0) {
 			OFP_ERR("Failed to retrieve MAC address.\n");
 			abort();
+		}
+		if (!ofp_has_mac(ifnet->mac)) {
+			ifnet->mac[0] = port;
+			OFP_ERR("MAC overwritten as the value returned by \
+				odp_pktio_mac_addr was 00:00:00:00:00:00\n");
 		}
 		OFP_DBG("device %s addr %s\n", ifnet->if_name,
 			ofp_print_mac((uint8_t *)ifnet->mac));

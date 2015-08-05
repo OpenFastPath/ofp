@@ -419,7 +419,7 @@ odp_rwlock_t *ofp_accept_mtx(void);
 void ofp_accept_lock(void);
 void ofp_accept_unlock(void);
 
-#define maxsockets 16384
+#define maxsockets 1024
 
 /* Pools */
 

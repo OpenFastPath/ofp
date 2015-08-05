@@ -122,11 +122,17 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 	struct ofp_ifnet *ifnet = odp_packet_user_ptr(pkt);
 
 	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
-	if (odp_unlikely(eth == NULL))
-		return OFP_PKT_DROP;
-
 #ifndef OFP_PERFORMANCE
-	if (odp_unlikely(odp_packet_l3_ptr(pkt, NULL) == NULL)) {
+	if (odp_unlikely(eth == NULL)) {
+		OFP_DBG("odp_packet_l2_ptr == NULL\n");
+		return OFP_PKT_DROP;
+	}
+
+	if (odp_unlikely(odp_packet_l3_ptr(pkt, NULL) == NULL ||
+		(uintptr_t) odp_packet_l3_ptr(pkt, NULL) !=
+			(uintptr_t)odp_packet_l2_ptr(pkt, NULL) +
+				sizeof(struct ofp_ether_header))) {
+		OFP_DBG("odp_packet_l3_offset_set\n");
 		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_header));
 	}
 #endif
@@ -252,10 +258,13 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	struct ofp_nh_entry *nh;
 	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
 
+	OFP_DBG("\n");
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	if (odp_unlikely(ip == NULL))
+	if (odp_unlikely(ip == NULL)) {
+		OFP_DBG("odp_packet_l3_ptr == NULL\n");
 		return OFP_PKT_DROP;
+	}
 
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(ip->ip_v != 4))
@@ -268,7 +277,11 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		return OFP_PKT_DROP;
 #endif
 
+	OFP_DBG("dev->ip_addr:%s ip->ip_dst:%s\n",
+		ofp_print_ip_addr(dev->ip_addr),
+		ofp_print_ip_addr(ip->ip_dst.s_addr));
 	if (dev->ip_addr == ip->ip_dst.s_addr /*|| app_is_ip_local?*/) {
+		OFP_DBG("is ip local\n");
 		if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
 
 			OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
@@ -294,11 +307,15 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
+
 	nh = ofp_get_next_hop(dev->vrf, ip->ip_dst.s_addr, &flags);
-	if (nh == NULL)
+	if (nh == NULL) {
+		OFP_DBG("ofp_get_next_hop == NULL\n");
 		return OFP_PKT_CONTINUE;
+	}
 
 	if (ip->ip_ttl <= 1) {
+		OFP_DBG("OFP_ICMP_TIMXCEED\n");
 		ofp_icmp_error(pkt, OFP_ICMP_TIMXCEED,
 				OFP_ICMP_TIMXCEED_INTRANS, 0, 0);
 		return OFP_PKT_DROP;
@@ -306,9 +323,11 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 
 	ip->ip_ttl--;
 
-	if (ip->ip_p == OFP_IPPROTO_ICMP)
+	if (ip->ip_p == OFP_IPPROTO_ICMP) {
+		OFP_DBG("OFP_ICMP_REDIRECT\n");
 		ofp_icmp_error(pkt, OFP_ICMP_REDIRECT,
 				OFP_ICMP_REDIRECT_HOST, nh->gw, 0);
+	}
 
 	return ofp_ip_output(pkt, nh);
 }
@@ -377,12 +396,46 @@ enum ofp_return_code ofp_gre_processing(odp_packet_t pkt)
 	return ofp_inetsw[ofp_ip_protox_gre].pr_input(pkt, ip->ip_hl << 2);
 }
 
+enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
+	odp_packet_t pkt)
+{
+	uint32_t pkts_sent;
+#if 1
+#define OFP_PKT_BURST_SIZE 16
+	static __thread odp_packet_t pkt_tbl[OFP_PKT_BURST_SIZE];
+	static __thread uint32_t count = 0;
+	uint32_t i;
+
+	if (count == OFP_PKT_BURST_SIZE) {
+		pkts_sent = odp_pktio_send(ofp_port_pktio_get(dev->port), pkt_tbl, count);
+		for (i = pkts_sent; i < count; i++)
+			odp_packet_free(pkt_tbl[i]);
+		count = 0;
+	}
+
+	pkt_tbl[count++] = pkt;
+#else
+	pkts_sent = odp_pktio_send(ofp_port_pktio_get(dev->port), &pkt, 1);
+	if (pkts_sent == 0)
+		odp_packet_free(pkt);
+#endif
+
+	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
+
+	OFP_UPDATE_PACKET_STAT(tx_fp, 1);
+
+	return OFP_PKT_PROCESSED;
+}
+
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 	odp_packet_t pkt)
 {
+	OFP_DBG("\n");
 	if (odp_queue_enq(ofp_get_ifnet(dev->port, 0)->outq_def,
-			odp_packet_to_event(pkt)))
+			odp_packet_to_event(pkt))) {
+		OFP_DBG("odp_queue_enq failed\n");
 		return OFP_PKT_DROP;
+	}
 
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
 
@@ -406,14 +459,22 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
 	uint16_t vlan = dev->vlan;
 
+	OFP_DBG("\n");
+
 	arp = (struct ofp_arphdr *)odp_packet_l3_ptr(pkt, NULL);
 
-	if (odp_unlikely(arp == NULL))
+	if (odp_unlikely(arp == NULL)) {
+		OFP_DBG("odp_packet_l3_ptr == NULL\n");
 		return OFP_PKT_DROP;
+	}
 
 	/* save the received arp info */
 	if (odp_be_to_cpu_16(arp->op) == OFP_ARPOP_REPLY)
 		ofp_add_mac(dev, arp->ip_src, arp->eth_src);
+
+	OFP_DBG("dev->ip_addr:%s arp->ip_dst:%s\n",
+		ofp_print_ip_addr(dev->ip_addr),
+		ofp_print_ip_addr(arp->ip_dst));
 
 	/* on our interface an ARP request */
 	if ((dev->ip_addr) && dev->ip_addr == (ofp_in_addr_t)(arp->ip_dst) &&
@@ -427,6 +488,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 		struct ofp_ether_vlan_header *eth_vlan =
 			(struct ofp_ether_vlan_header *)l2_addr;
 
+		ofp_add_mac(dev, arp->ip_src, arp->eth_src);
 		if (vlan)
 			tmp_eth_vlan = *eth_vlan;
 		else
@@ -765,11 +827,15 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	uint16_t vrf = send_ctx ? send_ctx->vrf : 0;
 	uint8_t is_local_address = 0;
 
+	OFP_DBG("\n");
+
 	if (odp_packet_l3_offset(pkt) == ODP_PACKET_OFFSET_INVALID)
 		odp_packet_l3_offset_set(pkt, 0);
 	ip = (struct ofp_ip *) odp_packet_l3_ptr(pkt, NULL);
-	if (odp_unlikely(ip == NULL))
+	if (odp_unlikely(ip == NULL)) {
+		OFP_DBG("odp_packet_l3_ptr == NULL\n");
 		return OFP_PKT_DROP;
+	}
 
 	if (ip->ip_p == OFP_IPPROTO_TCP) {
 		/* Checksum calculation is done here. We don't know if
@@ -795,8 +861,10 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 
 	dev_out = ofp_get_ifnet(out_port, vlan);
 
-	if (!dev_out)
+	if (!dev_out) {
+		OFP_DBG("!dev_out\n");
 		return OFP_PKT_DROP;
+	}
 
 	/* GRE */
 	if (out_port == GRE_PORTS) {
@@ -837,8 +905,10 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 		odp_packet_l4_offset_set(pkt, l2_size + (ip->ip_hl<<2));
 	}
 
-	if (odp_unlikely(l2_addr == NULL))
+	if (odp_unlikely(l2_addr == NULL)) {
+		OFP_DBG("l2_addr == NULLn");
 		return OFP_PKT_DROP;
+	}
 
 	if (!vlan) {
 		struct ofp_ether_header *eth =
@@ -876,6 +946,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 
 	/* Fragmentation */
 	if (odp_be_to_cpu_16(ip->ip_len) > dev_out->if_mtu) {
+		OFP_DBG("fragmentation required\n");
 		if (odp_be_to_cpu_16(ip->ip_off) & OFP_IP_DF) {
 			ofp_icmp_error(pkt, OFP_ICMP_UNREACH,
 					OFP_ICMP_UNREACH_NEEDFRAG,
