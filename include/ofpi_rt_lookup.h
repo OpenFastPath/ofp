@@ -122,7 +122,7 @@ static __inline struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, u
 	return &(match_table[--matches]->data[0]);
 }
 #else
-inline struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, uint32_t addr_be);
+struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, uint32_t addr_be);
 int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t masklen, uint8_t low);
 #endif
 

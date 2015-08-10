@@ -19,7 +19,7 @@ typedef struct {
 
 static __thread hook_shm_t *shm_hook = NULL;
 
-inline ofp_pkt_hook *ofp_get_packet_hooks(void)
+ofp_pkt_hook *ofp_get_packet_hooks(void)
 {
 	if (!shm_hook)
 		return NULL;

@@ -19,7 +19,7 @@
 		*_pres_ = OFP_PKT_CONTINUE; \
 }
 
-inline ofp_pkt_hook *ofp_get_packet_hooks(void);
+ofp_pkt_hook *ofp_get_packet_hooks(void);
 void ofp_hook_alloc_shared_memory(ofp_pkt_hook *pkt_hook_init);
 void ofp_hook_lookup_shared_memory(void);
 

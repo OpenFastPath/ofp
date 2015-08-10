@@ -374,7 +374,7 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 }
 
 
-inline struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, uint32_t addr_be)
+struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, uint32_t addr_be)
 {
 	struct ofp_nh_entry *nh = NULL;
 	struct ofp_rtl_node *elem, *node = tree->root;
