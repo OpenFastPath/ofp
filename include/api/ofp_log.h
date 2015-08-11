@@ -19,10 +19,6 @@
 #include <odp.h>
 #include "ofp_timer.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef OFP_DEBUG_PRINT
 #define OFP_DEBUG_PRINT 1
 #endif
@@ -131,9 +127,5 @@ do { \
 /**
  * @}
  */
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /*__OFP_LOG_H__*/

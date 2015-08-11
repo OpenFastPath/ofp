@@ -10,6 +10,10 @@
 #include <odp.h>
 #include <odp/helper/linux.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ofp_types.h"
 #include "ofp_init.h"
 #include "ofp_pkt_processing.h"
@@ -38,6 +42,10 @@
 #include "ofp_udp.h"
 #include "ofp_ip_var.h"
 #include "ofp_tcp.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __OFP_H__ */
 

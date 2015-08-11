@@ -451,6 +451,6 @@ struct ofp_sysctl_oid *ofp_sysctl_add_oid(struct sysctl_ctx_list *clist,
 		const char *fmt, const char *descr);
 
 int	ofp_sysctl(const char *name, void *old, size_t *oldlenp,
-		     const void *new, size_t newlen, size_t *retval);
+		     const void *newp, size_t newlen, size_t *retval);
 
 #endif
