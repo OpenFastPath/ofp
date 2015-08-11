@@ -33,7 +33,7 @@ check_PROGRAMS = ofp_test_util ofp_test_stat ofp_test_packet_input \
 		 ofp_test_packet_output ofp_test_debug_pcap \
 		 ofp_test_debug_print ofp_test_fragmentation \
 		 ofp_test_port_conf
-bin_PROGRAMS = ${check_PROGRAMS}
+
 ofp_test_util_LDFLAGS = $(AM_LDFLAGS) -static -lcunit
 ofp_test_stat_LDFLAGS = $(AM_LDFLAGS) -static -lcunit
 ofp_test_packet_input_LDFLAGS = $(AM_LDFLAGS) -static -lcunit
