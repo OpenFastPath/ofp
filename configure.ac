@@ -15,7 +15,9 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_SILENT_RULES([yes])
 
 # Checks for programs.
+AC_PROG_CXX
 AC_PROG_CC
+AC_PROG_CPP
 AM_PROG_CC_C_O
 
 # Use libtool
@@ -60,10 +62,16 @@ OFP_CFLAGS="$OFP_CFLAGS -Wcast-align -Wnested-externs -Wcast-qual -Wformat-nonli
 OFP_CFLAGS="$OFP_CFLAGS -Wformat-security -Wundef -Wwrite-strings"
 ## OFP_CFLAGS="$OFP_CFLAGS -Werror"
 
+OFP_CXXFLAGS="-std=c++11 $OFP_CXXFLAGS"
+OFP_CXXFLAGS="-fno-strict-aliasing $OFP_CXXFLAGS"
+OFP_CXXFLAGS="-W -Wall -Wextra $OFP_CXXFLAGS"
+OFP_CXXFLAGS="-Wmissing-declarations  $OFP_CXXFLAGS"
+
 ##########################################################################
 # Default include setup
 ##########################################################################
 AM_CFLAGS="$AM_CFLAGS $OFP_CFLAGS"
+AM_CXXFLAGS="$AM_CXXFLAGS $OFP_CXXFLAGS"
 
 ##########################################################################
 # Checks for library functions.
@@ -113,7 +121,7 @@ AC_ARG_WITH([odp],
 # if optional parameter used, extend path flags for compliler and linker
 if test $ODPPATHSET = 1 ; then
     # extend the compiler and linker flags according to the path set
-    AM_CFLAGS="$AM_CFLAGS -I$with_odp/include -DHAVE_LIBODP"
+    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -DHAVE_LIBODP"
     AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
     AC_DEFINE(HAVE_LIBODP, [1], [Have libodp ?])
 else
@@ -190,7 +198,7 @@ AC_ARG_WITH(
 		[--with-cunit-path=DIR Path to Cunit libs and headers],
 		[(or in the default path if not specified).]),
 	[CUNIT_PATH=$withval cunit_support=yes
-		AM_CFLAGS="$AM_CFLAGS -I$CUNIT_PATH"
+		AM_CPPFLAGS="$AM_CPPFLAGS -I$CUNIT_PATH"
 		AM_LDFLAGS="$AM_LDFLAGS -L$CUNIT_PATH/lib"],
 	[AS_IF(
 		[test x$cunit_support = xyes ],
@@ -217,7 +225,7 @@ AC_ARG_WITH([quagga],
 # if optional parameter used, extend path flags for compliler and linker
 if test $QUAGGAPATHSET = 1 ; then
     # extend the compiler and linker flags according to the path set
-    AM_CFLAGS="$AM_CFLAGS -I$with_quagga"
+    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_quagga"
     AC_DEFINE(HAVE_QUAGGA, [1], [Have quagga source dir ?])
 else
 AC_CHECK_HEADERS([fpm/fpm.h], [
@@ -240,7 +248,7 @@ if test x$use_ck = xtrue ; then
    # if optional parameter used, extend path flags for compliler and linker
    if test $CKPATHSET = 1 ; then
       # extend the compiler and linker flags according to the path set
-      AM_CFLAGS="$AM_CFLAGS -I$with_libck/include"
+      AM_CPPFLAGS="$AM_CPPFLAGS -I$with_libck/include"
       AM_LDFLAGS="$AM_LDFLAGS -L$with_libck/lib -L$with_libck/src"
       LIBS="-lck $LIBS"
       AC_DEFINE(HAVE_LIBCK, [1], [Have libconcurrencykit])
@@ -267,7 +275,7 @@ AC_ARG_WITH([buildrump],
 # if optional parameter used, extend path flags for compliler and linker
 if test $RUMPPATHSET = 1 ; then
     # extend the compiler and linker flags according to the path set
-    AM_CFLAGS="$AM_CFLAGS -I$with_buildrump/rump/include"
+    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_buildrump/rump/include"
     AM_LDFLAGS="$AM_LDFLAGS -L$with_buildrump/rump/lib/"
     AC_DEFINE(HAVE_BUILDRUMP, [1], [Have buildrump libs ?])
     LIBS="-lrumpclient -lrumpnet_shmif -lrumpnet_config -lrumpnet_netinet6 -lrumpnet_net -lrumpnet -lrump -lrumpuser $LIBS"
@@ -289,7 +297,9 @@ fi
 ##########################################################################
 # distribute the changed variables among the Makefiles
 AC_SUBST([LIBS])
+AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS])
+AC_SUBST([AM_CXXFLAGS])
 AC_SUBST([AM_LDFLAGS])
 
 AC_OUTPUT
@@ -302,9 +312,12 @@ AC_MSG_RESULT([
 	libdir:			${libdir}
 	includedir:		${includedir}
 
-	compiler:		${CC}
+	cc:                     ${CC}
+        cppflags:               ${CPPFLAGS}
+        am_cppflags:            ${AM_CPPFLAGS}
 	cflags:			${CFLAGS}
 	am_cflags:		${AM_CFLAGS}
+        am_cxxflags:            ${AM_CXXFLAGS}
 	ldflags:		${LDFLAGS}
 	am_ldflags:		${AM_LDFLAGS}
 ])
