@@ -1,6 +1,6 @@
 include $(top_srcdir)/example/Makefile.inc
 
-bin_PROGRAMS = socket
+noinst_PROGRAMS = socket
 socket_LDFLAGS = $(AM_LDFLAGS) -static
 socket_CFLAGS = $(AM_CFLAGS)
 

@@ -1,6 +1,6 @@
 include $(top_srcdir)/example/Makefile.inc
 
-bin_PROGRAMS = ioctl_test
+noinst_PROGRAMS = ioctl_test
 
 AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api

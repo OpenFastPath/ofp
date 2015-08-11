@@ -1,6 +1,6 @@
 include $(top_srcdir)/example/Makefile.inc
 
-bin_PROGRAMS = udpecho
+noinst_PROGRAMS = udpecho
 
 AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api

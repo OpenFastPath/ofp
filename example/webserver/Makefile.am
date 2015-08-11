@@ -1,6 +1,6 @@
 include $(top_srcdir)/example/Makefile.inc
 
-bin_PROGRAMS = webserver
+noinst_PROGRAMS = webserver
 
 AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api

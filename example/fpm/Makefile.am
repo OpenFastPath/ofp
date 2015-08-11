@@ -1,6 +1,6 @@
 include $(top_srcdir)/example/Makefile.inc
 
-bin_PROGRAMS = fpm
+noinst_PROGRAMS = fpm
 fpm_LDFLAGS = $(AM_LDFLAGS) -static
 fpm_CFLAGS = $(AM_CFLAGS)
 

@@ -1,6 +1,6 @@
 include $(top_srcdir)/example/Makefile.inc
 
-bin_PROGRAMS = classifier 
+noinst_PROGRAMS = classifier 
 classifier_LDFLAGS = $(AM_LDFLAGS) -static
 classifier_CFLAGS = $(AM_CFLAGS)
 
