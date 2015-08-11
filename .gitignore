@@ -35,3 +35,11 @@
 *.guess
 *.status
 *.sub
+autom4te.cache/
+compile
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+test-driver
