@@ -417,7 +417,6 @@ test_packet_output_ipv6_to_gre(void)
 	odp_event_t ev;
 	int res;
 	struct ofp_route_msg msg;
-	struct ofp_in6_addr addr6;
 	struct ofp_ether_header *eth;
 	struct ofp_ip6_hdr *ip6, *ip6_orig;
 	struct ofp_ip *ip;
@@ -434,13 +433,11 @@ test_packet_output_ipv6_to_gre(void)
 	}
 
 	ip6 = odp_packet_l3_ptr(pkt, NULL);
-	addr6.__u6_addr.__u6_addr16[0] =
-		ip6->ip6_dst.__u6_addr.__u6_addr16[0];
 
 	memset(&msg, 0, sizeof(msg));
 	msg.type = OFP_ROUTE6_ADD;
 	msg.vrf = 0;
-	memcpy(msg.dst6, &addr6, 16);
+	memcpy(msg.dst6, ip6->ip6_dst.__u6_addr.__u6_addr8, 8);
 	msg.masklen = 64;
 	/* gw = 0 */
 	msg.port = GRE_PORTS;
