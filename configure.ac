@@ -197,9 +197,9 @@ AC_ARG_WITH(
 	AC_HELP_STRING(
 		[--with-cunit-path=DIR Path to Cunit libs and headers],
 		[(or in the default path if not specified).]),
-	[CUNIT_PATH=$withval cunit_support=yes
-		AM_CPPFLAGS="$AM_CPPFLAGS -I$CUNIT_PATH"
-		AM_LDFLAGS="$AM_LDFLAGS -L$CUNIT_PATH/lib"],
+	[cunit_support=yes
+	 have_cunit_path=yes
+	 CUNIT_PATH=$withval],
 	[AS_IF(
 		[test x$cunit_support = xyes ],
 		[AC_CHECK_HEADERS(
@@ -209,6 +209,8 @@ AC_ARG_WITH(
 	])
 
 AC_SUBST(CUNIT_PATH)
+AM_CONDITIONAL([HAVE_CUNIT_PATH], [test x$have_cunit_path = xyes])
+
 AM_CONDITIONAL([OFP_CUNIT_ENABLED], [test x$cunit_support = xyes ])
 
 ##########################################################################

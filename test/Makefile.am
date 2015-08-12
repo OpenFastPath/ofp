@@ -1,10 +1,15 @@
-SUBDIRS = . cunit
+SUBDIRS = .
+
+if OFP_CUNIT_ENABLED
+SUBDIRS += cunit
+endif
 
 AM_CPPFLAGS += -I$(top_srcdir)/include/api
+
+LDADD = $(top_builddir)/lib/libofp.la
 
 check_PROGRAMS = cpp_test
 
 TESTS = ${check_PROGRAMS}
 
 cpp_test_SOURCES = cpp_test.cpp
-cpp_test_LDADD = $(top_builddir)/lib/libofp.la
