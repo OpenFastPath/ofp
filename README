@@ -96,3 +96,15 @@ The sent packets from Linux on fpY interface are forwarded to ethX (wire).
 The packets received by the ethX interface are captured by ODP and then these
 are received by FPM fastpath application.
 When no fastpath operation is aplicable the packet is forwarded to slowpath.
+
+Code coverage:
+--
+Generate code coverage report from unit tests by passing '--coverage' during
+building, and use lcov to view the results:
+
+./configure <typical-ofp-flags> CFLAGS='-g -O0 --coverage' LDFLAGS='-g -O0 --coverage'
+make check
+cd test/cunit
+lcov --directory . --directory ../../src --capture --output-file coverage.info
+genhtml coverage.info --output-directory out
+.. view out/index.html ..
