@@ -29,6 +29,7 @@ LDADD = $(top_builddir)/lib/libofp.la
 check_PROGRAMS = \
 	ofp_test_debug_pcap \
 	ofp_test_debug_print \
+	ofp_test_errno \
 	ofp_test_fragmentation \
 	ofp_test_packet_input \
 	ofp_test_packet_output \

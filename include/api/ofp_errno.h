@@ -171,7 +171,8 @@
 #define	OFP_ENOIOCTL	(-3)		/* ioctl not handled by this layer */
 #define	OFP_EDIRIOCTL	(-4)		/* do direct ioctl in GEOM */
 
-extern int ofp_errno;
+extern __thread int ofp_errno;
+
 const char *ofp_strerror(int errnum);
 
 #endif /* __OFP_ERRNO_H__ */

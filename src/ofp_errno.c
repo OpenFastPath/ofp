@@ -126,7 +126,7 @@ static const char *ofp_errmsgs[] = {
 "Not permitted in capability mode",	/* OFP_ECAPMODE */
 };
 
-int ofp_errno;
+__thread int ofp_errno;
 
 const char *ofp_strerror(int errnum)
 {
