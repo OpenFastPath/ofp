@@ -89,11 +89,11 @@ void ofp_arp_term_global(void);
 void ofp_arp_init_local(void);
 void ofp_arp_term_local(void);
 
-inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
-				 struct ofp_ifnet *dev);
-inline int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev);
-inline int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
-				 struct ofp_ifnet *dev);
+int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
+			struct ofp_ifnet *dev);
+int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev);
+int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
+			struct ofp_ifnet *dev);
 int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 			    uint32_t ipv4_addr, struct ofp_ifnet *dev);
 
