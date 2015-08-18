@@ -27,6 +27,7 @@ AM_LDFLAGS += -static -lcunit
 LDADD = $(top_builddir)/lib/libofp.la
 
 check_PROGRAMS = \
+	ofp_test_arp \
 	ofp_test_debug_pcap \
 	ofp_test_debug_print \
 	ofp_test_errno \
