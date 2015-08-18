@@ -18,6 +18,7 @@
 #include <odp.h>
 #include <odp/helper/linux.h>
 
+#include "ofpi_init.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_util.h"
 #include "ofpi_stat.h"
@@ -46,18 +47,11 @@
 #define SHM_PKT_POOL_SIZE	(512*2048)
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
 
-int ofp_init_global(ofp_init_global_t *params)
+odp_pool_t ofp_init_pre_global(const char *pool_name,
+			       odp_pool_param_t *pool_params,
+			       ofp_pkt_hook hooks[])
 {
 	odp_pool_t pool;
-	int thr_id = 0;
-	int i, ret;
-	odp_queue_param_t qparam;
-	odp_pool_param_t pool_params;
-	char q_name[ODP_QUEUE_NAME_LEN];
-	odp_cpumask_t cpumask;
-#ifdef SP
-	odph_linux_pthread_t nl_thread;
-#endif /* SP */
 
 	/* Init shared memories */
 	ofp_register_sysctls();
@@ -69,32 +63,50 @@ int ofp_init_global(ofp_init_global_t *params)
 	ofp_pcap_alloc_shared_memory();
 	ofp_stat_alloc_shared_memory();
 	ofp_arp_alloc_shared_memory();
+	ofp_hook_alloc_shared_memory(hooks);
+
 	ofp_timer_init(OFP_TIMER_RESOLUTION_US,
-			 OFP_TIMER_MIN_US,
-			 OFP_TIMER_MAX_US,
-			 OFP_TIMER_TMO_COUNT);
-	ofp_hook_alloc_shared_memory(&params->pkt_hook[0]);
-	ofp_arp_init_global();
+		       OFP_TIMER_MIN_US,
+		       OFP_TIMER_MAX_US,
+		       OFP_TIMER_TMO_COUNT);
 
 	ofp_init_ifnet_data();
 
-	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.type  = ODP_POOL_PACKET;
+	ofp_route_init_global();
+	ofp_arp_init_global();
 
-	pool = odp_pool_create("packet_pool", ODP_SHM_NULL, &pool_params);
-
+	pool = odp_pool_create(pool_name, ODP_SHM_NULL, pool_params);
 	if (pool == ODP_POOL_INVALID) {
-		OFP_ERR("Error: packet pool create failed.\n");
-		exit(EXIT_FAILURE);
+		OFP_ERR("Error: odp_pool_create failed.\n");
+		return pool;
 	}
-	odp_pool_print(pool);
 
-	/* Socket memory needs pool */
 	ofp_socket_alloc_shared_memory(pool);
 	ofp_inet_init();
+
+	return pool;
+}
+
+int ofp_init_global(ofp_init_global_t *params)
+{
+	odp_pool_t pool;
+	odp_pool_param_t pool_params;
+	int thr_id = 0;
+	int i, ret;
+	odp_queue_param_t qparam;
+	char q_name[ODP_QUEUE_NAME_LEN];
+	odp_cpumask_t cpumask;
+#ifdef SP
+	odph_linux_pthread_t nl_thread;
+#endif /* SP */
+
+	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
+	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.type        = ODP_POOL_PACKET;
+
+	pool = ofp_init_pre_global("packet_pool", &pool_params, params->pkt_hook);
 
 	/* cpu mask for slow path threads */
 	odp_cpumask_zero(&cpumask);
@@ -257,8 +269,6 @@ int ofp_init_global(ofp_init_global_t *params)
 					 ifnet);
 #endif /* SP */
 	}
-
-	ofp_route_init_global();
 
 #ifdef SP
 	/* Start Netlink server process */

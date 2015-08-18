@@ -56,6 +56,7 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_inet.h \
 		  $(top_srcdir)/include/ofpi_in6.h \
 		  $(top_srcdir)/include/ofpi_in6_pcb.h \
+		  $(top_srcdir)/include/ofpi_init.h \
 		  $(top_srcdir)/include/ofpi_in.h \
 		  $(top_srcdir)/include/ofpi_in_pcb.h \
 		  $(top_srcdir)/include/ofpi_ip6.h \

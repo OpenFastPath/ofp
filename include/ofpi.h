@@ -15,6 +15,7 @@
 #include "ofpi_if_arp.h"
 #include "ofpi_in.h"
 #include "ofpi_in6.h"
+#include "ofpi_init.h"
 #include "ofpi_ip.h"
 #include "ofpi_ip6.h"
 #include "ofpi_if_gre.h"

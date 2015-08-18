@@ -98,6 +98,7 @@ static uint8_t tun_rem_mac[6] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
 static uint32_t tun_addr = 0x010A0A0A;   /* 0A.0A.0A.01 = 10.10.10.1 */
 static uint32_t tun_p2p = 0x020A0A0A;   /* 0A.0A.0A.02 = 10.10.10.2 */
 static uint16_t tun_mask = 32; /* p-t-p */
+static const char *pool_name = "packet_pool";
 
 /*
  * INIT
@@ -117,7 +118,7 @@ static void init_ifnet(void)
 	ofp_update_ifindex_lookup_tab(dev);
 #endif /* SP */
 
-	dev->pkt_pool = odp_pool_lookup("packet_pool");
+	dev->pkt_pool = odp_pool_lookup(pool_name);
 
 	sprintf(str, "out default queue:%d", port);
 	dev->outq_def = odp_queue_create(str,
@@ -139,7 +140,7 @@ static void init_ifnet(void)
 	ofp_update_ifindex_lookup_tab(dev_vlan);
 #endif /* SP */
 
-	dev_vlan->pkt_pool = odp_pool_lookup("packet_pool");
+	dev_vlan->pkt_pool = odp_pool_lookup(pool_name);
 
 	sprintf(str, "out default queue:%d", port);
 	dev_vlan->outq_def = odp_queue_create(str,
@@ -162,7 +163,6 @@ static void init_ifnet(void)
 static int
 init_suite(void)
 {
-	odp_pool_t pool;
 	odp_pool_param_t pool_params;
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
 
@@ -178,39 +178,16 @@ init_suite(void)
 		return -1;
 	}
 
-	ofp_portconf_alloc_shared_memory();
-	ofp_route_alloc_shared_memory();
-	ofp_avl_alloc_shared_memory();
-	ofp_arp_alloc_shared_memory();
-	ofp_pcap_alloc_shared_memory();
-	ofp_timer_init(OFP_TIMER_RESOLUTION_US,
-			 OFP_TIMER_MIN_US,
-			 OFP_TIMER_MAX_US,
-			 OFP_TIMER_TMO_COUNT);
-
 	memset(pkt_hook, 0, sizeof(pkt_hook));
-	ofp_hook_alloc_shared_memory(&pkt_hook[0]);
-
-	ofp_init_ifnet_data();
-	ofp_route_init_global();
-	ofp_arp_init_global();
-	ofp_arp_init_local();
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUF_SIZE;
-	pool_params.type = ODP_POOL_PACKET;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
+	pool_params.type        = ODP_POOL_PACKET;
 
-	pool = odp_pool_create("packet_pool", ODP_SHM_NULL,
-		&pool_params);
+	(void) ofp_init_pre_global(pool_name, &pool_params, pkt_hook);
 
-	if (pool == ODP_POOL_INVALID) {
-		OFP_ERR("Error: packet pool create failed.\n");
-		return -1;
-	}
-
-	odp_shm_print_all();
-	odp_pool_print(pool);
+	ofp_arp_init_local();
 
 	init_ifnet();
 

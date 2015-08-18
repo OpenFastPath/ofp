@@ -53,7 +53,6 @@ int sp_status = OFP_SP_DOWN;
 static int
 init_suite(void)
 {
-	odp_pool_t pool;
 	odp_pool_param_t pool_params;
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
 	struct ofp_ifnet *dev;
@@ -70,39 +69,16 @@ init_suite(void)
 		return -1;
 	}
 
-	ofp_portconf_alloc_shared_memory();
-	ofp_route_alloc_shared_memory();
-	ofp_avl_alloc_shared_memory();
-	ofp_arp_alloc_shared_memory();
-	ofp_pcap_alloc_shared_memory();
-	ofp_timer_init(OFP_TIMER_RESOLUTION_US,
-			 OFP_TIMER_MIN_US,
-			 OFP_TIMER_MAX_US,
-			 OFP_TIMER_TMO_COUNT);
-
 	memset(pkt_hook, 0, sizeof(pkt_hook));
-	ofp_hook_alloc_shared_memory(&pkt_hook[0]);
-
-	ofp_init_ifnet_data();
-	ofp_route_init_global();
-	ofp_arp_init_global();
-	ofp_arp_init_local();
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUF_SIZE;
-	pool_params.type = ODP_POOL_PACKET;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
+	pool_params.type        = ODP_POOL_PACKET;
 
-	pool = odp_pool_create("packet_pool", ODP_SHM_NULL,
-		&pool_params);
+	(void) ofp_init_pre_global("packet_pool", &pool_params, pkt_hook);
 
-	if (pool == ODP_POOL_INVALID) {
-		OFP_ERR("Error: packet pool create failed.\n");
-		return -1;
-	}
-
-	odp_shm_print_all();
-	odp_pool_print(pool);
+	ofp_arp_init_local();
 
 	dev = ofp_get_ifnet(0, 0);
 	dev->if_mtu = ifmtu;
