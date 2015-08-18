@@ -357,7 +357,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
 	}
 
-	ofp_copy_mac_64(ll_addr, &entry->macaddr);
+	ofp_copy_mac(ll_addr, &entry->macaddr);
 
 	if (entry->usetime_upd_tmo == ODP_TIMER_INVALID)
 		usetime_is_old = TRUE;

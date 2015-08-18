@@ -123,11 +123,4 @@ static inline odp_bool_t ofp_ip6_equal(uint8_t *addr1, uint8_t *addr2)
 }
 #endif
 
-/*Note: destination and source must have 8 octets available
-	On destination address, 2 bytes after MAC will be written
-	On source address, 2 bytes after MAC will be read*/
-#define ofp_copy_mac_64(dst, src) {\
-	*(uint64_t *)dst = *(uint64_t *)src;\
-}
-
 #endif
