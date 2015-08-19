@@ -8,6 +8,11 @@
 #ifndef __OFP_ROUTE_ARP_H__
 #define __OFP_ROUTE_ARP_H__
 
+#include <stdint.h>
+#include <string.h>
+
+#include "ofp_log.h"
+
 /* ROUTE: ADD/DEL*/
 
 struct ofp_route_msg {
@@ -20,42 +25,73 @@ struct ofp_route_msg {
 #define OFP_LOCAL_INTERFACE_DEL 6
 #define OFP_ROUTE6_ADD 7
 #define OFP_ROUTE6_DEL 8
-	uint16_t vrf;
 	uint32_t dst;
 	uint32_t masklen;
 	uint32_t gw;
 	uint32_t port;
 	uint16_t vlan;
+	uint16_t vrf;
 	uint8_t  dst6[16];
 	uint8_t  gw6[16];
 };
 
-#define SET_ROUTE(_type, _vrf, _dst, _mlen, _gw, _port, _vlan) do {     \
-		struct ofp_route_msg msg;                                    \
-		msg.type = _type;                                              \
-		msg.vrf = _vrf;                                                \
-		msg.dst = _dst;                                                \
-		msg.masklen = _mlen;                                           \
-		msg.gw = _gw;                                                  \
-		msg.port = _port;                                              \
-		msg.vlan = _vlan;                                              \
-		ofp_set_route(&msg);                                         \
-	} while (0)
+int32_t ofp_set_route_msg(struct ofp_route_msg *msg);
 
-#define SET_ROUTE6(_type, _dst6, _prefix, _gw6, _port, _vlan) do {	\
-		struct ofp_route_msg msg;				\
-		memset(&msg, 0, sizeof(msg));				\
-		msg.type = _type;					\
-		msg.vrf = 0;						\
-		memcpy(msg.dst6, _dst6, 16);				\
-		msg.masklen = _prefix;					\
-		memcpy(msg.gw6, _gw6, 16);				\
-		msg.port = _port;					\
-		msg.vlan = _vlan;					\
-		ofp_set_route(&msg);					\
-	} while (0)
+static inline int32_t ofp_set_route_params(uint32_t type, uint16_t vrf,
+					   uint16_t vlan, uint32_t port,
+					   uint32_t dst, uint32_t masklen,
+					   uint32_t gw)
+{
+	struct ofp_route_msg msg;
 
-int32_t ofp_set_route(struct ofp_route_msg *msg);
+#if defined(OFP_DEBUG)
+	if (type == OFP_ROUTE6_ADD || type == OFP_ROUTE6_DEL) {
+		OFP_ERR("Incompatible type=%d\n", type);
+		return -1;
+	}
+#endif
+	msg.type    = type;
+	msg.vrf     = vrf;
+	msg.vlan    = vlan;
+	msg.port    = port;
+
+	msg.dst     = dst;
+	msg.masklen = masklen;
+	msg.gw      = gw;
+
+	return ofp_set_route_msg(&msg);
+}
+
+static inline int32_t ofp_set_route6_params(uint32_t type, uint16_t vrf,
+					    uint16_t vlan, uint32_t port,
+					    const uint8_t dst6[],
+					    uint32_t masklen,
+					    const uint8_t gw6[])
+{
+	struct ofp_route_msg msg;
+
+#if defined(OFP_DEBUG)
+	if (type != OFP_ROUTE6_ADD && type != OFP_ROUTE6_DEL) {
+		OFP_ERR("Incompatible type=%d\n", type);
+		return -1;
+	}
+#endif
+	msg.type    = type;
+	msg.vrf     = vrf;
+	msg.vlan    = vlan;
+	msg.port    = port;
+
+	if (dst6) {
+		memcpy(msg.dst6, dst6,
+		       (masklen > 0) ? (1 + ((masklen - 1) >> 3)) : 0);
+	}
+	msg.masklen = masklen;
+	if (gw6) {
+		memcpy(msg.gw6, gw6, 16);
+	}
+
+	return ofp_set_route_msg(&msg);
+}
 
 /* ROUTE: SHOW */
 

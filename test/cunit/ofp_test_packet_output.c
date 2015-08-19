@@ -392,7 +392,6 @@ test_packet_output_ipv6_to_gre(void)
 	odp_packet_t pkt = ODP_PACKET_INVALID;
 	odp_event_t ev;
 	int res;
-	struct ofp_route_msg msg;
 	struct ofp_ether_header *eth;
 	struct ofp_ip6_hdr *ip6, *ip6_orig;
 	struct ofp_ip *ip;
@@ -410,15 +409,9 @@ test_packet_output_ipv6_to_gre(void)
 
 	ip6 = odp_packet_l3_ptr(pkt, NULL);
 
-	memset(&msg, 0, sizeof(msg));
-	msg.type = OFP_ROUTE6_ADD;
-	msg.vrf = 0;
-	memcpy(msg.dst6, ip6->ip6_dst.__u6_addr.__u6_addr8, 8);
-	msg.masklen = 64;
-	/* gw = 0 */
-	msg.port = GRE_PORTS;
-	msg.vlan = 100;
-	ofp_set_route(&msg);
+	ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, 100 /*vlan*/, GRE_PORTS,
+			      ip6->ip6_dst.__u6_addr.__u6_addr8, 64 /*masklen*/,
+			      0 /*gw*/);
 
 	res = ofp_ip6_output(pkt, NULL);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);

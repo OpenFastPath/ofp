@@ -627,11 +627,11 @@ int ofp_ioctl(int sockfd, int request, ...)
 	} else if (OFP_IOCGROUP(request) == 'r') {
 		int port = 0, vlan = 0;
 		struct ofp_rtentry *rt = data;
-		struct ofp_route_msg msg;
 		uint32_t dst  = ((struct ofp_sockaddr_in *)&rt->rt_dst)->sin_addr.s_addr;
 		uint32_t mask = ((struct ofp_sockaddr_in *)&rt->rt_genmask)->sin_addr.s_addr;
 		uint32_t gw   = ((struct ofp_sockaddr_in *)&rt->rt_gateway)->sin_addr.s_addr;
 		uint32_t maskcpu = odp_be_to_cpu_32(mask);
+		uint32_t mlen = 0;
 
 		if (request != (int)OFP_SIOCADDRT &&
 		    request != (int)OFP_SIOCDELRT) {
@@ -658,23 +658,14 @@ int ofp_ioctl(int sockfd, int request, ...)
 			}
 		}
 
-		msg.vrf = rt->rt_vrf;
-		msg.dst = dst;
-		msg.masklen = 0;
-
 		while (maskcpu) {
-			msg.masklen++;
+			mlen++;
 			maskcpu <<= 1;
 		}
 
-		msg.gw = gw;
-		msg.port = port;
-		msg.vlan = vlan;
-		if (request == (int)OFP_SIOCADDRT)
-			msg.type = OFP_ROUTE_ADD;
-		else if (request == (int)OFP_SIOCDELRT)
-			msg.type = OFP_ROUTE_DEL;
-		ofp_set_route(&msg);
+		ofp_set_route_params((request == (int) OFP_SIOCADDRT) ? OFP_ROUTE_ADD : OFP_ROUTE_DEL,
+				     rt->rt_vrf, vlan, port,
+				     dst, mlen, gw);
 	} else {
 		ofp_errno = ofp_soo_ioctl(so, request, data, NULL, NULL);
 	}

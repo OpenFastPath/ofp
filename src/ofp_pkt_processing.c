@@ -1110,12 +1110,11 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 		mac = nh->mac;
 
 		if (!(((uint32_t *)mac)[0] || mac[4] || mac[5])) {
-			SET_ROUTE6(OFP_ROUTE6_ADD,
-					&ip6->ip6_dst.ofp_s6_addr[0],
-					128,
-					ofp_in6addr_any.ofp_s6_addr,
-					dev_out->port,
-					dev_out->vlan);
+			ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/,
+					      dev_out->vlan, dev_out->port,
+					      ip6->ip6_dst.ofp_s6_addr,
+					      128 /*masklen*/,
+					      ofp_in6addr_any.ofp_s6_addr);
 
 			if (ofp_nd6_ns_output(dev_out, nh->gw,
 				ip6->ip6_dst.ofp_s6_addr) == OFP_PKT_DROP) {

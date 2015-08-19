@@ -31,7 +31,6 @@ void f_route_add(struct cli_conn *conn, const char *s)
 	uint32_t gwaddr, destaddr;
 	int a, b, c, d, e, f, g, h, port, mlen, vlan;
 	char dev[16];
-	struct ofp_route_msg msg;
 
 	if (sscanf(s, "%d.%d.%d.%d/%d %d.%d.%d.%d %s",
 		   &a, &b, &c, &d, &mlen,
@@ -47,15 +46,8 @@ void f_route_add(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	msg.type = OFP_ROUTE_ADD;
-	msg.dst = destaddr;
-	msg.masklen = mlen;
-	msg.vrf = 0;
-	msg.gw = gwaddr;
-	msg.port = port;
-	msg.vlan = vlan;
-
-	ofp_set_route(&msg);
+	ofp_set_route_params(OFP_ROUTE_ADD, 0 /*vrf*/, vlan, port,
+			     destaddr, mlen, gwaddr);
 
 	sendcrlf(conn);
 }
@@ -67,7 +59,6 @@ void f_route_add_vrf(struct cli_conn *conn, const char *s)
 	uint32_t gwaddr, destaddr;
 	int a, b, c, d, e, f, g, h, port, mlen, vrf, vlan;
 	char dev[16];
-	struct ofp_route_msg msg;
 
 	if (sscanf(s, "%d %d.%d.%d.%d/%d %d.%d.%d.%d %s",
 		   &vrf, &a, &b, &c, &d, &mlen,
@@ -83,14 +74,8 @@ void f_route_add_vrf(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	msg.type = OFP_ROUTE_ADD;
-	msg.dst = destaddr;
-	msg.masklen = mlen;
-	msg.vrf = vrf;
-	msg.gw = gwaddr;
-	msg.port = port;
-	msg.vlan = vlan;
-	ofp_set_route(&msg);
+	ofp_set_route_params(OFP_ROUTE_ADD, vrf, vlan, port, destaddr,
+			     mlen, gwaddr);
 
 	sendcrlf(conn);
 }
@@ -99,13 +84,13 @@ void f_route_add_vrf(struct cli_conn *conn, const char *s)
 #ifdef INET6
 void f_route_add_v6(struct cli_conn *conn, const char *s)
 {
-	struct ofp_route_msg msg;
+	uint8_t dst6[16];
+	uint8_t gw6[16];
 	int port, vlan, mlen;
 	const char *tk;
 	const char *tk_end;
 	const char *last;
 
-	memset(&msg, 0, sizeof(msg));
 	last = s + strlen(s);
 
 /* get IP6NET address*/
@@ -117,7 +102,7 @@ void f_route_add_v6(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	if (!ip6addr_get(tk, tk_end - tk, msg.dst6)) {
+	if (!ip6addr_get(tk, tk_end - tk, dst6)) {
 		ofp_sendf(conn->fd, "Invalid IP6NET\r\n");
 		sendcrlf(conn);
 		return;
@@ -154,7 +139,7 @@ void f_route_add_v6(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	if (!ip6addr_get(tk, tk_end - tk, msg.gw6)) {
+	if (!ip6addr_get(tk, tk_end - tk, gw6)) {
 		ofp_sendf(conn->fd, "Invalid IP6NET\r\n");
 		sendcrlf(conn);
 		return;
@@ -176,14 +161,8 @@ void f_route_add_v6(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-
-	msg.type = OFP_ROUTE6_ADD;
-	msg.masklen = mlen;
-	msg.vrf = 0;
-	msg.port = port;
-	msg.vlan = vlan;
-
-	ofp_set_route(&msg);
+	ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, vlan, port, dst6,
+			      mlen, gw6);
 
 	sendcrlf(conn);
 }
@@ -195,18 +174,14 @@ void f_route_del(struct cli_conn *conn, const char *s)
 {
 	uint32_t destaddr;
 	int a, b, c, d, mlen;
-	struct ofp_route_msg msg;
 
 	if (sscanf(s, "%d.%d.%d.%d/%d",
 		&a, &b, &c, &d, &mlen) != 5)
 		return;
 	destaddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
 
-	msg.type = OFP_ROUTE_DEL;
-	msg.vrf = 0;
-	msg.dst = destaddr;
-	msg.masklen = mlen;
-	ofp_set_route(&msg);
+	ofp_set_route_params(OFP_ROUTE_DEL, 0 /*vrf*/, 0 /*vlan*/, 0 /*port*/,
+			     destaddr, mlen, 0 /*gw*/);
 
 	sendcrlf(conn);
 }
@@ -217,18 +192,14 @@ void f_route_del_vrf(struct cli_conn *conn, const char *s)
 {
 	uint32_t destaddr;
 	int a, b, c, d, mlen, vrf;
-	struct ofp_route_msg msg;
 
 	if (sscanf(s, "%d %d.%d.%d.%d/%d",
 		&vrf, &a, &b, &c, &d, &mlen) != 6)
 		return;
 	destaddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
 
-	msg.type = OFP_ROUTE_DEL;
-	msg.vrf = vrf;
-	msg.dst = destaddr;
-	msg.masklen = mlen;
-	ofp_set_route(&msg);
+	ofp_set_route_params(OFP_ROUTE_DEL, vrf, 0 /*vlan*/, 0 /*port*/,
+			     destaddr, mlen, 0 /*gw*/);
 
 	sendcrlf(conn);
 }
@@ -237,13 +208,13 @@ void f_route_del_vrf(struct cli_conn *conn, const char *s)
 #ifdef INET6
 void f_route_del_v6(struct cli_conn *conn, const char *s)
 {
-	struct ofp_route_msg msg;
+	uint8_t dst6[16];
+	uint8_t gw6[16];
 	int mlen;
 	const char *tk;
 	const char *tk_end;
 	const char *last;
 
-	memset(&msg, 0, sizeof(msg));
 	last = s + strlen(s);
 
 /* get IP6NET address*/
@@ -255,7 +226,7 @@ void f_route_del_v6(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	if (!ip6addr_get(tk, tk_end - tk, msg.dst6)) {
+	if (!ip6addr_get(tk, tk_end - tk, dst6)) {
 		ofp_sendf(conn->fd, "Invalid IP6NET\r\n");
 		sendcrlf(conn);
 		return;
@@ -278,10 +249,8 @@ void f_route_del_v6(struct cli_conn *conn, const char *s)
 
 	mlen = atoi(tk);
 
-	msg.type = OFP_ROUTE6_DEL;
-	msg.vrf = 0;
-	msg.masklen = mlen;
-	ofp_set_route(&msg);
+	ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/, 0 /*port*/,
+			      dst6, mlen, gw6);
 
 	sendcrlf(conn);
 }

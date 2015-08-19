@@ -321,19 +321,11 @@ test_ofp_add_route(uint32_t port, uint32_t vrf, uint32_t vlan,
 			uint32_t destination, uint32_t mask_len,
 			uint32_t rt_dst_len, uint32_t gw)
 {
-	struct ofp_route_msg msg;
 	/* add/test only IPv4 routes and not IPv6 or DEFAULT routes(rt_dst=0)*/
 	CU_ASSERT_EQUAL(rt_dst_len, 4);
 	if (rt_dst_len == 4) {
-		msg.vrf = vrf;
-		msg.port = port;
-		msg.vlan = vlan;
-
-		msg.type = OFP_ROUTE_ADD;
-		msg.dst = destination;
-		msg.masklen = mask_len;
-		msg.gw = gw;
-		ofp_set_route(&msg);
+		ofp_set_route_params(OFP_ROUTE_ADD, vrf, vlan, port,
+				     destination, mask_len, gw);
 	}
 
 

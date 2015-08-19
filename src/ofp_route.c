@@ -472,7 +472,7 @@ static int del_local_interface(struct ofp_route_msg *msg)
 		return 0;
 }
 
-int32_t ofp_set_route(struct ofp_route_msg *msg)
+int32_t ofp_set_route_msg(struct ofp_route_msg *msg)
 {
 		/*printf("routing msg: type = %d, dst=%x/%d, gw=%x\n",
 		  msg->type, msg->dst, msg->masklen, msg->gw);*/

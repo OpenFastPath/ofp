@@ -33,12 +33,10 @@ void ofp_nd6_ns_input(odp_packet_t m, int off, int icmp6len)
 	if (icmp6->ofp_icmp6_data8[20] == OFP_ND_OPT_SOURCE_LINKADDR &&
 		!OFP_IN6_IS_ADDR_UNSPECIFIED(&ip6->ip6_src) &&
 		!OFP_IN6_IS_ADDR_LINKLOCAL(&ip6->ip6_src)) {
-		SET_ROUTE6(OFP_ROUTE6_ADD,
-			&ip6->ip6_src.ofp_s6_addr[0],
-			128,
-			ofp_in6addr_any.ofp_s6_addr,
-			ifp->port,
-			ifp->vlan);
+		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, ifp->vlan,
+				      ifp->port, ip6->ip6_src.ofp_s6_addr,
+				      128 /*masklen*/,
+				      ofp_in6addr_any.ofp_s6_addr);
 
 		ofp_add_mac6(ifp,
 			&ip6->ip6_src.ofp_s6_addr[0],
@@ -163,12 +161,10 @@ void ofp_nd6_na_input(odp_packet_t m, int off, int icmp6len)
 	icmp6 = (struct ofp_icmp6_hdr *)((uint8_t *)ip6 + off);
 
 	if (icmp6->ofp_icmp6_data8[20] == OFP_ND_OPT_TARGET_LINKADDR) {
-		SET_ROUTE6(OFP_ROUTE6_ADD,
-			&icmp6->ofp_icmp6_data8[4],
-			128,
-			ofp_in6addr_any.ofp_s6_addr,
-			ifp->port,
-			ifp->vlan);
+		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, ifp->vlan,
+				      ifp->port, &icmp6->ofp_icmp6_data8[4],
+				      128 /*masklen*/,
+				      ofp_in6addr_any.ofp_s6_addr);
 
 		ofp_add_mac6(ifp,
 			&icmp6->ofp_icmp6_data8[4],

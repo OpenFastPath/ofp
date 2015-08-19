@@ -139,7 +139,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 					msg.dst = destination;
 					msg.masklen = rtp->rtm_dst_len;
 					msg.gw = gateway;
-					ofp_set_route(&msg);
+					ofp_set_route_msg(&msg);
 				} else if (dst6) {
 					msg.type = OFP_ROUTE6_ADD;
 					memcpy(msg.dst6, dst6, dst_len);
@@ -148,7 +148,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 						memcpy(msg.gw6, gw6, gw_len);
 					else
 						memset(msg.gw6, 0, 16);
-					ofp_set_route(&msg);
+					ofp_set_route_msg(&msg);
 				}
 			} else if (dst_len == 0) {
 				/* default route */
@@ -158,7 +158,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 				msg.gw = gateway;
 				msg.port = dev->port;
 				msg.vlan = dev->vlan;
-				ofp_set_route(&msg);
+				ofp_set_route_msg(&msg);
 			}
 		} else
 			OFP_DBG("*** CANNOT FIND DEV ix=%d!\n", ix);
@@ -180,7 +180,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 				msg.dst = destination;
 			msg.masklen = rtp->rtm_dst_len;
 		}
-		ofp_set_route(&msg);
+		ofp_set_route_msg(&msg);
 	}
 	return 0;
 }
@@ -235,9 +235,10 @@ static int del_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 	(void)laddr;
 
 	if (if_entry->ifa_family == AF_INET)	{
-		SET_ROUTE(OFP_ROUTE_DEL, dev->vrf,
-			  dev->port == GRE_PORTS ? dev->ip_p2p : dev->ip_addr,
-			  dev->masklen, 0, dev->port, dev->vlan);
+		ofp_set_route_params(
+			OFP_ROUTE_DEL, dev->vrf, dev->vlan,dev->port,
+			(dev->port == GRE_PORTS) ? dev->ip_p2p : dev->ip_addr,
+			dev->masklen, 0 /*gw*/);
 		dev->ip_addr = 0;
 		if (dev->port == GRE_PORTS)
 			dev->ip_p2p = 0;
@@ -250,9 +251,9 @@ static int del_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 
 		memset(gw6, 0, 16);
 
-		SET_ROUTE6(OFP_ROUTE6_DEL, dev->ip6_addr, dev->ip6_prefix,
-			(uint8_t *)gw6,
-			dev->port, dev->vlan);
+		ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, dev->vlan,
+				      dev->port, dev->ip6_addr, dev->ip6_prefix,
+				      gw6);
 		memset(dev->ip6_addr, 0, 16);
 
 		if (dev->vlan == 0)
@@ -489,7 +490,7 @@ static void _parse_ifla_link_info(struct rtattr *rt, int rl,
 
 	if (RTA_OK(rtap, rtl) && rtap->rta_type == IFLA_INFO_KIND &&
 	    strncmp(RTA_DATA(rtap), "gre", sizeof("gre")) == 0) {
-		OFP_DBG("IFLA_INFO_KIND: %s\n", RTA_DATA(rtap));
+		OFP_DBG("IFLA_INFO_KIND: %s\n", (char *) RTA_DATA(rtap));
 		rtap = RTA_NEXT(rtap, rtl);
 	} else
 		return;
