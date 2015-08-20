@@ -27,6 +27,8 @@
 
 #include <config.h>
 
+#define SHM_NAME_ARP_CK "OfpArpCkShMem"
+
 #define ENTRIES_PER_CACHE_LINE (ODP_CACHE_LINE_SIZE / sizeof(struct arp_entry))
 #define ENTRIES_PER_SET (ENTRIES_PER_CACHE_LINE * 4)
 #define NUM_SETS 2048 /* Must be power of two */
@@ -250,37 +252,33 @@ void ofp_arp_init_tables(void)
 
 void ofp_arp_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
-
-	/* Reserve memory for args from shared mem */
-	shm_h = odp_shm_reserve("OfpArpShMem",
-				sizeof(*shm), ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_alloc(SHM_NAME_ARP_CK, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: OfpArpShMem shared mem alloc failed on core: %u.\n",
-			  odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_ARP_CK, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
 }
 
+void ofp_arp_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_ARP_CK);
+	shm = NULL;
+}
+
 void ofp_arp_lookup_shared_memory(void)
 {
-	odp_shm_t shm_h;
-
-	shm_h = odp_shm_lookup("OfpArpShMem");
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_lookup(SHM_NAME_ARP_CK);
 	if (shm == NULL) {
-		OFP_ABORT("Error: OfpArpShMem shared mem lookup failed on core: %u.\n",
-			  odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_ARP_CK, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
 }
 
-void ofp_arp_global_init(void)
+void ofp_arp_init_global(void)
 {
 	memset((void *)&(shm->arp_table[0]), 0x0, sizeof(shm->arp_table));
 	memset((void *)&(shm->arp_entries[0][0]), 0x0,
@@ -289,8 +287,17 @@ void ofp_arp_global_init(void)
 	odp_sync_stores();
 }
 
-void ofp_arp_local_init(void)
+void ofp_arp_term_global(void)
+{
+	memset(shm, 0, sizeof(*shm));
+}
+
+void ofp_arp_init_local(void)
 {
 	ck_epoch_register(&arp_epoch, &record);
 	odp_sync_stores();
+}
+
+void ofp_arp_term_local(void)
+{
 }

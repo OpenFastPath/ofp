@@ -75,7 +75,7 @@ int ofp_init_global(ofp_init_global_t *params)
 			 OFP_TIMER_MAX_US,
 			 OFP_TIMER_TMO_COUNT);
 	ofp_hook_alloc_shared_memory(&params->pkt_hook[0]);
-	ofp_arp_global_init();
+	ofp_arp_init_global();
 
 	ofp_init_ifnet_data();
 
@@ -288,7 +288,7 @@ int ofp_init_local(void)
 	ofp_hook_lookup_shared_memory();
 	ofp_arp_lookup_shared_memory();
 
-	ofp_arp_local_init();
+	ofp_arp_init_local();
 
 	return 0;
 }

@@ -118,8 +118,8 @@ init_suite(void)
 
 	ofp_init_ifnet_data();
 	ofp_route_init();
-	ofp_arp_global_init();
-	ofp_arp_local_init();
+	ofp_arp_init_global();
+	ofp_arp_init_local();
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
 	pool_params.pkt.len = SHM_PKT_POOL_BUF_SIZE;

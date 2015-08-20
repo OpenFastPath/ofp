@@ -91,6 +91,10 @@ char *ofp_port_vlan_to_ifnet_name(int port, int vlan);
 int ofp_sendf(int fd, const char *fmt, ...);
 int ofp_has_mac(uint8_t *mac);
 
+void *ofp_shared_memory_alloc(const char *name, uint64_t size);
+int ofp_shared_memory_free(const char *name);
+void *ofp_shared_memory_lookup(const char *name);
+
 static inline int ilog2(unsigned long long n)
 {
 	return 63 - __builtin_clzll(n);
