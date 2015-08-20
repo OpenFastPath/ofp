@@ -180,7 +180,6 @@ init_suite(void)
 
 	ofp_portconf_alloc_shared_memory();
 	ofp_route_alloc_shared_memory();
-	ofp_rt_lookup_alloc_shared_memory();
 	ofp_avl_alloc_shared_memory();
 	ofp_arp_alloc_shared_memory();
 	ofp_pcap_alloc_shared_memory();
@@ -193,7 +192,7 @@ init_suite(void)
 	ofp_hook_alloc_shared_memory(&pkt_hook[0]);
 
 	ofp_init_ifnet_data();
-	ofp_route_init();
+	ofp_route_init_global();
 	ofp_arp_init_global();
 	ofp_arp_init_local();
 

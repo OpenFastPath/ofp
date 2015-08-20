@@ -27,6 +27,8 @@
 #include "ofpi_rt_lookup.h"
 #include "ofpi_log.h"
 
+#define SHM_NAME_RT_LOOKUP "OfpRtlookupShMem"
+
 /*
  * Shared data
  */
@@ -97,27 +99,11 @@ static struct ofp_rtl6_node *NODEALLOC6(void)
 
 int ofp_rtl_init(struct ofp_rtl_tree *tree)
 {
-	int i;
-
-	for (i = 0; i < NUM_NODES; i++) {
-		shm->node_list[i].left = (i == 0) ? NULL : &(shm->node_list[i-1]);
-		shm->node_list[i].right = (i == NUM_NODES - 1) ? NULL : &(shm->node_list[i+1]);
-	}
-	shm->free_nodes = shm->node_list;
-
 	return ofp_rtl_root_init(tree, 0);
 }
 
 int ofp_rtl6_init(struct ofp_rtl6_tree *tree)
 {
-	int i;
-
-	for (i = 0; i < NUM_NODES_6; i++) {
-		shm->node_list6[i].left = (i == 0) ? NULL : &(shm->node_list6[i-1]);
-		shm->node_list6[i].right = (i == NUM_NODES_6 - 1) ? NULL : &(shm->node_list6[i+1]);
-	}
-	shm->free_nodes6 = &(shm->node_list6[0]);
-
 	tree->root = NODEALLOC6();
 	if (!tree->root) {
 		printf("%s(): allocation failed!\n", __FUNCTION__);
@@ -598,32 +584,55 @@ void ofp_print_rt_stat(int fd)
 
 void ofp_rt_lookup_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
-
-	/* Reserve memory for args from shared mem */
-	shm_h = odp_shm_reserve("OfpRtlookupShMem",
-					sizeof(*shm), ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: OfpRtlookupShMem shared mem alloc failed on core: %u.\n",
-							odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_RT_LOOKUP, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
 }
 
+void ofp_rt_lookup_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_RT_LOOKUP);
+	shm = NULL;
+}
+
 void ofp_rt_lookup_lookup_shared_memory(void)
 {
-	odp_shm_t shm_h;
-
-	shm_h = odp_shm_lookup("OfpRtlookupShMem");
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_lookup(SHM_NAME_RT_LOOKUP);
 	if (shm == NULL) {
-		OFP_ABORT("Error: OfpRtlookupShMem shared mem lookup failed on core: %u.\n",
-							odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_RT_LOOKUP, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
 }
+
+void ofp_rt_lookup_init_global(void)
+{
+	int i;
+
+	for (i = 0; i < NUM_NODES; i++) {
+		shm->node_list[i].left = (i == 0) ?
+			NULL : &(shm->node_list[i-1]);
+		shm->node_list[i].right = (i == NUM_NODES - 1) ?
+			NULL : &(shm->node_list[i+1]);
+	}
+	shm->free_nodes = shm->node_list;
+
+	for (i = 0; i < NUM_NODES_6; i++) {
+		shm->node_list6[i].left = (i == 0) ?
+			NULL : &(shm->node_list6[i-1]);
+		shm->node_list6[i].right = (i == NUM_NODES_6 - 1) ?
+			NULL : &(shm->node_list6[i+1]);
+	}
+	shm->free_nodes6 = &(shm->node_list6[0]);
+}
+
+void ofp_rt_lookup_term_global(void)
+{
+	memset(shm, 0, sizeof(*shm));
+}
+

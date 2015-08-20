@@ -64,7 +64,6 @@ int ofp_init_global(ofp_init_global_t *params)
 
 	ofp_portconf_alloc_shared_memory();
 	ofp_route_alloc_shared_memory();
-	ofp_rt_lookup_alloc_shared_memory();
 	ofp_avl_alloc_shared_memory();
 	ofp_reassembly_alloc_shared_memory();
 	ofp_pcap_alloc_shared_memory();
@@ -259,7 +258,7 @@ int ofp_init_global(ofp_init_global_t *params)
 #endif /* SP */
 	}
 
-	ofp_route_init();
+	ofp_route_init_global();
 
 #ifdef SP
 	/* Start Netlink server process */
@@ -278,7 +277,6 @@ int ofp_init_local(void)
 	/* Lookup shared memories */
 	ofp_portconf_lookup_shared_memory();
 	ofp_route_lookup_shared_memory();
-	ofp_rt_lookup_lookup_shared_memory();
 	ofp_avl_lookup_shared_memory();
 	ofp_reassembly_lookup_shared_memory();
 	ofp_pcap_lookup_shared_memory();

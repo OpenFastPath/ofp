@@ -28,7 +28,9 @@ extern struct ofp_locks_str *ofp_locks_shm;
 
 void ofp_route_lookup_shared_memory(void);
 void ofp_route_alloc_shared_memory(void);
-void ofp_route_init(void);
+void ofp_route_free_shared_memory(void);
+void ofp_route_init_global(void);
+void ofp_route_term_global(void);
 
 int32_t ofp_is_mobile(uint32_t addr);
 int ofp_route_save_ipv6_pkt(odp_packet_t pkt, uint8_t *addr,

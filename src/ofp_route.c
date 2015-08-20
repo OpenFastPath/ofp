@@ -20,6 +20,9 @@
 #include "ofpi_portconf.h"
 #include "ofpi_log.h"
 
+#define SHM_NAME_ROUTE "OfpRouteShMem"
+#define SHM_NAME_ROUTE_LK "OfpLocksShMem"
+
 #define USE_RW_LOCK 1
 
 /* number of saved packets waiting for Neighbor Advertisement */
@@ -63,6 +66,12 @@ struct ofp_route_mem {
 static __thread struct ofp_route_mem *shm;
 struct ofp_locks_str *ofp_locks_shm;
 
+static int free_data(void *data);
+#ifdef INET6
+static void route6_cleanup(int fd, uint8_t *key, int level,
+		struct ofp_nh6_entry *data);
+#endif /* INET6 */
+
 static int routes_avl_compare(void *compare_arg, void *a, void *b)
 {
 	(void) compare_arg;
@@ -72,12 +81,14 @@ static int routes_avl_compare(void *compare_arg, void *a, void *b)
 	return (a1->vrf - b1->vrf);
 }
 
-void ofp_route_init(void)
+void ofp_route_init_global(void)
 {
 	int i;
 
 	odp_rwlock_init(&ofp_locks_shm->lock_config_rw);
 	odp_rwlock_init(&ofp_locks_shm->lock_route_rw);
+
+	ofp_rt_lookup_init_global();
 
 	/*avl_tree_new(routes_avl_compare, NULL);*/
 	ofp_rtl_init(&shm->default_routes);
@@ -534,36 +545,97 @@ uint16_t ofp_get_probable_vlan(int port, uint32_t addr)
 
 void ofp_route_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
+	ofp_rt_lookup_alloc_shared_memory();
 
-	/* Reserve memory for args from shared mem */
-	shm_h = odp_shm_reserve("OfpRouteShMem",
-				sizeof(*shm), ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
+	shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE, sizeof(*shm));
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_ROUTE, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
 
-	shm_h = odp_shm_reserve("OfpLocksShMem",
-				sizeof(*ofp_locks_shm), ODP_CACHE_LINE_SIZE, 0);
-	ofp_locks_shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL || ofp_locks_shm  == NULL) {
-		OFP_ABORT("Error: OfpRouteShMem shared mem alloc failed on core: %u.\n",
-							odp_cpu_id());
+	ofp_locks_shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE_LK,
+		sizeof(*ofp_locks_shm));
+	if (ofp_locks_shm == NULL) {
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_ROUTE_LK, odp_cpu_id());
+		ofp_shared_memory_free(SHM_NAME_ROUTE);
+		shm = NULL;
 		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
+	memset(ofp_locks_shm, 0, sizeof(*ofp_locks_shm));
+}
+
+void ofp_route_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_ROUTE);
+	shm = NULL;
+
+	ofp_shared_memory_free(SHM_NAME_ROUTE_LK);
+	ofp_locks_shm = NULL;
+
+	ofp_rt_lookup_free_shared_memory();
 }
 
 void ofp_route_lookup_shared_memory(void)
 {
-	odp_shm_t shm_h;
+	ofp_rt_lookup_lookup_shared_memory();
 
-	shm_h = odp_shm_lookup("OfpRouteShMem");
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE);
 	if (shm == NULL) {
-		OFP_ABORT("Error: OfpRouteShMem shared mem lookup failed on core: %u.\n",
-							odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_ROUTE, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
+
+	ofp_locks_shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE_LK);
+	if (ofp_locks_shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_ROUTE_LK, odp_cpu_id());
+		ofp_shared_memory_free(SHM_NAME_ROUTE);
+		shm = NULL;
 		exit(EXIT_FAILURE);
 	}
 }
+
+void ofp_route_term_global(void)
+{
+	if (shm->vrf_routes) {
+		avl_tree_free(shm->vrf_routes, free_data);
+		shm->vrf_routes = NULL;
+	}
+
+#ifdef INET6
+	ofp_rtl_traverse6(0, &shm->default_routes_6, route6_cleanup);
+#endif /*INET6*/
+
+	memset(shm, 0, sizeof(*shm));
+
+	ofp_rt_lookup_term_global();
+}
+
+static int free_data(void *data)
+{
+	free(data);
+	return 1;
+}
+
+#ifdef INET6
+static void route6_cleanup(int fd, uint8_t *key, int level,
+		struct ofp_nh6_entry *data)
+{
+	struct pkt6_entry *pktentry;
+
+	(void)fd;
+	(void)key;
+	(void)level;
+
+	while ((pktentry = OFP_SLIST_FIRST(&data->pkt6_hold))) {
+		OFP_SLIST_REMOVE_HEAD(&data->pkt6_hold, next);
+		odp_packet_free(pktentry->pkt);
+		pkt6_entry_free(pktentry);
+	}
+}
+#endif /* INET6 */
