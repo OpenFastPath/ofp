@@ -154,26 +154,26 @@ struct ofp_tcphdr {
 /*
  * User-settable options (used with setsockopt).
  */
-#define	TCP_NODELAY	0x01	/* don't delay send to coalesce packets */
-#define	TCP_MAXSEG	0x02	/* set maximum segment size */
-#define TCP_NOPUSH	0x04	/* don't push last block of write */
-#define TCP_NOOPT	0x08	/* don't use TCP options */
-#define TCP_MD5SIG	0x10	/* use MD5 digests (RFC2385) */
-#define	TCP_INFO	0x20	/* retrieve tcp_info structure */
-#define	TCP_CONGESTION	0x40	/* get/set congestion control algorithm */
-#define	TCP_KEEPINIT	0x80	/* N, time to establish connection */
-#define	TCP_KEEPIDLE	0x100	/* L,N,X start keepalives after this period */
-#define	TCP_KEEPINTVL	0x200	/* L,N interval between keepalives */
-#define	TCP_KEEPCNT	0x400	/* L,N number of keepalives before close */
-#define TCP_REASSDL	0x800	/* wait this long for missing segments */
+#define OFP_TCP_NODELAY	0x01	/* don't delay send to coalesce packets */
+#define OFP_TCP_MAXSEG	0x02	/* set maximum segment size */
+#define OFP_TCP_NOPUSH	0x04	/* don't push last block of write */
+#define OFP_TCP_NOOPT	0x08	/* don't use TCP options */
+#define OFP_TCP_MD5SIG	0x10	/* use MD5 digests (RFC2385) */
+#define OFP_TCP_INFO	0x20	/* retrieve tcp_info structure */
+#define OFP_TCP_CONGESTION	0x40	/* get/set congestion control algorithm */
+#define OFP_TCP_KEEPINIT	0x80	/* N, time to establish connection */
+#define OFP_TCP_KEEPIDLE	0x100	/* L,N,X start keepalives after this period */
+#define OFP_TCP_KEEPINTVL	0x200	/* L,N interval between keepalives */
+#define OFP_TCP_KEEPCNT	0x400	/* L,N number of keepalives before close */
+#define OFP_TCP_REASSDL	0x800	/* wait this long for missing segments */
 
-#define	TCP_CA_NAME_MAX	16	/* max congestion control name length */
+#define	OFP_TCP_CA_NAME_MAX	16	/* max congestion control name length */
 
-#define	TCPI_OPT_TIMESTAMPS	0x01
-#define	TCPI_OPT_SACK		0x02
-#define	TCPI_OPT_WSCALE		0x04
-#define	TCPI_OPT_ECN		0x08
-#define	TCPI_OPT_TOE		0x10
+#define	OFP_TCPI_OPT_TIMESTAMPS	0x01
+#define	OFP_TCPI_OPT_SACK		0x02
+#define	OFP_TCPI_OPT_WSCALE		0x04
+#define	OFP_TCPI_OPT_ECN		0x08
+#define	OFP_TCPI_OPT_TOE		0x10
 
 /*
  * The TCP_INFO socket option comes from the Linux 2.6 TCP API, and permits
@@ -187,7 +187,7 @@ struct ofp_tcphdr {
  * XXX: This is currently an unstable ABI/API, in that it is expected to
  * change.
  */
-struct tcp_info {
+struct ofp_tcp_info {
 	uint8_t	tcpi_state;		/* TCP FSM state. */
 	uint8_t	__tcpi_ca_state;
 	uint8_t	__tcpi_retransmits;

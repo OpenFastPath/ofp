@@ -82,7 +82,7 @@ struct ofp_icmp {
 		int ih_void;
 
 		/* ICMP_UNREACH_NEEDFRAG -- Path MTU Discovery (RFC1191) */
-		struct ih_pmtu {
+		struct ofp_ih_pmtu {
 			uint16_t ipm_void;	/* network format */
 			uint16_t ipm_nextmtu;	/* network format */
 		} ih_pmtu;
