@@ -70,6 +70,7 @@ init_suite(void)
 	}
 
 	ofp_pcap_alloc_shared_memory();
+	ofp_pcap_init_global();
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
 	pool_params.pkt.len = SHM_PKT_POOL_BUF_SIZE;

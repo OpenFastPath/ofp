@@ -40,6 +40,7 @@ init_suite(void)
 	}
 
 	ofp_stat_alloc_shared_memory();
+	ofp_stat_init_global();
 
 	odp_shm_print_all();
 

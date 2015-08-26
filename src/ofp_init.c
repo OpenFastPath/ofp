@@ -60,15 +60,23 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	ofp_route_alloc_shared_memory();
 	ofp_avl_alloc_shared_memory();
 	ofp_reassembly_alloc_shared_memory();
+
 	ofp_pcap_alloc_shared_memory();
+	ofp_pcap_init_global();
+
 	ofp_stat_alloc_shared_memory();
-	ofp_arp_alloc_shared_memory();
-	ofp_hook_alloc_shared_memory(hooks);
+	ofp_stat_init_global();
 
 	ofp_timer_init(OFP_TIMER_RESOLUTION_US,
-		       OFP_TIMER_MIN_US,
-		       OFP_TIMER_MAX_US,
-		       OFP_TIMER_TMO_COUNT);
+			 OFP_TIMER_MIN_US,
+			 OFP_TIMER_MAX_US,
+			 OFP_TIMER_TMO_COUNT);
+
+	ofp_hook_alloc_shared_memory();
+	ofp_hook_init_global(hooks);
+
+	ofp_arp_alloc_shared_memory();
+	ofp_arp_init_global();
 
 	ofp_init_ifnet_data();
 

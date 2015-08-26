@@ -20,7 +20,12 @@
 }
 
 ofp_pkt_hook *ofp_get_packet_hooks(void);
-void ofp_hook_alloc_shared_memory(ofp_pkt_hook *pkt_hook_init);
+
+void ofp_hook_alloc_shared_memory(void);
+void ofp_hook_free_shared_memory(void);
 void ofp_hook_lookup_shared_memory(void);
+
+void ofp_hook_init_global(ofp_pkt_hook *pkt_hook_init);
+void ofp_hook_term_global(void);
 
 #endif /* __OFPI_HOOK_H__ */

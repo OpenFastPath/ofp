@@ -16,8 +16,9 @@
 
 #include "ofpi_debug.h"
 #include "ofpi_log.h"
+#include "ofpi_util.h"
 
-#define shm shm_pcap
+#define SHM_NAME_PCAP "OfpPcapShMem"
 
 struct ofp_pcap_mem {
 	odp_rwlock_t lock_pcap_rw;
@@ -163,33 +164,48 @@ static void sigpipe_handler(int s)
 
 void ofp_pcap_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
-
-	shm_h = odp_shm_reserve("OfpPcapShMem", sizeof(*shm),
-				ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL)
-		OFP_ABORT("Error: Util shared mem alloc failed"
-			" on core: %u.\n",
-			  odp_cpu_id());
+	shm = ofp_shared_memory_alloc(SHM_NAME_PCAP, sizeof(*shm));
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_PCAP, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
 
 	memset(shm, 0, sizeof(*shm));
+}
+
+void ofp_pcap_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_PCAP);
+	shm = NULL;
+}
+
+void ofp_pcap_lookup_shared_memory(void)
+{
+	shm = ofp_shared_memory_lookup(SHM_NAME_PCAP);
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_PCAP, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
+}
+
+void ofp_pcap_init_global(void)
+{
 	odp_rwlock_init(&shm->lock_pcap_rw);
 	strcpy(shm->pcap_file_name, DEFAULT_DEBUG_PCAP_FILE_NAME);
 	shm->pcap_first = 1;
 	signal(SIGPIPE, sigpipe_handler);
 }
 
-void ofp_pcap_lookup_shared_memory(void)
+void ofp_pcap_term_global(void)
 {
-	odp_shm_t shm_h;
+	signal(SIGPIPE, SIG_DFL);
 
-	shm_h = odp_shm_lookup("OfpPcapShMem");
-	shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL)
-		OFP_ABORT("Error: Util shared mem lookup failed"
-			" on core: %u.\n",
-			odp_cpu_id());
+	if (shm->pcap_fd) {
+		fclose(shm->pcap_fd);
+		shm->pcap_fd = NULL;
+		shm->pcap_first = 1;
+	}
+	memset(shm, 0, sizeof(*shm));
 }

@@ -34,7 +34,11 @@ extern int ofp_debug_capture_ports;
 #define DEFAULT_DEBUG_PCAP_FILE_NAME "/root/packets.pcap"
 
 void ofp_pcap_alloc_shared_memory(void);
+void ofp_pcap_free_shared_memory(void);
 void ofp_pcap_lookup_shared_memory(void);
+
+void ofp_pcap_init_global(void);
+void ofp_pcap_term_global(void);
 
 void ofp_save_packet_to_pcap_file(uint32_t flag, odp_packet_t pkt, int port);
 void ofp_print_packet_buffer(const char *comment, uint8_t *p);
