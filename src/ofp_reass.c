@@ -50,6 +50,8 @@
 #include "ofpi_queue.h"
 #include "ofpi_reass.h"
 
+#define SHM_NAME_REASSEMBLY "OfpIpShMem"
+
 #define	IPREASS_NHASH_LOG2	6
 #define	IPREASS_NHASH		(1 << IPREASS_NHASH_LOG2)
 #define	IPREASS_HMASK		(IPREASS_NHASH - 1)
@@ -102,18 +104,34 @@ static inline struct ofp_ip *FRAG_IP(struct frag *f)
 
 void ofp_reassembly_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
-
-	shm_h = odp_shm_reserve("OfpIpShMem", sizeof(*shm),
-				ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_alloc(SHM_NAME_REASSEMBLY, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: Ip shared mem alloc failed on core: %u.\n",
-			  odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_REASSEMBLY, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
 
+	memset(shm, 0, sizeof(*shm));
+}
+
+void ofp_reassembly_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_REASSEMBLY);
+	shm = NULL;
+}
+
+void ofp_reassembly_lookup_shared_memory(void)
+{
+	shm = ofp_shared_memory_lookup(SHM_NAME_REASSEMBLY);
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_REASSEMBLY, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
+}
+
+void ofp_reassembly_init_global(void)
+{
 	memset(shm, 0, sizeof(*shm));
 	shm->maxnipq = 1024;
 	shm->maxfragsperpacket = 16;
@@ -121,18 +139,33 @@ void ofp_reassembly_alloc_shared_memory(void)
 	odp_spinlock_init(&shm->ipqlock);
 }
 
-void ofp_reassembly_lookup_shared_memory(void)
+void ofp_reassembly_term_global(void)
 {
-	odp_shm_t shm_h;
+	int i;
+	struct frag *chain, *next;
+	odp_packet_t pkt;
 
-	shm_h = odp_shm_lookup("OfpIpShMem");
-	shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL) {
-		OFP_ABORT("Error: Ip shared mem lookup failed on core: %u.\n",
-			  odp_cpu_id());
-		exit(EXIT_FAILURE);
+	if (shm->timer != ODP_TIMER_INVALID) {
+		ofp_timer_cancel(shm->timer);
+		shm->timer = ODP_TIMER_INVALID;
 	}
+
+	for (i = 0; i < IPREASS_NHASH; i++) {
+		chain = shm->ipq[i];
+		while (chain) {
+			next = NEXT_CHAIN(chain);
+
+			while (chain) {
+				pkt = chain->pkt;
+				chain = NEXT_FRAG(chain);
+				odp_packet_free(pkt);
+			}
+
+			chain = next;
+		}
+		shm->ipq[i] = NULL;
+	}
+	memset(shm, 0, sizeof(*shm));
 }
 
 /* IP fragment reassembly functionality*/

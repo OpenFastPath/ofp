@@ -59,7 +59,9 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	ofp_portconf_alloc_shared_memory();
 	ofp_route_alloc_shared_memory();
 	ofp_avl_alloc_shared_memory();
+
 	ofp_reassembly_alloc_shared_memory();
+	ofp_reassembly_init_global();
 
 	ofp_pcap_alloc_shared_memory();
 	ofp_pcap_init_global();

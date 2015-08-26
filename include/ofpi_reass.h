@@ -28,7 +28,12 @@
 #define _OFPI_REASSEMBLY_H_
 
 void ofp_reassembly_alloc_shared_memory(void);
+void ofp_reassembly_free_shared_memory(void);
 void ofp_reassembly_lookup_shared_memory(void);
+
+void ofp_reassembly_init_global(void);
+void ofp_reassembly_term_global(void);
+
 odp_packet_t ofp_ip_reass(odp_packet_t pkt);
 
 
