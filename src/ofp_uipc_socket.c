@@ -214,7 +214,7 @@ int ofp_socket_pool_create(const char *name, int size)
 		return -1;
 	}
 
-	pool = odp_pool_create(name, ODP_SHM_NULL, &pool_params);
+	pool = odp_pool_create(name, &pool_params);
 	if (pool == ODP_POOL_INVALID) {
 		OFP_ERR("POOL: Cannot allocate pool!\n");
 		return -1;

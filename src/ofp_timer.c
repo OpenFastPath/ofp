@@ -96,7 +96,7 @@ int ofp_timer_init(int resolution_us,
 	pool_params.tmo.num  = TIMER_NUM_TIMERS;
 	pool_params.type  = ODP_POOL_TIMEOUT;
 
-	shm->pool = odp_pool_create("TimeoutPool", ODP_SHM_NULL, &pool_params);
+	shm->pool = odp_pool_create("TimeoutPool", &pool_params);
 
 	if (shm->pool == ODP_POOL_INVALID) {
 		OFP_ERR("Timeout pool create failed.\n");
@@ -110,8 +110,7 @@ int ofp_timer_init(int resolution_us,
 	pool_params.buf.num  = TIMER_NUM_TIMERS;
 	pool_params.type  = ODP_POOL_BUFFER;
 
-	shm->buf_pool = odp_pool_create("TimeoutBufferPool", ODP_SHM_NULL,
-					&pool_params);
+	shm->buf_pool = odp_pool_create("TimeoutBufferPool", &pool_params);
 
 	if (shm->buf_pool == ODP_POOL_INVALID) {
 		OFP_ERR("Buffer pool create failed.\n");

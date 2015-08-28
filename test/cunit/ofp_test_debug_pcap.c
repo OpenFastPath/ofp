@@ -76,8 +76,7 @@ init_suite(void)
 	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUF_SIZE;
 	pool_params.type = ODP_POOL_PACKET;
 
-	pool = odp_pool_create("packet_pool", ODP_SHM_NULL,
-		&pool_params);
+	pool = odp_pool_create("packet_pool", &pool_params);
 	if (pool == ODP_POOL_INVALID) {
 		OFP_ERR("Error: packet pool create failed.\n");
 		return -1;

@@ -75,7 +75,7 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	ofp_route_init_global();
 	ofp_arp_init_global();
 
-	pool = odp_pool_create(pool_name, ODP_SHM_NULL, pool_params);
+	pool = odp_pool_create(pool_name, pool_params);
 	if (pool == ODP_POOL_INVALID) {
 		OFP_ERR("Error: odp_pool_create failed.\n");
 		return pool;
