@@ -48,7 +48,7 @@ static void test_tls_errno(void)
 	odp_barrier_t barrier__;
 	odp_barrier_t *barrier;
 
-	CU_ASSERT(1 == odph_linux_cpumask_default(&cpumask, 1));
+	CU_ASSERT(1 == odp_cpumask_def_worker(&cpumask, 1));
 
 	barrier = &barrier__;
 	odp_barrier_init(barrier, 2);

@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 	if (core_count > 1)
 		num_workers--;
 
-	num_workers = odph_linux_cpumask_default(&cpumask, num_workers);
+	num_workers = odp_cpumask_def_worker(&cpumask, num_workers);
 	odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr));
 
 	printf("Num worker threads: %i\n", num_workers);
