@@ -111,7 +111,7 @@ fi
 ##########################################################################
 
 # prepending lib to the files to link
-LIBS="-lodp $LIBS"
+LIBS="-lodp -lodphelper $LIBS"
 
 # introduce the optional configure parameter for a non-standard install prefix of XXX
 AC_ARG_WITH([odp],
