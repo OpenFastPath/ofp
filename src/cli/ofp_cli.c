@@ -1590,6 +1590,7 @@ static void *cli_server(void *arg)
 	int reuse = 1;
 	fd_set read_fd, fds;
 	char *config_file_name;
+	odp_thread_type_t cliserver;
 
 	close_cli = 0;
 
@@ -1597,7 +1598,7 @@ static void *cli_server(void *arg)
 
 	printf("CLI server started on core %i\n", odp_cpu_id());
 
-	odp_init_local();
+	odp_init_local(cliserver);
 	ofp_init_local();
 
 	cli_init_commands();

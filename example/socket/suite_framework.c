@@ -75,9 +75,10 @@ void end_suite(void)
 
 static void *suite_thread1(void *arg)
 {
+	odp_thread_type_t suite_thrd1;
 	run_function run_func = (run_function)arg;
 
-	odp_init_local();
+	odp_init_local(suite_thrd1);
 	ofp_init_local();
 
 	(void)run_func(fd_thread1);
@@ -87,9 +88,10 @@ static void *suite_thread1(void *arg)
 
 static void *suite_thread2(void *arg)
 {
+	odp_thread_type_t suite_thrd2;
 	run_function run_func = (run_function)arg;
 
-	odp_init_local();
+	odp_init_local(suite_thrd2);
 	ofp_init_local();
 
 	(void)run_func(fd_thread2);

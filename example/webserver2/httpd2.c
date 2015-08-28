@@ -183,11 +183,12 @@ static void *webserver(void *arg)
 	int serv_fd;
 	struct ofp_sockaddr_in my_addr;
 	ofp_fd_set read_fd;
+	odp_thread_type_t webserver;
 	(void)arg;
 
 	logprint("HTTP thread started\n");
 
-	odp_init_local();
+	odp_init_local(webserver);
 	ofp_init_local();
 	sleep(1);
 
