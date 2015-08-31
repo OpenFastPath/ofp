@@ -35,6 +35,8 @@
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 
+#define SHM_NAME_AVL "OfpAvlShMem"
+
 /*
  * Shared data
  */
@@ -1275,42 +1277,53 @@ void ofp_print_avl_stat(int fd)
 
 void ofp_avl_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
-        uint32_t i;
-
-	/* Reserve memory for args from shared mem */
-	shm_h = odp_shm_reserve("OfpAvlShMem", sizeof(*shm), ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_alloc(SHM_NAME_AVL, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: OfpAvlShMem shared mem alloc failed on core: %u.\n", odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_AVL, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
+}
 
-	for (i = 0; i < NUM_NODES; i++) {
-		shm->node_list[i].right = (i == NUM_NODES - 1) ? NULL : &(shm->node_list[i+1]);
+void ofp_avl_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_AVL);
+	shm = NULL;
+}
+
+void ofp_avl_lookup_shared_memory(void)
+{
+	shm = ofp_shared_memory_lookup(SHM_NAME_AVL);
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_AVL, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
+}
+
+void ofp_avl_init_global(void)
+{
+	uint32_t i;
+
+	memset(shm, 0, sizeof(*shm));
+
+	for (i = 0; i < NUM_NODES; i++)
+		shm->node_list[i].right = (i == NUM_NODES - 1) ?
+			NULL : &(shm->node_list[i+1]);
+
 	shm->free_nodes = &(shm->node_list[0]);
 
-	for (i = 0; i < NUM_TREES; i++) {
-		shm->trees[i].compare_arg = (i == NUM_TREES - 1) ? NULL : &(shm->trees[i+1]);
-	}
+	for (i = 0; i < NUM_TREES; i++)
+		shm->trees[i].compare_arg = (i == NUM_TREES - 1) ?
+			NULL : &(shm->trees[i+1]);
+
 	shm->free_trees = &(shm->trees[0]);
 	shm->tree_cnt = 0;
 }
 
-
-void ofp_avl_lookup_shared_memory(void)
+void ofp_avl_term_global(void)
 {
-	odp_shm_t shm_h;
-
-	shm_h = odp_shm_lookup("OfpAvlShMem");
-	shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL) {
-		OFP_ABORT("Error: OfpAvlShMem shared mem lookup failed on core: %u.\n", odp_cpu_id());
-		exit(EXIT_FAILURE);
-	}
+	memset(shm, 0, sizeof(*shm));
 }

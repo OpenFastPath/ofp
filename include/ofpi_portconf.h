@@ -48,6 +48,9 @@ struct ofp_ifnet {
 	uint16_t	port;
 	uint16_t	vlan;
 	uint16_t	vrf;
+#define OFP_IFT_STATE_FREE 0
+#define OFP_IFT_STATE_USED 1
+	uint8_t		if_state;
 	uint16_t	if_mtu;
 	uint32_t	ip_addr; /* network byte order */
 	uint32_t	ip_p2p; /* network byte order */
@@ -110,8 +113,10 @@ void *sp_rx_thread(void *ifnet_void);
 int sp_setup_device(struct ofp_ifnet *ifnet);
 
 void ofp_portconf_alloc_shared_memory(void);
+void ofp_portconf_free_shared_memory(void);
 void ofp_portconf_lookup_shared_memory(void);
-void ofp_init_ifnet_data(void);
+void ofp_portconf_init_global(void);
+void ofp_portconf_term_global(void);
 
 #ifdef SP
 void ofp_update_ifindex_lookup_tab(struct ofp_ifnet *ifnet);

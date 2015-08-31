@@ -19,6 +19,9 @@
 
 #include "ofpi_log.h"
 
+#define SHM_NAME_PORTS "OfpPortconfShMem"
+#define SHM_NAME_PORT_LOCKS "OfpPortconfLocksShMem"
+
 #ifdef SP
 #define NUM_LINUX_INTERFACES 512
 #endif /*SP*/
@@ -58,6 +61,11 @@ static void *new_vlan(
 		void *compare_arg)
 {
 	return avl_tree_new(compare_fun, compare_arg);
+}
+
+static void free_vlan(void *root, int (*free_key_fun)(void *arg))
+{
+	avl_tree_free((avl_tree *)root, free_key_fun);
 }
 
 static int vlan_iterate_inorder(void *root,
@@ -102,7 +110,7 @@ static int vlan_ifnet_compare(void *compare_arg, void *a, void *b)
 	return (a1->vlan - b1->vlan);
 }
 
-void ofp_init_ifnet_data(void)
+void ofp_portconf_init_global(void)
 {
 	int i;
 
@@ -114,6 +122,7 @@ void ofp_init_ifnet_data(void)
 		shm->ofp_ifnet_data[i].if_type = OFP_IFT_ETHER;
 		/*TODO get if_mtu from Linux/SDK*/
 		shm->ofp_ifnet_data[i].if_mtu = 1500;
+		shm->ofp_ifnet_data[i].if_state = OFP_IFT_STATE_FREE;
 	}
 
 	shm->ofp_num_ports = NUM_PORTS;
@@ -996,45 +1005,70 @@ odp_pktio_t ofp_port_pktio_get(int port)
 
 void ofp_portconf_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
+	shm = ofp_shared_memory_alloc(SHM_NAME_PORTS, sizeof(*shm));
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_PORTS, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
 
-	/* Reserve memory for args from shared mem */
-	shm_h = odp_shm_reserve("OfpPortconfShMem",
-					sizeof(*shm), ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
-
-	shm_h = odp_shm_reserve("OfpPortconfLocksShMem",
-					sizeof(*ofp_ifnet_locks_shm),
-					ODP_CACHE_LINE_SIZE, 0);
-
-	ofp_ifnet_locks_shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL || ofp_ifnet_locks_shm == NULL) {
-		OFP_ABORT("Error: OfpPortconfShMem shared mem alloc"
-			" failed on core: %u.\n",
-			odp_cpu_id());
+	ofp_ifnet_locks_shm = ofp_shared_memory_alloc(SHM_NAME_PORT_LOCKS,
+		sizeof(*ofp_ifnet_locks_shm));
+	if (ofp_ifnet_locks_shm == NULL) {
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_PORT_LOCKS, odp_cpu_id());
+		ofp_shared_memory_free(SHM_NAME_PORTS);
 		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
+	memset(ofp_ifnet_locks_shm, 0, sizeof(*ofp_ifnet_locks_shm));
+}
+
+void ofp_portconf_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_PORTS);
+	shm = NULL;
+
+	ofp_shared_memory_free(SHM_NAME_PORT_LOCKS);
+	ofp_ifnet_locks_shm = NULL;
 }
 
 void ofp_portconf_lookup_shared_memory(void)
 {
-	odp_shm_t shm_h;
-
-	shm_h = odp_shm_lookup("OfpPortconfShMem");
-	shm = odp_shm_addr(shm_h);
-
-	shm_h = odp_shm_lookup("OfpPortconfLocksShMem");
-	ofp_ifnet_locks_shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL || ofp_ifnet_locks_shm == NULL) {
-		OFP_ABORT("Error: OfpPortconfShMem shared mem lookup"
-			" failed on core: %u.\n",
-			odp_cpu_id());
+	shm = ofp_shared_memory_lookup(SHM_NAME_PORTS);
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_PORTS, odp_cpu_id());
+		ofp_shared_memory_free(SHM_NAME_PORT_LOCKS);
 		exit(EXIT_FAILURE);
 	}
+
+	ofp_ifnet_locks_shm = ofp_shared_memory_lookup(SHM_NAME_PORT_LOCKS);
+	if (ofp_ifnet_locks_shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_PORT_LOCKS, odp_cpu_id());
+		ofp_shared_memory_free(SHM_NAME_PORTS);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void ofp_portconf_term_global(void)
+{
+	int i;
+	struct ofp_ifnet *ifnet;
+
+	for (i = 0; i < NUM_PORTS; ++i) {
+		ifnet = &shm->ofp_ifnet_data[i];
+
+		if (ifnet->if_state == OFP_IFT_STATE_FREE)
+			continue;
+		free_vlan(shm->ofp_ifnet_data[i].vlan_structs, free_key);
+
+		ifnet->if_state = OFP_IFT_STATE_FREE;
+	}
+	memset(shm, 0, sizeof(*shm));
+	memset(ofp_ifnet_locks_shm, 0, sizeof(*ofp_ifnet_locks_shm));
 }
 
 struct in_ifaddrhead *ofp_get_ifaddrhead(void)

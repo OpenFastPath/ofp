@@ -56,9 +56,8 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	/* Init shared memories */
 	ofp_register_sysctls();
 
-	ofp_portconf_alloc_shared_memory();
-	ofp_route_alloc_shared_memory();
 	ofp_avl_alloc_shared_memory();
+	ofp_avl_init_global();
 
 	ofp_reassembly_alloc_shared_memory();
 	ofp_reassembly_init_global();
@@ -80,10 +79,11 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	ofp_arp_alloc_shared_memory();
 	ofp_arp_init_global();
 
-	ofp_init_ifnet_data();
-
+	ofp_route_alloc_shared_memory();
 	ofp_route_init_global();
-	ofp_arp_init_global();
+
+	ofp_portconf_alloc_shared_memory();
+	ofp_portconf_init_global();
 
 	pool = odp_pool_create(pool_name, pool_params);
 	if (pool == ODP_POOL_INVALID) {
@@ -278,6 +278,7 @@ int ofp_init_global(ofp_init_global_t *params)
 					 sp_tx_thread,
 					 ifnet);
 #endif /* SP */
+		ifnet->if_state = OFP_IFT_STATE_USED;
 	}
 
 #ifdef SP
