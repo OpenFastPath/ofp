@@ -628,6 +628,8 @@ VNET_DECLARE(int, ofp_tcp_ecn_maxretries);
 VNET_DECLARE(struct hhook_head *, ofp_tcp_hhh[HHOOK_TCP_LAST + 1]);
 #define	V_tcp_hhh		VNET(ofp_tcp_hhh)
 
+extern odp_timer_t ofp_tcp_slow_timer;
+
 int	 ofp_tcp_addoptions(struct tcpopt *, uint8_t *);
 int	 tcp_ccalgounload(struct cc_algo *unload_algo);
 struct tcpcb *

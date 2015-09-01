@@ -127,7 +127,7 @@ ofp_tcp_slowtimo(void *notused)
 	INP_INFO_WLOCK(&V_tcbinfo);
 	(void) ofp_tcp_tw_2msl_scan(0);
 	INP_INFO_WUNLOCK(&V_tcbinfo);
-	ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
+	ofp_tcp_slow_timer = ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
 }
 
 int	ofp_tcp_syn_backoff[TCP_MAXRXTSHIFT + 1] =

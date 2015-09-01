@@ -115,6 +115,7 @@ struct ofp_udpstat {
 
 SYSCTL_DECL(_net_inet_udp);
 
+extern struct inpcbinfo ofp_udbinfo;
 extern struct pr_usrreqs	ofp_udp_usrreqs;
 extern uint64_t			ofp_udp_sendspace;
 extern uint64_t			ofp_udp_recvspace;
