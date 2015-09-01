@@ -68,10 +68,11 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	ofp_stat_alloc_shared_memory();
 	ofp_stat_init_global();
 
-	ofp_timer_init(OFP_TIMER_RESOLUTION_US,
-			 OFP_TIMER_MIN_US,
-			 OFP_TIMER_MAX_US,
-			 OFP_TIMER_TMO_COUNT);
+	ofp_timer_alloc_shared_memory();
+	ofp_timer_init_global(OFP_TIMER_RESOLUTION_US,
+			OFP_TIMER_MIN_US,
+			OFP_TIMER_MAX_US,
+			OFP_TIMER_TMO_COUNT);
 
 	ofp_hook_alloc_shared_memory();
 	ofp_hook_init_global(hooks);
