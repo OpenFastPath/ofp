@@ -14,6 +14,8 @@
 
 #include "ofpi_timer.h"
 
+#define SHM_NAME_TIMER "OfpTimerShMem"
+
 struct ofp_timer_internal {
 	struct ofp_timer_internal *next;
 	odp_buffer_t buf;
@@ -44,6 +46,7 @@ struct ofp_timer_mem {
 	int sec_counter;
 	int id;
 	odp_spinlock_t lock;
+	odp_timer_t timer_1s;
 };
 
 /*
@@ -71,25 +74,19 @@ static void one_sec(void *arg)
 	}
 
 	/* Start one second timeout */
-	ofp_timer_start(1000000UL, one_sec, NULL, 0);
+	shm->timer_1s = ofp_timer_start(1000000UL, one_sec, NULL, 0);
 }
 
-int ofp_timer_init(int resolution_us,
-		     int min_us, int max_us,
-		     int tmo_count)
+int ofp_timer_init_global(int resolution_us,
+		int min_us, int max_us,
+		int tmo_count)
 {
-	odp_shm_t shm_h;
 	odp_queue_param_t param;
 	odp_pool_param_t pool_params;
 	odp_timer_pool_param_t timer_params;
 
 	/* For later tuning. */
 	(void)tmo_count;
-
-	/* SHM */
-	shm_h = odp_shm_reserve("OfpTimerShMem", sizeof(*shm),
-				ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
 
 	/* Timout pool */
 	memset(&pool_params, 0, sizeof(pool_params));
@@ -133,8 +130,6 @@ int ofp_timer_init(int resolution_us,
 		exit(EXIT_FAILURE);
 	}
 
-	odp_shm_print_all();
-
 	odp_timer_pool_start();
 
 	/*
@@ -156,25 +151,93 @@ int ofp_timer_init(int resolution_us,
 	odp_spinlock_init(&shm->lock);
 
 	/* Start one second timeouts */
-	ofp_timer_start(1000000UL, one_sec, NULL, 0);
+	shm->timer_1s = ofp_timer_start(1000000UL, one_sec, NULL, 0);
 
 	OFP_LOG("Timer init\n");
 	return 0;
 }
 
-void ofp_timer_lookup_shared_memory(void)
+void ofp_timer_stop_global(void)
 {
-	odp_shm_t shm_h;
+	if (shm->timer_1s != ODP_TIMER_INVALID) {
+		ofp_timer_cancel(shm->timer_1s);
+		shm->timer_1s = ODP_TIMER_INVALID;
+	}
 
-	shm_h = odp_shm_lookup("OfpTimerShMem");
-	shm = odp_shm_addr(shm_h);
+	if (shm->socket_timer != ODP_TIMER_INVALID) {
+		ofp_timer_cancel(shm->socket_timer);
+		shm->socket_timer = ODP_TIMER_INVALID;
+	}
+}
 
+void ofp_timer_term_global(void)
+{
+	int i;
+	struct ofp_timer_internal *bufdata, *next;
+
+/* Cleanup long timers*/
+	for (i = 0; i < TIMER_NUM_LONG_SLOTS; i++) {
+		bufdata = shm->long_table[i];
+		if (!bufdata)
+			continue;
+
+		while (bufdata) {
+			next = bufdata->next;
+			odp_buffer_free(bufdata->buf);
+			bufdata = next;
+		}
+	}
+
+/* Cleanup timer related ODP objects*/
+	if (shm->queue != ODP_QUEUE_INVALID) {
+		odp_queue_destroy(shm->queue);
+		shm->queue = ODP_QUEUE_INVALID;
+	}
+
+	if (shm->socket_timer_pool != ODP_TIMER_POOL_INVALID) {
+		odp_timer_pool_destroy(shm->socket_timer_pool);
+		shm->socket_timer_pool = ODP_TIMER_POOL_INVALID;
+	}
+
+	if (shm->buf_pool != ODP_POOL_INVALID) {
+		odp_pool_destroy(shm->buf_pool);
+		shm->buf_pool = ODP_POOL_INVALID;
+	}
+
+	if (shm->pool != ODP_POOL_INVALID) {
+		odp_pool_destroy(shm->pool);
+		shm->pool = ODP_POOL_INVALID;
+	}
+
+	memset(shm, 0, sizeof(*shm));
+}
+
+void ofp_timer_alloc_shared_memory(void)
+{
+	shm = ofp_shared_memory_alloc(SHM_NAME_TIMER, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: Timer shared mem lookup failed on core: %u.\n",
-			  odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_TIMER, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
-	OFP_LOG("Timer lookup\n");
+
+	memset(shm, 0, sizeof(*shm));
+}
+
+void ofp_timer_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_TIMER);
+	shm = NULL;
+}
+
+void ofp_timer_lookup_shared_memory(void)
+{
+	shm = ofp_shared_memory_lookup(SHM_NAME_TIMER);
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_TIMER, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
 }
 
 odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
@@ -337,6 +400,17 @@ void ofp_timer_handle(odp_event_t ev)
 	odp_buffer_free(bufdata->buf);
 	odp_timeout_free(tmo);
 	odp_timer_free(tim);
+}
+
+void ofp_timer_evt_cleanup(odp_event_t evt)
+{
+	struct ofp_timer_internal *bufdata;
+	odp_timeout_t tmo;
+
+	tmo = odp_timeout_from_event(evt);
+	bufdata = (struct ofp_timer_internal *)odp_timeout_user_ptr(tmo);
+	odp_buffer_free(bufdata->buf);
+	odp_timeout_free(tmo);
 }
 
 /* timer_num defines the timer type. At the moment
