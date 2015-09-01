@@ -139,12 +139,12 @@ static void *webserver(void *arg)
 	unsigned int alen;
 	struct ofp_sockaddr_in my_addr, caller;
 	ofp_fd_set read_fd;
-	odp_thread_type_t webserver;
+
 	(void)arg;
 
 	logprint("HTTP thread started\n");
 
-	odp_init_local(webserver);
+	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
 	sleep(1);
 

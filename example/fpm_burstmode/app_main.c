@@ -68,6 +68,7 @@ static void *pkt_io_recv(void *arg)
 	thr_args = arg;
 	pkt_func = thr_args->pkt_func;
 
+	odp_init_local(ODP_THREAD_WORKER);
 	ofp_init_local();
 
 	pktio = ofp_port_pktio_get(thr_args->port);
@@ -144,7 +145,6 @@ int main(int argc, char *argv[])
 	char cpumaskstr[64];
 	int cpu, first_cpu, i;
 	struct pktio_thr_arg pktio_thr_args[MAX_WORKERS];
-	odp_thread_type_t odp_main;
 
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &params);
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	odp_init_local(odp_main);
+	odp_init_local(ODP_THREAD_CONTROL);
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	memset(pktio_thr_args, 0, sizeof(pktio_thr_args));

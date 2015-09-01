@@ -219,13 +219,13 @@ ioctl_test(void *arg)
 {
 	int fd;
 	uint32_t addr, origaddr, origmask;
-	odp_thread_type_t ioctltest;
+
 	(void)arg;
 
 	logfile = fopen(logfilename, "w");
 	logprint("Ioctl test thread started\n");
 
-	odp_init_local(ioctltest);
+	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
 	sleep(2);
 

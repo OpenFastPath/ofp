@@ -71,7 +71,6 @@ int main(int argc, char *argv[])
 	int core_count, num_workers;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
-	odp_thread_type_t odp_main;
 
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &params);
@@ -83,7 +82,7 @@ int main(int argc, char *argv[])
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	odp_init_local(odp_main);
+	odp_init_local(ODP_THREAD_CONTROL);
 
 	core_count = odp_cpu_count();
 	num_workers = core_count;

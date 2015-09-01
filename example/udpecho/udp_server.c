@@ -86,12 +86,12 @@ static void *udpecho(void *arg)
 	struct ofp_sockaddr_in my_addr;
 	uint32_t my_ip_addr;
 	ofp_fd_set read_fd;
-	odp_thread_type_t udp_echo;
+
 	(void)arg;
 
 	logprint("UDP server thread started\n");
 
-	odp_init_local(udp_echo);
+	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
 	sleep(1);
 

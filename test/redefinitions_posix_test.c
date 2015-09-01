@@ -63,7 +63,7 @@ int main(void)
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	odp_init_local();
+	odp_init_local(ODP_THREAD_CONTROL);
 
 	ofp_init_global(&oig);
 

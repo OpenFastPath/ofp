@@ -97,7 +97,7 @@ init_suite(void)
 	}
 
 	/* Init this thread */
-	if (odp_init_local()) {
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
 		OFP_ERR("Error: ODP local init failed.\n");
 		return -1;
 	}

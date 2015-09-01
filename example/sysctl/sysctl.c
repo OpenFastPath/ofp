@@ -119,10 +119,9 @@ OFP_SYSCTL_STRING(_mybranch, OFP_OID_AUTO, hello, OFP_CTLFLAG_RW,
 static void *
 sysctl(void *arg)
 {
-	odp_thread_type_t sysctl;
 	(void)arg;
 
-	odp_init_local(sysctl);
+	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
 	sleep(2);
 

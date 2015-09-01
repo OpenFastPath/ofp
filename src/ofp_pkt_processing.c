@@ -62,6 +62,7 @@ void *default_event_dispatcher(void *arg)
 	int event_cnt = 0;
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
 
+	odp_init_local(ODP_THREAD_WORKER);
 	ofp_init_local();
 
 	/* PER CORE DISPATCHER */
