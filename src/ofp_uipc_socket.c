@@ -124,7 +124,12 @@
 #include "ofpi_protosw.h"
 #include "ofpi_ip6protosw.h"
 #include "ofpi_sockstate.h"
+#include "ofpi_tcp_var.h"
+#include "ofpi_tcp_timer.h"
+#include "ofpi_callout.h"
 #include "ofpi_log.h"
+
+#define SHM_NAME_SOCKET "OfpSocketShMem"
 
 #define OFP_SOCK_NUM_OFFSET 100
 #define OFP_NUM_SOCKET_POOLS 32
@@ -287,22 +292,38 @@ void ofp_accept_unlock(void)
 	odp_rwlock_write_unlock(&shm->ofp_accept_mtx);
 }
 
-void ofp_socket_alloc_shared_memory(odp_pool_t pool)
+void ofp_socket_alloc_shared_memory(void)
 {
-	odp_shm_t shm_h;
-        uint32_t i;
-
-	/* Reserve memory for args from shared mem */
-
-	shm_h = odp_shm_reserve("OfpSocketShMem", sizeof(*shm),
-				ODP_CACHE_LINE_SIZE, 0);
-	shm = odp_shm_addr(shm_h);
-
+	shm = ofp_shared_memory_alloc(SHM_NAME_SOCKET, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: Util shared mem alloc failed on core: %u.\n",
-			  odp_cpu_id());
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_SOCKET, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
+
+	memset(shm, 0, sizeof(*shm));
+}
+
+void ofp_socket_free_shared_memory(void)
+{
+	ofp_shared_memory_free(SHM_NAME_SOCKET);
+	shm = NULL;
+}
+
+
+void ofp_socket_lookup_shared_memory(void)
+{
+	shm = ofp_shared_memory_lookup(SHM_NAME_SOCKET);
+	if (shm == NULL) {
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_SOCKET, odp_cpu_id());
+		exit(EXIT_FAILURE);
+	}
+}
+
+void ofp_socket_init_global(odp_pool_t pool)
+{
+	uint32_t i;
 
 	memset(shm, 0, sizeof(*shm));
 
@@ -313,7 +334,6 @@ void ofp_socket_alloc_shared_memory(odp_pool_t pool)
 	}
 	shm->free_sockets = &(shm->socket_list[0]);
 
-	//shm->socket_zone = ofp_socket_pool_create("socket", sizeof(struct socket));
 	shm->somaxconn = SOMAXCONN;
 	shm->pool = pool;
 	odp_rwlock_init(&shm->so_global_mtx);
@@ -321,19 +341,59 @@ void ofp_socket_alloc_shared_memory(odp_pool_t pool)
 	odp_spinlock_init(&shm->sleep_lock);
 }
 
-
-void ofp_socket_lookup_shared_memory(void)
+void ofp_socket_term_global(void)
 {
-	odp_shm_t shm_h;
+	int i;
+	struct inpcb *inp, *inp_temp;
+	struct tcptw *tw;
+	struct tcpcb *tp;
 
-	shm_h = odp_shm_lookup("OfpSocketShMem");
-	shm = odp_shm_addr(shm_h);
-
-	if (shm == NULL) {
-		OFP_ABORT("Error: Util shared mem lookup failed on core: %u.\n",
-			  odp_cpu_id());
-		exit(EXIT_FAILURE);
+	if (ofp_tcp_slow_timer != ODP_TIMER_INVALID) {
+		ofp_timer_cancel(ofp_tcp_slow_timer);
+		ofp_tcp_slow_timer = ODP_TIMER_INVALID;
 	}
+
+	OFP_LIST_FOREACH_SAFE(inp, V_tcbinfo.ipi_listhead, inp_list, inp_temp) {
+
+		if (inp->inp_flags & INP_TIMEWAIT) {
+			tw = intotw(inp);
+			if (tw)
+				uma_zfree(V_tcptw_zone, tw);
+		} else if (!(inp->inp_flags & INP_DROPPED)) {
+			tp = intotcpcb(inp);
+			if (tp)
+				ofp_tcp_discardcb(tp);
+		}
+		if (inp->inp_socket) {
+			ofp_sbdestroy(&inp->inp_socket->so_snd,
+					inp->inp_socket);
+			ofp_sbdestroy(&inp->inp_socket->so_rcv,
+					inp->inp_socket);
+		}
+
+		uma_zfree(V_tcbinfo.ipi_zone, inp);
+	}
+
+	OFP_LIST_FOREACH_SAFE(inp, ofp_udbinfo.ipi_listhead, inp_list,
+			inp_temp) {
+		if (inp->inp_socket) {
+			ofp_sbdestroy(&inp->inp_socket->so_snd,
+					inp->inp_socket);
+			ofp_sbdestroy(&inp->inp_socket->so_rcv,
+					inp->inp_socket);
+		}
+
+		uma_zfree(V_tcbinfo.ipi_zone, inp);
+	}
+
+
+	for (i = 0; i < shm->num_pools; i++)
+		if (shm->pools[i] != ODP_POOL_INVALID) {
+			odp_pool_destroy(shm->pools[i]);
+			shm->pools[i] = ODP_POOL_INVALID;
+		}
+
+	memset(shm, 0, sizeof(*shm));
 }
 
 struct socket *ofp_get_sock_by_fd(int fd)

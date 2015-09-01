@@ -15,6 +15,10 @@
 OFP_LIST_HEAD(ofp_fdset, selinfo);
 #define OFP_GET_FD_SET(_set) (struct ofp_fdset *)(_set)->fd_set_buf
 
-void ofp_socket_alloc_shared_memory(odp_pool_t);
+void ofp_socket_alloc_shared_memory(void);
+void ofp_socket_free_shared_memory(void);
+void ofp_socket_lookup_shared_memory(void);
+void ofp_socket_init_global(odp_pool_t);
+void ofp_socket_term_global(void);
 
 #endif /* __OFPI_SOCKET_H__ */

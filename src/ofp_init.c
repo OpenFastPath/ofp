@@ -91,7 +91,8 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 		return pool;
 	}
 
-	ofp_socket_alloc_shared_memory(pool);
+	ofp_socket_alloc_shared_memory();
+	ofp_socket_init_global(pool);
 	ofp_inet_init();
 
 	return pool;

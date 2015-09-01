@@ -72,6 +72,7 @@
 #include <netinet/tcp_debug.h>
 #endif
 
+odp_timer_t ofp_tcp_slow_timer = ODP_TIMER_INVALID;
 
 #define	SYSCTL_VNET_INT OFP_SYSCTL_INT
 
@@ -340,8 +341,7 @@ ofp_tcp_init(void)
 	EVENTHANDLER_REGISTER(maxsockets_change, tcp_zone_change, NULL,
 		EVENTHANDLER_PRI_ANY);
 #endif
-
-	ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
+	ofp_tcp_slow_timer = ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
 }
 
 void

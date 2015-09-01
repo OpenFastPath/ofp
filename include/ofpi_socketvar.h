@@ -412,8 +412,6 @@ SYSCTL_DECL(_net_inet_accf);
 int	accept_filt_generic_mod_event(module_t mod, int event, void *data);
 #endif
 
-void ofp_socket_alloc_shared_memory(odp_pool_t pool);
-void ofp_socket_lookup_shared_memory(void);
 odp_packet_t ofp_packet_alloc(uint32_t len);
 odp_rwlock_t *ofp_accept_mtx(void);
 void ofp_accept_lock(void);
