@@ -8,7 +8,7 @@
 #define __OFP_H__
 
 #include <odp.h>
-#include <odp/helper/linux.h>
+#include "linux.h"
 
 #ifdef __cplusplus
 extern "C" {

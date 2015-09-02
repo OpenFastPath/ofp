@@ -43,3 +43,16 @@ install-sh
 ltmain.sh
 missing
 test-driver
+libtool
+lib/
+.dirstamp
+.libs
+
+include/config.h
+include/stamp-h1
+
+Makefile
+
+*.trs
+*.deps
+*.xml
