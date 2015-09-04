@@ -612,7 +612,7 @@ void * start_quagga_nl_server(void *arg)
 	memset(glob, 0, sizeof(*glob));
 
 	if (!create_listen_sock(FPM_DEFAULT_PORT, &glob->server_sock)) {
-		exit(1);
+		OFP_ERR("create_listen_sock failed");
 	}
 
 	/*

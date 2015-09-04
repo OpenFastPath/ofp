@@ -292,7 +292,7 @@ int free_key(void *key)
 static inline int exec_sys_call_depending_on_vrf(char *cmd, uint16_t vrf)
 {
 	if (vrf == 0) {
-		OFP_DBG("%s\n", cmd);
+		OFP_DBG("%s", cmd);
 		return system(cmd);
 	}
 
@@ -1007,18 +1007,13 @@ void ofp_portconf_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_PORTS, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_PORTS, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_PORTS);
 	}
 
 	ofp_ifnet_locks_shm = ofp_shared_memory_alloc(SHM_NAME_PORT_LOCKS,
 		sizeof(*ofp_ifnet_locks_shm));
 	if (ofp_ifnet_locks_shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_PORT_LOCKS, odp_cpu_id());
-		ofp_shared_memory_free(SHM_NAME_PORTS);
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_PORT_LOCKS);
 	}
 
 	memset(shm, 0, sizeof(*shm));
@@ -1038,18 +1033,12 @@ void ofp_portconf_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_PORTS);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_PORTS, odp_cpu_id());
-		ofp_shared_memory_free(SHM_NAME_PORT_LOCKS);
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_PORTS);
 	}
 
 	ofp_ifnet_locks_shm = ofp_shared_memory_lookup(SHM_NAME_PORT_LOCKS);
 	if (ofp_ifnet_locks_shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_PORT_LOCKS, odp_cpu_id());
-		ofp_shared_memory_free(SHM_NAME_PORTS);
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_PORT_LOCKS);
 	}
 }
 

@@ -76,9 +76,7 @@ void ofp_stat_alloc_shared_memory(void)
 {
 	shm_stat = ofp_shared_memory_alloc(SHM_NAME_STAT, sizeof(*shm_stat));
 	if (shm_stat == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_STAT, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_STAT);
 	}
 
 	memset(shm_stat, 0, sizeof(*shm_stat));
@@ -94,9 +92,7 @@ void ofp_stat_lookup_shared_memory(void)
 {
 	shm_stat = ofp_shared_memory_lookup(SHM_NAME_STAT);
 	if (shm_stat == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_STAT, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_STAT);
 	}
 }
 
