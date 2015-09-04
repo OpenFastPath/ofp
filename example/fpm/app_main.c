@@ -4,7 +4,7 @@
  *
  * SPDX-License-Identifier:	BSD-3-Clause
  */
-
+#include <unistd.h>
 #include <getopt.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -21,12 +21,14 @@ typedef struct {
 	int if_count;		/**< Number of interfaces to be used */
 	char **if_names;	/**< Array of pointers to interface names */
 	char *conf_file;
+	int perf_stat;
 } appl_args_t;
 
 /* helper funcs */
 static void parse_args(int argc, char *argv[], appl_args_t *appl_args);
 static void print_info(char *progname, appl_args_t *appl_args);
 static void usage(char *progname);
+static void start_performance(int core_id);
 
 ofp_init_global_t app_init_params; /**< global OFP init parms */
 
@@ -119,6 +121,9 @@ int main(int argc, char *argv[])
 	/* Start CLI */
 	ofp_start_cli_thread(app_init_params.linux_core_id, params.conf_file);
 
+	if (params.perf_stat)
+		start_performance(app_init_params.linux_core_id);
+
 	odph_linux_pthread_join(thread_tbl, num_workers);
 	printf("End Main()\n");
 
@@ -142,6 +147,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 	static struct option longopts[] = {
 		{"count", required_argument, NULL, 'c'},
 		{"interface", required_argument, NULL, 'i'},	/* return 'i' */
+		{"performance", no_argument, NULL, 'p'},	/* return 'p' */
 		{"help", no_argument, NULL, 'h'},		/* return 'h' */
 		{"configuration file", required_argument,
 			NULL, 'f'},/* return 'f' */
@@ -151,7 +157,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 	memset(appl_args, 0, sizeof(*appl_args));
 
 	while (1) {
-		opt = getopt_long(argc, argv, "+c:i:hf:",
+		opt = getopt_long(argc, argv, "+c:i:hpf:",
 				  longopts, &long_index);
 
 		if (opt == -1)
@@ -207,6 +213,10 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 		case 'h':
 			usage(argv[0]);
 			exit(EXIT_SUCCESS);
+			break;
+
+		case 'p':
+			appl_args->perf_stat = 1;
 			break;
 
 		case 'f':
@@ -286,7 +296,41 @@ static void usage(char *progname)
 		   "\n"
 		   "Optional OPTIONS\n"
 		   "  -c, --count <number> Core count.\n"
+		   "  -p, --performance    Performance Statistics\n"
 		   "  -h, --help           Display help and exit.\n"
 		   "\n", NO_PATH(progname), NO_PATH(progname)
 		);
+}
+
+static void *perf_client(void *arg)
+{
+	(void) arg;
+
+	odp_init_local(ODP_THREAD_CONTROL);
+	ofp_init_local();
+
+	ofp_start_perf_stat();
+
+	while (1) {
+		struct ofp_perf_stat *ps = ofp_get_perf_statistics();
+		printf ("Mpps:%4.3f\n", ((float)ps->rx_fp_pps)/1000000);
+		usleep(1000000UL);
+	}
+
+	return NULL;
+}
+
+static void start_performance(int core_id)
+{
+	odph_linux_pthread_t cli_linux_pthread;
+	odp_cpumask_t cpumask;
+
+	odp_cpumask_zero(&cpumask);
+	odp_cpumask_set(&cpumask, core_id);
+
+	odph_linux_pthread_create(&cli_linux_pthread,
+				  &cpumask,
+				  perf_client,
+				  NULL);
+
 }

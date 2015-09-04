@@ -18,6 +18,7 @@
 
 typedef struct {
 	struct ofp_packet_stat ofp_packet_statistics;
+	struct ofp_perf_stat ofp_perf_stat;
 } stat_shm_t;
 
 static __thread stat_shm_t *shm_stat;
@@ -30,6 +31,45 @@ struct ofp_packet_stat *ofp_get_packet_statistics(void)
 		return NULL;
 
 	return &(shm_stat->ofp_packet_statistics);
+}
+
+struct ofp_perf_stat *ofp_get_perf_statistics(void)
+{
+	if (!shm_stat)
+		return NULL;
+
+	return &(shm_stat->ofp_perf_stat);
+}
+
+#define SEC_USEC 1000000UL
+#define PROBES 3UL
+static void ofp_perf_tmo(void *arg)
+{
+	uint64_t pps, value = 0;
+	int core;
+	(void)arg;
+
+	ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
+
+	odp_sync_stores();
+	for (core = 0; core < odp_cpu_count(); core++)
+		value += shm_stat->ofp_packet_statistics.per_core[core].rx_fp;
+
+	if (value >= shm_stat->ofp_perf_stat.rx_prev_sum)
+		pps = value - shm_stat->ofp_perf_stat.rx_prev_sum;
+	else
+		pps = (uint64_t)(-1) - shm_stat->ofp_perf_stat.rx_prev_sum +
+			value;
+
+	shm_stat->ofp_perf_stat.rx_fp_pps =
+		(shm_stat->ofp_perf_stat.rx_fp_pps + pps * PROBES) / 2;
+
+	shm_stat->ofp_perf_stat.rx_prev_sum = value;
+}
+
+void ofp_start_perf_stat(void)
+{
+	ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
 }
 
 void ofp_stat_alloc_shared_memory(void)
