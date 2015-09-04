@@ -446,7 +446,7 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 	if (inp == NULL) {
 		if (ofp_udp_log_in_vain) {
 			OFP_INFO(
-			    "Connection attempt to UDP [%s]:%d from [%s]:%d\n",
+			    "Connection attempt to UDP [%s]:%d from [%s]:%d",
 			    ofp_print_ip6_addr((uint8_t *)&ip6->ip6_dst),
 			    odp_be_to_cpu_16(uh->uh_dport),
 			    ofp_print_ip6_addr((uint8_t *)&ip6->ip6_src),
@@ -456,7 +456,7 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 		UDPSTAT_INC(udps_noport);
 #if 0
 		if (m->m_flags & M_MCAST) {
-			printf("UDP6: M_MCAST is set in a unicast packet.\n");
+			OFP_INFO("UDP6: M_MCAST is set in a unicast packet");
 			UDPSTAT_INC(udps_noportmcast);
 			goto badunlocked;
 		}

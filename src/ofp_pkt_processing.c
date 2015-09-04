@@ -84,7 +84,7 @@ void *default_event_dispatcher(void *arg)
 				pkt = odp_packet_from_event(ev);
 #if 0
 				if (odp_unlikely(odp_packet_has_error(pkt))) {
-					OFP_DBG("Packet with error dropped.\n");
+					OFP_DBG("Dropping packet with error");
 					odp_packet_free(pkt);
 					continue;
 				}
@@ -93,9 +93,7 @@ void *default_event_dispatcher(void *arg)
 				continue;
 			}
 
-			OFP_ERR("Event_dispatcher: "
-				"Error, unexpected event type: %u\n",
-				odp_event_type(ev));
+			OFP_ERR("Unexpected event type: %u", odp_event_type(ev));
 
 			/* Free events by type */
 			if (odp_event_type(ev) == ODP_EVENT_BUFFER) {
@@ -125,7 +123,7 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(eth == NULL)) {
-		OFP_DBG("odp_packet_l2_ptr == NULL\n");
+		OFP_DBG("eth is NULL");
 		return OFP_PKT_DROP;
 	}
 
@@ -133,7 +131,7 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 		(uintptr_t) odp_packet_l3_ptr(pkt, NULL) !=
 			(uintptr_t)odp_packet_l2_ptr(pkt, NULL) +
 				sizeof(struct ofp_ether_header))) {
-		OFP_DBG("odp_packet_l3_offset_set\n");
+		OFP_DBG("odp_packet_l3_offset_set");
 		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_header));
 	}
 #endif
@@ -259,11 +257,10 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	struct ofp_nh_entry *nh;
 	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
 
-	OFP_DBG("\n");
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
 	if (odp_unlikely(ip == NULL)) {
-		OFP_DBG("odp_packet_l3_ptr == NULL\n");
+		OFP_DBG("ip is NULL");
 		return OFP_PKT_DROP;
 	}
 
@@ -278,11 +275,11 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		return OFP_PKT_DROP;
 #endif
 
-	OFP_DBG("dev->ip_addr:%s ip->ip_dst:%s\n",
+	OFP_DBG("Device IP: %s, Packet Dest IP: %s",
 		ofp_print_ip_addr(dev->ip_addr),
 		ofp_print_ip_addr(ip->ip_dst.s_addr));
+
 	if (dev->ip_addr == ip->ip_dst.s_addr /*|| app_is_ip_local?*/) {
-		OFP_DBG("is ip local\n");
 		if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
 
 			OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
@@ -311,12 +308,12 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 
 	nh = ofp_get_next_hop(dev->vrf, ip->ip_dst.s_addr, &flags);
 	if (nh == NULL) {
-		OFP_DBG("ofp_get_next_hop == NULL\n");
+		OFP_DBG("nh is NULL");
 		return OFP_PKT_CONTINUE;
 	}
 
 	if (ip->ip_ttl <= 1) {
-		OFP_DBG("OFP_ICMP_TIMXCEED\n");
+		OFP_DBG("OFP_ICMP_TIMXCEED");
 		ofp_icmp_error(pkt, OFP_ICMP_TIMXCEED,
 				OFP_ICMP_TIMXCEED_INTRANS, 0, 0);
 		return OFP_PKT_DROP;
@@ -325,7 +322,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	ip->ip_ttl--;
 
 	if (ip->ip_p == OFP_IPPROTO_ICMP) {
-		OFP_DBG("OFP_ICMP_REDIRECT\n");
+		OFP_DBG("OFP_ICMP_REDIRECT");
 		ofp_icmp_error(pkt, OFP_ICMP_REDIRECT,
 				OFP_ICMP_REDIRECT_HOST, nh->gw, 0);
 	}
@@ -431,10 +428,9 @@ enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 	odp_packet_t pkt)
 {
-	OFP_DBG("\n");
 	if (odp_queue_enq(ofp_get_ifnet(dev->port, 0)->outq_def,
 			odp_packet_to_event(pkt))) {
-		OFP_DBG("odp_queue_enq failed\n");
+		OFP_DBG("odp_queue_enq failed");
 		return OFP_PKT_DROP;
 	}
 
@@ -460,12 +456,10 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
 	uint16_t vlan = dev->vlan;
 
-	OFP_DBG("\n");
-
 	arp = (struct ofp_arphdr *)odp_packet_l3_ptr(pkt, NULL);
 
 	if (odp_unlikely(arp == NULL)) {
-		OFP_DBG("odp_packet_l3_ptr == NULL\n");
+		OFP_DBG("arp is NULL");
 		return OFP_PKT_DROP;
 	}
 
@@ -473,7 +467,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 	if (odp_be_to_cpu_16(arp->op) == OFP_ARPOP_REPLY)
 		ofp_add_mac(dev, arp->ip_src, arp->eth_src);
 
-	OFP_DBG("dev->ip_addr:%s arp->ip_dst:%s\n",
+	OFP_DBG("Device IP: %s, Packet Dest IP: %s",
 		ofp_print_ip_addr(dev->ip_addr),
 		ofp_print_ip_addr(arp->ip_dst));
 
@@ -499,7 +493,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 #ifdef SP
 			"on IF %d"
 #endif
-			" mac %s ip %s\n",
+			" mac %s ip %s",
 			ofp_print_ip_addr(arp->ip_src),
 #ifdef SP
 			dev->linux_index,
@@ -571,9 +565,8 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 	arp->ip_dst = gw;
 
 	pkt = odp_packet_alloc(ofp_get_ifnet(dev->port, 0)->pkt_pool, size);
-
 	if (pkt == ODP_PACKET_INVALID) {
-		OFP_ERR("Packet alloc failed\n");
+		OFP_ERR("odp_packet_alloc falied");
 		return;
 	}
 
@@ -595,7 +588,7 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 	uint32_t pkt_len, eth_hdr_len;
 
 	if (dev->port == GRE_PORTS) {
-		OFP_ERR("Send frame on GRE port.\n");
+		OFP_ERR("Send frame on GRE port");
 		return OFP_PKT_DROP;
 	}
 
@@ -612,7 +605,7 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 			eth_vlan_tmp = *eth_vlan;
 			eth = odp_packet_pull_head(pkt, 4);
 			if (!eth) {
-				OFP_ERR("Packet pull head failed.\n");
+				OFP_ERR("odp_packet_pull_head failed");
 				return OFP_PKT_DROP;
 			}
 
@@ -628,7 +621,7 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 			eth_tmp = *eth;
 			eth_vlan = odp_packet_push_head(pkt, 4);
 			if (!eth_vlan) {
-				OFP_ERR("Packet push head failed.\n");
+				OFP_ERR("odp_packet_push_head failed");
 				return OFP_PKT_DROP;
 			}
 
@@ -651,7 +644,7 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 	pkt_len = odp_packet_len(pkt) - eth_hdr_len;
 
 	if (pkt_len > dev->if_mtu) {
-		OFP_ERR("Packet size bigger than MTU: %d %d\n", pkt_len,
+		OFP_ERR("Packet size bigger than MTU: %d %d", pkt_len,
 			dev->if_mtu);
 		return OFP_PKT_DROP;
 	}
@@ -701,7 +694,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 
 		pkt_new = odp_packet_alloc(pkt_pool, hwlen);
 		if (pkt_new == ODP_PACKET_INVALID) {
-			OFP_ERR("Packet alloc failed\n");
+			OFP_ERR("odp_packet_alloc failed");
 			return OFP_PKT_DROP;
 		}
 		odp_packet_user_ptr_set(pkt_new, odp_packet_user_ptr(pkt));
@@ -728,7 +721,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 
 		if (odp_packet_copydata_out(pkt, payload_offset + pl_pos,
 					    flen, payload_new) < 0) {
-			OFP_ERR("Packet data copy failed\n");
+			OFP_ERR("odp_packet_copydata_out failed");
 			return OFP_PKT_DROP;
 		};
 
@@ -828,13 +821,11 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	uint16_t vrf = send_ctx ? send_ctx->vrf : 0;
 	uint8_t is_local_address = 0;
 
-	OFP_DBG("\n");
-
 	if (odp_packet_l3_offset(pkt) == ODP_PACKET_OFFSET_INVALID)
 		odp_packet_l3_offset_set(pkt, 0);
 	ip = (struct ofp_ip *) odp_packet_l3_ptr(pkt, NULL);
 	if (odp_unlikely(ip == NULL)) {
-		OFP_DBG("odp_packet_l3_ptr == NULL\n");
+		OFP_DBG("ip is NULL");
 		return OFP_PKT_DROP;
 	}
 
@@ -863,7 +854,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	dev_out = ofp_get_ifnet(out_port, vlan);
 
 	if (!dev_out) {
-		OFP_DBG("!dev_out\n");
+		OFP_DBG("!dev_out");
 		return OFP_PKT_DROP;
 	}
 
@@ -907,7 +898,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	}
 
 	if (odp_unlikely(l2_addr == NULL)) {
-		OFP_DBG("l2_addr == NULLn");
+		OFP_DBG("l2_addr == NULL");
 		return OFP_PKT_DROP;
 	}
 
@@ -947,7 +938,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 
 	/* Fragmentation */
 	if (odp_be_to_cpu_16(ip->ip_len) > dev_out->if_mtu) {
-		OFP_DBG("fragmentation required\n");
+		OFP_DBG("Fragmentation required");
 		if (odp_be_to_cpu_16(ip->ip_off) & OFP_IP_DF) {
 			ofp_icmp_error(pkt, OFP_ICMP_UNREACH,
 					OFP_ICMP_UNREACH_NEEDFRAG,
@@ -1119,7 +1110,7 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 
 			if (ofp_nd6_ns_output(dev_out, nh->gw,
 				ip6->ip6_dst.ofp_s6_addr) == OFP_PKT_DROP) {
-				OFP_ERR("MAC not set: gw = %x %x\n", nh->gw[0],
+				OFP_ERR("MAC not set: gw = %x %x", nh->gw[0],
 					nh->gw[15]);
 				return OFP_PKT_DROP;
 			}

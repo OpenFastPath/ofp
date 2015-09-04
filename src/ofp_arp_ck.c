@@ -58,9 +58,7 @@ static inline uint32_t ipv4_hash(struct arp_key *key)
 	uint32_t set;
 
 	set = hashfunc(key, sizeof(*key), 0) & (NUM_SETS - 1);
-#if 0
-	printf("Hashed %x to %x\n", key->ipv4_addr, set);
-#endif
+
 	return set;
 }
 
@@ -79,7 +77,7 @@ static inline void *arp_malloc(int index, struct arp_key *key)
 		}
 	}
 
-	OFP_ERR("Arp table bucket size error.\n");
+	OFP_ERR("Arp table bucket size error.");
 	return NULL;
 }
 
@@ -254,8 +252,7 @@ void ofp_arp_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_ARP_CK, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_ARP_CK, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_alloc failed");
 		exit(EXIT_FAILURE);
 	}
 
@@ -272,8 +269,7 @@ void ofp_arp_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_ARP_CK);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_ARP_CK, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_lookup failed");
 		exit(EXIT_FAILURE);
 	}
 }

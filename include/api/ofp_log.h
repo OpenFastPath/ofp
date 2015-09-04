@@ -14,10 +14,13 @@
 #ifndef __OFP_LOG_H__
 #define __OFP_LOG_H__
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <odp.h>
 #include "ofp_timer.h"
+
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifndef OFP_DEBUG_PRINT
 #define OFP_DEBUG_PRINT 1
@@ -35,41 +38,28 @@ enum ofp_log_level_s {
 
 extern enum ofp_log_level_s ofp_loglevel;
 
+#define __FILENAME__ \
+	(strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
+
 /**
  * default LOG macro.
  */
-#define _ODP_FP_LOG(level, fmt, ...) \
-do { \
-	int _t = ofp_timer_ticks(0); \
-	if (level > ofp_loglevel) \
-		break; \
-	switch (level) { \
-	case OFP_LOG_ERR: \
-		fprintf(stderr, "[%d] %d.%02d %s:%d:%s():" fmt, \
-			 odp_cpu_id(), _t/100, _t%100, \
-			__FILE__, __LINE__, __func__, ##__VA_ARGS__); \
-		break; \
-	case OFP_LOG_DBG: \
-		fprintf(stderr, "[%d] %d.%02d %s:%d:%s():" fmt, \
-			odp_cpu_id(), _t/100, _t%100, \
-			 __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
-		break; \
-	case OFP_LOG_ABORT: \
-		fprintf(stderr, "[%d] %d.%02d %s:%d:%s(): " fmt, \
-			odp_cpu_id(), _t/100, _t%100, \
-			__FILE__, __LINE__, __func__, ##__VA_ARGS__); \
-		abort(); \
-		break; \
-	case OFP_LOG_INFO: \
-		fprintf(stderr, "[%d] %d.%02d %s:%d:%s(): " fmt, \
-			odp_cpu_id(), _t/100, _t%100, \
-			__FILE__, __LINE__, __func__, ##__VA_ARGS__); \
-		break; \
-	default: \
-		fprintf(stderr, "Unknown LOG level"); \
-		break;\
-	} \
-} while (0)
+#define _ODP_FP_LOG(level, fmt, ...) do {				\
+		if (level > ofp_loglevel)				\
+			break;						\
+		fprintf(stderr, "%s %d %d:%u %s:%d] " fmt "\n",		\
+			(level == OFP_LOG_ABORT) ? "A" :		\
+			(level == OFP_LOG_ERR)   ? "E" :		\
+			(level == OFP_LOG_INFO)  ? "I" :		\
+			(level == OFP_LOG_DBG)   ? "D" : "?",		\
+			ofp_timer_ticks(0),				\
+			odp_cpu_id(), (unsigned int) pthread_self(),	\
+			__FILENAME__, __LINE__,				\
+			##__VA_ARGS__);					\
+		if (level == OFP_LOG_ABORT)				\
+			abort();					\
+	} while (0)
 
 /**
  * Debug printing macro, which prints output when DEBUG flag is set.

@@ -34,8 +34,7 @@ void ofp_hook_alloc_shared_memory(void)
 {
 	shm_hook = ofp_shared_memory_alloc(SHM_NAME_HOOK, sizeof(*shm_hook));
 	if (shm_hook == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_HOOK, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_alloc failed");
 		exit(EXIT_FAILURE);
 	}
 
@@ -52,8 +51,7 @@ void ofp_hook_lookup_shared_memory(void)
 {
 	shm_hook = ofp_shared_memory_lookup(SHM_NAME_HOOK);
 	if (shm_hook == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_HOOK, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_lookup failed");
 		exit(EXIT_FAILURE);
 	}
 }

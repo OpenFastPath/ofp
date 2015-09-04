@@ -86,7 +86,7 @@ int ofp_rtl_root_init(struct ofp_rtl_tree *tree, uint16_t vrf)
 		shm->free_large = shm->free_large->next;
 
 	if (!tree->root) {
-		printf("%s(): allocation failed!\n", __FUNCTION__);
+		OFP_ERR("Allocation failed");
 		return -1;
 	}
 
@@ -128,7 +128,7 @@ int ofp_rtl6_init(struct ofp_rtl6_tree *tree)
 {
 	tree->root = NODEALLOC6();
 	if (!tree->root) {
-		printf("%s(): allocation failed!\n", __FUNCTION__);
+		OFP_ERR("Allocation failed");
 		return -1;
 	}
 
@@ -165,7 +165,7 @@ void ofp_rt_rule_add(uint16_t vrf, uint32_t addr, uint32_t masklen, struct ofp_n
 	}
 
 	if (reserved == -1) {
-		printf("%s(): route rule allocation failed!\n", __FUNCTION__);
+		OFP_ERR("ofp_rt_rule_search failed");
 		return;
 	}
 
@@ -181,7 +181,7 @@ void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr, uint32_t masklen)
 	int32_t reserved = ofp_rt_rule_search(vrf, addr, masklen);
 
 	if (reserved == -1) {
-		printf("%s(): route rule remove failed!\n", __FUNCTION__);
+		OFP_ERR("ofp_rt_rule_search failed");
 		return;
 	}
 
@@ -190,14 +190,14 @@ void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr, uint32_t masklen)
 
 
 void ofp_rt_rule_print(int fd, uint16_t vrf,
-                                         void (*func)(int fd, uint32_t key, int level, struct ofp_nh_entry *data))
+		       void (*func)(int fd, uint32_t key, int level, struct ofp_nh_entry *data))
 {
 	uint32_t index;
 	for (index = 0; index < ROUTE_LIST_SIZE; index++)
 		if (shm->rules[index].used && shm->rules[index].vrf == vrf)
 			func(fd, odp_be_to_cpu_32(shm->rules[index].addr),
-				shm->rules[index].masklen,
-				&shm->rules[index].data[0]);
+			     shm->rules[index].masklen,
+			     &shm->rules[index].data[0]);
 }
 
 int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t masklen, uint8_t low) {
@@ -575,8 +575,7 @@ void ofp_rt_lookup_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_RT_LOOKUP_MTRIE, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_alloc failed");
 		exit(EXIT_FAILURE);
 	}
 
@@ -593,8 +592,7 @@ void ofp_rt_lookup_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_RT_LOOKUP_MTRIE);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_RT_LOOKUP_MTRIE, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_lookup failed");
 		exit(EXIT_FAILURE);
 	}
 }

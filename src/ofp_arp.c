@@ -264,9 +264,9 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	/* Send queued packets */
 	pktentry = OFP_SLIST_FIRST(&send_list);
 	while (pktentry) {
-		OFP_DBG("***Sending saved packet %" PRIX64 " to %s\n",
-			  odp_packet_to_u64(pktentry->pkt),
-			  ofp_print_ip_addr(ipv4_addr));
+		OFP_DBG("Sending saved packet %" PRIX64 " to %s",
+			odp_packet_to_u64(pktentry->pkt),
+			ofp_print_ip_addr(ipv4_addr));
 
 		if (ofp_ip_output(pktentry->pkt, pktentry->nh) == OFP_PKT_DROP)
 			odp_packet_free(pktentry->pkt);
@@ -391,7 +391,7 @@ static void ofp_arp_cleanup_pkt_list(void *arg)
 
 	args = (struct cleanup_arg *)arg;
 
-	OFP_DBG("***Arp reply did not arrive on time, %s\n",
+	OFP_DBG("Arp reply did not arrive on time, %s",
 		  ofp_print_ip_addr(args->ipv4_addr));
 	ofp_arp_ipv4_remove(args->ipv4_addr, args->dev);
 }
@@ -405,7 +405,7 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 	uint32_t set;
 	struct cleanup_arg cl_arg;
 
-	OFP_DBG("Saving packet %" PRIX64 " to %s\n", odp_packet_to_u64(pkt),
+	OFP_DBG("Saving packet %" PRIX64 " to %s", odp_packet_to_u64(pkt),
 		  ofp_print_ip_addr(ipv4_addr));
 
 	set = set_key_and_hash(dev->vrf, ipv4_addr, &key);
@@ -415,14 +415,14 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 #if (ARP_SANITY_CHECK)
 	newarp = arp_lookup(set, &key);
 	if (newarp != NULL && *((uint8_t *)&newarp->macaddr + 5) != 0)
-		OFP_ERR("Saving packet to destination which has valid MAC\n");
+		OFP_ERR("Saving packet to destination which has valid MAC");
 #endif
 
 	newarp = insert_new_entry(set, &key);
 	if (newarp == NULL) {
 		odp_sync_stores();
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
-		OFP_ERR("ARP entry alloc failed, %" PRIX64 " to %s\n",
+		OFP_ERR("ARP entry alloc failed, %" PRIX64 " to %s",
 			  odp_packet_to_u64(pkt),
 			  ofp_print_ip_addr(ipv4_addr));
 		return OFP_PKT_DROP;
@@ -431,7 +431,7 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 
 	newpkt = pkt_entry_alloc();
 	if (newpkt == NULL) {
-		OFP_ERR("PKT entry alloc failed, %" PRIX64 " to %s\n",
+		OFP_ERR("PKT entry alloc failed, %" PRIX64 " to %s",
 			  odp_packet_to_u64(pkt),
 			  ofp_print_ip_addr(ipv4_addr));
 		if (OFP_SLIST_FIRST(&newarp->pkt_list_head) == NULL)
@@ -674,8 +674,7 @@ void ofp_arp_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_ARP);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_ARP, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_lookup failed");
 		exit(EXIT_FAILURE);
 	}
 }

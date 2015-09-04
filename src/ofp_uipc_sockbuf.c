@@ -129,9 +129,8 @@ int ofp_sockbuf_put_last(struct sockbuf *sb, odp_packet_t pkt)
 		next = 0;
 
 	if (next == sb->sb_get) {
-		/* No more room. */
 		ofp_sockbuf_packet_free(pkt);
-		OFP_LOG("NO MORE ROOM (next=%d)!\n", next);
+		OFP_LOG("No more room, next=%d", next);
 		return -1;
 	}
 
@@ -217,9 +216,9 @@ ofp_sbappendaddr_locked(struct sockbuf *sb,
 		sb->sb_put--;
 		if (sb->sb_put < 0)
 			sb->sb_put = SOCKBUF_LEN-1;
-		OFP_LOG("Buffers full (sb_get=%d)! Max num = %d\n",
+		OFP_LOG("Buffers full, sb_get=%d max_num=%d",
 			  sb->sb_get, SOCKBUF_LEN);
-		return 0; /* buffers full */
+		return 0;
 	}
 
 	sballoc(sb, pkt);
@@ -439,7 +438,7 @@ ofp_sblock(struct sockbuf *sb, int flags)
 			odp_spinlock_lock(&sb->sb_sx);
 			return (0);
 		}
-		//OFP_LOG("lock: dont know what to do\n");
+		//OFP_LOG("lock: dont know what to do");
 		//odp_spinlock_lock(&sb->sb_sx);
 		return 0;
 		/* HJo: What is this?  (sx_xlock_sig(&sb->sb_sx));*/

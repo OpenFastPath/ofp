@@ -144,7 +144,7 @@ sysctl_register_oid(struct ofp_sysctl_oid *oidp)
 			p->oid_refcnt++;
 			return;
 		} else {
-			OFP_ERR("can't re-use a leaf (%s)!\n", p->oid_name);
+			OFP_ERR("Cannot re-use leaf '%s'", p->oid_name);
 			return;
 		}
 	}
@@ -165,7 +165,7 @@ sysctl_register_oid(struct ofp_sysctl_oid *oidp)
 #if 0
 	else if (oidp->oid_number >= OFP_CTL_AUTO_START) {
 		/* do not panic; this happens when unregistering sysctl sets */
-		OFP_ERR("static sysctl oid too high: %d", oidp->oid_number);
+		OFP_ERR("Static sysctl oid too high: %d", oidp->oid_number);
 	}
 #endif
 
@@ -212,7 +212,7 @@ sysctl_unregister_oid(struct ofp_sysctl_oid *oidp)
 	 * for normal use.
 	 */
 	if (error)
-		OFP_ERR("%s: failed to unregister sysctl\n", __func__);
+		OFP_ERR("Failed to unregister sysctl");
 }
 
 /* Initialize a new context to keep track of dynamically added sysctls. */
@@ -391,8 +391,8 @@ sysctl_remove_oid_locked(struct ofp_sysctl_oid *oidp, int del, int recurse)
 	if (oidp == NULL)
 		return(OFP_EINVAL);
 	if ((oidp->oid_kind & OFP_CTLFLAG_DYN) == 0) {
-		OFP_ERR("can't remove non-dynamic nodes!\n");
-		return (OFP_EINVAL);
+		OFP_ERR("Cannot remove non-dynamic nodes");
+		return OFP_EINVAL;
 	}
 	/*
 	 * WARNING: normal method to do this should be through
@@ -420,9 +420,9 @@ sysctl_remove_oid_locked(struct ofp_sysctl_oid *oidp, int del, int recurse)
 		oidp->oid_refcnt--;
 	} else {
 		if (oidp->oid_refcnt == 0) {
-			OFP_ERR("Warning: bad oid_refcnt=%u (%s)!\n",
+			OFP_ERR("Bad oid_refcnt=%u '%s'",
 				oidp->oid_refcnt, oidp->oid_name);
-			return (OFP_EINVAL);
+			return OFP_EINVAL;
 		}
 		sysctl_unregister_oid(oidp);
 		if (del) {
@@ -443,7 +443,7 @@ sysctl_remove_oid_locked(struct ofp_sysctl_oid *oidp, int del, int recurse)
 			free(oidp, M_SYSCTLOID);
 		}
 	}
-	return (0);
+	return 0;
 }
 #endif
 /*
@@ -475,8 +475,8 @@ ofp_sysctl_add_oid(struct sysctl_ctx_list *clist, struct ofp_sysctl_oid_list *pa
 			return (oidp);
 		} else {
 			SYSCTL_XUNLOCK();
-			OFP_ERR("can't re-use a leaf (%s)!\n", name);
-			return (NULL);
+			OFP_ERR("Cannot re-use leaf '%s'", name);
+			return NULL;
 		}
 	}
 	oidp = malloc(sizeof(struct ofp_sysctl_oid), M_SYSCTLOID, M_WAITOK|M_ZERO);
@@ -830,7 +830,7 @@ sysctl_sysctl_next(OFP_SYSCTL_HANDLER_ARGS)
 
 	SYSCTL_XLOCK();
 	i = sysctl_sysctl_next_ls(lsp, name, namelen, newoid, &j, 1, &oid);
-	OFP_LOG("name=%p namelen=%d i=%d\n", name, namelen, i);
+	OFP_LOG("name=%p namelen=%d i=%d", name, namelen, i);
 	SYSCTL_XUNLOCK();
 	if (i)
 		return (OFP_ENOENT);

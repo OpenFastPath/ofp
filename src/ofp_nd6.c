@@ -138,7 +138,7 @@ enum ofp_return_code ofp_nd6_ns_output(struct ofp_ifnet *dev,
 	ip6hdr->ofp_ip6_hlim = 255;
 
 	if (send_pkt_out(dev, pkt) == OFP_PKT_DROP) {
-		OFP_ERR("Drop packet\n");
+		OFP_ERR("Drop packet");
 		odp_packet_free(pkt);
 		return OFP_PKT_DROP;
 	}
@@ -266,7 +266,7 @@ enum ofp_return_code ofp_nd6_na_output(struct ofp_ifnet *dev,
 	ip6hdr->ofp_ip6_hlim = 255;
 
 	if (send_pkt_out(dev, pkt) == OFP_PKT_DROP) {
-		OFP_ERR("Drop packet\n");
+		OFP_ERR("Drop packet");
 		odp_packet_free(pkt);
 		return OFP_PKT_DROP;
 	}

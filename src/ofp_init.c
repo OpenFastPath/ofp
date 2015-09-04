@@ -88,7 +88,7 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 
 	pool = odp_pool_create(pool_name, pool_params);
 	if (pool == ODP_POOL_INVALID) {
-		OFP_ERR("Error: odp_pool_create failed.\n");
+		OFP_ERR("odp_pool_create failed");
 		return pool;
 	}
 
@@ -103,7 +103,6 @@ int ofp_init_global(ofp_init_global_t *params)
 {
 	odp_pool_t pool;
 	odp_pool_param_t pool_params;
-	int thr_id = 0;
 	int i, ret;
 	odp_queue_param_t qparam;
 	char q_name[ODP_QUEUE_NAME_LEN];
@@ -125,7 +124,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, params->linux_core_id);
 
-	printf("Slow path threads will run on core %d\n", odp_cpumask_first(&cpumask));
+	OFP_INFO("Slow path threads on core %d", odp_cpumask_first(&cpumask));
 
 	memset(&pktio_param, 0, sizeof(pktio_param));
 	pktio_param.in_mode = (params->burst_recv_mode) ? ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED;
@@ -135,12 +134,13 @@ int ofp_init_global(ofp_init_global_t *params)
 		int16_t port = i;
 
 		if (port >= GRE_PORTS) {
-			OFP_ERR("BUG! Interfaces are depleted\n");
+			OFP_ERR("Interfaces are depleted");
 			break;
 		}
 
-		OFP_DBG("if %s becomes %s%d, port %d\n", params->if_names[i],
-		       OFP_IFNAME_PREFIX, port, port);
+		OFP_DBG("Interface '%s' becomes '%s%d', port %d",
+			params->if_names[i], OFP_IFNAME_PREFIX, port, port);
+
 		struct ofp_ifnet *ifnet = ofp_get_ifnet((uint16_t)port, 0);
 
 		strncpy(ifnet->if_name, params->if_names[i], OFP_IFNAMSIZ);
@@ -150,7 +150,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		/* Open a packet IO instance for this device */
 		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
 		if (ifnet->pktio == ODP_PKTIO_INVALID) {
-			OFP_ERR("Error: pktio create failed\n");
+			OFP_ERR("odp_pktio_open failed");
 			abort();
 		}
 
@@ -172,22 +172,20 @@ int ofp_init_global(ofp_init_global_t *params)
 							  ODP_QUEUE_TYPE_PKTIN,
 							  &qparam);
 			if (ifnet->inq_def == ODP_QUEUE_INVALID) {
-				OFP_ERR("  [%02i] Error: pktio queue creation failed\n",
-					  thr_id);
+				OFP_ERR("odp_queue_create failed");
 				abort();
 			}
 
 			ret = odp_pktio_inq_setdef(ifnet->pktio, ifnet->inq_def);
 			if (ret != 0) {
-				OFP_ERR("  [%02i] Error: default input-Q setup\n",
-					  thr_id);
+				OFP_ERR("odp_pktio_inq_setdef failed");
 				abort();
 			}
 		}
 
 		ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
 		if (ifnet->outq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("  [%02i] Error: default output-Q setup\n", thr_id);
+			OFP_ERR("odp_pktio_outq_getdef failed");
 			abort();
 		}
 
@@ -208,7 +206,7 @@ int ofp_init_global(ofp_init_global_t *params)
 						&qparam);
 
 		if (ifnet->spq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("Schedule queue create failed.\n");
+			OFP_ERR("odp_queue_create failed");
 			abort();
 		}
 #endif /*SP*/
@@ -227,7 +225,7 @@ int ofp_init_global(ofp_init_global_t *params)
 						ODP_QUEUE_TYPE_SCHED,
 						&qparam);
 		if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("Schedule queue create failed.\n");
+			OFP_ERR("odp_queue_create failed");
 			abort();
 		}
 
@@ -236,28 +234,27 @@ int ofp_init_global(ofp_init_global_t *params)
 
 		/* Set interface MTU*/
 		ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
-		OFP_DBG("device %s MTU %d\n", ifnet->if_name, ifnet->if_mtu);
+		OFP_INFO("Device '%s' MTU=%d", ifnet->if_name, ifnet->if_mtu);
 
 		/* RFC 791, p. 24, "Every internet module must be able
 		 * to forward a datagram of 68 octets without further
 		 * fragmentation."*/
 		if (ifnet->if_mtu < 68 || ifnet->if_mtu > 9000) {
-			OFP_DBG("Invalid MTU. Overwrite MTU value to 1500\n");
+			OFP_INFO("Invalid MTU. Overwrite MTU value to 1500");
 			ifnet->if_mtu = 1500;
 		}
 
 		/* Set interface MAC address */
 		if (odp_pktio_mac_addr(ifnet->pktio, ifnet->mac,
 			sizeof(ifnet->mac)) < 0) {
-			OFP_ERR("Failed to retrieve MAC address.\n");
+			OFP_ERR("Failed to retrieve MAC address");
 			abort();
 		}
 		if (!ofp_has_mac(ifnet->mac)) {
 			ifnet->mac[0] = port;
-			OFP_ERR("MAC overwritten as the value returned by \
-				odp_pktio_mac_addr was 00:00:00:00:00:00\n");
+			OFP_ERR("MAC overwritten");
 		}
-		OFP_DBG("device %s addr %s\n", ifnet->if_name,
+		OFP_INFO("Device '%s' addr %s", ifnet->if_name,
 			ofp_print_mac((uint8_t *)ifnet->mac));
 
 #ifdef SP

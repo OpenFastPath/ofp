@@ -352,13 +352,13 @@ syncache_timer(void *xsch)
 		}
 		if (sc->sc_rxmits > V_tcp_syncache.rexmt_limit) {
 			OFP_DBG("Retransmits exhausted, "
-				  "giving up and removing syncache entry\n");
+				  "giving up and removing syncache entry");
 			syncache_drop(sc, sch);
 			TCPSTAT_INC(tcps_sc_stale);
 			continue;
 		}
 		OFP_DBG("Response timeout, "
-			  "retransmitting SYN|ACK\n");
+			  "retransmitting SYN|ACK");
 
 		(void) syncache_respond(sc);
 		TCPSTAT_INC(tcps_sc_retransmitted);
@@ -440,7 +440,7 @@ ofp_syncache_chkrst(struct in_conninfo *inc, struct ofp_tcphdr *th)
 	if (th->th_flags & (OFP_TH_ACK|OFP_TH_SYN|OFP_TH_FIN)) {
 		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
 			OFP_DBG("%s; %s: Spurious RST with ACK, SYN or "
-			    "FIN flag set, segment ignored\n", s, __func__);
+			    "FIN flag set, segment ignored", s, __func__);
 		TCPSTAT_INC(tcps_badrst);
 		goto done;
 	}
@@ -457,7 +457,7 @@ ofp_syncache_chkrst(struct in_conninfo *inc, struct ofp_tcphdr *th)
 		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
 			OFP_DBG("%s; %s: Spurious RST without matching "
 			    "syncache entry (possibly syncookie only), "
-			    "segment ignored\n", s, __func__);
+			    "segment ignored", s, __func__);
 		TCPSTAT_INC(tcps_badrst);
 		goto done;
 	}
@@ -480,13 +480,13 @@ ofp_syncache_chkrst(struct in_conninfo *inc, struct ofp_tcphdr *th)
 		syncache_drop(sc, sch);
 		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
 			OFP_DBG("%s; %s: Our SYN|ACK was rejected, "
-			    "connection attempt aborted by remote endpoint\n",
+			    "connection attempt aborted by remote endpoint",
 			    s, __func__);
 		TCPSTAT_INC(tcps_sc_reset);
 	} else {
 		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
 			OFP_DBG("%s; %s: RST with invalid SEQ %u != "
-			    "IRS %u (+WND %u), segment ignored\n",
+			    "IRS %u (+WND %u), segment ignored",
 			    s, __func__, th->th_seq, sc->sc_irs, sc->sc_wnd);
 		TCPSTAT_INC(tcps_badrst);
 	}
@@ -573,7 +573,7 @@ syncache_socket(struct syncache *sc, struct socket *lso, odp_packet_t m, struct 
 		 */
 		TCPSTAT_INC(tcps_listendrop);
 		OFP_DBG("Socket create failed "
-			  "due to limits or memory shortage\n");
+			  "due to limits or memory shortage");
 		goto abort2;
 	}
 
@@ -615,7 +615,7 @@ syncache_socket(struct syncache *sc, struct socket *lso, odp_packet_t m, struct 
 			inp->inp_laddr.s_addr = OFP_INADDR_ANY;
 		inp->inp_lport = 0;
 		OFP_DBG("ofp_in_pcbinshash failed "
-			  "with error %i\n", error);
+			  "with error %i", error);
 		INP_HASH_WUNLOCK(&V_tcbinfo);
 		goto abort;
 	}
@@ -651,7 +651,7 @@ syncache_socket(struct syncache *sc, struct socket *lso, odp_packet_t m, struct 
 		if ((error = ofp_in6_pcbconnect_mbuf(inp, (struct ofp_sockaddr *)&sin6,
 		    NULL, m)) != 0) {
 			inp->in6p_laddr = laddr6;
-			OFP_DBG("in6_pcbconnect failed with error %d\n", error);
+			OFP_DBG("in6_pcbconnect failed with error %d", error);
 			INP_HASH_WUNLOCK(&V_tcbinfo);
 			goto abort;
 		}
@@ -687,7 +687,7 @@ syncache_socket(struct syncache *sc, struct socket *lso, odp_packet_t m, struct 
 		    NULL, m)) != 0) {
 			inp->inp_laddr = laddr;
 			OFP_DBG("ofp_in_pcbconnect failed "
-				  "with error %i\n", error);
+				  "with error %i", error);
 			INP_HASH_WUNLOCK(&V_tcbinfo);
 			goto abort;
 		}
@@ -803,7 +803,7 @@ ofp_syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphd
 		if (!V_tcp_syncookies) {
 			SCH_UNLOCK(sch);
 				OFP_DBG("Spurious ACK, "
-					  "segment rejected (syncookies disabled)\n");
+					  "segment rejected (syncookies disabled)");
 			goto failed;
 		}
 		bzero(&scs, sizeof(scs));
@@ -812,7 +812,7 @@ ofp_syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphd
 		if (sc == NULL) {
 			OFP_DBG("Segment failed "
 				  "SYNCOOKIE authentication, segment rejected "
-				  "(probably spoofed)\n");
+				  "(probably spoofed)");
 			goto failed;
 		}
 	} else {
@@ -829,7 +829,7 @@ ofp_syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphd
 	 */
 	if (th->th_ack != sc->sc_iss + 1 && !TOEPCB_ISSET(sc)) {
 		OFP_DBG("ACK != ISS+1 segment "
-			  "rejected\n");
+			  "rejected");
 		goto failed;
 	}
 
@@ -841,13 +841,13 @@ ofp_syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphd
 	    SEQ_GT(th->th_seq, sc->sc_irs + sc->sc_wnd)) &&
 	    !TOEPCB_ISSET(sc)) {
 		OFP_DBG("SEQ %u != IRS+1 %u, segment "
-			  "rejected\n", th->th_seq, sc->sc_irs);
+			  "rejected", th->th_seq, sc->sc_irs);
 		goto failed;
 	}
 
 	if (!(sc->sc_flags & SCF_TIMESTAMP) && (to->to_flags & TOF_TS)) {
 		OFP_DBG("Timestamp not expected, "
-			  "segment rejected\n");
+			  "segment rejected");
 		goto failed;
 	}
 	/*
@@ -857,7 +857,7 @@ ofp_syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphd
 	if ((to->to_flags & TOF_TS) && to->to_tsecr != sc->sc_ts &&
 	    !TOEPCB_ISSET(sc)) {
 		OFP_DBG("TSECR %u != TS %u, "
-			  "segment rejected\n",
+			  "segment rejected",
 			  to->to_tsecr, sc->sc_ts);
 		goto failed;
 	}
@@ -991,7 +991,7 @@ _syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphdr *th,
 			sc->sc_flags &= ~SCF_TIMESTAMP;
 		/* Retransmit SYN|ACK and reset retransmit count. */
 		OFP_DBG("Received duplicate SYN, "
-			  "resetting timer and retransmitting SYN|ACK\n");
+			  "resetting timer and retransmitting SYN|ACK");
 		if (!TOEPCB_ISSET(sc) && syncache_respond(sc) == 0) {
 			if (!(sc->sc_flags & SCF_NO_TIMEOUT_RESET)) {
 				sc->sc_rxmits = 0;

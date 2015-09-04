@@ -30,7 +30,7 @@ struct ofp_packet_stat *ofp_get_packet_statistics(void)
 	if (!shm_stat)
 		return NULL;
 
-	return &(shm_stat->ofp_packet_statistics);
+	return &shm_stat->ofp_packet_statistics;
 }
 
 struct ofp_perf_stat *ofp_get_perf_statistics(void)
@@ -38,7 +38,7 @@ struct ofp_perf_stat *ofp_get_perf_statistics(void)
 	if (!shm_stat)
 		return NULL;
 
-	return &(shm_stat->ofp_perf_stat);
+	return &shm_stat->ofp_perf_stat;
 }
 
 #define SEC_USEC 1000000UL
@@ -76,8 +76,7 @@ void ofp_stat_alloc_shared_memory(void)
 {
 	shm_stat = ofp_shared_memory_alloc(SHM_NAME_STAT, sizeof(*shm_stat));
 	if (shm_stat == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_STAT, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_alloc failed");
 		exit(EXIT_FAILURE);
 	}
 
@@ -94,8 +93,7 @@ void ofp_stat_lookup_shared_memory(void)
 {
 	shm_stat = ofp_shared_memory_lookup(SHM_NAME_STAT);
 	if (shm_stat == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_STAT, odp_cpu_id());
+		OFP_ABORT("ofp_shared_memory_lookup failed");
 		exit(EXIT_FAILURE);
 	}
 }
