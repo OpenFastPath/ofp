@@ -166,9 +166,7 @@ void ofp_pcap_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_PCAP, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_PCAP, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_PCAP);
 	}
 
 	memset(shm, 0, sizeof(*shm));
@@ -184,9 +182,7 @@ void ofp_pcap_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_PCAP);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_PCAP, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_PCAP);
 	}
 }
 

@@ -136,7 +136,7 @@ int ofp_add_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
 {
 	int ret;
 
-	OFP_DBG("ofp_add_mac() port %d vlan %d vrf %d add_mac ip %s - MAC %s\n",
+	OFP_DBG("Port %d vlan %d vrf %d add_mac ip %s - MAC %s",
 		dev->port, dev->vlan, dev->vrf,
 		ofp_print_ip_addr(addr), ofp_print_mac(mac));
 
@@ -157,7 +157,7 @@ int ofp_del_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
 {
 	int ret;
 
-	printf("del_mac() port %d vlan %d vrf %d add_mac  ip %s - MAC %s\n" ,
+	OFP_DBG("Port %d vlan %d vrf %d add_mac  ip %s - MAC %s" ,
 		dev->port, dev->vlan , dev->vrf ,
 		ofp_print_ip_addr(addr) , ofp_print_mac(mac));
 	ret = ofp_arp_ipv4_remove(addr, dev);
@@ -188,13 +188,12 @@ void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac)
 	OFP_LOCK_READ(route);
 	nh = ofp_rtl_search6(&shm->default_routes_6, addr);
 	if (!nh) {
-		OFP_DBG("ofp_add_mac6: cannot add mac for %s\n",
-			ofp_print_ip6_addr(addr));
+		OFP_DBG("Cannot add MAC for %s", ofp_print_ip6_addr(addr));
 		OFP_UNLOCK_READ(route);
 		return;
 	}
 
-	OFP_DBG("ofp_add_mac6 : mac added for %s (%s)\n",
+	OFP_DBG("Added MAC for %s (%s)",
 		ofp_print_ip6_addr(addr),
 		ofp_port_vlan_to_ifnet_name(dev->port, dev->vlan));
 
@@ -229,14 +228,14 @@ static int add_route(struct ofp_route_msg *msg)
 	tmp.port = msg->port;
 	tmp.vlan = msg->vlan;
 
-	OFP_DBG("Adding route vrf=%d addr=%s/%d\n", msg->vrf,
+	OFP_DBG("Adding route vrf=%d addr=%s/%d", msg->vrf,
 		   ofp_print_ip_addr(msg->dst), msg->masklen);
 	if (msg->vrf) {
 		struct routes_by_vrf key, *data;
 
 		key.vrf = msg->vrf;
 		if (avl_get_by_key(shm->vrf_routes, &key, (void *)&data)) {
-			printf("  vrf doesn't exist yet\n");
+			OFP_DBG("VRF does not yet exist");
 			data = malloc(sizeof(*data));
 			memset(data, 0, sizeof(*data));
 			data->vrf = msg->vrf;
@@ -245,11 +244,11 @@ static int add_route(struct ofp_route_msg *msg)
 		}
 		if (ofp_rtl_insert(&(data->routes), msg->dst,
 				msg->masklen, &tmp))
-			OFP_DBG("  insert error: data exists\n");
+			OFP_ERR("ofp_rtl_insert failed");
 	} else {
 		if (ofp_rtl_insert(&shm->default_routes, msg->dst,
 				msg->masklen, &tmp))
-			OFP_DBG("  insert error: data exists\n");
+			OFP_ERR("ofp_rtl_insert failed");
 	}
 #ifdef MTRIE
 	ofp_rt_rule_add(msg->vrf, msg->dst, msg->masklen, &tmp);
@@ -262,7 +261,7 @@ static int add_route(struct ofp_route_msg *msg)
 
 static int del_route(struct ofp_route_msg *msg)
 {
-	OFP_DBG("Deleting route vrf=%d addr=%s/%d\n", msg->vrf,
+	OFP_DBG("Deleting route vrf=%d addr=%s/%d", msg->vrf,
 		   ofp_print_ip_addr(msg->dst), msg->masklen);
 
 	OFP_LOCK_WRITE(route);
@@ -272,15 +271,15 @@ static int del_route(struct ofp_route_msg *msg)
 
 		key.vrf = msg->vrf;
 		if (avl_get_by_key(shm->vrf_routes, &key, (void *)&data)) {
-			OFP_DBG("del_route: vrf does not exist!\n");
+			OFP_DBG("VRF does not exist");
 			OFP_UNLOCK_WRITE(route);
 			return -1;
 		}
 		if (!ofp_rtl_remove(&(data->routes), msg->dst, msg->masklen))
-			OFP_DBG("  delete error: data does not exist in vrf\n");
+			OFP_DBG("ofp_rtl_remove failed");
 	} else {
 		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, msg->masklen))
-			OFP_DBG("  delete error: data does not exist\n");
+			OFP_DBG("ofp_rtl_remove failed");
 	}
 #ifdef MTRIE
 	ofp_rt_rule_remove(msg->vrf, msg->dst, msg->masklen);
@@ -304,13 +303,13 @@ static int add_route6(struct ofp_route_msg *msg)
 	tmp.vlan = msg->vlan;
 	OFP_SLIST_INIT(&tmp.pkt6_hold);
 
-	OFP_DBG("Adding ipv6 route vrf=%d addr=%s/%d gw=%s\n", msg->vrf,
+	OFP_DBG("Adding ipv6 route vrf=%d addr=%s/%d gw=%s", msg->vrf,
 		   ofp_print_ip6_addr(msg->dst6), msg->masklen,
 		   ofp_print_ip6_addr(msg->gw6));
 
 	if (ofp_rtl_insert6(&shm->default_routes_6, msg->dst6,
 			msg->masklen, &tmp))
-		OFP_DBG("  insert error: data exists\n");
+		OFP_DBG("ofp_rtl_insert6 failed");
 
 	OFP_UNLOCK_WRITE(route);
 
@@ -322,7 +321,7 @@ static int del_route6(struct ofp_route_msg *msg)
 	struct ofp_nh6_entry *nh6;
 	struct pkt6_entry *pktentry;
 
-	OFP_DBG("Deleting route vrf=%d addr=%s/%d\n", msg->vrf,
+	OFP_DBG("Deleting route vrf=%d addr=%s/%d", msg->vrf,
 		   ofp_print_ip6_addr(msg->dst6), msg->masklen);
 
 	OFP_LOCK_WRITE(route);
@@ -336,7 +335,7 @@ static int del_route6(struct ofp_route_msg *msg)
 			pkt6_entry_free(pktentry);
 		}
 	} else
-		OFP_DBG("  delete error: data does not exist\n");
+		OFP_DBG("ofp_rtl_remove6 failed");
 
 	OFP_UNLOCK_WRITE(route);
 
@@ -441,7 +440,7 @@ struct ofp_nh_entry *ofp_get_next_hop(uint16_t vrf, uint32_t addr, uint32_t *fla
 
 		key.vrf = vrf;
 		if (avl_get_by_key(shm->vrf_routes, &key, (void *)&data)) {
-			printf("%s(): VRF %d not defined!\n", __FUNCTION__, vrf);
+			OFP_DBG("avl_get_by_key failed");
 			return NULL;
 		}
 		OFP_LOCK_READ(route);
@@ -466,7 +465,7 @@ static int del_local_interface(struct ofp_route_msg *msg)
 {
 		OFP_LOCK_WRITE(route);
 		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, 32))
-			OFP_DBG("  delete error: data does not exist\n");
+			OFP_DBG("ofp_rtl_remove failed");
 		OFP_UNLOCK_WRITE(route);
 
 		return 0;
@@ -549,19 +548,13 @@ void ofp_route_alloc_shared_memory(void)
 
 	shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_ROUTE, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_ROUTE);
 	}
 
 	ofp_locks_shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE_LK,
 		sizeof(*ofp_locks_shm));
 	if (ofp_locks_shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_ROUTE_LK, odp_cpu_id());
-		ofp_shared_memory_free(SHM_NAME_ROUTE);
-		shm = NULL;
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_ROUTE_LK);
 	}
 
 	memset(shm, 0, sizeof(*shm));
@@ -585,18 +578,12 @@ void ofp_route_lookup_shared_memory(void)
 
 	shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_ROUTE, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_ROUTE);
 	}
 
 	ofp_locks_shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE_LK);
 	if (ofp_locks_shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_ROUTE_LK, odp_cpu_id());
-		ofp_shared_memory_free(SHM_NAME_ROUTE);
-		shm = NULL;
-		exit(EXIT_FAILURE);
+		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_ROUTE_LK);
 	}
 }
 

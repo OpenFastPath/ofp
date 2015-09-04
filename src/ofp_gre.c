@@ -75,7 +75,7 @@ int ofp_gre_input(odp_packet_t pkt, int off0)
 	offset = odp_packet_l3_offset(pkt) + (greip->gi_i.ip_hl << 2) + grelen -
 		eth_hdr_len;
 	if (odp_packet_pull_head(pkt, offset) == NULL) {
-		OFP_ERR("Packet pull head failed\n");
+		OFP_ERR("Packet pull head failed");
 		return OFP_PKT_DROP;
 	}
 	odp_packet_l2_offset_set(pkt, 0);

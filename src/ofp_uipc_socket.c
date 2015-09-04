@@ -179,14 +179,14 @@ void ofp_print_sockets(void)
 		struct socket *so = &shm->socket_list[i];
 		if (!so->so_proto)
 			continue;
-		OFP_LOG("Socket %d: rcv.put=%d rcv.get=%d snd.put=%d snd.get=%d\n",
+		OFP_LOG("Socket %d: rcv.put=%d rcv.get=%d snd.put=%d snd.get=%d",
 			  so->so_number, so->so_rcv.sb_put, so->so_rcv.sb_get,
 			  so->so_snd.sb_put, so->so_snd.sb_get);
 	}
 
 	struct sleeper *s = shm->sleep_list;
 	while (s) {
-		OFP_LOG("Sleeper %s, tmo=%x go=%d timer=%d\n",
+		OFP_LOG("Sleeper %s, tmo=%x go=%d timer=%d",
 			  s->wmesg, s->tmo, s->go, s->woke_by_timer);
 		s = s->next;
 	}
@@ -206,7 +206,7 @@ int ofp_socket_pool_create(const char *name, int size)
 	odp_pool_t pool;
 	uma_zone_t zone;
 
-	OFP_LOG("POOL: Creating pool [%d] %s, size=%d\n",
+	OFP_LOG("POOL: Creating pool [%d] %s, size=%d",
 		  shm->num_pools, name, size);
 
 	pool_params.buf.size  = size + 8; /* HJo: FIX */
@@ -215,20 +215,20 @@ int ofp_socket_pool_create(const char *name, int size)
 	pool_params.type  = ODP_POOL_BUFFER;
 
 	if (shm->num_pools >= OFP_NUM_SOCKET_POOLS) {
-		OFP_ERR("POOL: Too many pools!\n");
+		OFP_ERR("POOL: Too many pools!");
 		return -1;
 	}
 
 	pool = odp_pool_create(name, &pool_params);
 	if (pool == ODP_POOL_INVALID) {
-		OFP_ERR("POOL: Cannot allocate pool!\n");
+		OFP_ERR("POOL: Cannot allocate pool!");
 		return -1;
 	}
 
 	zone = shm->num_pools++;
 	shm->pools[zone] = pool;
 
-	OFP_LOG("POOL: Pools created = %d\n", shm->num_pools);
+	OFP_LOG("POOL: Pools created = %d", shm->num_pools);
 	return zone;
 }
 
@@ -248,13 +248,13 @@ void *ofp_socket_pool_alloc(int zone)
 	if (zone == 1) gdb_visit_num++;
 
 	if (zone < 0 || zone >= shm->num_pools) {
-		OFP_ERR("POOL: Wrong zone %d!\n", zone);
+		OFP_ERR("POOL: Wrong zone %d!", zone);
 		return NULL;
 	}
 
 	buffer = odp_buffer_alloc(shm->pools[zone]);
 	if (buffer == ODP_BUFFER_INVALID) {
-		OFP_ERR("POOL: Cannot allocate buffer!\n");
+		OFP_ERR("POOL: Cannot allocate buffer!");
 		return NULL;
 	}
 
@@ -315,9 +315,7 @@ void ofp_socket_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_SOCKET);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
-			SHM_NAME_SOCKET, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		OFP_ABORT("Util shared mem alloc failed");
 	}
 }
 
@@ -424,8 +422,8 @@ static struct socket *soalloc(void)
 #endif
 
 	if (so == NULL) {
-		OFP_ERR("Cannot allocate socket!\n");
-		return (NULL);
+		OFP_ERR("Cannot allocate socket");
+		return NULL;
 	}
 
 	/* clean socket memory */
@@ -1367,7 +1365,7 @@ ofp_sosend(struct socket *so, struct ofp_sockaddr *addr, struct uio *uio,
 
 	if (so->so_proto->pr_flags & PR_CONNREQUIRED) {
 		if (!(so->so_state & (SS_ISCONNECTED|SS_ISCONNECTING))) {
-			printf("state = %x\n", so->so_state);
+			OFP_DBG("state = %x", so->so_state);
 			return OFP_ENOTCONN;
 		} else if (addr)
 			return OFP_EISCONN;

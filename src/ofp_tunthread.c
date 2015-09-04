@@ -43,8 +43,8 @@ static int tap_alloc(char *dev, int flags) {
 	 */
 
 	/* open the clone device */
-	if( (fd = open(clonedev, O_RDWR)) < 0 ) {
-		printf("Cant open clone device\n");
+	if ((fd = open(clonedev, O_RDWR)) < 0 ) {
+		OFP_ERR("open failed");
 		return fd;
 	}
 
@@ -61,8 +61,8 @@ static int tap_alloc(char *dev, int flags) {
 	}
 
 	/* try to create the device */
-	if( (err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ) {
-		printf("Cant create TUN device\n");
+	if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ) {
+		OFP_ERR("ioctl failed");
 		close(fd);
 		return -1;
 	}
@@ -102,8 +102,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	/* Create device */
 	fd = tap_alloc(fp_name, IFF_TAP  | IFF_NO_PI);
 	if (fd < 0) {
-		printf("Error when creating TAP device");
-		exit(-1);
+		OFP_ABORT("tap_alloc failed");
 	}
 
 	hwaddr.sa_family = AF_UNIX;
@@ -115,14 +114,13 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	ifr.ifr_name[IFNAMSIZ - 1] = 0;
 	memcpy(&ifr.ifr_hwaddr, &hwaddr, sizeof(ifr.ifr_hwaddr));
 
-	OFP_DBG("Fastpath device %s addr %s\n",
+	OFP_DBG("Fastpath device %s addr %s",
 		  fp_name, ofp_print_mac((uint8_t *)ifr.ifr_hwaddr.sa_data));
 
 	/* Setting HW address of FP kernel representation */
 	if (ioctl(fd, SIOCSIFHWADDR, &ifr) < 0) {
 		perror("SIOCSIFHWADDR");
-		close(fd);
-		exit(-1);
+		OFP_ABORT("ioctl failed");
 	}
 
 	gen_fd = socket(PF_INET, SOCK_DGRAM, 0);
@@ -132,13 +130,12 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	strncpy(ifr.ifr_name, fp_name, IFNAMSIZ);
 	ifr.ifr_name[IFNAMSIZ - 1] = 0;
 	ifr.ifr_mtu = ifnet->if_mtu;
-	OFP_DBG("Fastpath device %s MTU %i\n", fp_name, ifr.ifr_mtu);
+
+	OFP_DBG("Fastpath device %s MTU %i", fp_name, ifr.ifr_mtu);
 
 	if (ioctl(gen_fd, SIOCSIFMTU, &ifr) < 0) {
 		perror("SIOCSIFMTU");
-		close(gen_fd);
-		close(fd);
-		exit(-1);
+		OFP_ABORT("ioctl failed");
 	}
 
 	/* Get flags */
@@ -147,9 +144,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	ifr.ifr_name[IFNAMSIZ - 1] = 0;
 	if (ioctl(gen_fd, SIOCGIFFLAGS, &ifr) < 0) {
 		perror("SIOCGIFFLAGS");
-		close(gen_fd);
-		close(fd);
-		exit(-1);
+		OFP_ABORT("ioctl failed");
 	}
 
 	/* Set flags - ifconfig up*/
@@ -158,9 +153,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 		ifr.ifr_flags |= IFF_UP;
 		if (ioctl(gen_fd, SIOCSIFFLAGS, &ifr) < 0) {
 			perror("SIOCSIFFLAGS");
-			close(gen_fd);
-			close(fd);
-			exit(-1);
+			OFP_ABORT("ioctl failed");
 		}
 	}
 
@@ -170,9 +163,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	ifr.ifr_name[IFNAMSIZ - 1] = 0;
 	if (ioctl(gen_fd, SIOCGIFINDEX, &ifr) < 0) {
 		perror("SIOCSIFINDEX");
-		close(gen_fd);
-		close(fd);
-		exit(-1);
+		OFP_ABORT("ioctl failed");
 	}
 
 	/* Store ifindex in viu and create table */
@@ -259,7 +250,7 @@ void * sp_tx_thread(void *ifnet_void) {
 				       OFP_ETHER_VLAN_ENCAP_LEN);
 
 		if (pkt == ODP_PACKET_INVALID) {
-			OFP_ERR("packet alloc failed\n");
+			OFP_ERR("odp_packet_alloc failed");
 			usleep(1000);
 			continue;
 		}
@@ -270,7 +261,7 @@ void * sp_tx_thread(void *ifnet_void) {
 	drop_pkg:
 		len = read(ifnet->fd, buf_pnt, odp_packet_len(pkt));
 		if (len <= 0) {
-			OFP_ERR("Slowpath read error\n");
+			OFP_ERR("read failed");
 			goto drop_pkg;
 		}
 
