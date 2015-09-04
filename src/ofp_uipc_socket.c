@@ -1750,6 +1750,7 @@ dontblock:
 					*/
 				} else {
 					ofp_sockbuf_remove_first(&so->so_rcv);
+					ofp_sockbuf_packet_free(m);
 					m = ofp_sockbuf_get_first(&so->so_rcv);
 				}
 				/*
