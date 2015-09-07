@@ -1164,10 +1164,10 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 
 	pktio = odp_packet_input(pkt);
 	if (pktio != ODP_PKTIO_INVALID) /* pkt received from interface */
-		ifnet = (struct ofp_ifnet *)odp_queue_get_context(
+		ifnet = (struct ofp_ifnet *)odp_queue_context(
 			odp_pktio_outq_getdef(pktio));
 	else { /* loopback and cunit*/
-		ifnet = (struct ofp_ifnet *)odp_queue_get_context(in_queue);
+		ifnet = (struct ofp_ifnet *)odp_queue_context(in_queue);
 		if (!ifnet) {
 			odp_packet_free(pkt);
 			return OFP_PKT_DROP;

@@ -973,7 +973,7 @@ struct ofp_ifnet *ofp_get_ifnet_by_tunnel(uint32_t tun_loc,
 
 struct ofp_ifnet *ofp_get_ifnet_pktio(odp_pktio_t pktio)
 {
-	return (struct ofp_ifnet *)odp_queue_get_context(
+	return (struct ofp_ifnet *)odp_queue_context(
 			odp_pktio_outq_getdef(pktio));
 }
 odp_queue_t ofp_pktio_spq_get(odp_pktio_t pktio)
