@@ -106,6 +106,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	odp_queue_param_t qparam;
 	char q_name[ODP_QUEUE_NAME_LEN];
 	odp_cpumask_t cpumask;
+	odp_pktio_param_t pktio_param;
 #ifdef SP
 	odph_linux_pthread_t nl_thread;
 #endif /* SP */
@@ -123,6 +124,9 @@ int ofp_init_global(ofp_init_global_t *params)
 	odp_cpumask_set(&cpumask, params->linux_core_id);
 
 	printf("Slow path threads will run on core %d\n", odp_cpumask_first(&cpumask));
+
+	memset(&pktio_param, 0, sizeof(pktio_param));
+	pktio_param.in_mode = (params->burst_recv_mode) ? ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED;
 
 	/* Create interfaces */
 	for (i = 0; i < params->if_count; ++i) {
@@ -142,7 +146,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		ifnet->pkt_pool = pool;
 
 		/* Open a packet IO instance for this device */
-		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool);
+		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
 		if (ifnet->pktio == ODP_PKTIO_INVALID) {
 			OFP_ERR("Error: pktio create failed\n");
 			abort();
@@ -265,6 +269,9 @@ int ofp_init_global(ofp_init_global_t *params)
 		/* ifnet MAC was set in sp_setup_device() */
 		ofp_mac_to_link_local(ifnet->mac, ifnet->link_local);
 #endif /* INET6 */
+
+		/* Start packet receiver or transmitter */
+		odp_pktio_start(ifnet->pktio);
 
 		/* Start VIF slowpath receiver thread */
 		odph_linux_pthread_create(ifnet->rx_tbl,
