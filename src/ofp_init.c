@@ -186,7 +186,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		}
 
 		/* Set device outq queue context */
-		odp_queue_set_context(ifnet->outq_def, ifnet);
+		odp_queue_context_set(ifnet->outq_def, ifnet);
 
 #ifdef SP
 		/* Create VIF local input queue */
@@ -226,7 +226,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		}
 
 		/* Set device loopq queue context */
-		odp_queue_set_context(ifnet->loopq_def, ifnet);
+		odp_queue_context_set(ifnet->loopq_def, ifnet);
 
 		/* Set interface MTU*/
 		ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
