@@ -161,7 +161,7 @@ int ofp_init_global(ofp_init_global_t *params)
 			memset(&qparam, 0, sizeof(odp_queue_param_t));
 			qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 			qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
-			qparam.sched.group = ODP_SCHED_GROUP_DEFAULT;
+			qparam.sched.group = ODP_SCHED_GROUP_ALL;
 			snprintf(q_name, sizeof(q_name), "%" PRIu64 "-pktio_inq_def",
 				 odp_pktio_to_u64(ifnet->pktio));
 			q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
@@ -197,7 +197,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		memset(&qparam, 0, sizeof(odp_queue_param_t));
 		qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 		qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
-		qparam.sched.group = ODP_SCHED_GROUP_DEFAULT;
+		qparam.sched.group = ODP_SCHED_GROUP_ALL;
 		snprintf(q_name, sizeof(q_name), "%s_inq_def", ifnet->if_name);
 		q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
 
@@ -219,7 +219,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		memset(&qparam, 0, sizeof(odp_queue_param_t));
 		qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 		qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
-		qparam.sched.group = ODP_SCHED_GROUP_DEFAULT;
+		qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
 		ifnet->loopq_def = odp_queue_create(q_name,
 						ODP_QUEUE_TYPE_SCHED,
