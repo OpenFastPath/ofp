@@ -499,6 +499,7 @@ reflect:
 
 	case OFP_ICMP_REDIRECT:
 		/*if (V_log_redirect)*/ {
+#if defined(OFP_DEBUG)
 			u_long src, dst, gw;
 
 			src = odp_be_to_cpu_32(ip->ip_src.s_addr);
@@ -512,6 +513,7 @@ reflect:
 			       (int)((dst >> 8) & 0xff), (int)(dst & 0xff),
 			       (int)(gw >> 24), (int)((gw >> 16) & 0xff),
 			       (int)((gw >> 8) & 0xff), (int)(gw & 0xff));
+#endif  /* OFP_DEBUG */
 		}
 		/*
 		 * RFC1812 says we must ignore ICMP redirects if we
