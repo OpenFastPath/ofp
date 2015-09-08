@@ -363,7 +363,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 	OFP_DBG("%s addr to ifx --> %s OIF %d name %s",
 		nlh->nlmsg_type == RTM_NEWADDR ? "Adding" : "Deleting",
 		(if_entry->ifa_family == AF_INET) ?
-		ofp_print_ip_addr(*(uint32_t *)if_addr) :
+		ofp_print_ip_addr(*(uint32_t *)addr) :
 		ofp_print_ip6_addr(addr),
 		if_entry->ifa_index, name);
 
