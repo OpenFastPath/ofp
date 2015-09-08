@@ -157,6 +157,8 @@ int ofp_del_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
 {
 	int ret;
 
+	(void) mac;
+
 	OFP_DBG("Port %d vlan %d vrf %d add_mac  ip %s - MAC %s" ,
 		dev->port, dev->vlan , dev->vrf ,
 		ofp_print_ip_addr(addr) , ofp_print_mac(mac));
@@ -184,6 +186,8 @@ void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac)
 	struct ofp_nh6_entry *nh;
 	struct pkt6_entry *pktentry;
 	struct pkt6_list pkt6_send;
+
+	(void) dev;
 
 	OFP_LOCK_READ(route);
 	nh = ofp_rtl_search6(&shm->default_routes_6, addr);
@@ -275,11 +279,13 @@ static int del_route(struct ofp_route_msg *msg)
 			OFP_UNLOCK_WRITE(route);
 			return -1;
 		}
-		if (!ofp_rtl_remove(&(data->routes), msg->dst, msg->masklen))
+		if (!ofp_rtl_remove(&(data->routes), msg->dst, msg->masklen)) {
 			OFP_DBG("ofp_rtl_remove failed");
+		}
 	} else {
-		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, msg->masklen))
+		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, msg->masklen)) {
 			OFP_DBG("ofp_rtl_remove failed");
+		}
 	}
 #ifdef MTRIE
 	ofp_rt_rule_remove(msg->vrf, msg->dst, msg->masklen);
@@ -308,8 +314,9 @@ static int add_route6(struct ofp_route_msg *msg)
 		   ofp_print_ip6_addr(msg->gw6));
 
 	if (ofp_rtl_insert6(&shm->default_routes_6, msg->dst6,
-			msg->masklen, &tmp))
+			    msg->masklen, &tmp)) {
 		OFP_DBG("ofp_rtl_insert6 failed");
+	}
 
 	OFP_UNLOCK_WRITE(route);
 
@@ -334,8 +341,9 @@ static int del_route6(struct ofp_route_msg *msg)
 			odp_packet_free(pktentry->pkt);
 			pkt6_entry_free(pktentry);
 		}
-	} else
+	} else {
 		OFP_DBG("ofp_rtl_remove6 failed");
+	}
 
 	OFP_UNLOCK_WRITE(route);
 
@@ -464,8 +472,9 @@ static int add_local_interface(struct ofp_route_msg *msg)
 static int del_local_interface(struct ofp_route_msg *msg)
 {
 		OFP_LOCK_WRITE(route);
-		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, 32))
+		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, 32)) {
 			OFP_DBG("ofp_rtl_remove failed");
+		}
 		OFP_UNLOCK_WRITE(route);
 
 		return 0;

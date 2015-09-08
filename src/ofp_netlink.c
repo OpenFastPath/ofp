@@ -85,8 +85,9 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 				dst6 = RTA_DATA(rtap);
 				dsts  = ofp_print_ip6_addr((uint8_t *)dst6);
 				OFP_DBG("Dest: %s", dsts);
-			} else
+			} else {
 				OFP_DBG("Unknown RTA_DST, len=%d", dst_len);
+			}
 
 			break;
 
@@ -266,7 +267,7 @@ static int handle_ipv4v6_addr(struct nlmsghdr *nlh)
 	/* msg RTM_NEWADDR / RTM_DELADDR contain an ifaddrmsg structure,
 	optionally followed by rtattr routing attributes */
 	struct ifaddrmsg *if_entry;
-	char if_address[32] , *if_addr = NULL;
+	char if_address[32];
 	char *name = NULL;
 	unsigned char *addr = NULL , *bcast = NULL, *laddr = NULL;
 	struct rtattr *rtap;
@@ -306,12 +307,11 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 		case IFA_ADDRESS:
 			addr = RTA_DATA(rtap);
 			if (if_entry->ifa_family == AF_INET) {
-				if_addr = ofp_print_ip_addr(
-						*(uint32_t *)addr);
-				OFP_DBG("Addr = %s", if_addr);
+				OFP_DBG("Addr = %s",
+					ofp_print_ip_addr(*(uint32_t *)addr));
 			} else if (if_entry->ifa_family == AF_INET6) {
-				if_addr = ofp_print_ip6_addr(addr);
-				OFP_DBG("IP6 Addr = %s", if_addr);
+				OFP_DBG("IP6 Addr = %s",
+					ofp_print_ip6_addr(addr));
 			}
 			break;
 
@@ -355,7 +355,6 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 			OFP_ERR("Local address not received for GRE interface");
 			return -1;
 		}
-		if_addr = ofp_print_ip_addr(*(uint32_t *)laddr);
 	}
 
 	if (!name)
@@ -363,7 +362,10 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 
 	OFP_DBG("%s addr to ifx --> %s OIF %d name %s",
 		nlh->nlmsg_type == RTM_NEWADDR ? "Adding" : "Deleting",
-		if_addr, if_entry->ifa_index, name);
+		(if_entry->ifa_family == AF_INET) ?
+		ofp_print_ip_addr(*(uint32_t *)if_addr) :
+		ofp_print_ip6_addr(addr),
+		if_entry->ifa_index, name);
 
 	if (nlh->nlmsg_type == RTM_DELADDR)
 		return del_ipv4v6_addr(if_entry, dev, addr, laddr);

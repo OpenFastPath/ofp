@@ -437,9 +437,10 @@ ofp_syncache_chkrst(struct in_conninfo *inc, struct ofp_tcphdr *th)
 	 * See RFC 793 page 65, section SEGMENT ARRIVES.
 	 */
 	if (th->th_flags & (OFP_TH_ACK|OFP_TH_SYN|OFP_TH_FIN)) {
-		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
+		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL))) {
 			OFP_DBG("%s: Spurious RST with ACK, SYN or "
 			    "FIN flag set, segment ignored", s);
+		}
 		TCPSTAT_INC(tcps_badrst);
 		goto done;
 	}
@@ -453,10 +454,11 @@ ofp_syncache_chkrst(struct in_conninfo *inc, struct ofp_tcphdr *th)
 	 * Otherwise the RST was misdirected or spoofed.
 	 */
 	if (sc == NULL) {
-		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
+		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL))) {
 			OFP_DBG("%s: Spurious RST without matching "
 			    "syncache entry (possibly syncookie only), "
 			    "segment ignored", s);
+		}
 		TCPSTAT_INC(tcps_badrst);
 		goto done;
 	}
@@ -477,16 +479,18 @@ ofp_syncache_chkrst(struct in_conninfo *inc, struct ofp_tcphdr *th)
 	if (SEQ_GEQ(th->th_seq, sc->sc_irs) &&
 	    SEQ_LEQ(th->th_seq, sc->sc_irs + sc->sc_wnd)) {
 		syncache_drop(sc, sch);
-		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
+		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL))) {
 			OFP_DBG("%s: Our SYN|ACK was rejected, "
 				"connection attempt aborted by remote endpoint",
 				s);
+		}
 		TCPSTAT_INC(tcps_sc_reset);
 	} else {
-		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL)))
+		if ((s = ofp_tcp_log_addrs(inc, th, NULL, NULL))) {
 			OFP_DBG("%s: RST with invalid SEQ %u != "
 			    "IRS %u (+WND %u), segment ignored",
 			    s, th->th_seq, sc->sc_irs, sc->sc_wnd);
+		}
 		TCPSTAT_INC(tcps_badrst);
 	}
 
