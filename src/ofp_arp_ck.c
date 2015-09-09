@@ -79,7 +79,7 @@ static inline void *arp_malloc(int index, struct arp_key *key)
 		}
 	}
 
-	OFP_ERR("Arp table bucket size error");
+	OFP_ERR("Arp table bucket size error.\n");
 	return NULL;
 }
 
@@ -254,7 +254,9 @@ void ofp_arp_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_ARP_CK, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_ARP_CK);
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_ARP_CK, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
@@ -270,7 +272,9 @@ void ofp_arp_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_ARP_CK);
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_ARP_CK);
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_ARP_CK, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 }
 

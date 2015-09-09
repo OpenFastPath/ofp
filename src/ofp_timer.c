@@ -96,7 +96,8 @@ int ofp_timer_init_global(int resolution_us,
 	shm->pool = odp_pool_create("TimeoutPool", &pool_params);
 
 	if (shm->pool == ODP_POOL_INVALID) {
-		OFP_ABORT("Timeout pool create failed.\n");
+		OFP_ERR("Timeout pool create failed.\n");
+		exit(EXIT_FAILURE);
 	}
 
 	/* Buffer pool */
@@ -109,7 +110,8 @@ int ofp_timer_init_global(int resolution_us,
 	shm->buf_pool = odp_pool_create("TimeoutBufferPool", &pool_params);
 
 	if (shm->buf_pool == ODP_POOL_INVALID) {
-		OFP_ABORT("odp_pool_create failed");
+		OFP_ERR("Buffer pool create failed.\n");
+		exit(EXIT_FAILURE);
 	}
 
 	/* Timer pool */
@@ -124,7 +126,8 @@ int ofp_timer_init_global(int resolution_us,
 						       &timer_params);
 
 	if (shm->socket_timer_pool == ODP_TIMER_POOL_INVALID) {
-		OFP_ABORT("odp_timer_pool_create failed");
+		OFP_ERR("Timer pool create failed.\n");
+		exit(EXIT_FAILURE);
 	}
 
 	odp_timer_pool_start();
@@ -141,7 +144,8 @@ int ofp_timer_init_global(int resolution_us,
 				      &param);
 
 	if (shm->queue == ODP_QUEUE_INVALID) {
-		OFP_ABORT("odp_queue_create failed");
+		OFP_ERR("Timer queue create failed.\n");
+		exit(EXIT_FAILURE);
 	}
 
 	odp_spinlock_init(&shm->lock);
@@ -149,6 +153,7 @@ int ofp_timer_init_global(int resolution_us,
 	/* Start one second timeouts */
 	shm->timer_1s = ofp_timer_start(1000000UL, one_sec, NULL, 0);
 
+	OFP_LOG("Timer init\n");
 	return 0;
 }
 
@@ -252,13 +257,15 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 
 	/* If shm is still NULL we have a problem. */
 	if (shm == NULL) {
-		OFP_ABORT("ofp_timer_lookup_shared_memory failed");
+		OFP_LOG("Cannot lookup timer shared memory.\n");
+		exit(1);
 	}
 
 	/* Alloc user buffer */
 	buf = odp_buffer_alloc(shm->buf_pool);
 	if (buf == ODP_BUFFER_INVALID) {
-		OFP_ABORT("odp_buffer_alloc failed");
+		OFP_LOG("Cannot allocate user buffer\n");
+		exit(1);
 	}
 
 	bufdata = (struct ofp_timer_internal *)odp_buffer_addr(buf);
@@ -274,7 +281,8 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		/* Long 1 s resolution timeout */
 		uint64_t sec = tmo_us/1000000UL;
 		if (sec > TIMER_NUM_LONG_SLOTS) {
-			OFP_ABORT("Timeout too long = %"PRIu64"s", sec);
+			OFP_LOG("Timeout too long = %"PRIu64"s\n", sec);
+			while (1) { }
 		}
 
 		odp_spinlock_lock(&shm->lock);
@@ -291,7 +299,8 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		/* Alloc timout event */
 		tmo = odp_timeout_alloc(shm->pool);
 		if (tmo == ODP_TIMEOUT_INVALID) {
-			OFP_ABORT("odp_timeout_alloc failed");
+			OFP_ERR("Failed to allocate timeout\n");
+			exit(1);
 		}
 		bufdata->t_ev = odp_timeout_to_event(tmo);
 
@@ -303,13 +312,15 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		shm->socket_timer = odp_timer_alloc(shm->socket_timer_pool,
 						    shm->queue, bufdata);
 		if (shm->socket_timer == ODP_TIMER_INVALID) {
-			OFP_ABORT("odp_timer_alloc failed");
+			OFP_ERR("Failed to allocate timer\n");
+			exit(1);
 		}
 
 		t = odp_timer_set_abs(shm->socket_timer, tick, &bufdata->t_ev);
 
 		if (t != ODP_TIMER_SUCCESS) {
-			OFP_ABORT("odp_timer_set_abs failed");
+			OFP_LOG("Timeout request failed\n");
+			exit(1);
 		}
 
 		return shm->socket_timer;
@@ -351,8 +362,9 @@ int ofp_timer_cancel(odp_timer_t tim)
 		return -1;
 	}
 	else {
-		if (odp_timer_cancel(tim, &timeout_event) < 0) {
-			OFP_LOG("Timeout already expired or inactive");
+		if (odp_timer_cancel(tim, &timeout_event) < 0)
+		{
+			OFP_LOG("Timeout already expired or inactive\n");
 			return -1;
 		}
 
@@ -362,12 +374,12 @@ int ofp_timer_cancel(odp_timer_t tim)
 			odp_buffer_free(bufdata->buf);
 			odp_timeout_free(tmo);
 		} else {
-			OFP_LOG("Lost timeout buffer at timer cancel");
+			OFP_LOG("Lost timeout buffer at timer cancel\n");
 			return -1;
 		}
 
 		if (odp_timer_free(tim) != ODP_EVENT_INVALID) {
-			OFP_ERR("odp_timer_free failed");
+			OFP_LOG("odp_timer_free failed in ofp_timer_cancel");
 			return -1;
 		}
 	}

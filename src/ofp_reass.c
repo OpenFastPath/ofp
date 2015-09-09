@@ -106,7 +106,9 @@ void ofp_reassembly_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_REASSEMBLY, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_REASSEMBLY);
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_REASSEMBLY, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
@@ -122,7 +124,9 @@ void ofp_reassembly_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_REASSEMBLY);
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_REASSEMBLY);
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_REASSEMBLY, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -457,7 +461,8 @@ ip_freef(struct frag **head, struct frag *chain)
 		if (c1)
 			SET_NEXT_CHAIN(c1, c2);
 		else {
-			OFP_ERR("Chain not found");
+			OFP_ERR("Error: Chain not found!\n");
+			exit(1);
 		}
 	}
 

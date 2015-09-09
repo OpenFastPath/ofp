@@ -131,7 +131,7 @@ int ofp_sockbuf_put_last(struct sockbuf *sb, odp_packet_t pkt)
 	if (next == sb->sb_get) {
 		/* No more room. */
 		ofp_sockbuf_packet_free(pkt);
-		OFP_LOG("Out of room, next=%d", next);
+		OFP_LOG("NO MORE ROOM (next=%d)!\n", next);
 		return -1;
 	}
 
@@ -217,7 +217,7 @@ ofp_sbappendaddr_locked(struct sockbuf *sb,
 		sb->sb_put--;
 		if (sb->sb_put < 0)
 			sb->sb_put = SOCKBUF_LEN-1;
-		OFP_LOG("Buffers full (sb_get=%d) Max num = %d",
+		OFP_LOG("Buffers full (sb_get=%d)! Max num = %d\n",
 			  sb->sb_get, SOCKBUF_LEN);
 		return 0; /* buffers full */
 	}

@@ -210,7 +210,8 @@ ofp_tcp_reass(struct tcpcb *tp, struct ofp_tcphdr *th, int *tlenp, odp_packet_t 
 		odp_packet_free(m);
 		*tlenp = 0;
 		if ((s = ofp_tcp_log_addrs(&tp->t_inpcb->inp_inc, th, NULL, NULL))) {
-			OFP_LOG("%s: Queue limit reached, segment dropped", s);
+			OFP_LOG("%s; %s: queue limit reached, "
+				  "segment dropped\n", s, __func__);
 			free(s);
 		}
 		return (0);
@@ -231,7 +232,8 @@ ofp_tcp_reass(struct tcpcb *tp, struct ofp_tcphdr *th, int *tlenp, odp_packet_t 
 			*tlenp = 0;
 			if ((s = ofp_tcp_log_addrs(&tp->t_inpcb->inp_inc, th, NULL,
 					       NULL))) {
-				OFP_LOG("%s: Global zone limit reached, segment dropped", s);
+				OFP_LOG("%s; %s: global zone limit "
+					  "reached, segment dropped\n", s, __func__);
 				free(s);
 			}
 			return (0);
@@ -241,8 +243,9 @@ ofp_tcp_reass(struct tcpcb *tp, struct ofp_tcphdr *th, int *tlenp, odp_packet_t 
 		te = &tqs;
 		if ((s = ofp_tcp_log_addrs(&tp->t_inpcb->inp_inc, th, NULL,
 				       NULL))) {
-			OFP_LOG("%s: Global zone limit reached, using "
-				"stack for missing segment", s);
+			OFP_LOG(
+			    "%s; %s: global zone limit reached, using "
+			    "stack for missing segment\n", s, __func__);
 			free(s);
 		}
 	}
