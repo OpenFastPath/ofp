@@ -106,7 +106,7 @@ int ofp_rtl6_init(struct ofp_rtl6_tree *tree)
 {
 	tree->root = NODEALLOC6();
 	if (!tree->root) {
-		OFP_ERR("NODEALLOC6 failed");
+		printf("%s(): allocation failed!\n", __FUNCTION__);
 		return -1;
 	}
 
@@ -121,7 +121,7 @@ int ofp_rtl_root_init(struct ofp_rtl_tree *tree, uint16_t vrf)
 {
 	tree->root = NODEALLOC();
 	if (!tree->root) {
-		OFP_ERR("NODEALLOC failed");
+		printf("%s(): allocation failed!\n", __FUNCTION__);
 		return -1;
 	}
 
@@ -358,9 +358,11 @@ static void traverse(int fd, struct ofp_rtl_node *node,
 	if (!node)
 		return;
 
+	//printf("leaf=%p flags=0x%x\n", node, node->flags);
 	if (func && (node->flags & OFP_RTL_FLAGS_VALID_DATA))
 			func(fd, key, level, &(node->data[0]));
 
+	//printf("left=%p right=%p\n", node->left, node->right);
 	traverse(fd, node->left, func, key, level+1);
 	if (node->right) key |= 0x80000000 >> level;
 	traverse(fd, node->right, func, key, level+1);
@@ -584,7 +586,9 @@ void ofp_rt_lookup_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_RT_LOOKUP);
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_RT_LOOKUP, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
@@ -600,7 +604,9 @@ void ofp_rt_lookup_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_RT_LOOKUP);
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_RT_LOOKUP);
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_RT_LOOKUP, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 }
 

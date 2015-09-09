@@ -2043,7 +2043,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 			TCPSTAT_INC(tcps_pawsdrop);
 			if (tlen) {
 				if (V_tcp_passive_trace)
-					OFP_DBG("Drop after ACK (1)");
+					printf(">>>>>>. drop after ack (1)\n");
 				goto dropafterack;
 			}
 			goto drop;
@@ -2153,13 +2153,12 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 				TCPSTAT_INC(tcps_rcvwinprobe);
 			} else {
 				if (V_tcp_passive_trace)
-					OFP_DBG("Drop after ACK (2) wnd=%lu seq=%u next=%u",
-						tp->rcv_wnd, th->th_seq, tp->rcv_nxt);
+					printf(">>>>>>. drop after ack (2) wnd=%lu seq=%u next=%u\n", tp->rcv_wnd, th->th_seq, tp->rcv_nxt);
 				goto dropafterack;
 			}
 		} else {
 			if (V_tcp_passive_trace)
-				OFP_DBG("Dropping %u bytes after window", todrop);
+				printf(">>>>>>>>>>>>>>>>>. dropping %u bytes after window\n", todrop);
 			TCPSTAT_ADD(tcps_rcvbyteafterwin, todrop);
 		}
 		odp_packet_pull_tail(m, todrop);
@@ -2218,7 +2217,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 			goto step6;
 		else if (tp->t_flags & TF_ACKNOW) {
 			if (V_tcp_passive_trace)
-				OFP_DBG("Drop after ACK (3)");
+				printf(">>>>>>. drop after ack (3)\n");
 			goto dropafterack;
 		} else
 			goto drop;
@@ -2291,7 +2290,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 		if (SEQ_GT(th->th_ack, tp->snd_max)) {
 			TCPSTAT_INC(tcps_rcvacktoomuch);
 			if (V_tcp_passive_trace)
-				OFP_DBG("Drop after ACK (4)");
+				printf(">>>>>>. drop after ack (4)\n");
 			goto dropafterack;
 		}
 		if ((tp->t_flags & TF_SACK_PERMIT) &&
@@ -2635,7 +2634,7 @@ process_ACK:
 				INP_INFO_WUNLOCK(&V_tcbinfo);
 				odp_packet_free(m);
 				if (V_tcp_passive_trace)
-					OFP_DBG("Closing ourfinisacked tlen=%u", tlen);
+					printf(">>>>>>>>>>>>>>>>>>> CLOSING finisacked tlen=%u\n", tlen);
 				return;
 			}
 			break;
@@ -2933,9 +2932,9 @@ check_delack:
 dropafterack:
 
 	if (V_tcp_passive_trace) {
-		OFP_DBG("Drop after ACK tlen=%d", tlen);
+		printf(">>>>>>. drop after ack tlen=%d\n", tlen);
 		if (thflags & OFP_TH_FIN)
-			OFP_DBG("Dropping FIN");
+			printf (">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN\n");
 	}
 	/*
 	 * Generate an ACK dropping incoming segment if it occupies
@@ -2977,9 +2976,9 @@ dropafterack:
 dropwithreset:
 
 	if (V_tcp_passive_trace) {
-		OFP_DBG("Drop with reset tlen=%d", tlen);
+		printf(">>>>>>. drop with reset tlen=%d\n", tlen);
 		if (thflags & OFP_TH_FIN)
-			OFP_DBG("Dropping FIN (2)");
+			printf (">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN (2)\n");
 	}
 	if (ti_locked == TI_WLOCKED)
 		INP_INFO_WUNLOCK(&V_tcbinfo);
@@ -3001,9 +3000,9 @@ dropwithreset:
 drop:
 
 	if (V_tcp_passive_trace) {
-		OFP_DBG("Drop tlen=%d", tlen);
+		printf(">>>>>>. drop tlen=%d\n", tlen);
 		if (thflags & OFP_TH_FIN)
-			OFP_DBG("Dropping FIN (3)");
+			printf (">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN (3)\n");
 	}
 	if (ti_locked == TI_WLOCKED) {
 		INP_INFO_WUNLOCK(&V_tcbinfo);

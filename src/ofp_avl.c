@@ -121,7 +121,7 @@ avl_tree_new (avl_key_compare_fun_type compare_fun,
 	avl_tree * t = AVL_TREEALLOC();
 
 	if (!t) {
-		OFP_ERR("AVL_TREEALLOC failed");
+		OFP_ERR("No more avl trees!\n");
 		return NULL;
 	} else {
 		avl_node * root = avl_node_new((void *)NULL, (avl_node *) NULL);
@@ -1110,7 +1110,8 @@ avl_verify_rank (avl_node * node)
             num_right = avl_verify_rank (node->right);
         }
         if (AVL_GET_RANK (node) != num_left + 1) {
-	    OFP_ERR("Invalid rank at node %ld", (long) node->key);
+            fprintf (stderr, "invalid rank at node %ld\n", (long) node->key);
+            exit (1);
         }
         return (num_left + num_right + 1);
     }
@@ -1278,7 +1279,9 @@ void ofp_avl_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_AVL, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem alloc failed", SHM_NAME_AVL);
+		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_AVL, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 
 	memset(shm, 0, sizeof(*shm));
@@ -1294,7 +1297,9 @@ void ofp_avl_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_AVL);
 	if (shm == NULL) {
-		OFP_ABORT("%s shared mem lookup failed", SHM_NAME_AVL);
+		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+			SHM_NAME_AVL, odp_cpu_id());
+		exit(EXIT_FAILURE);
 	}
 }
 

@@ -475,7 +475,7 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 
 	sum = ofp_in6_cksum(m, OFP_IPPROTO_ICMPV6, off, icmp6len);
 	if (sum != 0) {
-		OFP_ERR("ICMP6 checksum error(%d|%x) %s",
+		OFP_ERR("ICMP6 checksum error(%d|%x) %s\n",
 		    icmp6->icmp6_type, sum,
 		    ofp_print_ip6_addr(&ip6->ip6_src.ofp_s6_addr[0]));
 		/*ICMP6STAT_INC(icp6s_checksum);*/
@@ -856,7 +856,7 @@ ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 		break;
 
 	default:
-		OFP_DBG("Unknown type %d(src=%s, dst=%s)",
+		OFP_DBG("icmp6_input: unknown type %d(src=%s, dst=%s)\n",
 			icmp6->icmp6_type,
 			ofp_print_ip6_addr(&ip6->ip6_src.ofp_s6_addr[0]),
 			ofp_print_ip6_addr(&ip6->ip6_dst.ofp_s6_addr[0]));
@@ -2041,7 +2041,7 @@ ofp_icmp6_reflect(odp_packet_t m, size_t off)
 
 	/* too short to reflect */
 	if (off < sizeof(struct ofp_ip6_hdr)) {
-		OFP_DBG("Sanity fail: off=%lx, sizeof(ip6)=%lx in %s:%d",
+		OFP_DBG("sanity fail: off=%lx, sizeof(ip6)=%lx in %s:%d\n",
 		    (u_long)off, (u_long)sizeof(struct ofp_ip6_hdr),
 		    __FILE__, __LINE__);
 		goto bad;
@@ -2118,8 +2118,8 @@ ofp_icmp6_reflect(odp_packet_t m, size_t off)
 
 		e = ofp_in6_selectsrc(&sin6, NULL, NULL, NULL, NULL, &outif, &src);
 		if (e) {
-			OFP_DBG("Source can't be determined: "
-				"dst=%s, error=%d",
+			OFP_DBG("icmp6_reflect: source can't be determined: "
+				"dst=%s, error=%d\n",
 				ofp_print_ip6_addr(
 					&sin6.sin6_addr.ofp_s6_addr[0]), e);
 			goto bad;

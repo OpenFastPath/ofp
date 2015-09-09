@@ -175,7 +175,7 @@ udp_append(struct inpcb *inp, struct ofp_ip *ip, odp_packet_t n, int off,
 	}
 
 	if (n == ODP_PACKET_INVALID) {
-		OFP_LOG("n == ODP_PACKET_INVALID");
+		OFP_LOG("n == ODP_PACKET_INVALID\n");
 		return;
 	}
 
@@ -478,7 +478,7 @@ ofp_udp_input(odp_packet_t m, int off)
 	if (inp == NULL) {
 		if (ofp_udp_log_in_vain) {
 			/* LOG */
-			OFP_LOG("Connection attempt to UDP %s:%d from %s:%d",
+			OFP_LOG("Connection attempt to UDP %s:%d from %s:%d\n",
 				  ofp_print_ip_addr(ip->ip_dst.s_addr),
 				  odp_be_to_cpu_16(uh->uh_dport),
 				  ofp_print_ip_addr(ip->ip_src.s_addr),
@@ -523,7 +523,7 @@ ofp_udp_input(odp_packet_t m, int off)
 	return OFP_PKT_PROCESSED;
 
 badunlocked:
-	OFP_ERR("badunlocked");
+	OFP_LOG("badunlocked!\n");
 	return OFP_PKT_DROP;
 }
 
@@ -810,7 +810,7 @@ ofp_udp_ctloutput(struct socket *so, struct sockopt *sopt)
 	return (error);
 }
 
-#define goto_release do { if (1) OFP_LOG("GOTO release"); goto release; } while (0)
+#define goto_release do { if (1) OFP_LOG("GOTO release\n"); goto release; } while (0)
 
 #define	UH_WLOCKED	2
 #define	UH_RLOCKED	1

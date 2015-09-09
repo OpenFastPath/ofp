@@ -13,23 +13,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "api/ofp_log.h"
 #include "api/ofp_utils.h"
 #include "ofpi_timer.h"
 
 #define L2_HEADER_NO_VLAN_SIZE 14
 
-#define KASSERT(x, y)  do {						\
-		if (!(x)) {						\
-			OFP_ERR y ;					\
-		}							\
-	} while (0)
-
-#define panic(x)  OFP_ABORT(x)
+#define KASSERT(x, y)	do { if (!(x)) { printf("KASSERT %s:%d\n",__FILE__,__LINE__); \
+			printf y ; printf("\n"); int *a = 0; *a = 3;}} while (0)
 
 extern int ofp_first_log_time;
-
 #define TICS_PER_SEC (1000000/OFP_TIMER_RESOLUTION_US)
+
+#define OFP_LOG_TIME(a...)							\
+	do {    int now = ofp_timer_ticks(0);				\
+		if (ofp_first_log_time == 0) ofp_first_log_time = now; \
+		int diff = now - ofp_first_log_time;			\
+		printf("[%d] %3d.%02d %5d:%s:%s\n    ", odp_cpu_id(), \
+		       diff/TICS_PER_SEC, diff%TICS_PER_SEC,		\
+		       __LINE__, __FUNCTION__, __FILE__);		\
+		printf(a); fflush(stdout); } while (0)
+
+#define panic(x)	do {fprintf(stderr, "PANIC: %s", x); int *a = 0; *a = 3;} while (0)
 
 static inline char *print_th_flags(uint8_t f, int or) {
 	const char *t[8] = {"FIN", "SYN", "RST", "PUSH", "ACK", "URG", "ECE", "CWR"};

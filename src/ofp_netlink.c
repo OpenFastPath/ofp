@@ -52,7 +52,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 	if (rtp->rtm_table != RT_TABLE_MAIN)
 		return 0;
 
-	OFP_DBG("Route rtm_dst_len=%d", rtp->rtm_dst_len);
+	OFP_DBG("* ROUTE rtm_dst_len=%d\n", rtp->rtm_dst_len);
 
 	/* init all the strings */
 	bzero(dsts_str, sizeof(dsts_str));
@@ -66,7 +66,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 
 	for (; RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap, rtl)) {
 #ifdef NETLINK_DEBUG
-		OFP_DBG("  rta_type=%d data=%p len=%ld",
+		OFP_DBG("  rta_type=%d data=%p len=%ld\n",
 			rtap->rta_type, RTA_DATA(rtap), RTA_PAYLOAD(rtap));
 		ofp_print_hex(OFP_LOG_DBG, RTA_DATA(rtap),
 			RTA_PAYLOAD(rtap));
@@ -80,13 +80,14 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 			if (dst_len == 4) {
 				destination = *((uint32_t *)(RTA_DATA(rtap)));
 				dsts = ofp_print_ip_addr(destination);
-				OFP_DBG("Dest: %s", dsts);
+				OFP_DBG("Dest: %s\n", dsts);
 			} else if (dst_len == 16) {
 				dst6 = RTA_DATA(rtap);
 				dsts  = ofp_print_ip6_addr((uint8_t *)dst6);
-				OFP_DBG("Dest: %s", dsts);
+				OFP_DBG("Dest: %s\n", dsts);
 			} else
-				OFP_DBG("Unknown RTA_DST, len=%d", dst_len);
+				OFP_DBG("\n>>> RTA_DST: len=%d <<<\n\n",
+					dst_len);
 
 			break;
 
@@ -96,11 +97,11 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 			if (gw_len == 4) {
 				gateway = *((uint32_t *)(RTA_DATA(rtap)));
 				gws = ofp_print_ip_addr(gateway);
-				OFP_DBG("Gateway: %s", gws);
+				OFP_DBG("Gateway: %s\n", gws);
 			} else if (gw_len == 16) {
 				gw6 = RTA_DATA(rtap);
 				gws = ofp_print_ip6_addr((uint8_t *)gw6);
-				OFP_DBG("Gateway: %s", gws);
+				OFP_DBG("Gateway: %s\n", gws);
 			}
 
 			break;
@@ -109,7 +110,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 		case RTA_OIF:
 			ix = *((uint32_t *) RTA_DATA(rtap));
 			sprintf(ifs, "%d", *((int *) RTA_DATA(rtap)));
-			OFP_DBG("Interface: %d", ix);
+			OFP_DBG("Interface: %d\n", ix);
 		default:
 			break;
 		}
@@ -119,7 +120,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 	if (gws == NULL)
 		gws = gws_str;
 	sprintf(ms, "%d", rtp->rtm_dst_len);
-	OFP_DBG("%s route dst=%s/%s gw=%s if=%d dst_len=%d",
+	OFP_DBG("%s dst=%s/%s gw=%s if=%d dst_len=%d\n",
 		   (nlp->nlmsg_type == RTM_NEWROUTE)?"New":"Del",
 		   dsts, ms, gws, ix, dst_len);
 
@@ -160,7 +161,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 				ofp_set_route_msg(&msg);
 			}
 		} else
-			OFP_ERR("Cannot find device ix=%d", ix);
+			OFP_DBG("*** CANNOT FIND DEV ix=%d!\n", ix);
 	} else {
 		struct ofp_route_msg msg;
 
@@ -282,7 +283,7 @@ RTM_NEWLINK messages, which start with ifinfomsg.
 The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 */
 	OFP_DBG("* INTERFACE: ifa_family=%d ifa_prefixlen=%d ifa_flags=0x%x"
-		" ifa_scope=%d ifa_index=%d",
+		" ifa_scope=%d ifa_index=%d\n",
 		   if_entry->ifa_family, if_entry->ifa_prefixlen,
 		   if_entry->ifa_flags, if_entry->ifa_scope,
 		   if_entry->ifa_index);
@@ -291,7 +292,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 	rtl = IFA_PAYLOAD(nlh);
 	for (; RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap, rtl)) {
 #ifdef NETLINK_DEBUG
-		OFP_DBG("  rta_type=%d data=%p len=%ld", rtap->rta_type,
+		OFP_DBG("  rta_type=%d data=%p len=%ld\n", rtap->rta_type,
 			RTA_DATA(rtap), RTA_PAYLOAD(rtap));
 		ofp_print_hex(OFP_LOG_DBG,
 			RTA_DATA(rtap), RTA_PAYLOAD(rtap));
@@ -300,7 +301,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 		switch (rtap->rta_type) {
 		case IFA_LABEL:
 			name = RTA_DATA(rtap);
-			OFP_DBG("Interface name = %s", name);
+			OFP_DBG("Interface name = %s\n", name);
 			break;
 
 		case IFA_ADDRESS:
@@ -308,10 +309,10 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 			if (if_entry->ifa_family == AF_INET) {
 				if_addr = ofp_print_ip_addr(
 						*(uint32_t *)addr);
-				OFP_DBG("Addr = %s", if_addr);
+				OFP_DBG("Addr = %s\n", if_addr);
 			} else if (if_entry->ifa_family == AF_INET6) {
 				if_addr = ofp_print_ip6_addr(addr);
-				OFP_DBG("IP6 Addr = %s", if_addr);
+				OFP_DBG("IP6 Addr = %s\n", if_addr);
 			}
 			break;
 
@@ -321,7 +322,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 				   IFA_LOCAL is local address,
 				   IFA_ADDR is destination address */
 				laddr = RTA_DATA(rtap);
-				OFP_DBG("Local addr = %s",
+				OFP_DBG("Local addr = %s\n",
 					  ofp_print_ip_addr(
 						  *(uint32_t *)laddr));
 			}
@@ -330,7 +331,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 		case IFA_BROADCAST:
 			/* addr = bcast = RTA_DATA(rtap); */
 			bcast = RTA_DATA(rtap);
-			OFP_DBG("Bcast = %s",
+			OFP_DBG("Bcast = %s\n",
 				  ofp_print_ip_addr(*(uint32_t *)bcast));
 			break;
 
@@ -340,19 +341,19 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 	}
 
 	if (!addr) {
-		OFP_ERR("Address not received");
+		OFP_ERR("netlink_server: Address not received!\n");
 		return -1;
 	}
 
 	dev = ofp_get_ifnet_by_linux_ifindex(if_entry->ifa_index);
 	if (!dev) {
-		OFP_ERR("Interface not found");
+		OFP_ERR("netlink_server: Interface not found!\n");
 		return -1;
 	}
 
 	if (dev->port == GRE_PORTS && if_entry->ifa_family == AF_INET) {
 		if (!laddr) {
-			OFP_ERR("Local address not received for GRE interface");
+			OFP_ERR("Local address not received for GRE IF!");
 			return -1;
 		}
 		if_addr = ofp_print_ip_addr(*(uint32_t *)laddr);
@@ -361,7 +362,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 	if (!name)
 		name = ofp_port_vlan_to_ifnet_name(dev->port, dev->vlan);
 
-	OFP_DBG("%s addr to ifx --> %s OIF %d name %s",
+	OFP_DBG("netlink_server: %s addr to ifx --> %s OIF %d name %s\n",
 		nlh->nlmsg_type == RTM_NEWADDR ? "Adding" : "Deleting",
 		if_addr, if_entry->ifa_index, name);
 
@@ -385,14 +386,15 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 		if (ifinfo_entry->ifi_type == ARPHRD_IPGRE) {
 			dev_root = ofp_get_ifnet(GRE_PORTS, 0);
 			if (ofp_get_ifnet_by_ip(tun_loc, vrf) == NULL) {
-				OFP_DBG("Tunnel local IP not configured, interface ignored");
+				OFP_DBG("Tunnel local IP not configured. Interface ignored.\n");
 				return -1;
 			}
 		} else
 			dev_root = ofp_get_ifnet_by_linux_ifindex(link);
 
 		if (!dev_root) {
-			OFP_ERR("Root interface not found, link=%d", link);
+			OFP_ERR("netlink_server: root interface "
+				"not found: %d\n", link);
 			return -1;
 		}
 
@@ -435,7 +437,7 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 	}
 
 	if (mtu && dev != NULL) {
-		OFP_DBG("Interface updated OIF=%d MTU=%u",
+		OFP_DBG("Interface updated OIF=%d MTU=%u\n",
 			ifinfo_entry->ifi_index, mtu);
 		dev->if_mtu = mtu;
 	}
@@ -458,21 +460,22 @@ static int del_link(struct ifinfomsg *ifinfo_entry, int vlan, int link)
 			dev_root = ofp_get_ifnet_by_linux_ifindex(link);
 
 		if (!dev_root) {
-			OFP_ERR("Root interface not found, link=%d", link);
+			OFP_ERR("netlink_server: root interface "
+				"not found: %d\n", link);
 			return -1;
 		}
 
 		key.vlan = vlan;
 		if (ofp_vlan_get_by_key(dev_root->vlan_structs,
 			&key, (void **)&dev)) {
-			OFP_DBG("VLAN not found");
+			OFP_DBG("netlink_server: vlan not found\n");
 			return 0;
 		}
 		vlan_ifnet_delete(
 			dev_root->vlan_structs,
 			&key,
 			free_key);
-		OFP_DBG("Interface deleted port: %d, vlan: %d, OIF=%d",
+		OFP_DBG("Interface deleted port: %d, vlan: %d, OIF=%d\n",
 			  dev_root->port, vlan, ifinfo_entry->ifi_index);
 	}
 
@@ -487,13 +490,13 @@ static void _parse_ifla_link_info(struct rtattr *rt, int rl,
 
 	if (RTA_OK(rtap, rtl) && rtap->rta_type == IFLA_INFO_KIND &&
 	    strncmp(RTA_DATA(rtap), "gre", sizeof("gre")) == 0) {
-		OFP_DBG("IFLA_INFO_KIND: %s", (char *) RTA_DATA(rtap));
+		OFP_DBG("IFLA_INFO_KIND: %s\n", (char *) RTA_DATA(rtap));
 		rtap = RTA_NEXT(rtap, rtl);
 	} else
 		return;
 
 	if (RTA_OK(rtap, rtl) && rtap->rta_type == IFLA_INFO_DATA) {
-		OFP_DBG("IFLA_INFO_DATA");
+		OFP_DBG("IFLA_INFO_DATA\n");
 		/* next level nest */
 		rtl = RTA_PAYLOAD(rtap);
 		rtap = RTA_DATA(rtap);
@@ -502,7 +505,7 @@ static void _parse_ifla_link_info(struct rtattr *rt, int rl,
 
 	for (; RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap, rtl)) {
 #ifdef NETLINK_DEBUG
-		OFP_DBG("  rta_type=%d data=%p len=%ld", rtap->rta_type,
+		OFP_DBG("  rta_type=%d data=%p len=%ld\n", rtap->rta_type,
 			  RTA_DATA(rtap), RTA_PAYLOAD(rtap));
 		ofp_print_hex(OFP_LOG_DBG, RTA_DATA(rtap),
 				RTA_PAYLOAD(rtap));
@@ -511,12 +514,12 @@ static void _parse_ifla_link_info(struct rtattr *rt, int rl,
 		switch (rtap->rta_type) {
 		case IFLA_GRE_LOCAL:
 			*tun_loc = *(uint32_t *)RTA_DATA(rtap);
-			OFP_DBG("GRE tunnel local addr = %s",
+			OFP_DBG("GRE tunnel local addr = %s\n",
 				  ofp_print_ip_addr(*tun_loc));
 			break;
 		case IFLA_GRE_REMOTE:
 			*tun_rem = *(uint32_t *)RTA_DATA(rtap);
-			OFP_DBG("GRE tunnel remote addr = %s",
+			OFP_DBG("GRE tunnel remote addr = %s\n",
 				  ofp_print_ip_addr(*tun_rem));
 			break;
 		default:
@@ -540,7 +543,7 @@ static int handle_ifinfo(struct nlmsghdr *nlh)
 	ifinfo_entry = (struct ifinfomsg *)NLMSG_DATA(nlh);
 
 	OFP_DBG("* IFINFO: ifi_family=%u ifi_type=%u ifi_index=%d"
-		  " ifi_flags=0x%x ifi_change=%u",
+		  " ifi_flags=0x%x ifi_change=%u\n",
 		  ifinfo_entry->ifi_family, ifinfo_entry->ifi_type,
 		  ifinfo_entry->ifi_index, ifinfo_entry->ifi_flags,
 		  ifinfo_entry->ifi_change);
@@ -550,7 +553,7 @@ static int handle_ifinfo(struct nlmsghdr *nlh)
 
 	for (; RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap, rtl)) {
 #ifdef NETLINK_DEBUG
-		OFP_DBG("  rta_type=%d data=%p len=%ld", rtap->rta_type,
+		OFP_DBG("  rta_type=%d data=%p len=%ld\n", rtap->rta_type,
 			  RTA_DATA(rtap), RTA_PAYLOAD(rtap));
 		ofp_print_hex(OFP_LOG_DBG, RTA_DATA(rtap),
 				RTA_PAYLOAD(rtap));
@@ -559,18 +562,18 @@ static int handle_ifinfo(struct nlmsghdr *nlh)
 		switch (rtap->rta_type) {
 		case IFLA_MTU:
 			mtu = *(unsigned int *)RTA_DATA(rtap);
-			OFP_DBG("MTU = %u", mtu);
+			OFP_DBG("MTU = %u\n", mtu);
 			break;
 		case IFLA_LINK:
 			link = *(unsigned int *)RTA_DATA(rtap);
-			OFP_DBG("Link = %d", link);
+			OFP_DBG("Link = %d\n", link);
 			break;
 		case IFLA_IFNAME:
 			name = RTA_DATA(rtap);
-			OFP_DBG("Interface name = %s", name);
+			OFP_DBG("Interface name = %s\n", name);
 			break;
 		case IFLA_LINKINFO:
-			OFP_DBG("IFLA_LINKINFO");
+			OFP_DBG("IFLA_LINKINFO\n");
 			_parse_ifla_link_info(RTA_DATA(rtap), RTA_PAYLOAD(rtap),
 					      &tun_loc, &tun_rem);
 		default:
@@ -578,45 +581,48 @@ static int handle_ifinfo(struct nlmsghdr *nlh)
 		}
 	}
 
-	OFP_DBG("%s received to interface OIF %d",
+	OFP_DBG("%s received to interface OIF %d\n",
 		nlh->nlmsg_type == RTM_DELLINK ? "DELLINK" : "NEWLINK",
 		ifinfo_entry->ifi_index);
 
 	if (ifinfo_entry->ifi_type == ARPHRD_IPGRE) { /* GRE */
 		if (!name) {
-			OFP_ERR("Interface name not received: %d",
+			OFP_ERR("netlink_server: interface name "
+				"not received: %d\n",
 				ifinfo_entry->ifi_index);
 			return -1;
 		}
 		if (strncmp(name, OFP_GRE_IFNAME_PREFIX,
 			    strlen(OFP_GRE_IFNAME_PREFIX))) {
-			OFP_ERR("Invalid GRE interface name: %s", name);
+			OFP_ERR("Invalid GRE interface name: %s\n", name);
 			return -1;
 		}
 		vlan = atoi(name + strlen(OFP_GRE_IFNAME_PREFIX));
 		if (vlan == 0) {
-			OFP_ERR("Invalid tunnel id: %d", vlan);
+			OFP_ERR("Invalid tunnel id: %d\n", vlan);
 			return -1;
 		}
-		OFP_DBG("GRE id = %d", vlan);
+		OFP_DBG("GRE id = %d\n", vlan);
 	} else if ((link != -1) && (link != ifinfo_entry->ifi_index)) {/*vlan*/
 		if (!name) {
-			OFP_ERR("Interface name not received: %d",
+			OFP_ERR("netlink_server: interface name "
+				"not received: %d\n",
 				ifinfo_entry->ifi_index);
 			return -1;
 		}
 		vlan_txt = strrchr(name, '.');
 		if (!vlan_txt) {
-			OFP_ERR("Interface vlan ID not found: %d",
+			OFP_ERR("netlink_server: interface vlan ID "
+				"not found: %d\n",
 				ifinfo_entry->ifi_index);
 			return -1;
 		}
 		vlan = atoi(vlan_txt + 1);
 		if (vlan == 0) {
-			OFP_ERR("Invalid vlan id: %d", vlan);
+			OFP_ERR("Invalid vlan id: %d\n", vlan);
 			return -1;
 		}
-		OFP_DBG("Vlan id = %d", vlan);
+		OFP_DBG("vlan id = %d\n", vlan);
 	}
 
 	if (nlh->nlmsg_type == RTM_DELLINK)
@@ -657,7 +663,7 @@ static void route_read(int nll)
 			break;
 
 		default:
-			OFP_DBG("Unknown message type, %i",
+			OFP_DBG("Unknown message type, %i!\n",
 				  nlh->nlmsg_type);
 			break;
 		}
@@ -679,7 +685,7 @@ static int route_recv(int route_fd, unsigned int nl_groups)
 	while (1) {
 		rtn = recv(route_fd, p, BUFFER_SIZE - nll, 0);
 		if (rtn <= 0) {
-			OFP_ERR("Route socket closed");
+			OFP_DBG("ROUTE SOCK CLOSED!\n");
 			break;
 		}
 		nlp = (struct nlmsghdr *) p;
@@ -712,7 +718,8 @@ void *start_netlink_nl_server(void *arg)
 	ofp_init_local();
 
 	if ((route_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) < 0) {
-		OFP_ABORT("socket failed");
+		OFP_ERR("Cant Create socket\n");
+		exit(-1);
 	}
 	bzero(&la, sizeof(la));
 	la.nl_family = AF_NETLINK;
@@ -723,12 +730,13 @@ void *start_netlink_nl_server(void *arg)
 #endif /* INET6 */
 		RTMGRP_LINK;
 	if (bind(route_fd, (struct sockaddr *) &la, sizeof(la)) < 0) {
-		OFP_ABORT("bind failed");
+		OFP_ERR("Cant bind to Netlink socket\n");
+		exit(-1);
 	}
 
 	FD_ZERO(&read_fd);
 	if (route_fd <= 0) {
-		OFP_ERR("Invalid fd=%d", route_fd);
+		OFP_ERR("Invalid route FD\n");
 		return NULL;
 	}
 	FD_SET(route_fd, &read_fd);
@@ -756,6 +764,6 @@ void *start_netlink_nl_server(void *arg)
 	if (route_fd > 0)
 		close(route_fd);
 	route_fd = -1;
-	OFP_DBG("Netlink server exiting");
+	OFP_DBG("NL server exiting\n");
 	return 0;
 }

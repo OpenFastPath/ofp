@@ -175,7 +175,7 @@ ofp_icmp_error(odp_packet_t pkt_in, int type, int code, uint32_t dest, int mtu)
 	ip_in->ip_sum = ofp_in_cksum((uint16_t *)ip_in, ip_in->ip_hl<<2);
 
 	if((u_int16_t)type > OFP_ICMP_MAXTYPE)
-		OFP_ERR("Illegal ICMP type=%d", type);
+		OFP_ABORT("%s: illegal ICMP type", __func__);
 
 #ifdef ICMPPRINTFS
 	if (icmpprintfs)
@@ -504,8 +504,8 @@ reflect:
 			src = odp_be_to_cpu_32(ip->ip_src.s_addr);
 			dst = odp_be_to_cpu_32(icp->ofp_icmp_ip.ip_dst.s_addr);
 			gw = odp_be_to_cpu_32(icp->ofp_icmp_gwaddr.s_addr);
-			OFP_DBG("ICMP redirect from %d.%d.%d.%d: "
-			       "%d.%d.%d.%d => %d.%d.%d.%d",
+			OFP_DBG("icmp redirect from %d.%d.%d.%d: "
+			       "%d.%d.%d.%d => %d.%d.%d.%d\n",
 			       (int)(src >> 24), (int)((src >> 16) & 0xff),
 			       (int)((src >> 8) & 0xff), (int)(src & 0xff),
 			       (int)(dst >> 24), (int)((dst >> 16) & 0xff),
