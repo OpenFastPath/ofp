@@ -135,13 +135,13 @@ else
 fi
 
 # Enable/disable OFP_DEBUG_PRINT
-ofp_debug=no
+ODP_DEBUG=1
 AC_ARG_ENABLE([debug],
-    [  --enable-debug         Enable OFP debug],
-    [ofp_debug=$enableval])
-if test "$ofp_debug" == "yes" ; then
-    AM_CPPFLAGS="$AM_CPPFLAGS -DOFP_DEBUG"
-fi
+    [  --enable-debug         Enable/disable ODP debug],
+    [if ! test "x$enableval" = "xyes"; then
+        ODP_DEBUG=0
+    fi])
+AM_CFLAGS="$AM_CFLAGS -DOFP_DEBUG_PRINT=$ODP_DEBUG"
 
 # Enable/disable INET6 domain
 AC_ARG_ENABLE([ipv6],
