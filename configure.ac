@@ -123,7 +123,7 @@ AC_ARG_WITH([odp],
 # if optional parameter used, extend path flags for compliler and linker
 if test $ODPPATHSET = 1 ; then
     # extend the compiler and linker flags according to the path set
-    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -DHAVE_LIBODP"
+    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -I$with_odp/include/odp/helper -DHAVE_LIBODP"
     AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
     AC_DEFINE(HAVE_LIBODP, [1], [Have libodp ?])
 else
