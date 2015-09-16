@@ -830,7 +830,7 @@ sysctl_sysctl_next(OFP_SYSCTL_HANDLER_ARGS)
 
 	SYSCTL_XLOCK();
 	i = sysctl_sysctl_next_ls(lsp, name, namelen, newoid, &j, 1, &oid);
-	OFP_LOG("name=%p namelen=%d i=%d", name, namelen, i);
+	OFP_INFO("name=%p namelen=%d i=%d", name, namelen, i);
 	SYSCTL_XUNLOCK();
 	if (i)
 		return (OFP_ENOENT);

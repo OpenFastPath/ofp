@@ -53,7 +53,7 @@ void f_loglevel(struct cli_conn *conn, const char *s)
 {
 	int i;
 
-	for (i = 0; i <= OFP_LOG_DBG; i++) {
+	for (i = 0; i < OFP_LOG_MAX_LEVEL; i++) {
 		if (strncmp(loglevel_descript[i], s,
 			strlen(loglevel_descript[i])) == 0) {
 			ofp_loglevel = i;

@@ -7,4 +7,4 @@
 
 #include "ofpi_log.h"
 
-enum ofp_log_level_s ofp_loglevel = OFP_LOG_DBG;
+enum ofp_log_level_s ofp_loglevel = OFP_LOG_DEBUG;

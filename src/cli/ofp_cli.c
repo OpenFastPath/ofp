@@ -1134,7 +1134,7 @@ static void cli_init_commands(void)
 		start = add_command(start, &commands[i]);
 
 	/* Print nodes */
-	if (OFP_IS_LOGLEVEL_DEBUG()) {
+	if (ofp_debug_logging_enabled()) {
 	    ofp_sendf(conn.fd, "CLI Command nodes:\n");
 	    print_nodes(conn.fd, start);
 	}

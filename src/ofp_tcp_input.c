@@ -78,7 +78,7 @@
 #include "ofpi_icmp.h"
 #include "ofpi_sockstate.h"
 
-#define log(a, f...) OFP_LOG(f)
+#define log(a, f...) OFP_INFO(f)
 
 const int ofp_tcprexmtthresh = 3;
 
@@ -2043,7 +2043,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 			TCPSTAT_INC(tcps_pawsdrop);
 			if (tlen) {
 				if (V_tcp_passive_trace)
-					OFP_LOG(">>>>>>. drop after ack (1)");
+					OFP_INFO(">>>>>>. drop after ack (1)");
 				goto dropafterack;
 			}
 			goto drop;
@@ -2153,12 +2153,12 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 				TCPSTAT_INC(tcps_rcvwinprobe);
 			} else {
 				if (V_tcp_passive_trace)
-					OFP_LOG(">>>>>>. drop after ack (2) wnd=%lu seq=%u next=%u", tp->rcv_wnd, th->th_seq, tp->rcv_nxt);
+					OFP_INFO(">>>>>>. drop after ack (2) wnd=%lu seq=%u next=%u", tp->rcv_wnd, th->th_seq, tp->rcv_nxt);
 				goto dropafterack;
 			}
 		} else {
 			if (V_tcp_passive_trace)
-				OFP_LOG(">>>>>>>>>>>>>>>>>. dropping %u bytes after window", todrop);
+				OFP_INFO(">>>>>>>>>>>>>>>>>. dropping %u bytes after window", todrop);
 			TCPSTAT_ADD(tcps_rcvbyteafterwin, todrop);
 		}
 		odp_packet_pull_tail(m, todrop);
@@ -2217,7 +2217,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 			goto step6;
 		else if (tp->t_flags & TF_ACKNOW) {
 			if (V_tcp_passive_trace)
-				OFP_LOG(">>>>>>. drop after ack (3)");
+				OFP_INFO(">>>>>>. drop after ack (3)");
 			goto dropafterack;
 		} else
 			goto drop;
@@ -2290,7 +2290,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 		if (SEQ_GT(th->th_ack, tp->snd_max)) {
 			TCPSTAT_INC(tcps_rcvacktoomuch);
 			if (V_tcp_passive_trace)
-				OFP_LOG(">>>>>>. drop after ack (4)");
+				OFP_INFO(">>>>>>. drop after ack (4)");
 			goto dropafterack;
 		}
 		if ((tp->t_flags & TF_SACK_PERMIT) &&
@@ -2634,7 +2634,7 @@ process_ACK:
 				INP_INFO_WUNLOCK(&V_tcbinfo);
 				odp_packet_free(m);
 				if (V_tcp_passive_trace)
-					OFP_LOG(">>>>>>>>>>>>>>>>>>> CLOSING finisacked tlen=%u", tlen);
+					OFP_INFO(">>>>>>>>>>>>>>>>>>> CLOSING finisacked tlen=%u", tlen);
 				return;
 			}
 			break;
@@ -2905,7 +2905,7 @@ dodata:							/* XXX */
 		tp->t_flags |= TF_ACKNOW;
 		/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 		if (no_unlock) {
-			//OFP_LOG("no_unlock set; but calling ofp_tcp_output?");
+			//OFP_INFO("no_unlock set; but calling ofp_tcp_output?");
 		}
 		(void) ofp_tcp_output(tp);
 	}
@@ -2919,7 +2919,7 @@ check_delack:
 
 	if (tp->t_flags & TF_DELACK) {
 		if (no_unlock == 0) {
-			//OFP_LOG("no_unlock set; but calling ofp_tcp_timer_activate()?");
+			//OFP_INFO("no_unlock set; but calling ofp_tcp_timer_activate()?");
 		}
 		t_flags_and(tp->t_flags, ~TF_DELACK);
 		ofp_tcp_timer_activate(tp, TT_DELACK, ofp_tcp_delacktime);
@@ -2932,9 +2932,9 @@ check_delack:
 dropafterack:
 
 	if (V_tcp_passive_trace) {
-		OFP_LOG(">>>>>>. drop after ack tlen=%d", tlen);
+		OFP_INFO(">>>>>>. drop after ack tlen=%d", tlen);
 		if (thflags & OFP_TH_FIN)
-			OFP_LOG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN");
+			OFP_INFO(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN");
 	}
 	/*
 	 * Generate an ACK dropping incoming segment if it occupies
@@ -2976,9 +2976,9 @@ dropafterack:
 dropwithreset:
 
 	if (V_tcp_passive_trace) {
-		OFP_LOG(">>>>>>. drop with reset tlen=%d", tlen);
+		OFP_INFO(">>>>>>. drop with reset tlen=%d", tlen);
 		if (thflags & OFP_TH_FIN)
-			OFP_LOG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN (2)");
+			OFP_INFO(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN (2)");
 	}
 	if (ti_locked == TI_WLOCKED)
 		INP_INFO_WUNLOCK(&V_tcbinfo);
@@ -3000,9 +3000,9 @@ dropwithreset:
 drop:
 
 	if (V_tcp_passive_trace) {
-		OFP_LOG(">>>>>>. drop tlen=%d", tlen);
+		OFP_INFO(">>>>>>. drop tlen=%d", tlen);
 		if (thflags & OFP_TH_FIN)
-			OFP_LOG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN (3)");
+			OFP_INFO(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. DROPPING FIN (3)");
 	}
 	if (ti_locked == TI_WLOCKED) {
 		INP_INFO_WUNLOCK(&V_tcbinfo);

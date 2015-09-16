@@ -17,8 +17,7 @@
 
 #define logfilename "/tmp/iocrl-test.log"
 static FILE *logfile;
-#define logprint(a...) fprintf(logfile, a)
-//#define logprint OFP_LOG
+
 #define IFNAME "fp0"
 #define GRENAME "gre1"
 
@@ -31,8 +30,8 @@ get_ip_address(int fd, const char *name)
 
 	strcpy(ifr.ifr_name, name);
 	if (ofp_ioctl(fd, OFP_SIOCGIFADDR, &ifr) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 		return 0;
 	} else {
 		struct ofp_sockaddr_in *ipaddr;
@@ -48,8 +47,8 @@ get_netmask(int fd, const char *name)
 
 	strcpy(ifr.ifr_name, name);
 	if (ofp_ioctl(fd, OFP_SIOCGIFNETMASK, &ifr) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 		return 0;
 	} else {
 		struct ofp_sockaddr_in *ipaddr;
@@ -65,8 +64,8 @@ get_broadcast_address(int fd, const char *name)
 
 	strcpy(ifr.ifr_name, name);
 	if (ofp_ioctl(fd, OFP_SIOCGIFBRDADDR, &ifr) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 		return 0;
 	} else {
 		struct ofp_sockaddr_in *ipaddr;
@@ -85,8 +84,8 @@ set_ip_address_and_mask(int fd, const char *name, uint32_t addr, uint32_t mask)
 	ifra.ifra_addr.sin_addr.s_addr = addr;
 	ifra.ifra_mask.sin_addr.s_addr = mask;
 	if (ofp_ioctl(fd, OFP_SIOCSIFADDR, &ifra) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 }
 
@@ -98,8 +97,8 @@ delete_if_address(int fd, const char *name)
 	strcpy(ifra.ifra_name, name);
 	ifra.ifra_addr.sin_family = OFP_AF_INET;
 	if (ofp_ioctl(fd, OFP_SIOCDIFADDR, &ifra) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 }
 
@@ -121,15 +120,15 @@ receive_non_blocking(void)
 	addr.sin_len = sizeof(addr);
 
 	if ((ret = ofp_bind(s, (struct ofp_sockaddr *)&addr, sizeof(addr)))) {
-		OFP_LOG("bind ret=%d %s\n", ret, ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_bind failed ret=%d %s", ret, ofp_strerror(ofp_errno));
 	}
 
 	/*
 	 * Set non-blocking mode.
 	 */
 	if (ofp_ioctl(s, OFP_FIONBIO, &nb) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 
 	/*
@@ -145,8 +144,8 @@ get_sockbuf_data(int fd, uint32_t cmd)
 {
 	int val;
 	if (ofp_ioctl(fd, cmd, &val) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 	return val;
 }
@@ -154,12 +153,9 @@ get_sockbuf_data(int fd, uint32_t cmd)
 static void
 get_if_conf(int fd, struct ofp_ifconf *conf)
 {
-	/*
-	 * Get all interfaces.
-	 */
 	if (ofp_ioctl(fd, OFP_SIOCGIFCONF, conf) < 0) {
-		logprint("Ioctlx error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 }
 
@@ -177,8 +173,8 @@ set_gre_tunnel(int fd, const char *name, uint32_t addr, uint32_t p2p,
 	treq.iftun_vrf = vrf;
 
 	if (ofp_ioctl(fd, OFP_SIOCSIFTUN, &treq) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 }
 
@@ -191,8 +187,8 @@ set_vrf(int fd, const char *name, int vrf)
 	ifr.ifr_fib = vrf;
 
 	if (ofp_ioctl(fd, OFP_SIOCSIFFIB, &ifr) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 }
 
@@ -209,8 +205,8 @@ set_route(int fd, const char *dev, int vrf,
 	((struct ofp_sockaddr_in *)&rt.rt_gateway)->sin_addr.s_addr = gw;
 
 	if (ofp_ioctl(fd, OFP_SIOCADDRT, &rt) < 0) {
-		logprint("Ioctl error (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_ioctl failed, err='%s'",
+			ofp_strerror(ofp_errno));
 	}
 }
 
@@ -223,76 +219,76 @@ ioctl_test(void *arg)
 	(void)arg;
 
 	logfile = fopen(logfilename, "w");
-	logprint("Ioctl test thread started\n");
+	OFP_INFO("ioctl_test thread started");
 
 	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
 	sleep(2);
 
 	if ((fd = ofp_socket(OFP_AF_INET, OFP_SOCK_DGRAM, OFP_IPPROTO_UDP)) < 0) {
-		logprint("Cannot open UDP socket (%s)!\n",
-			 ofp_strerror(ofp_errno));
+		OFP_ERR("ofp_socket failed, err='%s'",
+			ofp_strerror(ofp_errno));
 		return NULL;
 	}
 
-	logprint("\n=====================================\n");
-	logprint("Get IP address of %s\n", IFNAME);
+	OFP_INFO("=====================================");
+	OFP_INFO("Get IP address of %s", IFNAME);
 	origaddr = get_ip_address(fd, IFNAME);
-	logprint("  %s\n", ofp_print_ip_addr(origaddr));
+	OFP_INFO("  %s", ofp_print_ip_addr(origaddr));
 
-	logprint("\n=====================================\n");
-	logprint("Get netmask of %s\n", IFNAME);
+	OFP_INFO("=====================================");
+	OFP_INFO("Get netmask of %s", IFNAME);
 	origmask = get_netmask(fd, IFNAME);
-	logprint("  %s\n", ofp_print_ip_addr(origmask));
+	OFP_INFO("  %s", ofp_print_ip_addr(origmask));
 
-	logprint("\n=====================================\n");
-	logprint("Get broadcast address of %s\n", IFNAME);
-	logprint("  %s\n",
+	OFP_INFO("=====================================");
+	OFP_INFO("Get broadcast address of %s", IFNAME);
+	OFP_INFO("  %s",
 		 ofp_print_ip_addr(get_broadcast_address(fd, IFNAME)));
 
-	logprint("\n=====================================\n");
-	logprint("Delete IP address of %s\n", IFNAME);
+	OFP_INFO("=====================================");
+	OFP_INFO("Delete IP address of %s", IFNAME);
 	delete_if_address(fd, IFNAME);
 
-	logprint("\n=====================================\n");
+	OFP_INFO("=====================================");
 	addr = IP4(192,168,156,111);
-	logprint("Set IP address of %s to %s/%d\n",
+	OFP_INFO("Set IP address of %s to %s/%d",
 		 IFNAME, ofp_print_ip_addr(addr), 25);
 	set_ip_address_and_mask(fd, IFNAME, addr, odp_cpu_to_be_32(0xffffff80));
 
-	logprint("Set back original address and mask\n");
+	OFP_INFO("Set back original address and mask");
 	set_ip_address_and_mask(fd, IFNAME, origaddr, origmask);
 
-	logprint("\n=====================================\n");
-	logprint("Receiving from socket\n");
+	OFP_INFO("=====================================");
+	OFP_INFO("Receiving from socket");
 	receive_non_blocking();
-	logprint("Immediate return\n");
+	OFP_INFO("Immediate return");
 
-	logprint("\n=====================================\n");
-	logprint("Get sockbuf bytes to read\n");
-	logprint("  %d\n", get_sockbuf_data(fd, OFP_FIONREAD));
+	OFP_INFO("=====================================");
+	OFP_INFO("Get sockbuf bytes to read");
+	OFP_INFO("  %d", get_sockbuf_data(fd, OFP_FIONREAD));
 
-	logprint("\n=====================================\n");
-	logprint("Get sockbuf bytes yet to write\n");
+	OFP_INFO("=====================================");
+	OFP_INFO("Get sockbuf bytes yet to write");
 
-	logprint("  %d\n", get_sockbuf_data(fd, OFP_FIONWRITE));
+	OFP_INFO("  %d", get_sockbuf_data(fd, OFP_FIONWRITE));
 
-	logprint("\n=====================================\n");
-	logprint("Get sockbuf send space\n");
+	OFP_INFO("=====================================");
+	OFP_INFO("Get sockbuf send space");
 
-	logprint("  %d\n", get_sockbuf_data(fd, OFP_FIONSPACE));
+	OFP_INFO("  %d", get_sockbuf_data(fd, OFP_FIONSPACE));
 
-	logprint("\n=====================================\n");
-	logprint("Set GRE tunnel\n");
+	OFP_INFO("=====================================");
+	OFP_INFO("Set GRE tunnel");
 	set_gre_tunnel(fd, GRENAME, IP4(10,3,4,1), IP4(10,3,4,2),
 		       origaddr, IP4(192,168,56,104), 0);
 
-	logprint("\n=====================================\n");
-	logprint("Change GRE tunnel's VRF\n");
+	OFP_INFO("=====================================");
+	OFP_INFO("Change GRE tunnel's VRF");
 	set_vrf(fd, GRENAME, 7);
 
-	logprint("\n=====================================\n");
-	logprint("Get all interfaces\n");
+	OFP_INFO("=====================================");
+	OFP_INFO("Get all interfaces");
 
 	struct ofp_ifconf conf;
 	char data[1024];
@@ -308,7 +304,7 @@ ioctl_test(void *arg)
 	while ((char *)ifr < data + conf.ifc_len) {
 		switch (ifr->ifr_addr.sa_family) {
 		case OFP_AF_INET:
-			logprint("  %d. %s : %s\n", i, ifr->ifr_name,
+			OFP_INFO("  %d. %s : %s", i, ifr->ifr_name,
 				 ofp_print_ip_addr(((struct ofp_sockaddr_in *)
 						      &ifr->ifr_addr)->sin_addr.s_addr));
 			break;
@@ -317,8 +313,8 @@ ioctl_test(void *arg)
 		i++;
 	}
 
-	logprint("\n=====================================\n");
-	logprint("Set routes\n");
+	OFP_INFO("=====================================");
+	OFP_INFO("Set routes");
 
 	set_route(fd, GRENAME, 0, IP4(10,1,1,0), IP4(255,255,255,0), IP4(10,3,4,2));
 	/*
@@ -326,14 +322,14 @@ ioctl_test(void *arg)
 	 */
 	set_route(fd, NULL, 0, IP4(10,7,0,0), IP4(255,255,0,0), IP4(192,168,56,254));
 
-	logprint("\n=====================================\n");
+	OFP_INFO("=====================================");
 	ofp_close(fd);
-	logprint("Ioctl test exit\n");
-	logprint("\n=====================================\n");
+	OFP_INFO("Ioctl test exit");
+	OFP_INFO("=====================================");
 
 	fclose(logfile);
 	if (system("cat " logfilename) < 0)
-		OFP_ERR("Cannot run system()\n");
+		OFP_ERR("system failed");
 	return NULL;
 }
 

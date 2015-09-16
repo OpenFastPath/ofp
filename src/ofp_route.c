@@ -148,6 +148,8 @@ int ofp_get_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac_out)
 
 int ofp_del_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
 {
+	(void) mac;
+
 	OFP_DBG("Removing MAC=%s IP=%s on device port=%d vlan=%d vrf=%d",
 		ofp_print_mac(mac), ofp_print_ip_addr(addr),
 		dev->port, dev->vlan, dev->vrf);
@@ -184,6 +186,7 @@ void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac)
 		return;
 	}
 
+	(void) dev;
 	OFP_DBG("MAC added for %s (%s)", ofp_print_ip6_addr(addr),
 		ofp_port_vlan_to_ifnet_name(dev->port, dev->vlan));
 

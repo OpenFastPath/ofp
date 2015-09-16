@@ -179,14 +179,14 @@ void ofp_print_sockets(void)
 		struct socket *so = &shm->socket_list[i];
 		if (!so->so_proto)
 			continue;
-		OFP_LOG("Socket %d: rcv.put=%d rcv.get=%d snd.put=%d snd.get=%d\n",
+		OFP_INFO("Socket %d: rcv.put=%d rcv.get=%d snd.put=%d snd.get=%d\n",
 			  so->so_number, so->so_rcv.sb_put, so->so_rcv.sb_get,
 			  so->so_snd.sb_put, so->so_snd.sb_get);
 	}
 
 	struct sleeper *s = shm->sleep_list;
 	while (s) {
-		OFP_LOG("Sleeper %s, tmo=%x go=%d timer=%d\n",
+		OFP_INFO("Sleeper %s, tmo=%x go=%d timer=%d\n",
 			  s->wmesg, s->tmo, s->go, s->woke_by_timer);
 		s = s->next;
 	}
@@ -206,7 +206,7 @@ int ofp_socket_pool_create(const char *name, int size)
 	odp_pool_t pool;
 	uma_zone_t zone;
 
-	OFP_LOG("POOL: Creating pool [%d] %s, size=%d\n",
+	OFP_INFO("POOL: Creating pool [%d] %s, size=%d\n",
 		  shm->num_pools, name, size);
 
 	pool_params.buf.size  = size + 8; /* HJo: FIX */
@@ -228,7 +228,7 @@ int ofp_socket_pool_create(const char *name, int size)
 	zone = shm->num_pools++;
 	shm->pools[zone] = pool;
 
-	OFP_LOG("POOL: Pools created = %d\n", shm->num_pools);
+	OFP_INFO("POOL: Pools created = %d\n", shm->num_pools);
 	return zone;
 }
 

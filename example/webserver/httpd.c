@@ -11,9 +11,6 @@
 
 void httpd_main(uint32_t addr);
 
-#define logprint(a...) do {} while (0)
-//#define logprint OFP_LOG
-
 int sigreceived = 0;
 static uint32_t myaddr;
 
@@ -37,14 +34,14 @@ static int mysend(int s, char *p, int len)
 	while (len > 0) {
 		n = ofp_send(s, p, len, 0);
 		if (n < 0) {
-			OFP_LOG("mysend: cannot send (%d): %s\n",
+			OFP_ERR("ofp_send failed n=%d, err='%s'",
 				  n, ofp_strerror(ofp_errno));
 			return n;
 		}
 		len -= n;
 		p += n;
 		if (len) {
-			logprint("mysend: only %d bytes sent\n", n);
+			OFP_WARN("Only %d bytes sent", n);
 		}
 	}
 	return len;
@@ -123,11 +120,11 @@ static int analyze_http(char *http, int s) {
 			*p = 0;
 		else
 			return -1;
-		logprint("GET %s (fd=%d)\n", url, s);
+		OFP_INFO("GET %s (fd=%d)", url, s);
 		get_file(s, url);
 	} else if (!strncmp(http, "POST ", 5)) {
 		/* Post is not supported. */
-		logprint("%s\n", http);
+		OFP_INFO("%s", http);
 	}
 
 	return 0;
@@ -142,7 +139,7 @@ static void *webserver(void *arg)
 
 	(void)arg;
 
-	logprint("HTTP thread started\n");
+	OFP_INFO("HTTP thread started");
 
 	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
@@ -151,8 +148,8 @@ static void *webserver(void *arg)
 	myaddr = ofp_port_get_ipv4_addr(0, 0, OFP_PORTCONF_IP_TYPE_IP_ADDR);
 
 	if ((serv_fd = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, OFP_IPPROTO_TCP)) < 0) {
+		OFP_ERR("ofp_socket failed");
 		perror("serv socket");
-		logprint("Cannot open http socket!\n");
 		return NULL;
 	}
 
@@ -164,7 +161,7 @@ static void *webserver(void *arg)
 
 	if (ofp_bind(serv_fd, (struct ofp_sockaddr *)&my_addr,
 		       sizeof(struct ofp_sockaddr)) < 0) {
-		logprint("Cannot bind http socket (%s)!\n", ofp_strerror(ofp_errno));
+		OFP_ERR("Cannot bind http socket (%s)!", ofp_strerror(ofp_errno));
 		return 0;
 	}
 
@@ -190,14 +187,14 @@ static void *webserver(void *arg)
 			if ((tmp_fd = ofp_accept(serv_fd,
 						   (struct ofp_sockaddr *)&caller,
 						   &alen)) > 0) {
-				logprint("accept %d\n", tmp_fd);
+				OFP_INFO("accept fd=%d", tmp_fd);
 
 				for (i = 0; i < NUM_CONNECTIONS; i++)
 					if (connections[i].fd == 0)
 						break;
 
 				if (i >= NUM_CONNECTIONS) {
-					logprint("Node cannot accept new connections!\n");
+					OFP_ERR("Node cannot accept new connections!");
 					ofp_close(tmp_fd);
 					continue;
 				}
@@ -211,7 +208,7 @@ static void *webserver(void *arg)
 							  OFP_SO_LINGER,
 							  &so_linger,
 							  sizeof so_linger);
-				if (r1) OFP_LOG("SO_LINGER failed!\n");
+				if (r1) OFP_ERR("SO_LINGER failed!");
 #endif
 				struct ofp_timeval tv;
 				tv.tv_sec = 3;
@@ -221,7 +218,7 @@ static void *webserver(void *arg)
 							  OFP_SO_SNDTIMEO,
 							  &tv,
 							  sizeof tv);
-				if (r2) OFP_LOG("SO_SNDTIMEO failed!\n");
+				if (r2) OFP_ERR("SO_SNDTIMEO failed!");
 
 				connections[i].fd = tmp_fd;
 				connections[i].addr = caller.sin_addr.s_addr;
@@ -241,26 +238,26 @@ static void *webserver(void *arg)
 			r = ofp_recv(connections[i].fd, buf, sizeof(buf)-1, 0);
 			if (r > 0) {
 				buf[r] = 0;
-				logprint("DATA='%s'\n", buf);
+				OFP_INFO("recv data: %s", buf);
 
 				if (!strncmp(buf, "GET", 3))
 					analyze_http(buf, connections[i].fd);
 				else
-					logprint("http req error\n");
+					OFP_INFO("Not a HTTP GET request");
 
-				logprint("closing %d\n", connections[i].fd);
+				OFP_INFO("closing %d\n", connections[i].fd);
 				OFP_FD_CLR(connections[i].fd, &read_fd);
 				while (ofp_close(connections[i].fd) < 0) {
-					OFP_LOG("Socket %d close err: %s\n",
-						  connections[i].fd,
-						  ofp_strerror(ofp_errno));
+					OFP_ERR("ofp_close failed, fd=%d err='%s'",
+						connections[i].fd,
+						ofp_strerror(ofp_errno));
 					sleep(1);
 				}
-				logprint("closed %d\n", connections[i].fd);
+				OFP_INFO("closed fd=%d", connections[i].fd);
 				connections[i].fd = 0;
 			} else if (r == 0) {
 				if (connections[i].post) {
-					printf("file download finished\n");
+					OFP_INFO("File download finished");
 					fclose(connections[i].post);
 					connections[i].post = NULL;
 				}
@@ -271,7 +268,7 @@ static void *webserver(void *arg)
 		}
 	}
 
-	logprint("httpd exit\n");
+	OFP_INFO("httpd exiting");
 	return NULL;
 }
 

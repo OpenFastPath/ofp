@@ -71,8 +71,6 @@
 #include "ofpi_hook.h"
 #include "ofpi_util.h"
 
-#define RETURN(_r) do { if (_r) OFP_LOG("RETURN %d", _r); return (_r); } while (0)
-
 #define UDPSTAT_INC(x)
 #define log(...)
 
@@ -478,7 +476,7 @@ ofp_udp_input(odp_packet_t m, int off)
 	if (inp == NULL) {
 		if (ofp_udp_log_in_vain) {
 			/* LOG */
-			OFP_LOG("Connection attempt to UDP %s:%d from %s:%d",
+			OFP_INFO("Connection attempt to UDP %s:%d from %s:%d",
 				  ofp_print_ip_addr(ip->ip_dst.s_addr),
 				  odp_be_to_cpu_16(uh->uh_dport),
 				  ofp_print_ip_addr(ip->ip_src.s_addr),
@@ -523,7 +521,7 @@ ofp_udp_input(odp_packet_t m, int off)
 	return OFP_PKT_PROCESSED;
 
 badunlocked:
-	OFP_LOG("badunlocked");
+	OFP_WARN("badunlocked");
 	return OFP_PKT_DROP;
 }
 
@@ -810,7 +808,7 @@ ofp_udp_ctloutput(struct socket *so, struct sockopt *sopt)
 	return (error);
 }
 
-#define goto_release do { if (1) OFP_LOG("GOTO release"); goto release; } while (0)
+#define goto_release do { if (1) OFP_INFO("GOTO release"); goto release; } while (0)
 
 #define	UH_WLOCKED	2
 #define	UH_RLOCKED	1

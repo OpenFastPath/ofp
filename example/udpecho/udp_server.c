@@ -19,9 +19,6 @@
 #define INVALID_SOCKET  -1
 #define SOCKET_ERROR    -1
 
-//#define logprint(a...) do {} while (0)
-#define logprint OFP_LOG
-
 static void notify(union ofp_sigval sv)
 {
 	struct ofp_sock_sigval *ss = sv.sival_ptr;
@@ -89,7 +86,7 @@ static void *udpecho(void *arg)
 
 	(void)arg;
 
-	logprint("UDP server thread started\n");
+	OFP_INFO("UDP server thread started");
 
 	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
@@ -98,7 +95,7 @@ static void *udpecho(void *arg)
 	my_ip_addr = ofp_port_get_ipv4_addr(0, 0, OFP_PORTCONF_IP_TYPE_IP_ADDR);
 
 	if ((serv_fd = ofp_socket(OFP_AF_INET, OFP_SOCK_DGRAM, OFP_IPPROTO_UDP)) < 0) {
-		logprint("Cannot open UDP socket (%s)!\n",
+		OFP_ERR("ofp_socket failed, err='%s'",
 			 ofp_strerror(ofp_errno));
 		return NULL;
 	}
@@ -111,7 +108,7 @@ static void *udpecho(void *arg)
 
 	if (ofp_bind(serv_fd, (struct ofp_sockaddr *)&my_addr,
 		       sizeof(struct ofp_sockaddr)) < 0) {
-		logprint("Cannot bind http socket (%s)!\n",
+		OFP_ERR("ofp_bind failed, err='%s'",
 			 ofp_strerror(ofp_errno));
 		return NULL;
 	}
@@ -133,7 +130,7 @@ static void *udpecho(void *arg)
 		sleep(1);
 	}
 
-	logprint("UDP server exit\n");
+	OFP_INFO("UDP server exiting");
 	return NULL;
 }
 

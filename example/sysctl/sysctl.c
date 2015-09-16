@@ -207,14 +207,14 @@ sysctl(void *arg)
 	size_t retval;
 	ofp_sysctl("mybranch.telnet.counter", &counter, &counterlen,
 		     NULL, 0, &retval);
-	OFP_LOG("mybranch.telnet.counter=%ld len=%ld retval=%ld\n",
+	OFP_INFO("mybranch.telnet.counter=%ld len=%ld retval=%ld\n",
 		  counter, counterlen, retval);
 	/*
 	 * Read the ssh bytes:
 	 */
 	ofp_sysctl("mybranch.ssh.counter", &counter, &counterlen,
 		     NULL, 0, &retval);
-	OFP_LOG("mybranch.ssh.counter=%ld len=%ld retval=%ld\n",
+	OFP_INFO("mybranch.ssh.counter=%ld len=%ld retval=%ld\n",
 		  counter, counterlen, retval);
 
 	/*
@@ -224,7 +224,7 @@ sysctl(void *arg)
 	size_t enalen = sizeof(enabled);
 	ofp_sysctl("mybranch.telnet.enabled", &enabled, &enalen,
 		     NULL, 0, &retval);
-	OFP_LOG("mybranch.telnet.enabled=%d\n", enabled);
+	OFP_INFO("mybranch.telnet.enabled=%d\n", enabled);
 	/*
 	 * Disable telnet:
 	 */
@@ -239,7 +239,7 @@ sysctl(void *arg)
 	enalen = sizeof(enabled);
 	ofp_sysctl("mybranch.telnet.enabled", &enabled, &enalen,
 		     NULL, 0, &retval);
-	OFP_LOG("After disabling: mybranch.telnet.enabled=%d, real value=%d\n",
+	OFP_INFO("After disabling: mybranch.telnet.enabled=%d, real value=%d\n",
 		  enabled, enable_telnet);
 
 	/*
@@ -249,7 +249,7 @@ sysctl(void *arg)
 	size_t msglen = sizeof(msg);
 	ofp_sysctl("mybranch.hello", msg, &msglen,
 		     "Server is down.", 16, &retval);
-	OFP_LOG("mybranch.hello: old value=%s, new value=%s\n",
+	OFP_INFO("mybranch.hello: old value=%s, new value=%s\n",
 		  msg, hello_msg);
 
 	/*
