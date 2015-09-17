@@ -29,6 +29,25 @@
 #define BUFFER_SIZE 4096
 static char buffer[BUFFER_SIZE];
 
+static const char *rtm_msgtype_to_string(unsigned short type)
+{
+	switch (type) {
+		case RTM_NEWLINK: return "RTM_NEWLINK";
+		case RTM_DELLINK: return "RTM_DELLINK";
+		case RTM_GETLINK: return "RTM_GETLINK";
+		case RTM_SETLINK: return "RTM_SETLINK";
+		case RTM_NEWADDR: return "RTM_NEWADDR";
+		case RTM_DELADDR: return "RTM_DELADDR";
+		case RTM_GETADDR: return "RTM_GETADDR";
+		case RTM_NEWROUTE: return "RTM_NEWROUTE";
+		case RTM_DELROUTE: return "RTM_DELROUTE";
+		case RTM_GETROUTE: return "RTM_GETROUTE";
+		// ...
+		default: break;
+	}
+	return "?Unknown?";
+}
+
 static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 {
 	/* string to hold content of the route */
@@ -275,18 +294,19 @@ static int handle_ipv4v6_addr(struct nlmsghdr *nlh)
 	struct ofp_ifnet *dev;
 
 	memset(if_address, 0, sizeof(if_address));
-	/* Get the addr data */
+
 	if_entry = (struct ifaddrmsg *) NLMSG_DATA(nlh);
 
 /* note : problem with IFLA_() macros : should be used for RTM_GETLINK,
 RTM_NEWLINK messages, which start with ifinfomsg.
 The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 */
-	OFP_DBG("* INTERFACE: ifa_family=%d ifa_prefixlen=%d ifa_flags=0x%x"
+	OFP_DBG("%s: ifa_family=%d ifa_prefixlen=%d ifa_flags=0x%x"
 		" ifa_scope=%d ifa_index=%d",
-		   if_entry->ifa_family, if_entry->ifa_prefixlen,
-		   if_entry->ifa_flags, if_entry->ifa_scope,
-		   if_entry->ifa_index);
+		rtm_msgtype_to_string(nlh->nlmsg_type),
+		if_entry->ifa_family, if_entry->ifa_prefixlen,
+		if_entry->ifa_flags, if_entry->ifa_scope,
+		if_entry->ifa_index);
 
 	rtap = (struct rtattr *) IFA_RTA(if_entry);
 	rtl = IFA_PAYLOAD(nlh);
@@ -301,18 +321,10 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 		switch (rtap->rta_type) {
 		case IFA_LABEL:
 			name = RTA_DATA(rtap);
-			OFP_DBG("Interface name = %s", name);
 			break;
 
 		case IFA_ADDRESS:
 			addr = RTA_DATA(rtap);
-			if (if_entry->ifa_family == AF_INET) {
-				OFP_DBG("Addr = %s",
-					ofp_print_ip_addr(*(uint32_t *)addr));
-			} else if (if_entry->ifa_family == AF_INET6) {
-				OFP_DBG("IP6 Addr = %s",
-					ofp_print_ip6_addr(addr));
-			}
 			break;
 
 		case IFA_LOCAL:
@@ -321,38 +333,34 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 				   IFA_LOCAL is local address,
 				   IFA_ADDR is destination address */
 				laddr = RTA_DATA(rtap);
-				OFP_DBG("Local addr = %s",
-					  ofp_print_ip_addr(
-						  *(uint32_t *)laddr));
 			}
 			break;
 
 		case IFA_BROADCAST:
 			/* addr = bcast = RTA_DATA(rtap); */
 			bcast = RTA_DATA(rtap);
-			OFP_DBG("Bcast = %s",
-				  ofp_print_ip_addr(*(uint32_t *)bcast));
 			break;
 
 		default:
+			OFP_DBG("Unhandled rta_type=%d", rtap->rta_type);
 			break;
 		}
 	}
 
 	if (!addr) {
-		OFP_ERR("Address not received!");
+		OFP_ERR("IFA_ADDRESS not present");
 		return -1;
 	}
 
 	dev = ofp_get_ifnet_by_linux_ifindex(if_entry->ifa_index);
 	if (!dev) {
-		OFP_ERR("Interface not found!");
+		OFP_ERR("Interface index %d not found", if_entry->ifa_index);
 		return -1;
 	}
 
 	if (dev->port == GRE_PORTS && if_entry->ifa_family == AF_INET) {
 		if (!laddr) {
-			OFP_ERR("Local address not received for GRE IF!");
+			OFP_ERR("IFA_LOCAL not present for GRE interface");
 			return -1;
 		}
 	}
@@ -360,10 +368,17 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 	if (!name)
 		name = ofp_port_vlan_to_ifnet_name(dev->port, dev->vlan);
 
-	OFP_DBG("%s addr to ifx --> %s OIF %d name %s",
-		nlh->nlmsg_type == RTM_NEWADDR ? "Adding" : "Deleting",
-		ofp_print_ip_addr(*(uint32_t *)laddr),
-		if_entry->ifa_index, name);
+	if (nlh->nlmsg_type == RTM_NEWADDR || nlh->nlmsg_type == RTM_DELADDR) {
+		OFP_DBG("%s %s local=%s bcast=%s to '%s'",
+			nlh->nlmsg_type == RTM_NEWADDR ? "Adding" : "Deleting",
+			(if_entry->ifa_family == AF_INET) ?
+				ofp_print_ip_addr(*(uint32_t *)addr) :
+				(if_entry->ifa_family == AF_INET6) ?
+					ofp_print_ip6_addr(addr) : "???",
+			(laddr) ? ofp_print_ip_addr(*(uint32_t *)laddr) : "(none)",
+			(bcast) ? ofp_print_ip_addr(*(uint32_t *)bcast) : "(none)",
+			name);
+	}
 
 	if (nlh->nlmsg_type == RTM_DELADDR)
 		return del_ipv4v6_addr(if_entry, dev, addr, laddr);
