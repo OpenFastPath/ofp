@@ -53,4 +53,6 @@ union ofp_sockaddr_store {
 #endif /* INET6 */
 };
 
+int ofp_getsum(const odp_packet_t pkt, unsigned int off, unsigned int len);
+
 #endif /* __OFPI_IN_H__ */

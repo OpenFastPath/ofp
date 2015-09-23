@@ -32,6 +32,7 @@ ofp_init.c \
 ofp_inet.c \
 ofp_in_pcb.c \
 ofp_in_proto.c \
+ofp_in_cksum.c \
 ofp_ip_init.c \
 ofp_portconf.c \
 ofp_route.c \

@@ -300,5 +300,6 @@ struct ofp_ip6_mtuinfo {
 	uint32_t ip6m_mtu;
 };
 
+int ofp_in6_cksum(odp_packet_t, u_int8_t, u_int32_t, u_int32_t);
 
 #endif /* __OFP_IN6_H__ */

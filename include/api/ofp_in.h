@@ -388,4 +388,8 @@ struct ofp_sockaddr_in {
 
 char	*ofp_inet_ntoa(struct ofp_in_addr); /* implement */
 
+uint16_t ofp_in_cksum(register uint16_t *addr, register int len);
+int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
+int ofp_in4_cksum(const odp_packet_t pkt);
+
 #endif /* __OFP_IN_H__*/

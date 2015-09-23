@@ -39,7 +39,6 @@ int ofp_in6_clearscope(struct ofp_in6_addr *);
 
 struct ofp_ip6_hdr;
 int ofp_in6_cksum_pseudo(struct ofp_ip6_hdr *, uint32_t, uint8_t, uint16_t);
-int ofp_in6_cksum (odp_packet_t, u_int8_t, u_int32_t, u_int32_t);
 int ofp_ip6_cksum(odp_packet_t, uint32_t, uint8_t, uint16_t);
 
 #endif /* __OFPI_IN6_H__ */

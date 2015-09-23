@@ -67,10 +67,6 @@ static inline char *print_flags(uint32_t f, int or) {
 #define t_flags_and(_f, _v) do { _f &= _v;				\
 		/*OFP_LOG("t_flags AND %s 0x%x\n", print_flags(_v, 0), (uint32_t)_v);*/ } while (0)
 
-uint16_t ofp_in_cksum(register uint16_t *addr, register int len);
-int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
-int ofp_getsum(const odp_packet_t pkt, unsigned int off, unsigned int len);
-int ofp_in4_cksum(const odp_packet_t pkt);
 void ofp_print_hex(uint8_t log_level,
 	unsigned char *data, int len);
 void ofp_generate_coredump(void);
