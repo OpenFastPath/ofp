@@ -1054,8 +1054,9 @@ send:
 		 */
 		odp_packet_set_csum_flags(m, CSUM_TCP_IPV6);
 		th->th_sum = 0;
-		th->th_sum = ofp_ip6_cksum(m, sizeof(struct ofp_tcphdr) +
-		    optlen + len, OFP_IPPROTO_TCP, 0);
+		th->th_sum = ofp_in6_cksum(m, OFP_IPPROTO_TCP,
+			odp_packet_l4_offset(m),
+			sizeof(struct ofp_tcphdr) + optlen + len);
 	}
 	else
 #endif

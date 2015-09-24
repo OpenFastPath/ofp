@@ -483,8 +483,9 @@ ofp_tcp_twrespond(struct tcptw *tw, int flags)
 	if (isipv6) {
 		odp_packet_set_csum_flags(m, CSUM_TCP_IPV6);
 		th->th_sum = 0;
-		th->th_sum = ofp_ip6_cksum(m,
-		    sizeof(struct ofp_tcphdr) + optlen, OFP_IPPROTO_TCP, 0);
+		th->th_sum = ofp_in6_cksum(m, OFP_IPPROTO_TCP,
+			sizeof(struct ofp_ip6_hdr),
+			sizeof(struct ofp_tcphdr) + optlen);
 		ip6->ofp_ip6_hlim = V_ip6_defhlim;/*in6_selecthlim(inp, NULL);*/
 		ip6->ofp_ip6_plen = odp_cpu_to_be_16(odp_packet_len(m) -
 			sizeof (struct ofp_ip6_hdr));

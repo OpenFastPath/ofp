@@ -1280,7 +1280,9 @@ syncache_respond(struct syncache *sc)
 	if (sc->sc_inc.inc_flags & INC_ISIPV6) {
 		odp_packet_set_csum_flags(m, CSUM_TCP_IPV6);
 		th->th_sum = 0;
-		th->th_sum = ofp_ip6_cksum(m, tlen + optlen - hlen, OFP_IPPROTO_TCP, 0);
+		th->th_sum = ofp_in6_cksum(m, OFP_IPPROTO_TCP,
+			sizeof(struct ofp_ip6_hdr),
+			tlen + optlen - hlen);
 		ip6->ofp_ip6_hlim = V_ip6_defhlim; /*in6_selecthlim(NULL, NULL);*/
 		error = ofp_ip6_output(m, NULL);
 	}

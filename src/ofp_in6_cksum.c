@@ -161,24 +161,3 @@ int ofp_in6_cksum(odp_packet_t m, uint8_t nxt, uint32_t off, uint32_t len)
 	REDUCE;
 	return (~sum & 0xffff);
 }
-int ofp_ip6_cksum(odp_packet_t m, uint32_t len, uint8_t nxt, uint16_t csum)
-{
-	int sum;
-	int tmp;
-	union {
-		uint16_t s[2];
-		uint32_t l;
-	} l_util;
-	struct ofp_ip6_hdr *ip6 = odp_packet_l3_ptr(m, NULL);
-
-/*Pseudo header*/
-	sum  = _ofp_in6_cksum_pseudo(ip6, len, nxt, csum);
-
-/* Payload*/
-	tmp = ofp_getsum(m, odp_packet_l3_offset(m) +
-			sizeof(struct ofp_ip6_hdr), len);
-	sum += tmp;
-
-	REDUCE;
-	return (~sum & 0xffff);
-}

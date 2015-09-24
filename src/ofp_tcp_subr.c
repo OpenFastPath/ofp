@@ -580,8 +580,9 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 	if (isipv6) {
 		odp_packet_set_csum_flags(m, CSUM_TCP_IPV6);
 		nth->th_sum = 0;
-		nth->th_sum = ofp_ip6_cksum(m,
-		    tlen - sizeof(struct ofp_ip6_hdr), OFP_IPPROTO_TCP, 0);
+		nth->th_sum = ofp_in6_cksum(m, OFP_IPPROTO_TCP,
+			sizeof(struct ofp_ip6_hdr),
+			tlen - sizeof(struct ofp_ip6_hdr));
 		ip6->ofp_ip6_hlim = V_ip6_defhlim; /*in6_selecthlim(tp != NULL ? tp->t_inpcb :
 		    NULL, NULL);*/
 	}

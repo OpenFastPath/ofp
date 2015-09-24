@@ -248,7 +248,7 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 		goto badunlocked;
 	}
 
-	uh_sum = ofp_ip6_cksum(pkt, ulen, OFP_IPPROTO_UDP, 0);
+	uh_sum = ofp_in6_cksum(pkt, OFP_IPPROTO_UDP, off, ulen);
 	if (uh_sum != 0) {
 		UDPSTAT_INC(udps_badsum);
 		goto badunlocked;
@@ -825,8 +825,9 @@ udp6_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr6,
 		else
 			udp6->uh_ulen = 0;
 		udp6->uh_sum = 0;
-
-		udp6->uh_sum = (uint16_t)ofp_ip6_cksum(m, plen, OFP_IPPROTO_UDP, 0);
+		udp6->uh_sum = (uint16_t)ofp_in6_cksum(m, OFP_IPPROTO_UDP,
+			sizeof(struct ofp_ip6_hdr),
+			plen);
 		UDPSTAT_INC(udps_opackets);
 #if 0
 		error = ip6_output(m, optp, NULL, flags, inp->in6p_moptions,
