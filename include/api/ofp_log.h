@@ -70,7 +70,7 @@
 	} while (0)
 
 enum ofp_log_level_s {
-	OFP_LOG_ABORT = 1,
+	OFP_LOG_ABORT = 0,
 	OFP_LOG_ERROR,
 	OFP_LOG_WARNING,
 	OFP_LOG_INFO,
