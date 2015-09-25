@@ -94,6 +94,7 @@ AC_CONFIG_FILES([
 	example/udpecho/Makefile
 	example/ioctl_test/Makefile
 	example/sysctl/Makefile
+	example/multicast/Makefile
 	test/Makefile
 	test/cunit/Makefile
 	])
