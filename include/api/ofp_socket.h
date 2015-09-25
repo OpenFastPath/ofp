@@ -160,7 +160,8 @@ struct accept_filter_arg {
 #define	OFP_AF_UNIX	1		/* standardized name for OFP_AF_LOCAL */
 #define	OFP_AF_INET	2		/* internetwork: UDP, TCP, etc. */
 #define	OFP_AF_INET6	3		/* IPv6 */
-#define	OFP_AF_MAX	4
+#define	OFP_AF_LINK	4		/* Link layer interface */
+#define	OFP_AF_MAX	5
 
 /*
  * Structure used by kernel to store most
