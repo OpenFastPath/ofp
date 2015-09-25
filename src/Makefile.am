@@ -61,7 +61,9 @@ ofp_util.c \
 ofp_reass.c \
 ofp_sys_socket.c \
 ofp_in.c \
-ofp_sysctl.c
+ofp_sysctl.c \
+ofp_igmp.c \
+ofp_in_mcast.c
 
 if OFP_USE_LIBCK
 AM_CFLAGS +=  -DOFP_USE_LIBCK
