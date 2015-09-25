@@ -44,6 +44,7 @@
 #include "odp.h"
 
 #include "ofpi_errno.h"
+#include "ofpi_tree.h"
 #include "ofpi_in.h"
 #include "ofpi_ip.h"
 #include "ofpi_ip6.h"
@@ -64,12 +65,15 @@
 #include "ofpi_protosw.h"
 #include "ofpi_ethernet.h"
 #include "ofpi_ioctl.h"
+#include "ofpi_in_var.h"
 
 #include "ofpi_pkt_processing.h"
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
 #include "ofpi_hook.h"
 #include "ofpi_util.h"
+
+extern odp_pool_t ofp_packet_pool;
 
 #define UDPSTAT_INC(x)
 #define log(...)
@@ -226,6 +230,23 @@ udp_append(struct inpcb *inp, struct ofp_ip *ip, odp_packet_t n, int off,
 	}
 }
 
+/*
+ * Return 1 if the address might be a local broadcast address.
+ */
+static int
+ofp_in_broadcast(struct ofp_in_addr in, struct ofp_ifnet *ifp)
+{
+	if (in.s_addr == OFP_INADDR_BROADCAST ||
+	    in.s_addr == OFP_INADDR_ANY)
+		return 1;
+
+	/* HJo FIX:
+	 * Look if address is bcast addr of an interface.
+	 */
+	(void)ifp;
+	return 0;
+}
+
 int
 ofp_udp_input(odp_packet_t m, int off)
 {
@@ -357,11 +378,10 @@ ofp_udp_input(odp_packet_t m, int off)
 		UDPSTAT_INC(udps_nosum);
 	}
 
-#if 0
 	if (OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr)) ||
-	    in_broadcast(ip->ip_dst, ifp)) {
+	    ofp_in_broadcast(ip->ip_dst, ifp)) {
 		struct inpcb *last;
-		struct ip_moptions *imo;
+		struct ofp_ip_moptions *imo;
 
 		INP_INFO_RLOCK(&ofp_udbinfo);
 		last = NULL;
@@ -391,13 +411,12 @@ ofp_udp_input(odp_packet_t m, int off)
 			 * inpcb lock is held.
 			 */
 
-#if 0
 			/*
 			 * Handle socket delivery policy for any-source
 			 * and source-specific multicast. [RFC3678]
 			 */
 			imo = inp->inp_moptions;
-			if (IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr))) {
+			if (OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr))) {
 				struct ofp_sockaddr_in	 group;
 				int			 blocked;
 				if (imo == NULL) {
@@ -412,27 +431,25 @@ ofp_udp_input(odp_packet_t m, int off)
 				blocked = imo_multi_filter(imo, ifp,
 					(struct ofp_sockaddr *)&group,
 					(struct ofp_sockaddr *)&udp_in);
-				if (blocked != MCAST_PASS) {
-					if (blocked == MCAST_NOTGMEMBER)
+				if (blocked != OFP_MCAST_PASS) {
+					if (blocked == OFP_MCAST_NOTGMEMBER)
 						IPSTAT_INC(ips_notmember);
-					if (blocked == MCAST_NOTSMEMBER ||
-					    blocked == MCAST_MUTED)
+					if (blocked == OFP_MCAST_NOTSMEMBER ||
+					    blocked == OFP_MCAST_MUTED) {
 						UDPSTAT_INC(udps_filtermcast);
+					}
 					INP_RUNLOCK(inp);
 					continue;
 				}
 			}
-#endif
 
-#if 0
 			if (last != NULL) {
 				odp_packet_t n;
 
-				n = m_copy(m, 0, M_COPYALL);
+				n = odp_packet_copy(m, ofp_packet_pool);
 				udp_append(last, ip, n, iphlen, &udp_in);
 				INP_RUNLOCK(last);
 			}
-#endif
 			last = inp;
 			/*
 			 * Don't look for additional matches if this one does
@@ -462,9 +479,8 @@ ofp_udp_input(odp_packet_t m, int off)
 		udp_append(last, ip, m, iphlen, &udp_in);
 		INP_RUNLOCK(last);
 		INP_INFO_RUNLOCK(&ofp_udbinfo);
-		return;
+		return OFP_PKT_PROCESSED;
 	} /* Multicast */
-#endif
 
 	/*
 	 * Locate pcb for datagram.
@@ -747,26 +763,28 @@ ofp_udp_ctloutput(struct socket *so, struct sockopt *sopt)
 	int error = 0;
 	(void)so;
 	(void)sopt;
-#if 0
-	int optval;
+	//int optval;
 	struct inpcb *inp;
 
 	inp = sotoinpcb(so);
 	KASSERT(inp != NULL, ("%s: inp == NULL", __func__));
 	INP_WLOCK(inp);
 	if (sopt->sopt_level != OFP_IPPROTO_UDP) {
+#if 0
 		if (INP_CHECK_SOCKAF(so, OFP_AF_INET6)) {
 			INP_WUNLOCK(inp);
-			error = ip6_ctloutput(so, sopt);
+			error = ofp_ip6_ctloutput(so, sopt);
 		}
 		else
+#endif
 		{
 			INP_WUNLOCK(inp);
-			error = ip_ctloutput(so, sopt);
+			error = ofp_ip_ctloutput(so, sopt);
 		}
 		return (error);
 	}
 
+#if 0
 	switch (sopt->sopt_dir) {
 	case SOPT_SET:
 		switch (sopt->sopt_name) {

@@ -113,7 +113,6 @@ void *default_event_dispatcher(void *arg)
 	return NULL;
 }
 
-
 enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 {
 	uint16_t vlan = 0;
@@ -147,6 +146,7 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 	}
 
 	odp_packet_user_ptr_set(pkt, ofp_get_ifnet(ifnet->port, vlan));
+	OFP_DBG("ETH TYPE = %x\n", odp_be_to_cpu_16(eth->ether_type));
 
 	/* network layer classifier */
 	switch (odp_be_to_cpu_16(eth->ether_type)) {
@@ -177,6 +177,7 @@ ipv4_transport_classifier(odp_packet_t pkt, uint8_t ip_proto)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
+	OFP_DBG("ip_proto=%d pr_input=%p\n", ip_proto, ofp_inetsw[ofp_ip_protox[ip_proto]].pr_input);
 	return ofp_inetsw[ofp_ip_protox[ip_proto]].pr_input(pkt,
 		ip->ip_hl << 2);
 }
@@ -279,9 +280,10 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		ofp_print_ip_addr(dev->ip_addr),
 		ofp_print_ip_addr(ip->ip_dst.s_addr));
 
-	if (dev->ip_addr == ip->ip_dst.s_addr /*|| app_is_ip_local?*/) {
+	if (dev->ip_addr == ip->ip_dst.s_addr ||
+	    OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr))
+	    /*|| app_is_ip_local?*/) {
 		if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
-
 			OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
 
 			pkt = ofp_ip_reass(pkt);
@@ -294,12 +296,12 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		}
 
 		OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
+		OFP_DBG("OFP_HOOK returned %d\n", res);
 		if (res != OFP_PKT_CONTINUE)
 			return res;
 
 		return ipv4_transport_classifier(pkt, ip->ip_p);
 	}
-
 
 	OFP_HOOK(OFP_HOOK_FWD_IPv4, pkt, NULL, &res);
 	if (res != OFP_PKT_CONTINUE)
@@ -425,9 +427,13 @@ enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
 	return OFP_PKT_PROCESSED;
 }
 
+extern void print_ipv4(FILE *f, char *p);
+
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 	odp_packet_t pkt)
 {
+	OFP_DBG("\n");
+
 	if (odp_queue_enq(ofp_get_ifnet(dev->port, 0)->outq_def,
 			odp_packet_to_event(pkt))) {
 		OFP_DBG("odp_queue_enq failed");
@@ -905,8 +911,16 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	if (!vlan) {
 		struct ofp_ether_header *eth =
 				(struct ofp_ether_header *)l2_addr;
+		uint32_t addr = odp_be_to_cpu_32(ip->ip_dst.s_addr);
 
-		if (dev_out->ip_addr == ip->ip_dst.s_addr) {
+		if (OFP_IN_MULTICAST(addr)) {
+			eth->ether_dhost[0] = 0x01;
+			eth->ether_dhost[1] = 0x00;
+			eth->ether_dhost[2] = 0x5e;
+			eth->ether_dhost[3] = (addr >> 16) & 0x7f;
+			eth->ether_dhost[4] = (addr >> 8) & 0xff;
+			eth->ether_dhost[5] = addr & 0xff;
+		} else if (dev_out->ip_addr == ip->ip_dst.s_addr) {
 			is_local_address = 1;
 			ofp_copy_mac(eth->ether_dhost, &(dev_out->mac[0]));
 		} else if (ofp_get_mac(dev_out, gw, eth->ether_dhost) < 0) {
@@ -919,8 +933,16 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	} else {
 		struct ofp_ether_vlan_header *eth_vlan =
 			(struct ofp_ether_vlan_header *)l2_addr;
+		uint32_t addr = odp_be_to_cpu_32(ip->ip_dst.s_addr);
 
-		if (dev_out->ip_addr == ip->ip_dst.s_addr) {
+		if (OFP_IN_MULTICAST(addr)) {
+			eth_vlan->evl_dhost[0] = 0x01;
+			eth_vlan->evl_dhost[1] = 0x00;
+			eth_vlan->evl_dhost[2] = 0x5e;
+			eth_vlan->evl_dhost[3] = (addr >> 16) & 0x7f;
+			eth_vlan->evl_dhost[4] = (addr >> 8) & 0xff;
+			eth_vlan->evl_dhost[5] = addr & 0xff;
+		} else if (dev_out->ip_addr == ip->ip_dst.s_addr) {
 			is_local_address = 1;
 			ofp_copy_mac(eth_vlan->evl_dhost, dev_out->mac);
 		} else if (ofp_get_mac(dev_out,
@@ -952,11 +974,74 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	ip->ip_sum = 0;
 	ip->ip_sum = ofp_in_cksum((uint16_t *)ip, ip->ip_hl<<2);
 #endif
-
 	if (is_local_address)
 		return send_pkt_loop(dev_out, pkt);
 	else
 		return send_pkt_out(dev_out, pkt);
+}
+
+enum ofp_return_code  ofp_ip_output_opt(odp_packet_t pkt, odp_packet_t opt,
+	struct ofp_nh_entry *nh_param, int flags,
+	struct ofp_ip_moptions *imo, struct inpcb *inp)
+{
+	(void)flags;
+	(void)inp;
+	struct ofp_nh_entry nh;
+	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_data(pkt), ip0;
+	static uint16_t ip_newid = 0;
+
+	ip->ip_v = OFP_IPVERSION;
+	ip->ip_hl = sizeof(*ip) >> 2;
+	ip->ip_ttl = 255;
+	ip->ip_off = 0;
+	ip->ip_id = ip_newid++;
+
+	if (opt != ODP_PACKET_INVALID) {
+		struct ofp_ipoption *p = (struct ofp_ipoption *)odp_packet_data(opt);
+		int optlen = odp_packet_len(opt) - sizeof(p->ipopt_dst);
+
+		if (optlen + ip->ip_len <= OFP_IP_MAXPACKET) {
+			if (p->ipopt_dst.s_addr)
+				ip->ip_dst = p->ipopt_dst;
+
+			ip0 = *ip;
+			odp_packet_push_head(pkt, optlen);
+			ip = (struct ofp_ip *)odp_packet_data(pkt);
+			*ip = ip0;
+			memcpy(ip + 1, p->ipopt_list, optlen);
+			ip->ip_v = OFP_IPVERSION;
+			ip->ip_hl = (sizeof(struct ofp_ip) + optlen) >> 2;
+			ip->ip_len += optlen;
+		}
+	}
+
+	if (OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr))) {
+		if (imo != NULL) {
+			ip->ip_ttl = imo->imo_multicast_ttl;
+			if (imo->imo_multicast_vif != -1)
+				ip->ip_src.s_addr =
+					/* HJo ip_mcast_src ?
+					   ip_mcast_src(imo->imo_multicast_vif) :*/
+					OFP_INADDR_ANY;
+		} else
+			ip->ip_ttl = OFP_IP_DEFAULT_MULTICAST_TTL;
+
+		if (imo != NULL && imo->imo_multicast_ifp != NULL) {
+			nh.port = imo->imo_multicast_ifp->port;
+			nh.vlan = imo->imo_multicast_ifp->vlan;
+			nh.gw = ip->ip_dst.s_addr;
+			nh_param = &nh;
+			ip->ip_src.s_addr = imo->imo_multicast_ifp->ip_addr;
+		}
+
+	}
+
+	ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
+
+	odp_packet_l2_offset_set(pkt, 0);
+	odp_packet_l3_offset_set(pkt, 0);
+
+	return ofp_ip_output(pkt, nh_param);
 }
 
 #ifdef INET6

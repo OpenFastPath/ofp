@@ -37,6 +37,7 @@
 #include "ofpi_icmp.h"
 #include "ofpi_gre.h"
 #include "ofpi_udp.h"
+#include "ofpi_igmp_var.h"
 #include "ofpi_in_pcb.h"
 #include "ofpi_domain.h"
 #include "ofpi_protosw.h"
@@ -60,7 +61,7 @@ struct protosw ofp_inetsw[] = {
 #endif
 		.pr_input =		ofp_ip_input,
 		.pr_ctlinput =		NULL,
-		.pr_ctloutput =		NULL,
+		.pr_ctloutput =		ofp_ip_ctloutput,
 		.pr_usrreqs =		&nousrreqs
 	},
 	{
@@ -146,6 +147,18 @@ struct protosw ofp_inetsw[] = {
 		.pr_ctlinput =		NULL,
 		.pr_ctloutput =		NULL/*rip_ctloutput*/,
 		.pr_usrreqs =           &nousrreqs
+	},
+	{
+		.pr_type =		OFP_SOCK_RAW,
+		.pr_domain =		&ofp_inetdomain,
+		.pr_protocol =		OFP_IPPROTO_IGMP,
+		.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
+		.pr_input =		ofp_igmp_input,
+		.pr_init =              ofp_igmp_init,
+		.pr_ctloutput =		NULL /*rip_ctloutput*/,
+		.pr_fasttimo =		NULL /*igmp_fasttimo*/,
+		.pr_slowtimo =		NULL /*igmp_slowtimo*/,
+		.pr_usrreqs =		&nousrreqs /*rip_usrreqs*/
 	}
 };
 

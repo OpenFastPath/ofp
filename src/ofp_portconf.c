@@ -35,9 +35,9 @@ struct ofp_portconf_mem {
 	struct ofp_ifnet ofp_ifnet_data[NUM_PORTS];
 	int ofp_num_ports;
 
-	struct in_ifaddrhead in_ifaddrhead;
+	struct ofp_in_ifaddrhead in_ifaddrhead;
 #ifdef INET6
-	struct in_ifaddrhead in_ifaddr6head;
+	struct ofp_in_ifaddrhead in_ifaddr6head;
 #endif /* INET6 */
 
 #ifdef SP
@@ -123,6 +123,15 @@ void ofp_portconf_init_global(void)
 		/*TODO get if_mtu from Linux/SDK*/
 		shm->ofp_ifnet_data[i].if_mtu = 1500;
 		shm->ofp_ifnet_data[i].if_state = OFP_IFT_STATE_FREE;
+		/* Multicast related */
+		OFP_TAILQ_INIT(&shm->ofp_ifnet_data[i].if_multiaddrs);
+		shm->ofp_ifnet_data[i].if_flags |= OFP_IFF_MULTICAST;
+		shm->ofp_ifnet_data[i].if_afdata[OFP_AF_INET] =
+			&shm->ofp_ifnet_data[i].ii_inet;
+		/* TO DO:
+		   shm->ofp_ifnet_data[i].if_afdata[OFP_AF_INET6] =
+		   &shm->ofp_ifnet_data[i].ii_inet6;
+		*/
 	}
 
 	shm->ofp_num_ports = NUM_PORTS;
@@ -1067,7 +1076,7 @@ void ofp_portconf_term_global(void)
 	memset(ofp_ifnet_locks_shm, 0, sizeof(*ofp_ifnet_locks_shm));
 }
 
-struct in_ifaddrhead *ofp_get_ifaddrhead(void)
+struct ofp_in_ifaddrhead *ofp_get_ifaddrhead(void)
 {
 	return &shm->in_ifaddrhead;
 }
@@ -1149,7 +1158,7 @@ uint32_t ofp_port_get_ipv4_addr(int port, uint16_t vlan,
 }
 
 #ifdef INET6
-struct in_ifaddrhead *ofp_get_ifaddr6head(void)
+struct ofp_in_ifaddrhead *ofp_get_ifaddr6head(void)
 {
 	return &shm->in_ifaddr6head;
 }

@@ -39,6 +39,7 @@
 #include "ofpi_socket.h"
 #include "ofpi_reass.h"
 #include "ofpi_inet.h"
+#include "ofpi_igmp_var.h"
 
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
@@ -99,6 +100,8 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	return pool;
 }
 
+odp_pool_t ofp_packet_pool;
+
 int ofp_init_global(ofp_init_global_t *params)
 {
 	odp_pool_t pool;
@@ -118,7 +121,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
-	pool = ofp_init_pre_global("packet_pool", &pool_params, params->pkt_hook);
+	ofp_packet_pool = pool = ofp_init_pre_global("packet_pool", &pool_params, params->pkt_hook);
 
 	/* cpu mask for slow path threads */
 	odp_cpumask_zero(&cpumask);
@@ -256,6 +259,10 @@ int ofp_init_global(ofp_init_global_t *params)
 		}
 		OFP_INFO("Device '%s' addr %s", ifnet->if_name,
 			ofp_print_mac((uint8_t *)ifnet->mac));
+
+		/* Multicasting. */
+		struct ofp_in_ifinfo *ii = &ifnet->ii_inet;
+		ii->ii_igmp = ofp_igmp_domifattach(ifnet);
 
 #ifdef SP
 		/* Create the kernel representation of the FP interface. */

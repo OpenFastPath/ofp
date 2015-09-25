@@ -801,34 +801,19 @@ ofp_in_pcbconnect_setup(struct inpcb *inp, struct ofp_sockaddr *nam,
 		 * interface has been set as a multicast option, prefer the
 		 * address of that interface as our source address.
 		 */
-#if 0
 		/* HJo: Multicast is not supported. */
-		if (IN_MULTICAST(odp_be_to_cpu_32(faddr.s_addr)) &&
+		if (OFP_IN_MULTICAST(odp_be_to_cpu_32(faddr.s_addr)) &&
 		    inp->inp_moptions != NULL) {
-			struct ip_moptions *imo;
+			struct ofp_ip_moptions *imo;
 			struct ofp_ifnet *ifp;
 
 			imo = inp->inp_moptions;
 			if (imo->imo_multicast_ifp != NULL) {
 				ifp = imo->imo_multicast_ifp;
-				IN_IFADDR_RLOCK();
-				OFP_TAILQ_FOREACH(ia, ofp_get_ifaddrhead(), ia_link) {
-					if ((ia->ia_ifp == ifp) &&
-					    (cred == NULL ||
-					    prison_check_ip4(cred,
-					    &ia->ia_addr.sin_addr) == 0))
-						break;
-				}
-				if (ia == NULL)
-					error = OFP_EADDRNOTAVAIL;
-				else {
-					laddr = ia->ia_addr.sin_addr;
-					error = 0;
-				}
-				IN_IFADDR_RUNLOCK();
+				laddr.s_addr = ifp->ip_addr;
+				error = 0;
 			}
 		}
-#endif
 		if (error)
 			return (error);
 	}
