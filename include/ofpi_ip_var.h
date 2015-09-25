@@ -69,6 +69,16 @@ void	kmod_ipstat_dec(int statnum);
 /*
  * mbuf flag used by ip_fastfwd
  */
+#define	M_PROTO1	0x00000010 /* protocol-specific */
+#define	M_PROTO2	0x00000020 /* protocol-specific */
+#define	M_PROTO3	0x00000040 /* protocol-specific */
+#define	M_PROTO4	0x00000080 /* protocol-specific */
+#define	M_PROTO5	0x00000100 /* protocol-specific */
+#define	M_PROTO6	0x00080000 /* protocol-specific */
+#define	M_PROTO7	0x00100000 /* protocol-specific */
+#define	M_PROTO8	0x00200000 /* protocol-specific */
+#define	M_PROTOFLAGS \
+    (M_PROTO1|M_PROTO2|M_PROTO3|M_PROTO4|M_PROTO5|M_PROTO6|M_PROTO7|M_PROTO8)
 #define	M_FASTFWD_OURS		M_PROTO1	/* changed dst to local */
 
 #ifdef __NO_STRICT_ALIGNMENT
@@ -111,11 +121,11 @@ extern struct	pr_usrreqs rip_usrreqs;
 #define	V_ip_mrouter		VNET(ofp_ip_mrouter)
 #define	V_rsvp_on		VNET(ofp_rsvp_on)
 
-void	inp_freemoptions(struct ip_moptions *);
+void	inp_freemoptions(struct ofp_ip_moptions *);
 int	inp_getmoptions(struct inpcb *, struct sockopt *);
 int	inp_setmoptions(struct inpcb *, struct sockopt *);
 
-int	ip_ctloutput(struct socket *, struct sockopt *sopt);
+int	ofp_ip_ctloutput(struct socket *, struct sockopt *sopt);
 void	ip_drain(void);
 int	ip_fragment(struct ofp_ip *ip, odp_packet_t *m_frag, int mtu,
 	    uint64_t if_hwassist_flags, int sw_csum);
@@ -128,10 +138,10 @@ void	ofp_ip_destroy(void);
 int ofp_ip_input(odp_packet_t , int);
 
 extern int
-	(*ip_mforward)(struct ofp_ip *, struct ifnet *, odp_packet_t ,
-	    struct ip_moptions *);
+	(*ip_mforward)(struct ofp_ip *, struct ofp_ifnet *, odp_packet_t ,
+	    struct ofp_ip_moptions *);
 int	ip_output(odp_packet_t ,
-	    odp_packet_t , struct route *, int, struct ip_moptions *,
+	    odp_packet_t , struct route *, int, struct ofp_ip_moptions *,
 	    struct inpcb *);
 int	ipproto_register(short);
 int	ipproto_unregister(short);

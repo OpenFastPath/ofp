@@ -1994,6 +1994,10 @@ ofp_soreceive_dgram(struct socket *so, struct ofp_sockaddr **psa, struct uio *ui
 	SOCKBUF_UNLOCK(&so->so_rcv);
 
 	struct ofp_udphdr *uh = (struct ofp_udphdr *)odp_packet_l4_ptr(pkt, NULL);
+	if (!uh) {
+		OFP_ERR("UDP HDR == NULL!\n");
+		return 0;
+	}
 	uint8_t *data = (uint8_t *)(uh + 1);
 	len = odp_be_to_cpu_16(uh->uh_ulen) - sizeof(*uh);
 	if (len > uio->uio_iov->iov_len) {
@@ -2039,8 +2043,8 @@ ofp_soreceive(struct socket *so, struct ofp_sockaddr **psa, struct uio *uio,
 	return (error);
 }
 
-static int
-sooptcopyin(struct sockopt *sopt, void *buf, size_t len, size_t minlen)
+int
+ofp_sooptcopyin(struct sockopt *sopt, void *buf, size_t len, size_t minlen)
 {
 	size_t	valsize;
 
@@ -2059,6 +2063,7 @@ sooptcopyin(struct sockopt *sopt, void *buf, size_t len, size_t minlen)
 	return (0);
 }
 
+extern int ofp_ip_ctloutput(struct socket *so, struct sockopt *sopt);
 int
 ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 {
@@ -2081,7 +2086,7 @@ ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 			error = OFP_EOPNOTSUPP;
 			break;
 		case OFP_SO_LINGER:
-			error = sooptcopyin(sopt, &l, sizeof l, sizeof l);
+			error = ofp_sooptcopyin(sopt, &l, sizeof l, sizeof l);
 			if (error)
 				goto bad;
 
@@ -2107,7 +2112,7 @@ ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 		case OFP_SO_NOSIGPIPE:
 		case OFP_SO_NO_DDP:
 		case OFP_SO_NO_OFFLOAD:
-			error = sooptcopyin(sopt, &optval, sizeof optval,
+			error = ofp_sooptcopyin(sopt, &optval, sizeof optval,
 					    sizeof optval);
 			if (error)
 				goto bad;
@@ -2120,7 +2125,7 @@ ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 			break;
 
 		case OFP_SO_SETFIB:
-			error = sooptcopyin(sopt, &optval, sizeof optval,
+			error = ofp_sooptcopyin(sopt, &optval, sizeof optval,
 					    sizeof optval);
 			if (optval < 0 || optval >= 4096 /* HJo rt_numfibs*/) {
 				error = OFP_EINVAL;
@@ -2142,7 +2147,7 @@ ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 			break;
 
 		case OFP_SO_USER_COOKIE:
-			error = sooptcopyin(sopt, &val32, sizeof val32,
+			error = ofp_sooptcopyin(sopt, &val32, sizeof val32,
 					    sizeof val32);
 			if (error)
 				goto bad;
@@ -2162,7 +2167,7 @@ ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 		case OFP_SO_RCVBUF:
 		case OFP_SO_SNDLOWAT:
 		case OFP_SO_RCVLOWAT:
-			error = sooptcopyin(sopt, &optval, sizeof optval,
+			error = ofp_sooptcopyin(sopt, &optval, sizeof optval,
 					    sizeof optval);
 			if (error)
 				goto bad;
@@ -2212,7 +2217,7 @@ ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 
 		case OFP_SO_SNDTIMEO:
 		case OFP_SO_RCVTIMEO:
-			error = sooptcopyin(sopt, &tv, sizeof tv,
+			error = ofp_sooptcopyin(sopt, &tv, sizeof tv,
 					    sizeof tv);
 			if (error)
 				goto bad;
@@ -2259,8 +2264,8 @@ bad:
 	return (error);
 }
 
-static int
-sooptcopyout(struct sockopt *sopt, const void *buf, size_t len)
+int
+ofp_sooptcopyout(struct sockopt *sopt, const void *buf, size_t len)
 {
 	int	error;
 	size_t	valsize;
@@ -2307,7 +2312,7 @@ ofp_sogetopt(struct socket *so, struct sockopt *sopt)
 			l.l_onoff = so->so_options & OFP_SO_LINGER;
 			l.l_linger = so->so_linger;
 			OFP_SOCK_UNLOCK(so);
-			error = sooptcopyout(sopt, &l, sizeof l);
+			error = ofp_sooptcopyout(sopt, &l, sizeof l);
 			break;
 
 		case OFP_SO_USELOOPBACK:
@@ -2324,7 +2329,7 @@ ofp_sogetopt(struct socket *so, struct sockopt *sopt)
 		case OFP_SO_NOSIGPIPE:
 			optval = so->so_options & sopt->sopt_name;
 integer:
-			error = sooptcopyout(sopt, &optval, sizeof optval);
+			error = ofp_sooptcopyout(sopt, &optval, sizeof optval);
 			break;
 
 		case OFP_SO_TYPE:
@@ -2369,7 +2374,7 @@ integer:
 
 			tv.tv_sec = optval / hz;
 			tv.tv_usec = (optval % hz) * tick;
-			error = sooptcopyout(sopt, &tv, sizeof tv);
+			error = ofp_sooptcopyout(sopt, &tv, sizeof tv);
 			break;
 
 		case OFP_SO_LABEL:

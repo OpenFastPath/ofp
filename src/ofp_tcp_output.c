@@ -711,7 +711,7 @@ send:
 #endif
 	if (tp->t_inpcb->inp_options != ODP_PACKET_INVALID)
 		ipoptlen = odp_packet_len(tp->t_inpcb->inp_options) -
-			offsetof(struct ipoption, ipopt_list);
+			offsetof(struct ofp_ipoption, ipopt_list);
 	else
 		ipoptlen = 0;
 #ifdef IPSEC

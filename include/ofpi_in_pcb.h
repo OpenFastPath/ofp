@@ -328,7 +328,7 @@ struct inpcb {
 	struct {
 		uint8_t	inp4_ip_tos;		/* (i) type of service proto */
 		odp_packet_t inp4_options;	/* (i) IP options */
-		struct	ip_moptions *inp4_moptions; /* (i) IP mcast options */
+		struct	ofp_ip_moptions *inp4_moptions; /* (i) IP mcast options */
 	} inp_depend4;
 	struct {
 		/* (i) IP options */
@@ -657,7 +657,7 @@ void	in_pcbgroup_remove(struct inpcb *);
 void	in_pcbgroup_update(struct inpcb *);
 void	in_pcbgroup_update_mbuf(struct inpcb *, odp_packet_t );
 
-void	in_pcbpurgeif0(struct inpcbinfo *, struct ifnet *);
+void	in_pcbpurgeif0(struct inpcbinfo *, struct ofp_ifnet *);
 int	ofp_in_pcballoc(struct socket *, struct inpcbinfo *);
 int	ofp_in_pcbbind(struct inpcb *, struct ofp_sockaddr *, struct ofp_ucred *);
 int	ofp_in_pcb_lport(struct inpcb *, struct ofp_in_addr *, uint16_t *,
