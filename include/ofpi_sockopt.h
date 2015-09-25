@@ -52,6 +52,8 @@ struct	sockopt {
 #endif
 };
 
+int	ofp_sooptcopyin(struct sockopt *sopt, void *buf, size_t len, size_t minlen);
+int	ofp_sooptcopyout(struct sockopt *sopt, const void *buf, size_t len);
 int	ofp_sosetopt(struct socket *so, struct sockopt *sopt);
 int	ofp_sogetopt(struct socket *so, struct sockopt *sopt);
 int	sogetopt(struct socket *so, struct sockopt *sopt);

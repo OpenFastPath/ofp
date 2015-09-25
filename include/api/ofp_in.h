@@ -41,6 +41,24 @@
 
 #include "ofp_socket_types.h"
 
+/*
+ * Argument structures for Protocol-Independent Multicast Source
+ * Filter APIs. [RFC3678]
+ */
+#define	_SS_MAXSIZE	128U
+#define	_SS_ALIGNSIZE	(sizeof(__int64_t))
+#define	_SS_PAD1SIZE	(_SS_ALIGNSIZE - sizeof(unsigned char) - \
+			    sizeof(ofp_sa_family_t))
+#define	_SS_PAD2SIZE	(_SS_MAXSIZE - sizeof(unsigned char) - \
+			    sizeof(ofp_sa_family_t) - _SS_PAD1SIZE - _SS_ALIGNSIZE)
+struct ofp_sockaddr_storage_2 {
+	unsigned char	ss_len;		/* address length */
+	ofp_sa_family_t	ss_family;	/* address family */
+	char		__ss_pad1[_SS_PAD1SIZE];
+	__int64_t	__ss_align;	/* force desired struct alignment */
+	char		__ss_pad2[_SS_PAD2SIZE];
+};
+
 /* Protocols common to RFC 1700, POSIX, and X/Open. */
 #define OFP_IPPROTO_IP		0		/* dummy for IP */
 #define OFP_IPPROTO_ICMP		1		/* control message protocol */
@@ -227,7 +245,7 @@ struct ofp_sockaddr_in {
  * The default range is IPPORT_HIFIRSTAUTO through
  * IPPORT_HILASTAUTO, although that is settable by sysctl.
  *
- * A user may set the IPPROTO_IP option IP_PORTRANGE to change this
+ * A user may set the OFP_IPPROTO_IP option IP_PORTRANGE to change this
  * default assignment range.
  *
  * The value IP_PORTRANGE_DEFAULT causes the default behavior.
@@ -366,7 +384,7 @@ struct ofp_sockaddr_in {
 #define	OFP_IP_RECVDSTADDR		7    /* bool; receive IP dst addr w/dgram */
 #define	OFP_IP_SENDSRCADDR		OFP_IP_RECVDSTADDR /* cmsg_type to set src addr */
 #define	OFP_IP_RETOPTS		8    /* ip_opts; set/get IP options */
-#define	OFP_IP_MULTICAST_IF		9    /* struct ofp_in_addr *or* struct ip_mreqn;
+#define	OFP_IP_MULTICAST_IF		9    /* struct ofp_in_addr *or* struct ofp_ip_mreqn;
 				      * set/get IP multicast i/f  */
 #define	OFP_IP_MULTICAST_TTL	10   /* uint8_t; set/get IP multicast ttl */
 #define	OFP_IP_MULTICAST_LOOP	11   /* uint8_t; set/get IP multicast loopback */
@@ -386,7 +404,142 @@ struct ofp_sockaddr_in {
 #define	OFP_IP_ONESBCAST		23   /* bool: send all-ones broadcast */
 #define	OFP_IP_BINDANY		24   /* bool: allow bind to any address */
 
+/*
+ * Options for controlling the firewall and dummynet.
+ * Historical options (from 40 to 64) will eventually be
+ * replaced by only two options, IP_FW3 and IP_DUMMYNET3.
+ */
+#define	OFP_IP_FW_TABLE_ADD		40   /* add entry */
+#define	OFP_IP_FW_TABLE_DEL		41   /* delete entry */
+#define	OFP_IP_FW_TABLE_FLUSH	42   /* flush table */
+#define	OFP_IP_FW_TABLE_GETSIZE	43   /* get table size */
+#define	OFP_IP_FW_TABLE_LIST	44   /* list table contents */
+
+#define	OFP_IP_FW3			48   /* generic ipfw v.3 sockopts */
+#define	OFP_IP_DUMMYNET3		49   /* generic dummynet v.3 sockopts */
+
+#define	OFP_IP_FW_ADD		50   /* add a firewall rule to chain */
+#define	OFP_IP_FW_DEL		51   /* delete a firewall rule from chain */
+#define	OFP_IP_FW_FLUSH		52   /* flush firewall rule chain */
+#define	OFP_IP_FW_ZERO		53   /* clear single/all firewall counter(s) */
+#define	OFP_IP_FW_GET		54   /* get entire firewall rule chain */
+#define	OFP_IP_FW_RESETLOG		55   /* reset logging counters */
+
+#define OFP_IP_FW_NAT_CFG           56   /* add/config a nat rule */
+#define OFP_IP_FW_NAT_DEL           57   /* delete a nat rule */
+#define OFP_IP_FW_NAT_GET_CONFIG    58   /* get configuration of a nat rule */
+#define OFP_IP_FW_NAT_GET_LOG       59   /* get log of a nat rule */
+
+#define	OFP_IP_DUMMYNET_CONFIGURE	60   /* add/configure a dummynet pipe */
+#define	OFP_IP_DUMMYNET_DEL		61   /* delete a dummynet pipe from chain */
+#define	OFP_IP_DUMMYNET_FLUSH	62   /* flush dummynet */
+#define	OFP_IP_DUMMYNET_GET		64   /* get entire dummynet pipes */
+
+#define	OFP_IP_RECVTTL		65   /* bool; receive IP TTL w/dgram */
+#define	OFP_IP_MINTTL		66   /* minimum TTL for packet or drop */
+#define	OFP_IP_DONTFRAG		67   /* don't fragment packet */
+#define	OFP_IP_RECVTOS		68   /* bool; receive IP TOS w/dgram */
+
+/* IPv4 Source Filter Multicast API [RFC3678] */
+#define	OFP_IP_ADD_SOURCE_MEMBERSHIP	70   /* join a source-specific group */
+#define	OFP_IP_DROP_SOURCE_MEMBERSHIP	71   /* drop a single source */
+#define	OFP_IP_BLOCK_SOURCE			72   /* block a source */
+#define	OFP_IP_UNBLOCK_SOURCE		73   /* unblock a source */
+
+/* The following option is private; do not use it from user applications. */
+#define	OFP_IP_MSFILTER			74   /* set/get filter list */
+
+/* Protocol Independent Multicast API [RFC3678] */
+#define	OFP_MCAST_JOIN_GROUP		80   /* join an any-source group */
+#define	OFP_MCAST_LEAVE_GROUP		81   /* leave all sources for group */
+#define	OFP_MCAST_JOIN_SOURCE_GROUP		82   /* join a source-specific group */
+#define	OFP_MCAST_LEAVE_SOURCE_GROUP	83   /* leave a single source */
+#define	OFP_MCAST_BLOCK_SOURCE		84   /* block a source */
+#define	OFP_MCAST_UNBLOCK_SOURCE		85   /* unblock a source */
+
+/* Promiscuous INET SYN filter API */
+#define OFP_IP_SYNFILTER			90   /* syn_filter_optarg; attach/detach/query SYN filter */
+#define OFP_IP_SYNFILTER_RESULT		91   /* syn_filter_cbarg; deliver deferred filter result */
+
+/*
+ * Defaults and limits for options
+ */
+#define	OFP_IP_DEFAULT_MULTICAST_TTL  1	/* normally limit m'casts to 1 hop  */
+#define	OFP_IP_DEFAULT_MULTICAST_LOOP 1	/* normally hear sends if a member  */
+
+/*
+ * The imo_membership vector for each socket is now dynamically allocated at
+ * run-time, bounded by USHRT_MAX, and is reallocated when needed, sized
+ * according to a power-of-two increment.
+ */
+#define	OFP_IP_MIN_MEMBERSHIPS	31
+#define	OFP_IP_MAX_MEMBERSHIPS	4095
+#define	OFP_IP_MAX_SOURCE_FILTER	1024	/* XXX to be unused */
+
+/*
+ * Default resource limits for IPv4 multicast source filtering.
+ * These may be modified by sysctl.
+ */
+#define	OFP_IP_MAX_GROUP_SRC_FILTER		512	/* sources per group */
+#define	OFP_IP_MAX_SOCK_SRC_FILTER		128	/* sources per socket/group */
+#define	OFP_IP_MAX_SOCK_MUTE_FILTER		128	/* XXX no longer used */
+
+/*
+ * Argument structure for IP_ADD_MEMBERSHIP and IP_DROP_MEMBERSHIP.
+ */
+struct ofp_ip_mreq {
+	struct	ofp_in_addr imr_multiaddr;	/* IP multicast address of group */
+	struct	ofp_in_addr imr_interface;	/* local IP address of interface */
+};
+
+/*
+ * Modified argument structure for IP_MULTICAST_IF, obtained from Linux.
+ * This is used to specify an interface index for multicast sends, as
+ * the IPv4 legacy APIs do not support this (unless IP_SENDIF is available).
+ */
+struct ofp_ip_mreqn {
+	struct	ofp_in_addr imr_multiaddr;	/* IP multicast address of group */
+	struct	ofp_in_addr imr_address;	/* local IP address of interface */
+	int		imr_ifindex;	/* Interface index; cast to uint32_t */
+};
+
+/*
+ * Argument structure for IPv4 Multicast Source Filter APIs. [RFC3678]
+ */
+struct ofp_ip_mreq_source {
+	struct	ofp_in_addr imr_multiaddr;	/* IP multicast address of group */
+	struct	ofp_in_addr imr_sourceaddr;	/* IP address of source */
+	struct	ofp_in_addr imr_interface;	/* local IP address of interface */
+};
+
+/*
+ * Argument structures for Protocol-Independent Multicast Source
+ * Filter APIs. [RFC3678]
+ */
+struct ofp_group_req {
+	uint32_t		gr_interface;	/* interface index */
+	struct ofp_sockaddr_storage_2	gr_group;	/* group address */
+};
+
+struct ofp_group_source_req {
+	uint32_t		gsr_interface;	/* interface index */
+	struct ofp_sockaddr_storage_2	gsr_group;	/* group address */
+	struct ofp_sockaddr_storage_2	gsr_source;	/* source address */
+};
+
+/*
+ * Filter modes; also used to represent per-socket filter mode internally.
+ */
+#define	OFP_MCAST_UNDEFINED	0	/* fmode: not yet defined */
+#define	OFP_MCAST_INCLUDE	1	/* fmode: include these source(s) */
+#define	OFP_MCAST_EXCLUDE	2	/* fmode: exclude these source(s) */
+
+
 char	*ofp_inet_ntoa(struct ofp_in_addr); /* implement */
+
+#define	ofp_in_hosteq(s, t)	((s).s_addr == (t).s_addr)
+#define	ofp_in_nullhost(x)	((x).s_addr == OFP_INADDR_ANY)
+#define	ofp_in_allhosts(x)	((x).s_addr == odp_cpu_to_be_32(OFP_INADDR_ALLHOSTS_GROUP))
 
 uint16_t ofp_in_cksum(register uint16_t *addr, register int len);
 int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);

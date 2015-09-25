@@ -53,6 +53,22 @@ union ofp_sockaddr_store {
 #endif /* INET6 */
 };
 
+/*
+ * The following structure is private; do not use it from user applications.
+ * It is used to communicate IP_MSFILTER/IPV6_MSFILTER information between
+ * the RFC 3678 libc functions and the kernel.
+ */
+struct __msfilterreq {
+	uint32_t		 msfr_ifindex;	/* interface index */
+	uint32_t		 msfr_fmode;	/* filter mode for group */
+	uint32_t		 msfr_nsrcs;	/* # of sources in msfr_srcs */
+	struct ofp_sockaddr_storage_2	 msfr_group;	/* group address */
+	struct ofp_sockaddr_storage_2	*msfr_srcs;	/* pointer to the first member
+						 * of a contiguous array of
+						 * sources to filter in full.
+						 */
+};
+
 int ofp_getsum(const odp_packet_t pkt, unsigned int off, unsigned int len);
 
 #endif /* __OFPI_IN_H__ */

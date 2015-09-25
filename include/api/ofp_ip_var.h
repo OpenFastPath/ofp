@@ -53,7 +53,7 @@ struct ipovly {
  */
 #define MAX_IPOPTLEN	40
 
-struct ipoption {
+struct ofp_ipoption {
 	struct ofp_in_addr ipopt_dst;	/* first-hop dst if source routed */
 	char	ipopt_list[MAX_IPOPTLEN];	/* options proper */
 };
@@ -63,16 +63,17 @@ struct ipoption {
  * passed to ip_output when IP multicast options are in use.
  * This structure is lazy-allocated.
  */
-struct ip_moptions {
-	struct	ifnet *imo_multicast_ifp; /* ifp for outgoing multicasts */
+struct ofp_ifnet;
+struct ofp_ip_moptions {
+	struct ofp_ifnet *imo_multicast_ifp; /* ifp for outgoing multicasts */
 	struct ofp_in_addr imo_multicast_addr; /* ifindex/addr on MULTICAST_IF */
-	uint64_t	imo_multicast_vif;	/* vif num outgoing multicasts */
+	int64_t	imo_multicast_vif;	/* vif num outgoing multicasts */
 	uint8_t	imo_multicast_ttl;	/* TTL for outgoing multicasts */
 	uint8_t	imo_multicast_loop;	/* 1 => hear sends if a member */
 	uint16_t	imo_num_memberships;	/* no. memberships this socket */
 	uint16_t	imo_max_memberships;	/* max memberships this socket */
-	struct	in_multi **imo_membership;	/* group memberships */
-	struct	in_mfilter *imo_mfilters;	/* source filters */
+	struct ofp_in_multi **imo_membership;	/* group memberships */
+	struct ofp_in_mfilter *imo_mfilters;	/* source filters */
 };
 
 struct	ofp_ipstat {
@@ -106,5 +107,7 @@ struct	ofp_ipstat {
 	uint64_t	ips_nogif;		/* no match gif found */
 	uint64_t	ips_badaddr;		/* invalid address on header */
 };
+
+extern struct socket *ofp_ip_mrouter;	/* multicast routing daemon */
 
 #endif /* !_OFP_IP_VAR_H_ */
