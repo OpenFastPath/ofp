@@ -13,6 +13,8 @@
 
 #define MAX_WORKERS		32
 
+
+
 /**
  * Parsed command line application arguments
  */
@@ -24,20 +26,28 @@ typedef struct {
 	int perf_stat;
 } appl_args_t;
 
-/* helper funcs */
-static void parse_args(int argc, char *argv[], appl_args_t *appl_args);
+/**
+ * helper funcs
+ */
+static int parse_args(int argc, char *argv[], appl_args_t *appl_args);
 static void print_info(char *progname, appl_args_t *appl_args);
 static void usage(char *progname);
-static void start_performance(int core_id);
+static int start_performance(int core_id);
 
-ofp_init_global_t app_init_params; /**< global OFP init parms */
+ /**
+  * global OFP init parms
+  */
+ofp_init_global_t app_init_params;
 
-/** Get rid of path in filename - only for unix-type paths using '/' */
+/**
+ * Get rid of path in filename - only for unix-type paths using '/'
+ */
 #define NO_PATH(file_name) (strrchr((file_name), '/') ? \
 				strrchr((file_name), '/') + 1 : (file_name))
 
 
-/** local hook
+/**
+ * local hook
  *
  * @param pkt odp_packet_t
  * @param protocol int
@@ -52,7 +62,15 @@ static enum ofp_return_code fastpath_local_hook(odp_packet_t pkt, void *arg)
 	return OFP_PKT_CONTINUE;
 }
 
-/** main() Application entry point
+/**
+ * main() Application entry point
+ *
+ * This is the main function of the FPM application, it's a minimalistic
+ * example, see 'usage' function for available arguments and usage.
+ *
+ * Using the number of available cores as input, this example sets up
+ * ODP dispatcher threads executing OFP VLAN processesing and starts
+ * a CLI function on a managment core.
  *
  * @param argc int
  * @param argv[] char*
@@ -63,22 +81,46 @@ int main(int argc, char *argv[])
 {
 	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
-	int core_count, num_workers;
+	int core_count, num_workers, ret_val;
+	int exit_val = EXIT_SUCCESS;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
 
 	/* Parse and store the application arguments */
-	parse_args(argc, argv, &params);
+	if (parse_args(argc, argv, &params) != EXIT_SUCCESS)
+	  return EXIT_FAILURE;
 
 	/* Print both system and application information */
 	print_info(NO_PATH(argv[0]), &params);
 
+	/*
+	 * Before any ODP API functions can be called, we must first init the ODP
+	 * globals, e.g. availale accelerators or software implementations for
+	 * shared memory, threads, pool, qeueus, sheduler, pktio, timer, crypto
+	 * and classification.
+	 */
 	if (odp_init_global(NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
-		exit(EXIT_FAILURE);
+		exit_val = EXIT_FAILURE;
+		goto exit_fpm_main;
 	}
-	odp_init_local(ODP_THREAD_CONTROL);
 
+	/*
+	 * When the gloabel ODP level init has been done, we can now issue a
+	 * local init per thread. This must also be done before any other ODP API
+	 * calls may be made. Local inits are made here for shared memory,
+	 * threads, pktio and scheduler.
+	 */
+	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		exit_val = EXIT_FAILURE;
+		goto exit_fpm_main;
+	}
+
+	/*
+	 * Get the number of cores available to ODP, one run-to-completion thread
+	 * will be created per core.
+	 */
 	core_count = odp_cpu_count();
 	num_workers = core_count;
 
@@ -88,8 +130,9 @@ int main(int argc, char *argv[])
 		num_workers = MAX_WORKERS;
 
 	/*
-	 * By default core #0 runs Linux kernel background tasks.
-	 * Start mapping thread from core #1
+	 * This example assumes that core #0 runs Linux kernel background tasks.
+	 * By default, cores #1 and beyond will be populated with a OFP
+	 * processing thread each.
 	 */
 	memset(&app_init_params, 0, sizeof(app_init_params));
 
@@ -98,8 +141,17 @@ int main(int argc, char *argv[])
 	if (core_count > 1)
 		num_workers--;
 
+	/*
+	 * Initializes cpumask with CPUs available for worker threads.
+	 * Sets up to 'num' CPUs and returns the count actually set.
+	 * Use zero for all available CPUs.
+	 */
 	num_workers = odp_cpumask_def_worker(&cpumask, num_workers);
-	odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr));
+	if (odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr)) < 0) {
+		OFP_ERR("Error: Too small buffer provided to " \
+			"odp_cpumask_to_str\n");
+		goto exit_fpm_main;
+	}
 
 	printf("Num worker threads: %i\n", num_workers);
 	printf("first CPU:          %i\n", odp_cpumask_first(&cpumask));
@@ -108,26 +160,77 @@ int main(int argc, char *argv[])
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
 	app_init_params.pkt_hook[OFP_HOOK_LOCAL] = fastpath_local_hook;
-	ofp_init_global(&app_init_params);
 
+	/*
+	 * Now that ODP has been initalized, we can initialize OFP. This will
+	 * open a pktio instance for each interface supplied as argument by the
+	 * user.
+	 *
+	 * General configuration will be to pktio and schedluer queues here in
+	 * addition will fast path interface configuration.
+	 */
+	if (ofp_init_global(&app_init_params) != 0) {
+		exit_val = EXIT_FAILURE;
+		goto exit_fpm_main;
+	}
+
+	/*
+	 * Create and launch dataplane dispatcher worker threads to be placed
+	 * according to the cpumask, thread_tbl will be populated with the
+	 * created pthread IDs.
+	 *
+	 * In this case, all threads will run the default_event_dispatcher
+	 * function with ofp_eth_vlan_processing as argument.
+	 *
+	 * If different dispatchers should run, or the same be run with differnt
+	 * input arguments, the cpumask is used to control this.
+	 */
 	memset(thread_tbl, 0, sizeof(thread_tbl));
-	/* Start dataplane dispatcher worker threads */
-	odph_linux_pthread_create(thread_tbl,
-				  &cpumask,
-				  default_event_dispatcher,
-				  ofp_eth_vlan_processing);
+	ret_val = odph_linux_pthread_create(thread_tbl,
+					    &cpumask,
+					    default_event_dispatcher,
+					    ofp_eth_vlan_processing);
+	if (ret_val != num_workers) {
+		OFP_ERR("Error: Failed to create worker threads, " \
+			"expected %d, got %d\n",
+			num_workers, ret_val);
+		exit_val = EXIT_FAILURE;
+		goto exit_fpm_main;
+	}
 
-	/* other app code here.*/
-	/* Start CLI */
+	/*
+	 * Now when the ODP dispatcher threads are running, further applications
+	 * can be launched, in this case, we will start the OFP CLI thread on
+	 * the management core, i.e. not competing for cpu cycles with the
+	 * worker threads
+	 */
 	ofp_start_cli_thread(app_init_params.linux_core_id, params.conf_file);
 
-	if (params.perf_stat)
-		start_performance(app_init_params.linux_core_id);
+	/*
+	 * If we choose to check performance, a performance monitoring client
+	 * will be started on the management core. Once every second it will
+	 * read the statistics from the workers from a shared memory region.
+	 * Using this has negligible performance impact (<<0.01%).
+	 */
+	if (params.perf_stat) {
+		if (start_performance(app_init_params.linux_core_id) <= 0) {
+			OFP_ERR("Error: Failed to init performance monitor\n");
+			goto exit_fpm_main;
+		}
+	}
 
+	/*
+	 * Wait here until all worker threads have terminated, then free up all
+	 * resources allocated by odp_init_global().
+	 */
 	odph_linux_pthread_join(thread_tbl, num_workers);
-	printf("End Main()\n");
+ exit_fpm_main:
+	if (odp_term_global() != 0)
+		exit_val = EXIT_FAILURE;
 
-	return 0;
+	printf("FPM End Main()\n");
+
+	return exit_val;
 }
 
 /**
@@ -137,7 +240,7 @@ int main(int argc, char *argv[])
  * @param argv[]     argument vector
  * @param appl_args  Store application arguments here
  */
-static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
+static int parse_args(int argc, char *argv[], appl_args_t *appl_args)
 {
 	int opt;
 	int long_index;
@@ -172,14 +275,14 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 			len = strlen(optarg);
 			if (len == 0) {
 				usage(argv[0]);
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 			len += 1;	/* add room for '\0' */
 
 			names = malloc(len);
 			if (names == NULL) {
 				usage(argv[0]);
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 
 			/* count the number of tokens separated by ',' */
@@ -193,7 +296,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 
 			if (appl_args->if_count == 0) {
 				usage(argv[0]);
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 
 			/* allocate storage for the if names */
@@ -212,7 +315,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 
 		case 'h':
 			usage(argv[0]);
-			exit(EXIT_SUCCESS);
+			return EXIT_FAILURE;
 			break;
 
 		case 'p':
@@ -223,14 +326,14 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 			len = strlen(optarg);
 			if (len == 0) {
 				usage(argv[0]);
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 			len += 1;	/* add room for '\0' */
 
 			appl_args->conf_file = malloc(len);
 			if (appl_args->conf_file == NULL) {
 				usage(argv[0]);
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 
 			strcpy(appl_args->conf_file, optarg);
@@ -243,10 +346,12 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 
 	if (appl_args->if_count == 0) {
 		usage(argv[0]);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	optind = 1;		/* reset 'extern optind' from the getopt lib */
+
+	return EXIT_SUCCESS;
 }
 
 /**
@@ -320,7 +425,7 @@ static void *perf_client(void *arg)
 	return NULL;
 }
 
-static void start_performance(int core_id)
+static int start_performance(int core_id)
 {
 	odph_linux_pthread_t cli_linux_pthread;
 	odp_cpumask_t cpumask;
@@ -328,9 +433,9 @@ static void start_performance(int core_id)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
-	odph_linux_pthread_create(&cli_linux_pthread,
-				  &cpumask,
-				  perf_client,
-				  NULL);
+	return odph_linux_pthread_create(&cli_linux_pthread,
+					 &cpumask,
+					 perf_client,
+					 NULL);
 
 }
