@@ -1289,7 +1289,7 @@ syncache_respond(struct syncache *sc)
 	{
 		ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
 		ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
-		ip->ip_sum = ofp_in_cksum((uint16_t *)ip, sizeof(*ip));
+		ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, sizeof(*ip));
 		th->th_sum = 0;
 		/* th->th_sum = ofp_in4_cksum(m); output calculates csum */
 

@@ -132,15 +132,15 @@ create_odp_packet_ip4(odp_packet_t *opkt, uint8_t *pkt_data, int plen)
  * Testcases
  */
 static void
-test_ofp_ofp_in_cksum__ip4_addr(void)
+test_ofp_cksum_buffer__ip4_addr(void)
 {
-	uint16_t res = ofp_in_cksum((uint16_t *)&ipaddr, sizeof(ipaddr));
+	uint16_t res = ofp_cksum_buffer((uint16_t *)&ipaddr, sizeof(ipaddr));
 
 	CU_ASSERT_EQUAL(res, 0xF234);
 }
 
 static void
-test_ofp_in_cksum_odd_len_icmp(void)
+test_ofp_cksum_buffer_odd_len_icmp(void)
 {
 	odp_packet_t pkt;
 	struct ofp_ip *ip;
@@ -157,7 +157,7 @@ test_ofp_in_cksum_odd_len_icmp(void)
 	icmp = (struct ofp_icmp *)((uint8_t *)ip + ip_hl);
 	icmp->icmp_cksum = 0;
 
-	res = ofp_in_cksum((uint16_t *)icmp,
+	res = ofp_cksum_buffer((uint16_t *)icmp,
 			     odp_be_to_cpu_16(ip->ip_len) - ip_hl);
 
 	CU_ASSERT_EQUAL(res, 0x84F7);
@@ -280,11 +280,12 @@ main(void)
 		return CU_get_error();
 	}
 	if (NULL == CU_ADD_TEST(ptr_suite,
-				test_ofp_ofp_in_cksum__ip4_addr)) {
+				test_ofp_cksum_buffer__ip4_addr)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
-	if (NULL == CU_ADD_TEST(ptr_suite, test_ofp_in_cksum_odd_len_icmp)) {
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_ofp_cksum_buffer_odd_len_icmp)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}

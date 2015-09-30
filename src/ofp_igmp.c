@@ -108,7 +108,7 @@ static int	igmp_input_v2_report(struct ofp_ifnet *, /*const*/ struct ofp_ip *,
 		    /*const*/ struct igmp *);
 static void	igmp_intr(odp_packet_t );
 static int	igmp_isgroupreported(const struct ofp_in_addr);
-static odp_packet_t 
+static odp_packet_t
 		igmp_ra_alloc(void);
 static const char *igmp_rec_type_to_str(const int);
 static void	igmp_set_version(struct ofp_igmp_ifinfo *, const int);
@@ -119,7 +119,7 @@ static void	igmp_v1v2_process_querier_timers(struct ofp_igmp_ifinfo *);
 static void	igmp_v2_update_group(struct ofp_in_multi *, const int);
 static void	igmp_v3_cancel_link_timers(struct ofp_igmp_ifinfo *);
 static void	igmp_v3_dispatch_general_query(struct ofp_igmp_ifinfo *);
-static odp_packet_t 
+static odp_packet_t
 		igmp_v3_encap_report(struct ofp_ifnet *, odp_packet_t );
 static int	igmp_v3_enqueue_group_record(struct ofp_ifqueue *,
 		    struct ofp_in_multi *, const int, const int, const int);
@@ -616,7 +616,7 @@ igmp_isgroupreported(const struct ofp_in_addr addr)
 /*
  * Construct a Router Alert option to use in outgoing packets.
  */
-static odp_packet_t 
+static odp_packet_t
 igmp_ra_alloc(void)
 {
 	odp_packet_t m;
@@ -992,7 +992,7 @@ out_locked:
  * We may be updating the group for the first time since we switched
  * to IGMPv3. If we are, then we must clear any recorded source lists,
  * and transition to REPORTING state; the group timer is overloaded
- * for group and group-source query responses. 
+ * for group and group-source query responses.
  *
  * Unlike IGMPv3, the delay per group should be jittered
  * to avoid bursts of IGMPv2 reports.
@@ -1547,7 +1547,7 @@ ofp_igmp_input(odp_packet_t m, int off)
 	/*
 	 * Validate checksum.
 	 */
-	if (ofp_in_cksum((uint16_t *)igmp, igmplen)) {
+	if (ofp_cksum_buffer((uint16_t *)igmp, igmplen)) {
 		IGMPSTAT_INC(igps_rcv_badsum);
 		return OFP_PKT_DROP;
 	}
@@ -2267,7 +2267,8 @@ igmp_v1v2_queue_report(struct ofp_in_multi *inm, const int type)
 	igmp->igmp_code = 0;
 	igmp->igmp_group = inm->inm_addr;
 	igmp->igmp_cksum = 0;
-	igmp->igmp_cksum = ofp_in_cksum((uint16_t *)igmp, sizeof(struct igmp));
+	igmp->igmp_cksum = ofp_cksum_buffer((uint16_t *)igmp,
+			sizeof(struct igmp));
 
 	ip->ip_tos = 0;
 	ip->ip_len = sizeof(struct ofp_ip) + sizeof(struct igmp);
@@ -3527,7 +3528,8 @@ igmp_v3_encap_report(struct ofp_ifnet *ifp, odp_packet_t m)
 	igmp->ir_rsv2 = 0;
 	igmp->ir_numgrps = odp_cpu_to_be_16(PKT2HDR(m)->vt_nrecs);
 	igmp->ir_cksum = 0;
-	igmp->ir_cksum = ofp_in_cksum((uint16_t *)igmp, sizeof(struct igmp_report) + igmpreclen);
+	igmp->ir_cksum = ofp_cksum_buffer((uint16_t *)igmp,
+			sizeof(struct igmp_report) + igmpreclen);
 	PKT2HDR(m)->vt_nrecs = 0;
 
 	ip->ip_tos = IPTOS_PREC_INTERNETCONTROL;

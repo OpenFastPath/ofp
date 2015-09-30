@@ -241,7 +241,7 @@ create_odp_packet_ip4(odp_packet_t *opkt, uint8_t *pkt_data, int plen,
 		iphdr->ip_dst.s_addr = dst_addr;
 		iphdr->ip_sum = 0;
 		iphdr->ip_sum =
-			ofp_in_cksum((uint16_t *)iphdr, iphdr->ip_hl<<2);
+			ofp_cksum_buffer((uint16_t *)iphdr, iphdr->ip_hl<<2);
 	}
 	/* END OF changes to the default packet */
 

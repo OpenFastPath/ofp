@@ -12,7 +12,7 @@
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 
-uint16_t ofp_in_cksum(register uint16_t *addr, register int len)
+uint16_t ofp_cksum_buffer(register uint16_t *addr, register int len)
 {
 	register int nleft = len;
 	register uint16_t *w = addr;
@@ -75,7 +75,7 @@ static int __ofp_cksum(const odp_packet_t pkt, unsigned int off,
 			cksum_len = len;
 
 		cksum_data = (uint8_t *)odp_packet_seg_data(pkt, seg) + off;
-		tmp = ~ofp_in_cksum((uint16_t *)cksum_data, cksum_len);
+		tmp = ~ofp_cksum_buffer((uint16_t *)cksum_data, cksum_len);
 
 		/* swap bytes on odd boundary */
 		if (done % 2)

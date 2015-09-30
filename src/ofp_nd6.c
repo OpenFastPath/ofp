@@ -132,7 +132,7 @@ enum ofp_return_code ofp_nd6_ns_output(struct ofp_ifnet *dev,
 	memcpy(&icmp->ofp_icmp6_data8[22], dev->mac, 6);
 
 	icmp->icmp6_cksum =
-		ofp_in_cksum((uint16_t *)&ip6hdr->ofp_ip6_plen, 68);
+		ofp_cksum_buffer((uint16_t *)&ip6hdr->ofp_ip6_plen, 68);
 
 	ip6hdr->ofp_ip6_nxt = OFP_IPPROTO_ICMPV6;
 	ip6hdr->ofp_ip6_hlim = 255;
@@ -260,7 +260,7 @@ enum ofp_return_code ofp_nd6_na_output(struct ofp_ifnet *dev,
 	memcpy(&icmp->ofp_icmp6_data8[22], dev->mac, 6);
 
 	icmp->icmp6_cksum =
-		ofp_in_cksum((uint16_t *)&ip6hdr->ofp_ip6_plen, 68);
+		ofp_cksum_buffer((uint16_t *)&ip6hdr->ofp_ip6_plen, 68);
 
 	ip6hdr->ofp_ip6_nxt = OFP_IPPROTO_ICMPV6;
 	ip6hdr->ofp_ip6_hlim = 255;

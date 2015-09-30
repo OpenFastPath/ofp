@@ -209,7 +209,7 @@ enum ofp_return_code ofp_udp4_processing(odp_packet_t pkt)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	if (odp_unlikely(ofp_in_cksum((uint16_t *) ip, ip->ip_hl<<2)))
+	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
@@ -231,7 +231,7 @@ enum ofp_return_code ofp_tcp4_processing(odp_packet_t pkt)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	if (odp_unlikely(ofp_in_cksum((uint16_t *) ip, ip->ip_hl<<2)))
+	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
@@ -268,7 +268,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(ip->ip_v != 4))
 		return OFP_PKT_DROP;
-	if (odp_unlikely(ofp_in_cksum((uint16_t *) ip, ip->ip_hl<<2)))
+	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
 
 	/* TODO: handle broadcast */
@@ -378,7 +378,7 @@ enum ofp_return_code ofp_gre_processing(odp_packet_t pkt)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	if (odp_unlikely(ofp_in_cksum((uint16_t *) ip, ip->ip_hl<<2)))
+	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
@@ -740,7 +740,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 		ip_new->ip_off = odp_cpu_to_be_16(frag_new);
 
 		ip_new->ip_sum = 0;
-		ip_new->ip_sum = ofp_in_cksum((uint16_t *)ip_new,
+		ip_new->ip_sum = ofp_cksum_buffer((uint16_t *)ip_new,
 					       sizeof(*ip_new));
 
 		if (is_local_address)
@@ -972,7 +972,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 
 #ifndef OFP_PERFORMANCE
 	ip->ip_sum = 0;
-	ip->ip_sum = ofp_in_cksum((uint16_t *)ip, ip->ip_hl<<2);
+	ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2);
 #endif
 	if (is_local_address)
 		return send_pkt_loop(dev_out, pkt);

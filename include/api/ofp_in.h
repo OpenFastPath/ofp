@@ -541,7 +541,7 @@ char	*ofp_inet_ntoa(struct ofp_in_addr); /* implement */
 #define	ofp_in_nullhost(x)	((x).s_addr == OFP_INADDR_ANY)
 #define	ofp_in_allhosts(x)	((x).s_addr == odp_cpu_to_be_32(OFP_INADDR_ALLHOSTS_GROUP))
 
-uint16_t ofp_in_cksum(register uint16_t *addr, register int len);
+uint16_t ofp_cksum_buffer(register uint16_t *addr, register int len);
 int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
 int ofp_in4_cksum(const odp_packet_t pkt);
 
