@@ -103,7 +103,6 @@ static inline void *entry_alloc(void)
 	if (entry)
 		OFP_SLIST_REMOVE_HEAD(&shm->arp.free_entries, next);
 
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 
 	return entry;
@@ -116,7 +115,6 @@ static inline void entry_free(struct arp_entry *entry)
 
 	odp_rwlock_write_lock(&shm->arp.fr_ent_rwlock);
 	OFP_SLIST_INSERT_HEAD(&shm->arp.free_entries, entry, next);
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 }
 
@@ -205,7 +203,6 @@ static inline void *pkt_entry_alloc(void)
 	if (pktentry)
 		OFP_SLIST_REMOVE_HEAD(&shm->pkt.free_entries, next);
 
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
 
 	return pktentry;
@@ -217,7 +214,6 @@ static inline void pkt_entry_free(struct pkt_entry *pktentry)
 
 	odp_rwlock_write_lock(&shm->pkt.fr_ent_rwlock);
 	OFP_SLIST_INSERT_HEAD(&shm->pkt.free_entries, pktentry, next);
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
 }
 
@@ -258,7 +254,6 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 		new->pkt_tmo = ODP_TIMER_INVALID;
 	}
 
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
 
 	/* Send queued packets */
@@ -302,7 +297,6 @@ int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev)
 		remove_entry(set, entry);
 		ret = 0;
 	}
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
 
 	return ret;
@@ -420,7 +414,6 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 
 	newarp = insert_new_entry(set, &key);
 	if (newarp == NULL) {
-		odp_sync_stores();
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
 		OFP_ERR("ARP entry alloc failed, %" PRIX64 " to %s",
 			  odp_packet_to_u64(pkt),
@@ -436,7 +429,6 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 			  ofp_print_ip_addr(ipv4_addr));
 		if (OFP_SLIST_FIRST(&newarp->pkt_list_head) == NULL)
 			remove_entry(set, newarp);
-		odp_sync_stores();
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
 		return OFP_PKT_DROP;
 	}
@@ -454,7 +446,6 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 
 	OFP_SLIST_INSERT_HEAD(&newarp->pkt_list_head, newpkt, next);
 
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
 
 	return OFP_PKT_PROCESSED;
@@ -580,7 +571,7 @@ void ofp_arp_init_tables(void)
 
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[i]);
-	odp_sync_stores();
+
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
 }

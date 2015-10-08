@@ -114,7 +114,6 @@ static inline void *pkt6_entry_alloc(void)
 	if (pktentry)
 		OFP_SLIST_REMOVE_HEAD(&shm->pkt6.free_entries, next);
 
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->pkt6.fr_ent_rwlock);
 
 	return pktentry;
@@ -126,7 +125,6 @@ static inline void pkt6_entry_free(struct pkt6_entry *pktentry)
 
 	odp_rwlock_write_lock(&shm->pkt6.fr_ent_rwlock);
 	OFP_SLIST_INSERT_HEAD(&shm->pkt6.free_entries, pktentry, next);
-	odp_sync_stores();
 	odp_rwlock_write_unlock(&shm->pkt6.fr_ent_rwlock);
 }
 
