@@ -68,9 +68,8 @@ uint64_t ofp_sb_max_adj =
 
 static uint64_t sb_efficiency = 8;	/* parameter for ofp_sbreserve() */
 
-int packet_accepted_as_event_rlocked(struct sockbuf *sb, odp_packet_t pkt)
+int packet_accepted_as_event(struct socket *so_rcv_sock, odp_packet_t pkt)
 {
-	struct socket *so_rcv_sock = sb->sb_socket;
 	struct ofp_sigevent *ev = &so_rcv_sock->so_sigevent;
 	struct ofp_sock_sigval ss_temp, *ss;
 	union ofp_sigval sv;
@@ -94,7 +93,7 @@ int packet_accepted_as_event_rlocked(struct sockbuf *sb, odp_packet_t pkt)
 	return 0;
 }
 
-static int packet_accepted_as_event(struct sockbuf *sb, odp_packet_t pkt)
+static int packet_accepted_as_event_locked(struct sockbuf *sb, odp_packet_t pkt)
 {
 	struct socket *so = sb->sb_socket;
 	if (!so)
@@ -121,8 +120,8 @@ static int packet_accepted_as_event(struct sockbuf *sb, odp_packet_t pkt)
 int ofp_sockbuf_put_last(struct sockbuf *sb, odp_packet_t pkt)
 {
 	/* Offer to event function */
-	if (packet_accepted_as_event(sb, pkt))
-	    return 0;
+	if (packet_accepted_as_event_locked(sb, pkt))
+		return 0;
 
 	int next = sb->sb_put + 1;
 	if (next >= SOCKBUF_LEN)

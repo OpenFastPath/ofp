@@ -207,16 +207,12 @@ udp_append(struct inpcb *inp, struct ofp_ip *ip, odp_packet_t n, int off,
 
 	so = inp->inp_socket;
 
-	SOCKBUF_RLOCK(&so->so_rcv);
 	/* save sender data where L2 & L3 headers used to be */
 	memcpy(odp_packet_l2_ptr(n, NULL), append_sa, append_sa->sa_len);
 
 	/* Offer to event function */
-	if (packet_accepted_as_event_rlocked(&so->so_rcv, n)) {
-		SOCKBUF_RUNLOCK(&so->so_rcv);
+	if (packet_accepted_as_event(so, n))
 		return;
-	}
-	SOCKBUF_RUNLOCK(&so->so_rcv);
 
 	SOCKBUF_LOCK(&so->so_rcv);
 	if (ofp_sbappendaddr_locked(&so->so_rcv, n, opts) == 0) {

@@ -166,16 +166,12 @@ udp6_append(struct inpcb *inp, odp_packet_t pkt, int off,
 
 	so = inp->inp_socket;
 
-	SOCKBUF_RLOCK(&so->so_rcv);
 	/* save sender data where L2 & L3 headers used to be */
 	memcpy(odp_packet_l2_ptr(pkt, NULL), fromsa, ((struct ofp_sockaddr *)fromsa)->sa_len);
 
 	/* Offer to event function */
-	if (packet_accepted_as_event_rlocked(&so->so_rcv, pkt)) {
-		SOCKBUF_RUNLOCK(&so->so_rcv);
+	if (packet_accepted_as_event(so, pkt))
 		return;
-	}
-	SOCKBUF_RUNLOCK(&so->so_rcv);
 
 	SOCKBUF_LOCK(&so->so_rcv);
 	if (ofp_sbappendaddr_locked(&so->so_rcv, pkt, opts) == 0) {

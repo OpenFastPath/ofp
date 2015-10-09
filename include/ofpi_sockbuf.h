@@ -153,7 +153,7 @@ struct	sockbuf {
 //#define	SOCKBUF_LOCK_Y(_sb)		ofp_rec_wlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)
 //#define	SOCKBUF_UNLOCK_Y(_sb)		ofp_rec_wunlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)
 
-int	packet_accepted_as_event_rlocked(struct sockbuf *sb, odp_packet_t pkt);
+int	packet_accepted_as_event(struct socket *so, odp_packet_t pkt);
 void	sbappend(struct sockbuf *sb, odp_packet_t m);
 void	sbappend_locked(struct sockbuf *sb, odp_packet_t m);
 void	ofp_sbappendstream(struct sockbuf *sb, odp_packet_t m);
