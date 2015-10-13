@@ -10,7 +10,7 @@ It includes basically everything needed to run an application.
 
 SOCKET
 -------------------------------------------------------------------------------
-
+OFP application that demonstrates the use of all socket operations available.
 
 udpecho
 -------------------------------------------------------------------------------
@@ -20,6 +20,11 @@ optional methods:
 1. standard socket interface, or
 2. reusing the same packet and sending it using a packet send function.
 
+udp_fwd_sock
+------------------------------------------------------------------------------
+UDP forwarding application for performance measurement using socket callback.
+Application parameters configure the local ip, remote ip and the number of
+local sockets opened for forwarding. More information available on the OpenFastPath performance measurement procedures.
 
 webserver
 -------------------------------------------------------------------------------
