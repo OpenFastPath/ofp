@@ -414,7 +414,7 @@ static void *perf_client(void *arg)
 	odp_init_local(ODP_THREAD_CONTROL);
 	ofp_init_local();
 
-	ofp_start_perf_stat();
+	ofp_set_stat_flags(OFP_STAT_COMPUTE_PERF);
 
 	while (1) {
 		struct ofp_perf_stat *ps = ofp_get_perf_statistics();

@@ -35,10 +35,9 @@ struct ofp_perf_stat *ofp_get_perf_statistics(void);
 
 /* Stats: configure*/
 #define OFP_STAT_COMPUTE_LATENCY 1
+#define OFP_STAT_COMPUTE_PERF 2
 
 void ofp_set_stat_flags(unsigned long int flags);
 unsigned long int ofp_get_stat_flags(void);
-
-void ofp_start_perf_stat(void);
 
 #endif /* __OFP_STAT_H__ */

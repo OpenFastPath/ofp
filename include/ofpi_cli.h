@@ -79,6 +79,7 @@ void f_add_alias_command(const char *name);
 
 void f_stat_show(struct cli_conn *conn, const char *s);
 void f_stat_set(struct cli_conn *conn, const char *s);
+void f_stat_perf(struct cli_conn *conn, const char *s);
 void f_stat_clear(struct cli_conn *conn, const char *s);
 void f_help_stat(struct cli_conn *conn, const char *s);
 

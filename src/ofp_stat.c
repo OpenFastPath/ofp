@@ -49,7 +49,8 @@ static void ofp_perf_tmo(void *arg)
 	int core;
 	(void)arg;
 
-	ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
+	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF)
+		ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
 
 	odp_sync_stores();
 	for (core = 0; core < odp_cpu_count(); core++)
@@ -67,7 +68,7 @@ static void ofp_perf_tmo(void *arg)
 	shm_stat->ofp_perf_stat.rx_prev_sum = value;
 }
 
-void ofp_start_perf_stat(void)
+static void ofp_start_perf_stat(void)
 {
 	ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
 }
@@ -110,7 +111,13 @@ void ofp_stat_term_global(void)
 
 void ofp_set_stat_flags(unsigned long int flags)
 {
+	unsigned long int old_flags = ofp_stat_flags;
+
 	ofp_stat_flags = flags;
+
+	if ((!(old_flags & OFP_STAT_COMPUTE_PERF)) &&
+		ofp_stat_flags & OFP_STAT_COMPUTE_PERF)
+		ofp_start_perf_stat();
 }
 unsigned long int ofp_get_stat_flags(void)
 {

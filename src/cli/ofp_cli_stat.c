@@ -49,8 +49,10 @@ void f_stat_show(struct cli_conn *conn, const char *s)
 		return;
 
 	ofp_sendf(conn->fd, "Settings: \r\n"
-		"  compute latency - %s\r\n\r\n",
-		ofp_stat_flags & OFP_STAT_COMPUTE_LATENCY ? "yes" : "no");
+		"  compute latency - %s\r\n"
+		"  compute performance - %s\r\n\r\n",
+		ofp_stat_flags & OFP_STAT_COMPUTE_LATENCY ? "yes" : "no",
+		ofp_stat_flags & OFP_STAT_COMPUTE_PERF ? "yes" : "no");
 
 #define PRINT_STAT(_st, _s, _n) do { int i;                             \
 	ofp_sendf(conn->fd, "  %16s:", _s);                           \
@@ -106,6 +108,13 @@ void f_stat_show(struct cli_conn *conn, const char *s)
 				print_latency_entry(conn, st, k, i);
 		}
 	}
+	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF) {
+		struct ofp_perf_stat *ps = ofp_get_perf_statistics();
+
+		ofp_sendf(conn->fd, "\r\n");
+		ofp_sendf(conn->fd, "Throughput: %4.3f Mpps\r\n",
+				((float)ps->rx_fp_pps)/1000000);
+	}
 	sendcrlf(conn);
 }
 
@@ -113,7 +122,22 @@ void f_stat_set(struct cli_conn *conn, const char *s)
 {
 	(void)s;
 
-	ofp_stat_flags = strtol(s, NULL, 0);
+	ofp_set_stat_flags(strtol(s, NULL, 0));
+
+	sendcrlf(conn);
+}
+
+void f_stat_perf(struct cli_conn *conn, const char *s)
+{
+	(void)s;
+
+	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF) {
+		struct ofp_perf_stat *ps = ofp_get_perf_statistics();
+
+		ofp_sendf(conn->fd, "%4.3f Mpps - Throughput\r\n",
+		((float)ps->rx_fp_pps)/1000000);
+	} else
+		ofp_sendf(conn->fd, "N/A\r\n");
 
 	sendcrlf(conn);
 }
@@ -138,8 +162,12 @@ void f_help_stat(struct cli_conn *conn, const char *s)
 	ofp_sendf(conn->fd, "Set options for statistics:\r\n"
 		"  stat set <bit mask of options>\r\n"
 		"    bit 0: compute packets latency\r\n"
+		"    bit 1: compute throughput (mpps)\r\n"
 		"  Example:\r\n"
 		"    stat set 0x1\r\n\r\n");
+
+	ofp_sendf(conn->fd, "Get performance statistics:\r\n"
+		"  stat perf\r\n\r\n");
 
 	ofp_sendf(conn->fd, "Clear statistics:\r\n"
 		"  stat clear\r\n\r\n");

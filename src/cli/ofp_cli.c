@@ -930,6 +930,11 @@ struct cli_command commands[] = {
 		f_stat_set
 	},
 	{
+		"stat perf",
+		NULL,
+		f_stat_perf
+	},
+	{
 		"stat clear",
 		NULL,
 		f_stat_clear
