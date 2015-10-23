@@ -433,13 +433,21 @@ struct ofp_nh_entry *ofp_get_next_hop(uint16_t vrf, uint32_t addr, uint32_t *fla
 			OFP_DBG("VRF %d does not exist", vrf);
 			return NULL;
 		}
+#ifndef MTRIE
 		OFP_LOCK_READ(route);
+#endif
 		node = ofp_rtl_search(&(data->routes), addr);
+#ifndef MTRIE
 		OFP_UNLOCK_READ(route);
+#endif
 	} else {
+#ifndef MTRIE
 		OFP_LOCK_READ(route);
+#endif
 		node = ofp_rtl_search(&shm->default_routes, addr);
+#ifndef MTRIE
 		OFP_UNLOCK_READ(route);
+#endif
 	}
 
 	return node;
