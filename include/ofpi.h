@@ -1,4 +1,5 @@
-/* Copyright (c) 2014, Nokia
+/* Copyright (c) 2015, ENEA Software AB
+ * Copyright (c) 2015, Nokia
  * All rights reserved.
  *
  * SPDX-License-Identifier:     BSD-3-Clause
@@ -10,6 +11,7 @@
 #include <odp.h>
 #include "linux.h"
 
+#include "ofpi_config.h"
 #include "ofpi_ethernet.h"
 #include "ofpi_if_vlan.h"
 #include "ofpi_if_arp.h"

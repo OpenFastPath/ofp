@@ -49,8 +49,6 @@
 #include "ofpi_reass.h"
 #include "api/ofp_init.h"
 
-/*#define OFP_PERFORMANCE*/
-#define OFP_EVENT_BURST_SIZE 16
 
 void *default_event_dispatcher(void *arg)
 {
