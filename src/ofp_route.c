@@ -544,14 +544,14 @@ void ofp_route_alloc_shared_memory(void)
 
 	shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("ofp_shared_memory_alloc failed");
+		OFP_ERR("ofp_shared_memory_alloc failed");
 		exit(EXIT_FAILURE);
 	}
 
 	ofp_locks_shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE_LK,
 		sizeof(*ofp_locks_shm));
 	if (ofp_locks_shm == NULL) {
-		OFP_ABORT("ofp_shared_memory_alloc failed");
+		OFP_ERR("ofp_shared_memory_alloc failed");
 		ofp_shared_memory_free(SHM_NAME_ROUTE);
 		shm = NULL;
 		exit(EXIT_FAILURE);
@@ -578,13 +578,13 @@ void ofp_route_lookup_shared_memory(void)
 
 	shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE);
 	if (shm == NULL) {
-		OFP_ABORT("ofp_shared_memory_lookup failed");
+		OFP_ERR("ofp_shared_memory_lookup failed");
 		exit(EXIT_FAILURE);
 	}
 
 	ofp_locks_shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE_LK);
 	if (ofp_locks_shm == NULL) {
-		OFP_ABORT("ofp_shared_memory_lookup failed");
+		OFP_ERR("ofp_shared_memory_lookup failed");
 		ofp_shared_memory_free(SHM_NAME_ROUTE);
 		shm = NULL;
 		exit(EXIT_FAILURE);

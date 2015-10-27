@@ -296,7 +296,7 @@ void ofp_socket_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_SOCKET, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+		OFP_ERR("Error: %s shared mem alloc failed on core: %u.\n",
 			SHM_NAME_SOCKET, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
@@ -315,7 +315,7 @@ void ofp_socket_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_SOCKET);
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem lookup failed on core: %u.\n",
+		OFP_ERR("Error: %s shared mem lookup failed on core: %u.\n",
 			SHM_NAME_SOCKET, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}

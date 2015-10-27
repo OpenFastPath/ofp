@@ -50,8 +50,6 @@
 	_OFP_LOG(OFP_LOG_WARNING, fmt, ##__VA_ARGS__)
 #define OFP_ERR(fmt, ...) \
 	_OFP_LOG(OFP_LOG_ERROR, fmt, ##__VA_ARGS__)
-#define OFP_ABORT(fmt, ...) \
-	_OFP_LOG(OFP_LOG_ABORT, fmt, ##__VA_ARGS__)
 
 /*
  * Debug macros which will be compiled out when --enable-debug is not used.
@@ -70,8 +68,7 @@
 	} while (0)
 
 enum ofp_log_level_s {
-	OFP_LOG_ABORT = 0,
-	OFP_LOG_ERROR,
+	OFP_LOG_ERROR = 0,
 	OFP_LOG_WARNING,
 	OFP_LOG_INFO,
 	OFP_LOG_DEBUG,
@@ -95,7 +92,6 @@ static inline int ofp_debug_logging_enabled(void)
 		if (level > ofp_loglevel)				\
 			break;						\
 		fprintf(stderr, "%s %d %d:%u %s:%d] " fmt "\n",		\
-			(level == OFP_LOG_ABORT)   ? "A" :		\
 			(level == OFP_LOG_ERROR)   ? "E" :		\
 			(level == OFP_LOG_WARNING) ? "W" :		\
 			(level == OFP_LOG_INFO)    ? "I" :		\
@@ -104,8 +100,6 @@ static inline int ofp_debug_logging_enabled(void)
 			odp_cpu_id(), (unsigned int) pthread_self(),	\
 			__FILENAME__, __LINE__,				\
 			##__VA_ARGS__);					\
-		if (level == OFP_LOG_ABORT)				\
-			abort();					\
 	} while (0)
 
 #endif /*__OFP_LOG_H__*/

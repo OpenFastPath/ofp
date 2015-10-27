@@ -647,7 +647,7 @@ void ofp_arp_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_ARP, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("Error: %s shared mem alloc failed on core: %u.\n",
+		OFP_ERR("Error: %s shared mem alloc failed on core: %u.\n",
 			SHM_NAME_ARP, odp_cpu_id());
 		exit(EXIT_FAILURE);
 	}
@@ -665,7 +665,7 @@ void ofp_arp_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_ARP);
 	if (shm == NULL) {
-		OFP_ABORT("ofp_shared_memory_lookup failed");
+		OFP_ERR("ofp_shared_memory_lookup failed");
 		exit(EXIT_FAILURE);
 	}
 }

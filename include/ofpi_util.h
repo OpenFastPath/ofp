@@ -25,7 +25,10 @@
 		}							\
 	} while (0)
 
-#define panic(x)  OFP_ABORT(x)
+#define panic(x)  do {							\
+		OFP_ERR(x);						\
+		abort();						\
+	} while (0)
 
 static inline char *print_th_flags(uint8_t f, int or) {
 	const char *t[8] = {"FIN", "SYN", "RST", "PUSH", "ACK", "URG", "ECE", "CWR"};

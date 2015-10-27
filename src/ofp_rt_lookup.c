@@ -584,7 +584,7 @@ void ofp_rt_lookup_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP, sizeof(*shm));
 	if (shm == NULL) {
-		OFP_ABORT("ofp_shared_memory_alloc");
+		OFP_ERR("ofp_shared_memory_alloc");
 		exit(EXIT_FAILURE);
 	}
 
@@ -601,7 +601,7 @@ void ofp_rt_lookup_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_RT_LOOKUP);
 	if (shm == NULL) {
-		OFP_ABORT("ofp_shared_memory_lookup");
+		OFP_ERR("ofp_shared_memory_lookup");
 		exit(EXIT_FAILURE);
 	}
 }
