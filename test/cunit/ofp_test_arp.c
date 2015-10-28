@@ -36,6 +36,7 @@ static int init_suite(void)
 {
 	odp_pool_param_t pool_params;
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
+	odp_pool_t pool;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(NULL, NULL)) {
@@ -56,7 +57,8 @@ static int init_suite(void)
 	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
-	(void) ofp_init_pre_global(pool_name, &pool_params, pkt_hook);
+	(void) ofp_init_pre_global(pool_name, &pool_params,
+			pkt_hook, &pool);
 
 	return 0;
 }

@@ -25,6 +25,14 @@
 		}							\
 	} while (0)
 
+/* HANDLE_ERROR will not log any message.
+   LOGGING must be done during execution of (x) statement (usually a function)
+*/
+#define HANDLE_ERROR(x)  do {						\
+		if ((x))						\
+			return -1;					\
+	} while (0)
+
 #define panic(x)  do {							\
 		OFP_ERR(x);						\
 		abort();						\

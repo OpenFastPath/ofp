@@ -48,12 +48,10 @@
 #define SHM_PKT_POOL_SIZE	(512*2048)
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
 
-odp_pool_t ofp_init_pre_global(const char *pool_name,
+int ofp_init_pre_global(const char *pool_name,
 			       odp_pool_param_t *pool_params,
-			       ofp_pkt_hook hooks[])
+			       ofp_pkt_hook hooks[], odp_pool_t *pool)
 {
-	odp_pool_t pool;
-
 	/* Init shared memories */
 	ofp_register_sysctls();
 
@@ -87,24 +85,23 @@ odp_pool_t ofp_init_pre_global(const char *pool_name,
 	ofp_portconf_alloc_shared_memory();
 	ofp_portconf_init_global();
 
-	pool = odp_pool_create(pool_name, pool_params);
-	if (pool == ODP_POOL_INVALID) {
+	*pool = odp_pool_create(pool_name, pool_params);
+	if (*pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
-		return pool;
+		return -1;
 	}
 
 	ofp_socket_alloc_shared_memory();
-	ofp_socket_init_global(pool);
+	ofp_socket_init_global(*pool);
 	ofp_inet_init();
 
-	return pool;
+	return 0;
 }
 
 odp_pool_t ofp_packet_pool;
 
 int ofp_init_global(ofp_init_global_t *params)
 {
-	odp_pool_t pool;
 	odp_pool_param_t pool_params;
 	int i, ret;
 	odp_queue_param_t qparam;
@@ -121,7 +118,8 @@ int ofp_init_global(ofp_init_global_t *params)
 	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
-	ofp_packet_pool = pool = ofp_init_pre_global("packet_pool", &pool_params, params->pkt_hook);
+	HANDLE_ERROR(ofp_init_pre_global("packet_pool", &pool_params,
+		params->pkt_hook, &ofp_packet_pool));
 
 	/* cpu mask for slow path threads */
 	odp_cpumask_zero(&cpumask);
@@ -148,7 +146,7 @@ int ofp_init_global(ofp_init_global_t *params)
 
 		strncpy(ifnet->if_name, params->if_names[i], OFP_IFNAMSIZ);
 		ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
-		ifnet->pkt_pool = pool;
+		ifnet->pkt_pool = ofp_packet_pool;
 
 		/* Open a packet IO instance for this device */
 		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
