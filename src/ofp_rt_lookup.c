@@ -580,15 +580,17 @@ void ofp_print_rt_stat(int fd)
 			  shm->nodes_allocated6, shm->max_nodes_allocated6, NUM_NODES_6);
 }
 
-void ofp_rt_lookup_alloc_shared_memory(void)
+int ofp_rt_lookup_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
+
+	return 0;
 }
 
 void ofp_rt_lookup_free_shared_memory(void)
@@ -597,16 +599,18 @@ void ofp_rt_lookup_free_shared_memory(void)
 	shm = NULL;
 }
 
-void ofp_rt_lookup_lookup_shared_memory(void)
+int ofp_rt_lookup_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_RT_LOOKUP);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+
+	return 0;
 }
 
-void ofp_rt_lookup_init_global(void)
+int ofp_rt_lookup_init_global(void)
 {
 	int i;
 
@@ -625,6 +629,8 @@ void ofp_rt_lookup_init_global(void)
 			NULL : &(shm->node_list6[i+1]);
 	}
 	shm->free_nodes6 = &(shm->node_list6[0]);
+
+	return 0;
 }
 
 void ofp_rt_lookup_term_global(void)

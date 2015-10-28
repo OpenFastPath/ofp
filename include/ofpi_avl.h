@@ -176,10 +176,10 @@ void avl_node_rlock(avl_node *node);
 void avl_node_wlock(avl_node *node);
 void avl_node_unlock(avl_node *node);
 
-void ofp_avl_alloc_shared_memory(void);
+int ofp_avl_alloc_shared_memory(void);
 void ofp_avl_free_shared_memory(void);
-void ofp_avl_lookup_shared_memory(void);
-void ofp_avl_init_global(void);
+int ofp_avl_lookup_shared_memory(void);
+int ofp_avl_init_global(void);
 void ofp_avl_term_global(void);
 
 void ofp_print_avl_stat(int fd);

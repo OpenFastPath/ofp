@@ -55,35 +55,35 @@ int ofp_init_pre_global(const char *pool_name,
 	/* Init shared memories */
 	ofp_register_sysctls();
 
-	ofp_avl_alloc_shared_memory();
-	ofp_avl_init_global();
+	HANDLE_ERROR(ofp_avl_alloc_shared_memory());
+	HANDLE_ERROR(ofp_avl_init_global());
 
-	ofp_reassembly_alloc_shared_memory();
-	ofp_reassembly_init_global();
+	HANDLE_ERROR(ofp_reassembly_alloc_shared_memory());
+	HANDLE_ERROR(ofp_reassembly_init_global());
 
-	ofp_pcap_alloc_shared_memory();
-	ofp_pcap_init_global();
+	HANDLE_ERROR(ofp_pcap_alloc_shared_memory());
+	HANDLE_ERROR(ofp_pcap_init_global());
 
-	ofp_stat_alloc_shared_memory();
-	ofp_stat_init_global();
+	HANDLE_ERROR(ofp_stat_alloc_shared_memory());
+	HANDLE_ERROR(ofp_stat_init_global());
 
-	ofp_timer_alloc_shared_memory();
-	ofp_timer_init_global(OFP_TIMER_RESOLUTION_US,
+	HANDLE_ERROR(ofp_timer_alloc_shared_memory());
+	HANDLE_ERROR(ofp_timer_init_global(OFP_TIMER_RESOLUTION_US,
 			OFP_TIMER_MIN_US,
 			OFP_TIMER_MAX_US,
-			OFP_TIMER_TMO_COUNT);
+			OFP_TIMER_TMO_COUNT));
 
-	ofp_hook_alloc_shared_memory();
-	ofp_hook_init_global(hooks);
+	HANDLE_ERROR(ofp_hook_alloc_shared_memory());
+	HANDLE_ERROR(ofp_hook_init_global(hooks));
 
-	ofp_arp_alloc_shared_memory();
-	ofp_arp_init_global();
+	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
+	HANDLE_ERROR(ofp_arp_init_global());
 
-	ofp_route_alloc_shared_memory();
-	ofp_route_init_global();
+	HANDLE_ERROR(ofp_route_alloc_shared_memory());
+	HANDLE_ERROR(ofp_route_init_global());
 
-	ofp_portconf_alloc_shared_memory();
-	ofp_portconf_init_global();
+	HANDLE_ERROR(ofp_portconf_alloc_shared_memory());
+	HANDLE_ERROR(ofp_portconf_init_global());
 
 	*pool = odp_pool_create(pool_name, pool_params);
 	if (*pool == ODP_POOL_INVALID) {
@@ -91,9 +91,9 @@ int ofp_init_pre_global(const char *pool_name,
 		return -1;
 	}
 
-	ofp_socket_alloc_shared_memory();
-	ofp_socket_init_global(*pool);
-	ofp_inet_init();
+	HANDLE_ERROR(ofp_socket_alloc_shared_memory());
+	HANDLE_ERROR(ofp_socket_init_global(*pool));
+	HANDLE_ERROR(ofp_inet_init());
 
 	return 0;
 }
@@ -307,18 +307,18 @@ int ofp_init_global(ofp_init_global_t *params)
 int ofp_init_local(void)
 {
 	/* Lookup shared memories */
-	ofp_portconf_lookup_shared_memory();
-	ofp_route_lookup_shared_memory();
-	ofp_avl_lookup_shared_memory();
-	ofp_reassembly_lookup_shared_memory();
-	ofp_pcap_lookup_shared_memory();
-	ofp_stat_lookup_shared_memory();
-	ofp_socket_lookup_shared_memory();
-	ofp_timer_lookup_shared_memory();
-	ofp_hook_lookup_shared_memory();
-	ofp_arp_lookup_shared_memory();
+	HANDLE_ERROR(ofp_portconf_lookup_shared_memory());
+	HANDLE_ERROR(ofp_route_lookup_shared_memory());
+	HANDLE_ERROR(ofp_avl_lookup_shared_memory());
+	HANDLE_ERROR(ofp_reassembly_lookup_shared_memory());
+	HANDLE_ERROR(ofp_pcap_lookup_shared_memory());
+	HANDLE_ERROR(ofp_stat_lookup_shared_memory());
+	HANDLE_ERROR(ofp_socket_lookup_shared_memory());
+	HANDLE_ERROR(ofp_timer_lookup_shared_memory());
+	HANDLE_ERROR(ofp_hook_lookup_shared_memory());
+	HANDLE_ERROR(ofp_arp_lookup_shared_memory());
 
-	ofp_arp_init_local();
+	HANDLE_ERROR(ofp_arp_init_local());
 
 	return 0;
 }

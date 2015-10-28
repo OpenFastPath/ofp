@@ -102,15 +102,16 @@ static inline struct ofp_ip *FRAG_IP(struct frag *f)
 	return ip;
 }
 
-void ofp_reassembly_alloc_shared_memory(void)
+int ofp_reassembly_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_REASSEMBLY, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
+	return 0;
 }
 
 void ofp_reassembly_free_shared_memory(void)
@@ -119,22 +120,25 @@ void ofp_reassembly_free_shared_memory(void)
 	shm = NULL;
 }
 
-void ofp_reassembly_lookup_shared_memory(void)
+int ofp_reassembly_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_REASSEMBLY);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
-void ofp_reassembly_init_global(void)
+int ofp_reassembly_init_global(void)
 {
 	memset(shm, 0, sizeof(*shm));
 	shm->maxnipq = 1024;
 	shm->maxfragsperpacket = 16;
 	shm->timer = ODP_TIMER_INVALID;
 	odp_spinlock_init(&shm->ipqlock);
+
+	return 0;
 }
 
 void ofp_reassembly_term_global(void)

@@ -81,14 +81,14 @@ static int routes_avl_compare(void *compare_arg, void *a, void *b)
 	return (a1->vrf - b1->vrf);
 }
 
-void ofp_route_init_global(void)
+int ofp_route_init_global(void)
 {
 	int i;
 
 	odp_rwlock_init(&ofp_locks_shm->lock_config_rw);
 	odp_rwlock_init(&ofp_locks_shm->lock_route_rw);
 
-	ofp_rt_lookup_init_global();
+	HANDLE_ERROR(ofp_rt_lookup_init_global());
 
 	/*avl_tree_new(routes_avl_compare, NULL);*/
 	ofp_rtl_init(&shm->default_routes);
@@ -101,6 +101,8 @@ void ofp_route_init_global(void)
 	for (i = NUM_PKTS - 1; i >= 0; --i)
 		OFP_SLIST_INSERT_HEAD(&shm->pkt6.free_entries,
 			&shm->pkt6.entries[i], next);
+
+	return 0;
 }
 
 static inline void *pkt6_entry_alloc(void)
@@ -538,14 +540,14 @@ uint16_t ofp_get_probable_vlan(int port, uint32_t addr)
 	return data.vlan;
 }
 
-void ofp_route_alloc_shared_memory(void)
+int ofp_route_alloc_shared_memory(void)
 {
-	ofp_rt_lookup_alloc_shared_memory();
+	HANDLE_ERROR(ofp_rt_lookup_alloc_shared_memory());
 
 	shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	ofp_locks_shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE_LK,
@@ -554,11 +556,12 @@ void ofp_route_alloc_shared_memory(void)
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		ofp_shared_memory_free(SHM_NAME_ROUTE);
 		shm = NULL;
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
 	memset(ofp_locks_shm, 0, sizeof(*ofp_locks_shm));
+	return 0;
 }
 
 void ofp_route_free_shared_memory(void)
@@ -572,14 +575,14 @@ void ofp_route_free_shared_memory(void)
 	ofp_rt_lookup_free_shared_memory();
 }
 
-void ofp_route_lookup_shared_memory(void)
+int ofp_route_lookup_shared_memory(void)
 {
-	ofp_rt_lookup_lookup_shared_memory();
+	HANDLE_ERROR(ofp_rt_lookup_lookup_shared_memory());
 
 	shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	ofp_locks_shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE_LK);
@@ -587,8 +590,10 @@ void ofp_route_lookup_shared_memory(void)
 		OFP_ERR("ofp_shared_memory_lookup failed");
 		ofp_shared_memory_free(SHM_NAME_ROUTE);
 		shm = NULL;
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+
+	return 0;
 }
 
 void ofp_route_term_global(void)

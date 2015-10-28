@@ -80,13 +80,13 @@ struct arp_cache {
 	(_cache)->entry_idx = 0;\
 }
 
-void ofp_arp_alloc_shared_memory(void);
+int ofp_arp_alloc_shared_memory(void);
 void ofp_arp_free_shared_memory(void);
-void ofp_arp_lookup_shared_memory(void);
+int ofp_arp_lookup_shared_memory(void);
 
-void ofp_arp_init_global(void);
+int ofp_arp_init_global(void);
 void ofp_arp_term_global(void);
-void ofp_arp_init_local(void);
+int ofp_arp_init_local(void);
 void ofp_arp_term_local(void);
 
 int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,

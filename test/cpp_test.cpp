@@ -16,7 +16,10 @@ int main() {
 	}
 	odp_init_local(ODP_THREAD_CONTROL);
 
-	ofp_init_global(&oig);
+	if (ofp_init_global(&oig)) {
+		OFP_ERR("Error: OFP global init failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	OFP_INFO("Init successful.\n");
 	return 0;

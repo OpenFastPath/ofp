@@ -30,15 +30,16 @@ ofp_pkt_hook *ofp_get_packet_hooks(void)
 	return &(shm_hook->pkt_hook[0]);
 }
 
-void ofp_hook_alloc_shared_memory(void)
+int ofp_hook_alloc_shared_memory(void)
 {
 	shm_hook = ofp_shared_memory_alloc(SHM_NAME_HOOK, sizeof(*shm_hook));
 	if (shm_hook == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm_hook, 0, sizeof(*shm_hook));
+	return 0;
 }
 
 void ofp_hook_free_shared_memory(void)
@@ -47,20 +48,22 @@ void ofp_hook_free_shared_memory(void)
 	shm_hook = NULL;
 }
 
-void ofp_hook_lookup_shared_memory(void)
+int ofp_hook_lookup_shared_memory(void)
 {
 	shm_hook = ofp_shared_memory_lookup(SHM_NAME_HOOK);
 	if (shm_hook == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
 
-void ofp_hook_init_global(ofp_pkt_hook *pkt_hook_init)
+int ofp_hook_init_global(ofp_pkt_hook *pkt_hook_init)
 {
 	memcpy(&shm_hook->pkt_hook[0], pkt_hook_init,
 		OFP_HOOK_MAX * sizeof(ofp_pkt_hook));
+	return 0;
 }
 
 void ofp_hook_term_global(void)

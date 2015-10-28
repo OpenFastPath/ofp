@@ -27,6 +27,7 @@
 #include "ofpi.h"
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
+#include "ofpi_util.h"
 
 /*
  * Test data
@@ -69,8 +70,8 @@ init_suite(void)
 		return -1;
 	}
 
-	ofp_pcap_alloc_shared_memory();
-	ofp_pcap_init_global();
+	HANDLE_ERROR(ofp_pcap_alloc_shared_memory());
+	HANDLE_ERROR(ofp_pcap_init_global());
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
 	pool_params.pkt.len = SHM_PKT_POOL_BUF_SIZE;

@@ -110,7 +110,7 @@ static int vlan_ifnet_compare(void *compare_arg, void *a, void *b)
 	return (a1->vlan - b1->vlan);
 }
 
-void ofp_portconf_init_global(void)
+int ofp_portconf_init_global(void)
 {
 	int i;
 
@@ -146,6 +146,8 @@ void ofp_portconf_init_global(void)
 	OFP_TAILQ_INIT(&shm->in_ifaddr6head);
 	odp_rwlock_init(&ofp_ifnet_locks_shm->lock_ifaddr6_list_rw);
 #endif /* INET6 */
+
+	return 0;
 }
 
 static int vlan_match_ip(void *key, void *iter_arg)
@@ -1012,12 +1014,12 @@ odp_pktio_t ofp_port_pktio_get(int port)
 	return ifnet->pktio;
 }
 
-void ofp_portconf_alloc_shared_memory(void)
+int ofp_portconf_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_PORTS, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	ofp_ifnet_locks_shm = ofp_shared_memory_alloc(SHM_NAME_PORT_LOCKS,
@@ -1025,11 +1027,13 @@ void ofp_portconf_alloc_shared_memory(void)
 	if (ofp_ifnet_locks_shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		ofp_shared_memory_free(SHM_NAME_PORTS);
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
 	memset(ofp_ifnet_locks_shm, 0, sizeof(*ofp_ifnet_locks_shm));
+
+	return 0;
 }
 
 void ofp_portconf_free_shared_memory(void)
@@ -1041,21 +1045,23 @@ void ofp_portconf_free_shared_memory(void)
 	ofp_ifnet_locks_shm = NULL;
 }
 
-void ofp_portconf_lookup_shared_memory(void)
+int ofp_portconf_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_PORTS);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
 		ofp_shared_memory_free(SHM_NAME_PORT_LOCKS);
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	ofp_ifnet_locks_shm = ofp_shared_memory_lookup(SHM_NAME_PORT_LOCKS);
 	if (ofp_ifnet_locks_shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
 		ofp_shared_memory_free(SHM_NAME_PORTS);
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+
+	return 0;
 }
 
 void ofp_portconf_term_global(void)

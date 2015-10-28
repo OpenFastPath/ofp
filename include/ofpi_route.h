@@ -26,10 +26,10 @@ struct ofp_locks_str {
 
 extern struct ofp_locks_str *ofp_locks_shm;
 
-void ofp_route_lookup_shared_memory(void);
-void ofp_route_alloc_shared_memory(void);
+int ofp_route_lookup_shared_memory(void);
+int ofp_route_alloc_shared_memory(void);
 void ofp_route_free_shared_memory(void);
-void ofp_route_init_global(void);
+int ofp_route_init_global(void);
 void ofp_route_term_global(void);
 
 int32_t ofp_is_mobile(uint32_t addr);

@@ -314,10 +314,10 @@ void *sp_tx_thread(void *ifnet_void);
 void *sp_rx_thread(void *ifnet_void);
 int sp_setup_device(struct ofp_ifnet *ifnet);
 
-void ofp_portconf_alloc_shared_memory(void);
+int ofp_portconf_alloc_shared_memory(void);
 void ofp_portconf_free_shared_memory(void);
-void ofp_portconf_lookup_shared_memory(void);
-void ofp_portconf_init_global(void);
+int ofp_portconf_lookup_shared_memory(void);
+int ofp_portconf_init_global(void);
 void ofp_portconf_term_global(void);
 
 #ifdef SP

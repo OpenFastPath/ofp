@@ -162,15 +162,17 @@ static void sigpipe_handler(int s)
 	}
 }
 
-void ofp_pcap_alloc_shared_memory(void)
+int ofp_pcap_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_PCAP, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
+
+	return 0;
 }
 
 void ofp_pcap_free_shared_memory(void)
@@ -179,21 +181,24 @@ void ofp_pcap_free_shared_memory(void)
 	shm = NULL;
 }
 
-void ofp_pcap_lookup_shared_memory(void)
+int ofp_pcap_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_PCAP);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
-void ofp_pcap_init_global(void)
+int ofp_pcap_init_global(void)
 {
 	odp_rwlock_init(&shm->lock_pcap_rw);
 	strcpy(shm->pcap_file_name, DEFAULT_DEBUG_PCAP_FILE_NAME);
 	shm->pcap_first = 1;
 	signal(SIGPIPE, sigpipe_handler);
+
+	return 0;
 }
 
 void ofp_pcap_term_global(void)

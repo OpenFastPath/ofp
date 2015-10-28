@@ -97,7 +97,7 @@ int ofp_timer_init_global(int resolution_us,
 
 	if (shm->pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	/* Buffer pool */
@@ -111,7 +111,7 @@ int ofp_timer_init_global(int resolution_us,
 
 	if (shm->buf_pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	/* Timer pool */
@@ -127,7 +127,7 @@ int ofp_timer_init_global(int resolution_us,
 
 	if (shm->socket_timer_pool == ODP_TIMER_POOL_INVALID) {
 		OFP_ERR("odp_timer_pool_create");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	odp_timer_pool_start();
@@ -211,15 +211,16 @@ void ofp_timer_term_global(void)
 	memset(shm, 0, sizeof(*shm));
 }
 
-void ofp_timer_alloc_shared_memory(void)
+int ofp_timer_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_TIMER, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
+	return 0;
 }
 
 void ofp_timer_free_shared_memory(void)
@@ -228,13 +229,14 @@ void ofp_timer_free_shared_memory(void)
 	shm = NULL;
 }
 
-void ofp_timer_lookup_shared_memory(void)
+int ofp_timer_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_TIMER);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
 odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,

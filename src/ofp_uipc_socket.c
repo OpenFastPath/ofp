@@ -292,16 +292,17 @@ void ofp_accept_unlock(void)
 	odp_rwlock_write_unlock(&shm->ofp_accept_mtx);
 }
 
-void ofp_socket_alloc_shared_memory(void)
+int ofp_socket_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_SOCKET, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("Error: %s shared mem alloc failed on core: %u.\n",
 			SHM_NAME_SOCKET, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
+	return 0;
 }
 
 void ofp_socket_free_shared_memory(void)
@@ -311,17 +312,18 @@ void ofp_socket_free_shared_memory(void)
 }
 
 
-void ofp_socket_lookup_shared_memory(void)
+int ofp_socket_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_SOCKET);
 	if (shm == NULL) {
 		OFP_ERR("Error: %s shared mem lookup failed on core: %u.\n",
 			SHM_NAME_SOCKET, odp_cpu_id());
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
-void ofp_socket_init_global(odp_pool_t pool)
+int ofp_socket_init_global(odp_pool_t pool)
 {
 	uint32_t i;
 
@@ -339,6 +341,8 @@ void ofp_socket_init_global(odp_pool_t pool)
 	odp_rwlock_init(&shm->so_global_mtx);
 	odp_rwlock_init(&shm->ofp_accept_mtx);
 	odp_spinlock_init(&shm->sleep_lock);
+
+	return 0;
 }
 
 void ofp_socket_term_global(void)

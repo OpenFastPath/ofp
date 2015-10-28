@@ -1274,15 +1274,17 @@ void ofp_print_avl_stat(int fd)
               shm->nodes_allocated, shm->max_nodes_allocated, NUM_NODES);
 }
 
-void ofp_avl_alloc_shared_memory(void)
+int ofp_avl_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_AVL, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	memset(shm, 0, sizeof(*shm));
+
+	return 0;
 }
 
 void ofp_avl_free_shared_memory(void)
@@ -1291,16 +1293,18 @@ void ofp_avl_free_shared_memory(void)
 	shm = NULL;
 }
 
-void ofp_avl_lookup_shared_memory(void)
+int ofp_avl_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_AVL);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+
+	return 0;
 }
 
-void ofp_avl_init_global(void)
+int ofp_avl_init_global(void)
 {
 	uint32_t i;
 
@@ -1318,6 +1322,8 @@ void ofp_avl_init_global(void)
 
 	shm->free_trees = &(shm->trees[0]);
 	shm->tree_cnt = 0;
+
+	return 0;
 }
 
 void ofp_avl_term_global(void)

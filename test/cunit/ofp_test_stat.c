@@ -39,8 +39,14 @@ init_suite(void)
 		return -1;
 	}
 
-	ofp_stat_alloc_shared_memory();
-	ofp_stat_init_global();
+	if (ofp_stat_alloc_shared_memory()) {
+		OFP_ERR("Error: Fail to alloc memory for statistics.\n");
+		return -1;
+	}
+	if (ofp_stat_init_global()) {
+		OFP_ERR("Error: Fail to initialize statistics.\n");
+		return -1;
+	}
 
 	odp_shm_print_all();
 
