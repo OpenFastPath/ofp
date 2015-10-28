@@ -152,7 +152,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
 		if (ifnet->pktio == ODP_PKTIO_INVALID) {
 			OFP_ERR("odp_pktio_open failed");
-			abort();
+			return -1;
 		}
 
 
@@ -174,20 +174,20 @@ int ofp_init_global(ofp_init_global_t *params)
 							  &qparam);
 			if (ifnet->inq_def == ODP_QUEUE_INVALID) {
 				OFP_ERR("odp_queue_create failed");
-				abort();
+				return -1;
 			}
 
 			ret = odp_pktio_inq_setdef(ifnet->pktio, ifnet->inq_def);
 			if (ret != 0) {
 				OFP_ERR("odp_pktio_inq_setdef failed");
-				abort();
+				return -1;
 			}
 		}
 
 		ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
 		if (ifnet->outq_def == ODP_QUEUE_INVALID) {
 			OFP_ERR("odp_pktio_outq_getdef failed");
-			abort();
+			return -1;
 		}
 
 		/* Set device outq queue context */
@@ -208,7 +208,7 @@ int ofp_init_global(ofp_init_global_t *params)
 
 		if (ifnet->spq_def == ODP_QUEUE_INVALID) {
 			OFP_ERR("odp_queue_create failed");
-			abort();
+			return -1;
 		}
 #endif /*SP*/
 
@@ -227,7 +227,7 @@ int ofp_init_global(ofp_init_global_t *params)
 						&qparam);
 		if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
 			OFP_ERR("odp_queue_create failed");
-			abort();
+			return -1;
 		}
 
 		/* Set device loopq queue context */
@@ -249,7 +249,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		if (odp_pktio_mac_addr(ifnet->pktio, ifnet->mac,
 			sizeof(ifnet->mac)) < 0) {
 			OFP_ERR("Failed to retrieve MAC address");
-			abort();
+			return -1;
 		}
 		if (!ofp_has_mac(ifnet->mac)) {
 			ifnet->mac[0] = port;
