@@ -64,8 +64,14 @@ void *default_event_dispatcher(void *arg)
 	int event_cnt = 0;
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
 
-	odp_init_local(ODP_THREAD_WORKER);
-	ofp_init_local();
+	if (odp_init_local(ODP_THREAD_WORKER)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		return NULL;
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 
 	/* PER CORE DISPATCHER */
 	while (1) {

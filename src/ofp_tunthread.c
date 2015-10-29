@@ -195,7 +195,10 @@ void * sp_rx_thread(void *ifnet_void) {
 
 	(void) len;
 
-	ofp_init_local();
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 
 	while(1) {
 		ev = odp_queue_deq(ifnet->spq_def);
@@ -249,7 +252,10 @@ void * sp_tx_thread(void *ifnet_void) {
 	uint8_t *buf_pnt;
 	struct ofp_ifnet *ifnet = (struct ofp_ifnet *)ifnet_void;
 
-	ofp_init_local();
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 
 	while (1) {
 		/* FIXME: coalese syscalls and speed this up */

@@ -69,7 +69,10 @@ int main(int argc, char *argv[])
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	odp_init_local(ODP_THREAD_CONTROL);
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	core_count = odp_cpu_count();
 	num_workers = core_count;
@@ -98,8 +101,14 @@ int main(int argc, char *argv[])
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
 
-	ofp_init_global(&app_init_params);
-	ofp_init_local();
+	if (ofp_init_global(&app_init_params)) {
+		OFP_ERR("Error: OFP global init failed.\n");
+		exit(EXIT_FAILURE);
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	build_classifier(app_init_params.if_count, app_init_params.if_names);
 

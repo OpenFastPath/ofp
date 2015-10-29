@@ -82,7 +82,6 @@ int main(int argc, char *argv[])
 	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
 	int core_count, num_workers, ret_val;
-	int exit_val = EXIT_SUCCESS;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
 
@@ -101,8 +100,8 @@ int main(int argc, char *argv[])
 	 */
 	if (odp_init_global(NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
-		exit_val = EXIT_FAILURE;
-		goto exit_fpm_main;
+		odp_term_global();
+		return EXIT_FAILURE;
 	}
 
 	/*
@@ -113,8 +112,8 @@ int main(int argc, char *argv[])
 	 */
 	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
 		OFP_ERR("Error: ODP local init failed.\n");
-		exit_val = EXIT_FAILURE;
-		goto exit_fpm_main;
+		odp_term_global();
+		return EXIT_FAILURE;
 	}
 
 	/*
@@ -154,7 +153,8 @@ int main(int argc, char *argv[])
 	if (odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr)) < 0) {
 		OFP_ERR("Error: Too small buffer provided to " \
 			"odp_cpumask_to_str\n");
-		goto exit_fpm_main;
+		odp_term_global();
+		return EXIT_FAILURE;
 	}
 
 	printf("Num worker threads: %i\n", num_workers);
@@ -174,8 +174,8 @@ int main(int argc, char *argv[])
 	 * addition will fast path interface configuration.
 	 */
 	if (ofp_init_global(&app_init_params) != 0) {
-		exit_val = EXIT_FAILURE;
-		goto exit_fpm_main;
+		odp_term_global();
+		return EXIT_FAILURE;
 	}
 
 	/*
@@ -198,8 +198,8 @@ int main(int argc, char *argv[])
 		OFP_ERR("Error: Failed to create worker threads, " \
 			"expected %d, got %d\n",
 			num_workers, ret_val);
-		exit_val = EXIT_FAILURE;
-		goto exit_fpm_main;
+		odp_term_global();
+		return EXIT_FAILURE;
 	}
 
 	/*
@@ -219,7 +219,8 @@ int main(int argc, char *argv[])
 	if (params.perf_stat) {
 		if (start_performance(app_init_params.linux_core_id) <= 0) {
 			OFP_ERR("Error: Failed to init performance monitor\n");
-			goto exit_fpm_main;
+			odp_term_global();
+			return EXIT_FAILURE;
 		}
 	}
 
@@ -228,13 +229,13 @@ int main(int argc, char *argv[])
 	 * resources allocated by odp_init_global().
 	 */
 	odph_linux_pthread_join(thread_tbl, num_workers);
- exit_fpm_main:
+
 	if (odp_term_global() != 0)
-		exit_val = EXIT_FAILURE;
+		return EXIT_FAILURE;
 
 	printf("FPM End Main()\n");
 
-	return exit_val;
+	return EXIT_SUCCESS;
 }
 
 /**
@@ -415,8 +416,14 @@ static void *perf_client(void *arg)
 {
 	(void) arg;
 
-	odp_init_local(ODP_THREAD_CONTROL);
-	ofp_init_local();
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		return NULL;
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 
 	ofp_set_stat_flags(OFP_STAT_COMPUTE_PERF);
 

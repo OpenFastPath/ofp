@@ -726,7 +726,10 @@ void *start_netlink_nl_server(void *arg)
 	struct timeval timeout;
 
 	/* Lookup shared memories */
-	ofp_init_local();
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 
 	if ((route_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) < 0) {
 		OFP_ERR("Failed to create NETLINK socket");

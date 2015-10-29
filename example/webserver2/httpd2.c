@@ -184,8 +184,14 @@ static void *webserver(void *arg)
 
 	OFP_INFO("HTTP thread started");
 
-	odp_init_local(ODP_THREAD_CONTROL);
-	ofp_init_local();
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		return NULL;
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 	sleep(1);
 
 	myaddr = ofp_port_get_ipv4_addr(0, 0, OFP_PORTCONF_IP_TYPE_IP_ADDR);

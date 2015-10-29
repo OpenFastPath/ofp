@@ -86,7 +86,10 @@ int main(int argc, char *argv[])
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	odp_init_local(ODP_THREAD_CONTROL);
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	core_count = odp_cpu_count();
 	num_workers = core_count;
@@ -121,7 +124,10 @@ int main(int argc, char *argv[])
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
 	app_init_params.pkt_hook[OFP_HOOK_LOCAL] = fastpath_local_hook;
-	ofp_init_global(&app_init_params);
+	if (ofp_init_global(&app_init_params)) {
+		OFP_ERR("Error: OFP global init failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	/* Start dataplane dispatcher worker threads */

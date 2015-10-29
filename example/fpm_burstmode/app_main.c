@@ -68,8 +68,14 @@ static void *pkt_io_recv(void *arg)
 	thr_args = arg;
 	pkt_func = thr_args->pkt_func;
 
-	odp_init_local(ODP_THREAD_WORKER);
-	ofp_init_local();
+	if (odp_init_local(ODP_THREAD_WORKER)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		return NULL;
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 
 	pktio = ofp_port_pktio_get(thr_args->port);
 
@@ -105,7 +111,10 @@ static void *event_dispatcher(void *arg)
 
 	(void)arg;
 
-	ofp_init_local();
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 
 	while (1) {
 		ev = odp_schedule(NULL, ODP_SCHED_WAIT);
@@ -156,7 +165,10 @@ int main(int argc, char *argv[])
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	odp_init_local(ODP_THREAD_CONTROL);
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	memset(pktio_thr_args, 0, sizeof(pktio_thr_args));
@@ -191,7 +203,10 @@ int main(int argc, char *argv[])
 	app_init_params.if_names = params.if_names;
 	app_init_params.pkt_hook[OFP_HOOK_LOCAL] = fastpath_local_hook;
 	app_init_params.burst_recv_mode = 1;
-	ofp_init_global(&app_init_params);
+	if (ofp_init_global(&app_init_params)) {
+		OFP_ERR("Error: OFP global init failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	if (num_workers < params.if_count) {
 		OFP_ERR("At least %u fastpath cores required.\n",

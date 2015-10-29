@@ -25,8 +25,14 @@ static void *mcasttest(void *arg)
 
 	logprint("Multicast thread started\n");
 
-	odp_init_local(ODP_THREAD_CONTROL);
-	ofp_init_local();
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		return NULL;
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
 	sleep(1);
 
 	while (myaddr == 0) {
