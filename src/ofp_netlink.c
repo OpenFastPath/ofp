@@ -29,6 +29,7 @@
 #define BUFFER_SIZE 4096
 static char buffer[BUFFER_SIZE];
 
+#ifdef OFP_DEBUG
 static const char *rtm_msgtype_to_string(unsigned short type)
 {
 	switch (type) {
@@ -47,6 +48,7 @@ static const char *rtm_msgtype_to_string(unsigned short type)
 	}
 	return "?Unknown?";
 }
+#endif
 
 static int handle_ipv4v6_route(struct nlmsghdr *nlp)
 {
