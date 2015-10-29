@@ -213,7 +213,7 @@ again:
 	tso = 0;
 	off = tp->snd_nxt - tp->snd_una;
 #ifndef min
-#define min(a, b) (a>b ? b : a)
+#define min(a, b) ((int64_t)a > (int64_t)b ? (int64_t)b : (int64_t)a)
 #endif
 	sendwin = min(tp->snd_wnd, tp->snd_cwnd);
 

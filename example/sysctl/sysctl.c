@@ -207,14 +207,14 @@ sysctl(void *arg)
 	size_t retval;
 	ofp_sysctl("mybranch.telnet.counter", &counter, &counterlen,
 		     NULL, 0, &retval);
-	OFP_INFO("mybranch.telnet.counter=%ld len=%ld retval=%ld\n",
+	OFP_INFO("mybranch.telnet.counter=%"PRIu64" len=%zu retval=%zu\n",
 		  counter, counterlen, retval);
 	/*
 	 * Read the ssh bytes:
 	 */
 	ofp_sysctl("mybranch.ssh.counter", &counter, &counterlen,
 		     NULL, 0, &retval);
-	OFP_INFO("mybranch.ssh.counter=%ld len=%ld retval=%ld\n",
+	OFP_INFO("mybranch.ssh.counter=%"PRIu64" len=%zu retval=%zu\n",
 		  counter, counterlen, retval);
 
 	/*

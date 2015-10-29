@@ -2153,7 +2153,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 				TCPSTAT_INC(tcps_rcvwinprobe);
 			} else {
 				if (V_tcp_passive_trace)
-					OFP_INFO(">>>>>>. drop after ack (2) wnd=%lu seq=%u next=%u", tp->rcv_wnd, th->th_seq, tp->rcv_nxt);
+					OFP_INFO(">>>>>>. drop after ack (2) wnd=%"PRIu64" seq=%u next=%u", tp->rcv_wnd, th->th_seq, tp->rcv_nxt);
 				goto dropafterack;
 			}
 		} else {
