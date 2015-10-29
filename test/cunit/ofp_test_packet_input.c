@@ -490,11 +490,20 @@ test_ofp_packet_input_forwarding_to_output(void)
 	CU_ASSERT_EQUAL(odp_packet_len(pkt), sizeof(test_frame));
 
 	pkt = odp_packet_from_event(ev);
-	struct ofp_ip *ip_in_pkt_data = (struct ofp_ip *)(in_pkt_data + 14);
-	(ip_in_pkt_data)->ip_ttl--;
-	ip_in_pkt_data->ip_sum = 0;
-	ip_in_pkt_data->ip_sum = ofp_cksum_buffer((uint16_t *)ip_in_pkt_data,
-					ip_in_pkt_data->ip_hl<<2);
+	struct ofp_ip *ip_in_pkt_data =
+		(struct ofp_ip *)(in_pkt_data + OFP_ETHER_HDR_LEN);
+	ip_in_pkt_data->ip_ttl--;
+
+#ifdef OFP_PERFORMANCE
+        /*checksum is not filled on ip_output*/
+        ip_in_pkt_data->ip_sum =
+                ((struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL))->ip_sum;
+#else
+        ip_in_pkt_data->ip_sum = 0;
+        ip_in_pkt_data->ip_sum = ofp_cksum_buffer((uint16_t *)ip_in_pkt_data,
+                                        ip_in_pkt_data->ip_hl<<2);
+
+#endif
 
 	if (memcmp((uint8_t *)odp_packet_data(pkt) + odp_packet_l3_offset(pkt),
 		   in_pkt_data + OFP_ETHER_HDR_LEN,
