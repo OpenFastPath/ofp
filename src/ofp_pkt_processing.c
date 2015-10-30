@@ -341,11 +341,25 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 
 	ip->ip_ttl--;
 
-	if (ip->ip_p == OFP_IPPROTO_ICMP) {
-		OFP_DBG("OFP_ICMP_REDIRECT");
+#ifdef OFP_SEND_ICMP_REDIRECT
+	/* 1. The interface on which the packet comes into the router is the
+	 * same interface on which the packet gets routed out.
+	 * 2. The subnet or network of the source IP address is on the same
+	 * subnet or network of the next-hop IP address of the routed packet.
+	 * 3. Stack configured to send redirects.
+	 */
+#define INET_SUBNET_PREFIX(addr)				\
+	(odp_be_to_cpu_32(addr) & ((~0) << (32 - dev->masklen)))
+
+	if (nh->port == dev->port &&
+		(INET_SUBNET_PREFIX(ip->ip_src.s_addr) ==
+		INET_SUBNET_PREFIX(nh->gw))) {
+
+		OFP_DBG("send OFP_ICMP_REDIRECT");
 		ofp_icmp_error(pkt, OFP_ICMP_REDIRECT,
 				OFP_ICMP_REDIRECT_HOST, nh->gw, 0);
 	}
+#endif
 
 	return ofp_ip_output(pkt, nh);
 }

@@ -20,6 +20,8 @@
 /**Enable PERFORMANCE measurements mode. Some validations are skipped.*/
 /* #define OFP_PERFORMANCE */
 
+/**OFP configured to send ICMP redirect*/
+/* #define OFP_SEND_ICMP_REDIRECT */
 
 
 /* Configure values */
