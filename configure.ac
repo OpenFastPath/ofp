@@ -123,7 +123,7 @@ AC_ARG_WITH([odp],
      AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include"
      AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
      FIND_LIB_ODP_SO="$with_odp/lib"],
-    [])
+    [FIND_LIB_ODP_SO=$(dirname $(find /usr/lib -type f -name 'libodp.so*'))])
 
 ##########################################################################
 # Save and set temporary compilation flags
@@ -143,6 +143,9 @@ AC_CHECK_HEADERS([odp.h], [],
 ##########################################################################
 LDFLAGS=$OLD_LDFLAGS
 CPPFLAGS=$OLD_CPPFLAGS
+
+ODP_VERSION=$(ls $FIND_LIB_ODP_SO/libodp.so.* -r |head -1 | awk -F'.' '{print $3}')
+AC_SUBST(ODP_VERSION)
 
 # Enable/disable OFP_DEBUG
 ofp_debug=no
@@ -334,4 +337,5 @@ AC_MSG_RESULT([
         am_cxxflags:            ${AM_CXXFLAGS}
 	ldflags:		${LDFLAGS}
 	am_ldflags:		${AM_LDFLAGS}
+	odp_version:		${ODP_VERSION}
 ])

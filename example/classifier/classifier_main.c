@@ -82,7 +82,11 @@ int main(int argc, char *argv[])
 	if (core_count > 1)
 		num_workers--;
 
+#if ODP_VERSION < 104
 	num_workers = odp_cpumask_def_worker(&cpumask, num_workers);
+#else
+	num_workers = odp_cpumask_default_worker(&cpumask, num_workers);
+#endif
 	odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr));
 
 	printf("Num worker threads: %i\n", num_workers);
@@ -369,7 +373,11 @@ static odp_cos_t build_cos_w_queue(const char *name)
 		return ODP_COS_INVALID;
 	}
 
+#if ODP_VERSION < 104
 	if (odp_cos_set_queue(cos, queue_cos) < 0) {
+#else
+	if (odp_cos_queue_set(cos, queue_cos) < 0) {
+#endif
 		OFP_ERR("Failed to set queue on COS");
 		odp_cos_destroy(cos);
 		odp_queue_destroy(queue_cos);
@@ -389,7 +397,11 @@ static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos)
 		return ODP_COS_INVALID;
 	}
 
+#if ODP_VERSION < 104
 	if (odp_cos_set_queue(cos, queue_cos) < 0) {
+#else
+	if (odp_cos_queue_set(cos, queue_cos) < 0) {
+#endif
 		OFP_ERR("Failed to set queue on COS");
 		odp_cos_destroy(cos);
 		return ODP_COS_INVALID;
@@ -403,10 +415,21 @@ static odp_pmr_t build_udp_prm(void)
 	uint32_t pmr_udp_val = TEST_PORT;
 	uint32_t pmr_udp_mask = 0xffffffff;
 
+#if ODP_VERSION < 104
 	return odp_pmr_create(ODP_PMR_UDP_DPORT,
 			      &pmr_udp_val,
 			      &pmr_udp_mask,
 			      1);
+#else
+	const odp_pmr_match_t match = {
+		.term = ODP_PMR_UDP_DPORT,
+		.val = &pmr_udp_val,
+		.mask = &pmr_udp_mask,
+		.val_sz = 1
+	};
+
+	return odp_pmr_create(&match);
+#endif
 }
 
 static void app_processing(void)

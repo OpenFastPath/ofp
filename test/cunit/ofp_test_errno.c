@@ -48,7 +48,11 @@ static void test_tls_errno(void)
 	odp_barrier_t barrier__;
 	odp_barrier_t *barrier;
 
+#if ODP_VERSION < 104
 	CU_ASSERT(1 == odp_cpumask_def_worker(&cpumask, 1));
+#else
+	CU_ASSERT(1 == odp_cpumask_default_worker(&cpumask, 1));
+#endif
 
 	barrier = &barrier__;
 	odp_barrier_init(barrier, 2);

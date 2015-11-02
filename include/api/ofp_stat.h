@@ -21,7 +21,7 @@ struct ofp_packet_stat {
 		unsigned int rx_ip_reass;
 		uint64_t input_latency[64];
 		uint64_t last_input_cycles;
-	} per_core[ODP_CONFIG_MAX_THREADS];
+	} per_core[ODP_CPUMASK_STR_SIZE];
 };
 
 struct ofp_perf_stat {
