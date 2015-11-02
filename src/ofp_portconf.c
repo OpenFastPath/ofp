@@ -16,6 +16,10 @@
 
 #include "ofpi_queue.h"
 #include "ofpi_ioctl.h"
+#include "ofpi_if_vxlan.h"
+#include "ofpi_tree.h"
+#include "ofpi_sysctl.h"
+#include "ofpi_in_var.h"
 
 #include "ofpi_log.h"
 
@@ -132,6 +136,19 @@ int ofp_portconf_init_global(void)
 		   shm->ofp_ifnet_data[i].if_afdata[OFP_AF_INET6] =
 		   &shm->ofp_ifnet_data[i].ii_inet6;
 		*/
+		/* Set locally administered default mac address.
+		   This is needed by vxlan and other
+		   virtual interfaces.
+		*/
+		odp_random_data((uint8_t *)shm->ofp_ifnet_data[i].mac,
+				sizeof(shm->ofp_ifnet_data[i].mac), 0);
+		/* Universally administered and locally administered addresses
+		   are distinguished by setting the second least significant bit
+		   of the most significant byte of the address.
+		*/
+		shm->ofp_ifnet_data[i].mac[0] = 0x02;
+		/* Port number. */
+		shm->ofp_ifnet_data[i].mac[1] = i;
 	}
 
 	shm->ofp_num_ports = NUM_PORTS;
@@ -213,6 +230,41 @@ static int iter_vlan(void *key, void *iter_arg)
 		return 0;
 	}
 
+	if (iface->port == VXLAN_PORTS) {
+		struct ofp_ifnet *out = ofp_get_ifnet(iface->physport,
+						      iface->physvlan);
+#ifdef SP
+		ofp_sendf(fd, "vxlan%d	(%d) slowpath: %s\r\n", iface->vlan,
+			    iface->linux_index,
+			    iface->sp_status ? "on" : "off");
+#else
+		ofp_sendf(fd, "vxlan%d\r\n", iface->vlan);
+#endif
+
+		if (iface->vrf)
+			ofp_sendf(fd, "	VRF: %d\r\n", iface->vrf);
+
+		ofp_sendf(fd,
+			"	Link encap:Ethernet	HWaddr: %s\r\n"
+			"	inet addr:%s	Bcast:%s	Mask:%s\r\n"
+#ifdef INET6
+			"	inet6 addr: %s\r\n"
+#endif /* INET6 */
+			"	Group:%s	Iface:%s\r\n"
+			"	MTU: %d\r\n",
+			  ofp_print_mac(iface->mac),
+			  ofp_print_ip_addr(iface->ip_addr),
+			  ofp_print_ip_addr(iface->bcast_addr),
+			  ofp_print_ip_addr(mask),
+#ifdef INET6
+			  ofp_print_ip6_addr(iface->link_local),
+#endif /* INET6 */
+			  ofp_print_ip_addr(iface->ip_p2p),
+			  out ? out->if_name : "N/A",
+			  iface->if_mtu);
+		return 0;
+	}
+
 	snprintf(buf, sizeof(buf), ".%d", iface->vlan);
 
 	if (ofp_has_mac(iface->mac)) {
@@ -278,7 +330,7 @@ void ofp_show_interfaces(int fd)
 	int i;
 
 	/* fp interfaces */
-	for (i = 0; i < shm->ofp_num_ports - 1; i++) {
+	for (i = 0; i < shm->ofp_num_ports - 2; i++) {
 		iter_vlan(&shm->ofp_ifnet_data[i], &fd);
 		vlan_iterate_inorder(shm->ofp_ifnet_data[i].vlan_structs,
 					iter_vlan, &fd);
@@ -291,6 +343,15 @@ void ofp_show_interfaces(int fd)
 			iter_vlan, &fd);
 	else
 		ofp_sendf(fd, "gre\r\n"
+				"	Link not configured\r\n\r\n");
+
+	/* vxlan interfaces */
+	if (avl_get_first(shm->ofp_ifnet_data[VXLAN_PORTS].vlan_structs))
+		vlan_iterate_inorder(
+			shm->ofp_ifnet_data[VXLAN_PORTS].vlan_structs,
+			iter_vlan, &fd);
+	else
+		ofp_sendf(fd, "vxlan\r\n"
 				"	Link not configured\r\n\r\n");
 }
 
@@ -323,7 +384,6 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 #ifdef SP
 	(void)ret;
 #endif
-
 	if (port < 0 || port >= shm->ofp_num_ports - 1)
 		return "Wrong port number";
 
@@ -489,6 +549,92 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 	return NULL;
 }
 
+const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
+					  int vni, uint32_t group,
+					  int physport, int physvlan)
+{
+#ifdef SP
+	int ret = 0, new = 0;
+#endif /* SP */
+	struct ofp_ifnet *data, *dev_root;
+
+#ifdef SP
+	(void)ret;
+	(void)new;
+#endif
+	(void)vrf; /* vrf is copied from the root device */
+
+	dev_root = ofp_get_ifnet(physport, physvlan);
+	if (dev_root == NULL)
+		return "No physical device configured.";
+
+	data = ofp_get_ifnet(VXLAN_PORTS, vni);
+
+	/* To be on the safe side it is better to put down the interface and
+	   reconfigure.*/
+	if (data) {
+		ofp_config_interface_down(data->port, data->vlan);
+		data = NULL;
+	}
+
+	data = ofp_get_create_ifnet(VXLAN_PORTS, vni);
+	data->if_type = OFP_IFT_VXLAN;
+
+	data->vrf = dev_root->vrf;
+	data->ip_p2p = group;
+	data->ip_addr = addr;
+	data->masklen = mlen;
+	data->bcast_addr = addr | ~odp_cpu_to_be_32(~0 << (32 - mlen));
+	data->if_mtu = dev_root->if_mtu - sizeof(struct ofp_vxlan_udp_ip);
+	data->physport = physport;
+	data->physvlan = physvlan;
+	data->pkt_pool = ofp_packet_pool;
+
+	/* Add interface to the if_addr v4 queue */
+	ofp_ifaddr_elem_add(data);
+
+	shm->ofp_ifnet_data[VXLAN_PORTS].pkt_pool = ofp_packet_pool;
+	ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, vni, VXLAN_PORTS,
+			     data->ip_addr, data->masklen, 0 /*gw*/);
+
+	/* Join root device to multicast group. */
+	struct ofp_in_addr gina;
+	gina.s_addr = group;
+
+	/* Use data->ii_inet.ii_allhosts for Vxlan purposes. */
+	ofp_in_joingroup(dev_root, &gina, NULL, &data->ii_inet.ii_allhosts);
+
+#ifdef SP
+	if (data->vrf == 0)
+		data->sp_status = OFP_SP_UP;
+	else
+		data->sp_status = OFP_SP_DOWN;
+	/*
+	snprintf(cmd, sizeof(cmd),
+		 "ip tunnel %s %s mode gre local %s remote %s ttl 255",
+		 (new ? "add" : "change"),
+		 ofp_port_vlan_to_ifnet_name(port, greid),
+		 ofp_print_ip_addr(tun_loc), ofp_print_ip_addr(tun_rem));
+	ret = exec_sys_call_depending_on_vrf(cmd, vrf);
+	*/
+	/*
+	snprintf(cmd, sizeof(cmd),
+		 "ip link set dev %s up",
+		 ofp_port_vlan_to_ifnet_name(port, vxlanid));
+	ret = exec_sys_call_depending_on_vrf(cmd, vrf);
+	*/
+	/*
+	snprintf(cmd, sizeof(cmd),
+		 "ip addr add dev %s %s peer %s",
+		 ofp_port_vlan_to_ifnet_name(port, greid),
+		 ofp_print_ip_addr(addr), ofp_print_ip_addr(p2p));
+	ret = exec_sys_call_depending_on_vrf(cmd, vrf);
+	*/
+#endif /* SP */
+
+	return NULL;
+}
+
 #ifdef INET6
 const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 			uint8_t *addr, int masklen)
@@ -635,6 +781,13 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 #endif /* SP */
 		}
 #endif /* INET6 */
+
+		if (data->port == VXLAN_PORTS &&
+		    data->ii_inet.ii_allhosts) {
+			/* Use data->ii_inet.ii_allhosts for Vxlan. */
+			ofp_in_leavegroup(data->ii_inet.ii_allhosts, NULL);
+		}
+
 		vlan_ifnet_delete(
 			shm->ofp_ifnet_data[port].vlan_structs,
 			&key,
@@ -646,7 +799,8 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		else
 			snprintf(cmd, sizeof(cmd), "vconfig rem %s",
 				 ofp_port_vlan_to_ifnet_name(port, vlan));
-		ret = exec_sys_call_depending_on_vrf(cmd, vrf);
+		if (data->port != VXLAN_PORTS)
+			ret = exec_sys_call_depending_on_vrf(cmd, vrf);
 #endif /*SP*/
 	} else {
 		data = ofp_get_ifnet(port, vlan);
@@ -866,6 +1020,9 @@ static int iter_interface(void *key, void *iter_arg)
 	if (iface->port == GRE_PORTS)
 		snprintf(ifr->ifr_name, OFP_IFNAMSIZ,
 			 "gre%d", iface->vlan);
+	else if (iface->port == VXLAN_PORTS)
+		snprintf(ifr->ifr_name, OFP_IFNAMSIZ,
+			 "vxlan%d", iface->vlan);
 	else if (iface->vlan)
 		snprintf(ifr->ifr_name, OFP_IFNAMSIZ,
 			 "fp%d.%d", iface->port, iface->vlan);
@@ -893,6 +1050,12 @@ void ofp_get_interfaces(struct ofp_ifconf *ifc)
 	if (avl_get_first(shm->ofp_ifnet_data[GRE_PORTS].vlan_structs))
 		vlan_iterate_inorder(
 			shm->ofp_ifnet_data[GRE_PORTS].vlan_structs,
+			iter_interface, ifc);
+
+	/* vxlan interfaces */
+	if (avl_get_first(shm->ofp_ifnet_data[VXLAN_PORTS].vlan_structs))
+		vlan_iterate_inorder(
+			shm->ofp_ifnet_data[VXLAN_PORTS].vlan_structs,
 			iter_interface, ifc);
 
 	ifc->ifc_len = ifc->ifc_current_len;
@@ -962,7 +1125,7 @@ static int vlan_match_tun(void *key, void *iter_arg)
 }
 
 struct ofp_ifnet *ofp_get_ifnet_by_tunnel(uint32_t tun_loc,
-					      uint32_t tun_rem, uint16_t vrf)
+					  uint32_t tun_rem, uint16_t vrf)
 {
 	uint16_t port = GRE_PORTS;
 	uint16_t greid;
