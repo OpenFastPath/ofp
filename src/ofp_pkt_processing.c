@@ -47,8 +47,12 @@
 #include "ofpi_hook.h"
 #include "ofpi_log.h"
 #include "ofpi_reass.h"
+#include "ofpi_if_vxlan.h"
+#include "ofpi_vxlan.h"
 #include "api/ofp_init.h"
 
+
+extern odp_pool_t ofp_packet_pool;
 
 void *default_event_dispatcher(void *arg)
 {
@@ -143,7 +147,8 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 #endif
 	}
 
-	odp_packet_user_ptr_set(pkt, ofp_get_ifnet(ifnet->port, vlan));
+	if (odp_likely(ifnet->port != VXLAN_PORTS))
+		odp_packet_user_ptr_set(pkt, ofp_get_ifnet(ifnet->port, vlan));
 	OFP_DBG("ETH TYPE = %x\n", odp_be_to_cpu_16(eth->ether_type));
 
 	/* network layer classifier */
@@ -263,6 +268,22 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		return OFP_PKT_DROP;
 	}
 
+	if (odp_unlikely(!PHYS_PORT(dev->port))) {
+		switch (dev->port) {
+		case GRE_PORTS:
+			/* Doesn't happen. */
+			break;
+		case VXLAN_PORTS: {
+			/* Look for the correct device. */
+			struct vxlan_user_data *saved = odp_packet_user_area(pkt);
+			dev = ofp_get_ifnet(VXLAN_PORTS, saved->vni);
+			if (!dev)
+				return OFP_PKT_DROP;
+			break;
+		}
+		}
+	}
+
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(ip->ip_v != 4))
 		return OFP_PKT_DROP;
@@ -304,7 +325,6 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	OFP_HOOK(OFP_HOOK_FWD_IPv4, pkt, NULL, &res);
 	if (res != OFP_PKT_CONTINUE)
 		return res;
-
 
 	nh = ofp_get_next_hop(dev->vrf, ip->ip_dst.s_addr, &flags);
 	if (nh == NULL) {
@@ -458,7 +478,9 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 {
 	struct ofp_arphdr *arp;
 	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
+	struct ofp_ifnet *outdev = dev;
 	uint16_t vlan = dev->vlan;
+	uint8_t inner_from_mac[OFP_ETHER_ADDR_LEN];
 
 	arp = (struct ofp_arphdr *)odp_packet_l3_ptr(pkt, NULL);
 
@@ -474,6 +496,20 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 	OFP_DBG("Device IP: %s, Packet Dest IP: %s",
 		ofp_print_ip_addr(dev->ip_addr),
 		ofp_print_ip_addr(arp->ip_dst));
+
+	/* Check for VXLAN interface */
+	if (odp_unlikely(!PHYS_PORT(dev->port))) {
+		switch (dev->port) {
+		case GRE_PORTS:
+			/* Never happens. */
+			break;
+		case VXLAN_PORTS: {
+			ofp_vxlan_update_devices(arp, &vlan, &dev, &outdev,
+						 inner_from_mac);
+			break;
+		}
+		} /* switch */
+	}
 
 	/* on our interface an ARP request */
 	if ((dev->ip_addr) && dev->ip_addr == (ofp_in_addr_t)(arp->ip_dst) &&
@@ -526,10 +562,28 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 			*eth = tmp_eth;
 		}
 
-		return send_pkt_out(dev, pkt);
+		if (odp_unlikely(!PHYS_PORT(dev->port))) {
+			switch (dev->port) {
+			case GRE_PORTS:
+				/* Never happens. */
+				break;
+			case VXLAN_PORTS: {
+				/* Restore the original vxlan header and
+				   update the addresses */
+				ofp_vxlan_restore_and_update_header
+					(pkt, outdev, inner_from_mac);
+				break;
+			}
+			} /* switch */
+		} /* not phys port */
+
+		return send_pkt_out(outdev, pkt);
 	}
 	return OFP_PKT_CONTINUE;
 }
+
+#define ETH_WITH_VLAN(_dev) (_dev->vlan && _dev->port != VXLAN_PORTS)
+#define ETH_WITHOUT_VLAN(_vlan, _port) (_vlan == 0 || _port == VXLAN_PORTS)
 
 static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 {
@@ -546,7 +600,7 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 	memset(e1->ether_dhost, 0xff, OFP_ETHER_ADDR_LEN);
 	memcpy(e1->ether_shost, dev->mac, OFP_ETHER_ADDR_LEN);
 
-	if (dev->vlan) {
+	if (ETH_WITH_VLAN(dev)) {
 		arp = (struct ofp_arphdr *) (e2 + 1);
 		e2->evl_encap_proto = odp_cpu_to_be_16(OFP_ETHERTYPE_VLAN);
 		e2->evl_tag = odp_cpu_to_be_16(dev->vlan);
@@ -576,10 +630,15 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 
 	memcpy(odp_packet_data(pkt), buf, size);
 
+	if (odp_unlikely(dev->port == VXLAN_PORTS)) {
+		ofp_vxlan_send_arp_request(pkt, dev);
+		return;
+	}
+
 	odp_packet_has_eth_set(pkt, 1);
 	odp_packet_has_arp_set(pkt, 1);
 	odp_packet_l2_offset_set(pkt, 0);
-	odp_packet_l3_offset_set(pkt, size - sizeof(*arp));
+	odp_packet_l3_offset_set(pkt, size - sizeof(struct ofp_arphdr));
 
 	if (send_pkt_out(dev, pkt) == OFP_PKT_DROP)
 		odp_packet_free(pkt);
@@ -671,6 +730,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 	struct ofp_ether_header *eth, *eth_new;
 	struct ofp_ether_vlan_header *eth_vlan, *eth_new_vlan;
 	int ret = OFP_PKT_PROCESSED;
+
 
 	if (!vlan)
 		eth = odp_packet_l2_ptr(pkt, NULL);
@@ -809,80 +869,38 @@ static enum ofp_return_code ofp_output_ipv4_to_gre(
 	return OFP_PKT_CONTINUE;
 }
 
-enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
-	struct ofp_nh_entry *nh_param)
+static enum ofp_return_code ofp_gre_update_target(odp_packet_t pkt,
+						  struct ip_out *odata)
 {
-	struct ofp_ip *ip;
+	struct ofp_nh_entry *nh_new = NULL;
+
+	if (ofp_output_ipv4_to_gre(pkt, odata->dev_out, odata->vrf,
+				   &nh_new) == OFP_PKT_DROP)
+		return OFP_PKT_DROP;
+
+	odata->nh = nh_new;
+	odata->gw = odata->nh->gw;
+	odata->vlan = odata->nh->vlan;
+	odata->out_port = odata->nh->port;
+	odata->ip = odp_packet_l3_ptr(pkt, NULL);
+
+	odata->dev_out = ofp_get_ifnet(odata->out_port, odata->vlan);
+	if (!odata->dev_out)
+		return OFP_PKT_DROP;
+
+	return OFP_PKT_CONTINUE;
+}
+
+static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
+						  struct ip_out *odata)
+{
 	uint8_t l2_size = 0;
 	void *l2_addr;
-	uint32_t flags;
-	struct ofp_nh_entry *nh, *nh_new = NULL;
-	uint32_t gw;
-	uint16_t vlan;
-	int out_port;
-	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
-	struct ofp_ifnet *dev_out = NULL;
-	uint16_t vrf = send_ctx ? send_ctx->vrf : 0;
-	uint8_t is_local_address = 0;
 
-	if (odp_packet_l3_offset(pkt) == ODP_PACKET_OFFSET_INVALID)
-		odp_packet_l3_offset_set(pkt, 0);
-	ip = (struct ofp_ip *) odp_packet_l3_ptr(pkt, NULL);
-	if (odp_unlikely(ip == NULL)) {
-		OFP_DBG("ip is NULL");
-		return OFP_PKT_DROP;
-	}
+	if (!odata->gw) /* link local */
+		odata->gw = odata->ip->ip_dst.s_addr;
 
-	if (ip->ip_p == OFP_IPPROTO_TCP) {
-		/* Checksum calculation is done here. We don't know if
-		   the hardware does this or is it our job. Either way,
-		   there is only one place to modify. */
-		struct ofp_tcphdr *th = (struct ofp_tcphdr *)
-			((uint8_t *)ip + (ip->ip_hl<<2));
-		th->th_sum = 0;
-		th->th_sum = ofp_in4_cksum(pkt);
-	}
-
-	if (nh_param) {
-		nh = nh_param;
-	} else {
-		nh = ofp_get_next_hop(vrf, ip->ip_dst.s_addr, &flags);
-		if (!nh)
-			return OFP_PKT_DROP;
-	}
-
-	gw = nh->gw;
-	vlan = nh->vlan;
-	out_port = nh->port;
-
-	dev_out = ofp_get_ifnet(out_port, vlan);
-
-	if (!dev_out) {
-		OFP_DBG("!dev_out");
-		return OFP_PKT_DROP;
-	}
-
-	/* GRE */
-	if (out_port == GRE_PORTS) {
-		if (ofp_output_ipv4_to_gre(pkt, dev_out, vrf,
-					     &nh_new) == OFP_PKT_DROP)
-			return OFP_PKT_DROP;
-
-		nh = nh_new;
-		gw = nh->gw;
-		vlan = nh->vlan;
-		out_port = nh->port;
-		ip = odp_packet_l3_ptr(pkt, NULL);
-
-		dev_out = ofp_get_ifnet(out_port, vlan);
-		if (!dev_out)
-			return OFP_PKT_DROP;
-	}
-
-	if (!gw) /* link local */
-		gw = ip->ip_dst.s_addr;
-
-	if (!vlan)
+	if (ETH_WITHOUT_VLAN(odata->vlan, odata->out_port))
 		l2_size = sizeof(struct ofp_ether_header);
 	else
 		l2_size = sizeof(struct ofp_ether_vlan_header);
@@ -898,7 +916,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 					l2_size - odp_packet_l3_offset(pkt));
 		odp_packet_l2_offset_set(pkt, 0);
 		odp_packet_l3_offset_set(pkt, l2_size);
-		odp_packet_l4_offset_set(pkt, l2_size + (ip->ip_hl<<2));
+		odp_packet_l4_offset_set(pkt, l2_size + (odata->ip->ip_hl<<2));
 	}
 
 	if (odp_unlikely(l2_addr == NULL)) {
@@ -906,10 +924,10 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 		return OFP_PKT_DROP;
 	}
 
-	if (!vlan) {
+	if (ETH_WITHOUT_VLAN(odata->vlan, odata->out_port)) {
 		struct ofp_ether_header *eth =
 				(struct ofp_ether_header *)l2_addr;
-		uint32_t addr = odp_be_to_cpu_32(ip->ip_dst.s_addr);
+		uint32_t addr = odp_be_to_cpu_32(odata->ip->ip_dst.s_addr);
 
 		if (OFP_IN_MULTICAST(addr)) {
 			eth->ether_dhost[0] = 0x01;
@@ -918,20 +936,21 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 			eth->ether_dhost[3] = (addr >> 16) & 0x7f;
 			eth->ether_dhost[4] = (addr >> 8) & 0xff;
 			eth->ether_dhost[5] = addr & 0xff;
-		} else if (dev_out->ip_addr == ip->ip_dst.s_addr) {
-			is_local_address = 1;
-			ofp_copy_mac(eth->ether_dhost, &(dev_out->mac[0]));
-		} else if (ofp_get_mac(dev_out, gw, eth->ether_dhost) < 0) {
-			send_arp_request(dev_out, gw);
-			return ofp_arp_save_ipv4_pkt(pkt, nh, gw, dev_out);
+		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr) {
+			odata->is_local_address = 1;
+			ofp_copy_mac(eth->ether_dhost, &(odata->dev_out->mac[0]));
+		} else if (ofp_get_mac(odata->dev_out, odata->gw, eth->ether_dhost) < 0) {
+			send_arp_request(odata->dev_out, odata->gw);
+			return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
+						     odata->gw, odata->dev_out);
 		}
 
-		ofp_copy_mac(eth->ether_shost, dev_out->mac);
+		ofp_copy_mac(eth->ether_shost, odata->dev_out->mac);
 		eth->ether_type = odp_cpu_to_be_16(OFP_ETHERTYPE_IP);
 	} else {
 		struct ofp_ether_vlan_header *eth_vlan =
 			(struct ofp_ether_vlan_header *)l2_addr;
-		uint32_t addr = odp_be_to_cpu_32(ip->ip_dst.s_addr);
+		uint32_t addr = odp_be_to_cpu_32(odata->ip->ip_dst.s_addr);
 
 		if (OFP_IN_MULTICAST(addr)) {
 			eth_vlan->evl_dhost[0] = 0x01;
@@ -940,42 +959,133 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 			eth_vlan->evl_dhost[3] = (addr >> 16) & 0x7f;
 			eth_vlan->evl_dhost[4] = (addr >> 8) & 0xff;
 			eth_vlan->evl_dhost[5] = addr & 0xff;
-		} else if (dev_out->ip_addr == ip->ip_dst.s_addr) {
-			is_local_address = 1;
-			ofp_copy_mac(eth_vlan->evl_dhost, dev_out->mac);
-		} else if (ofp_get_mac(dev_out,
-				gw, eth_vlan->evl_dhost) < 0) {
-			send_arp_request(dev_out, gw);
-			return ofp_arp_save_ipv4_pkt(pkt, nh, gw, dev_out);
+		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr) {
+			odata->is_local_address = 1;
+			ofp_copy_mac(eth_vlan->evl_dhost, odata->dev_out->mac);
+		} else if (ofp_get_mac(odata->dev_out,
+				odata->gw, eth_vlan->evl_dhost) < 0) {
+			send_arp_request(odata->dev_out, odata->gw);
+			return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
+						     odata->gw, odata->dev_out);
 		}
 
-		ofp_copy_mac(eth_vlan->evl_shost, dev_out->mac);
+		ofp_copy_mac(eth_vlan->evl_shost, odata->dev_out->mac);
 		eth_vlan->evl_encap_proto = odp_cpu_to_be_16(
 							OFP_ETHERTYPE_VLAN);
-		eth_vlan->evl_tag = odp_cpu_to_be_16(vlan);
+		eth_vlan->evl_tag = odp_cpu_to_be_16(odata->vlan);
 		eth_vlan->evl_proto = odp_cpu_to_be_16(OFP_ETHERTYPE_IP);
 	}
 
+	return OFP_PKT_CONTINUE;
+}
+
+
+static enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
+					       struct ip_out *odata)
+{
 	/* Fragmentation */
-	if (odp_be_to_cpu_16(ip->ip_len) > dev_out->if_mtu) {
+	if (odp_be_to_cpu_16(odata->ip->ip_len) > odata->dev_out->if_mtu) {
 		OFP_DBG("Fragmentation required");
-		if (odp_be_to_cpu_16(ip->ip_off) & OFP_IP_DF) {
+		if (odp_be_to_cpu_16(odata->ip->ip_off) & OFP_IP_DF) {
 			ofp_icmp_error(pkt, OFP_ICMP_UNREACH,
 					OFP_ICMP_UNREACH_NEEDFRAG,
-					0, dev_out->if_mtu);
+					0, odata->dev_out->if_mtu);
 			return OFP_PKT_DROP;
 		}
-		return ofp_fragment_pkt(pkt, dev_out, is_local_address);
+		return ofp_fragment_pkt(pkt, odata->dev_out, odata->is_local_address);
 	}
 
 #ifndef OFP_PERFORMANCE
-	ip->ip_sum = 0;
-	ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2);
+	odata->ip->ip_sum = 0;
+	odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *)odata->ip, odata->ip->ip_hl<<2);
 #endif
-	if (is_local_address)
-		return send_pkt_loop(dev_out, pkt);
+	if (odata->is_local_address)
+		return send_pkt_loop(odata->dev_out, pkt);
 	else
-		return send_pkt_out(dev_out, pkt);
+		return send_pkt_out(odata->dev_out, pkt);
+}
+
+static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
+						     struct ip_out *odata)
+{
+	uint32_t flags;
+
+	if (odp_packet_l3_offset(pkt) == ODP_PACKET_OFFSET_INVALID)
+		odp_packet_l3_offset_set(pkt, 0);
+	odata->ip = (struct ofp_ip *) odp_packet_l3_ptr(pkt, NULL);
+	if (odp_unlikely(odata->ip == NULL)) {
+		OFP_DBG("ip is NULL");
+		return OFP_PKT_DROP;
+	}
+
+	if (odata->ip->ip_p == OFP_IPPROTO_TCP) {
+		/* Checksum calculation is done here. We don't know if
+		   the hardware does this or is it our job. Either way,
+		   there is only one place to modify. */
+		struct ofp_tcphdr *th = (struct ofp_tcphdr *)
+			((uint8_t *)odata->ip + (odata->ip->ip_hl<<2));
+		th->th_sum = 0;
+		th->th_sum = ofp_in4_cksum(pkt);
+	}
+
+	if (!odata->nh) {
+		odata->nh = ofp_get_next_hop(odata->vrf, odata->ip->ip_dst.s_addr, &flags);
+		if (!odata->nh)
+			return OFP_PKT_DROP;
+	}
+
+	odata->gw = odata->nh->gw;
+	odata->vlan = odata->nh->vlan;
+	odata->out_port = odata->nh->port;
+
+	odata->dev_out = ofp_get_ifnet(odata->out_port, odata->vlan);
+
+	if (!odata->dev_out) {
+		OFP_DBG("!dev_out");
+		return OFP_PKT_DROP;
+	}
+
+	/* User has not filled in the source addess */
+	if (odata->ip->ip_src.s_addr == 0)
+		odata->ip->ip_src.s_addr = odata->dev_out->ip_addr;
+
+	return OFP_PKT_CONTINUE;
+}
+
+enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
+	struct ofp_nh_entry *nh_param)
+{
+	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
+	struct ip_out odata;
+	enum ofp_return_code ret;
+
+	odata.dev_out = NULL;
+	odata.vrf = send_ctx ? send_ctx->vrf : 0;
+	odata.is_local_address = 0;
+	odata.nh = nh_param;
+
+	if ((ret = ofp_ip_output_find_route(pkt, &odata)) != OFP_PKT_CONTINUE)
+		return ret;
+
+	switch (odata.out_port) {
+	case GRE_PORTS:
+		if ((ret = ofp_gre_update_target(pkt, &odata)) != OFP_PKT_CONTINUE)
+			return ret;
+		break;
+	case VXLAN_PORTS:
+		if ((ret = ofp_ip_output_add_eth(pkt, &odata)) != OFP_PKT_CONTINUE)
+			return ret;
+		if ((ret = ofp_ip_output_vxlan(pkt, &odata)) != OFP_PKT_CONTINUE)
+			return ret;
+		if ((ret = ofp_ip_output_find_route(pkt, &odata)) != OFP_PKT_CONTINUE)
+			return ret;
+		break;
+	}
+
+	if ((ret = ofp_ip_output_add_eth(pkt, &odata)) != OFP_PKT_CONTINUE)
+			return ret;
+
+	return ofp_ip_output_send(pkt, &odata);
 }
 
 enum ofp_return_code  ofp_ip_output_opt(odp_packet_t pkt, odp_packet_t opt,
@@ -1236,13 +1346,18 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	odp_pktio_t pktio;
 	int res;
 
-	pktio = odp_packet_input(pkt);
-	if (pktio != ODP_PKTIO_INVALID) /* pkt received from interface */
-		ifnet = (struct ofp_ifnet *)odp_queue_context(
-			odp_pktio_outq_getdef(pktio));
-	else { /* loopback and cunit*/
-		ifnet = (struct ofp_ifnet *)odp_queue_context(in_queue);
-		if (!ifnet) {
+	/* Packets from VXLAN interfaces do not have an outq even
+	 * they have a valid pktio. Use loopback context instead. */
+	ifnet = (struct ofp_ifnet *)odp_queue_context(in_queue);
+
+	if (odp_likely(ifnet == NULL)) {
+		pktio = odp_packet_input(pkt);
+		if (odp_likely(pktio != ODP_PKTIO_INVALID)) {
+			/* pkt received from eth interface */
+			ifnet = (struct ofp_ifnet *)odp_queue_context(
+			        odp_pktio_outq_getdef(pktio));
+		} else {
+			/* loopback and cunit error */
 			odp_packet_free(pkt);
 			return OFP_PKT_DROP;
 		}
@@ -1273,6 +1388,12 @@ enum ofp_return_code ofp_sp_input(odp_packet_t pkt,
 	struct ofp_ifnet *ifnet)
 {
 #ifdef SP
+	/* Virtual iface may not have spq. */
+	if (!ifnet->spq_def) {
+		odp_packet_free(pkt);
+		return OFP_PKT_DROP;
+	}
+
 	if (odp_queue_enq(ifnet->spq_def, odp_packet_to_event(pkt)) < 0) {
 		odp_packet_free(pkt);
 		return OFP_PKT_DROP;
