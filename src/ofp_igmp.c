@@ -110,7 +110,9 @@ static void	igmp_intr(odp_packet_t );
 static int	igmp_isgroupreported(const struct ofp_in_addr);
 static odp_packet_t
 		igmp_ra_alloc(void);
+#ifdef IGMP_DEBUG
 static const char *igmp_rec_type_to_str(const int);
+#endif
 static void	igmp_set_version(struct ofp_igmp_ifinfo *, const int);
 static void	igmp_slowtimo_vnet(void);
 static int	igmp_v1v2_queue_report(struct ofp_in_multi *, const int);
@@ -144,7 +146,11 @@ static const struct netisr_handler igmp_nh = {
 };
 #endif
 
-#define CTR1(_l, _fmt, ...)  OFP_INFO(_fmt, ##__VA_ARGS__)
+#ifdef IGMP_DEBUG
+#define CTR1(_l, _fmt, ...)  OFP_DBG(_fmt, ##__VA_ARGS__)
+#else
+#define CTR1(_l, _fmt, ...) do { } while (0)
+#endif
 #define CTR2 CTR1
 #define CTR3 CTR1
 #define CTR4 CTR1
@@ -235,9 +241,9 @@ static void netisr_dispatch(int x, odp_packet_t pkt)
  * as anything which modifies ifma needs to be covered by that lock.
  * So check for ifma_protospec being NULL before proceeding.
  */
-odp_rwlock_t igmp_mtx;
+odp_rwlock_t ofp_igmp_mtx;
 
-odp_packet_t m_raopt;		 /* Router Alert option */
+odp_packet_t ofp_m_raopt = ODP_PACKET_INVALID; /* Router Alert option */
 //HJo MALLOC_DEFINE(M_IGMP, "igmp", "igmp state");
 
 #define	VNET_DEFINE(t, n)	t n
@@ -701,7 +707,7 @@ out:
  * NOTE: Some finalization tasks need to run before the protocol domain
  * is detached, but also before the link layer does its cleanup.
  *
- * SMPNG: igmp_ifdetach() needs to take IF_ADDR_LOCK().
+ * SMPNG: ofp_igmp_ifdetach() needs to take IF_ADDR_LOCK().
  * XXX This is also bitten by unlocked ifma_protospec access.
  */
 void
@@ -732,7 +738,7 @@ ofp_igmp_ifdetach(struct ofp_ifnet *ifp)
 				OFP_SLIST_INSERT_HEAD(&igi->igi_relinmhead,
 				    inm, inm_nrele);
 			}
-			inm_clear_recorded(inm);
+			ofp_inm_clear_recorded(inm);
 		}
 		IF_ADDR_RUNLOCK(ifp);
 		/*
@@ -741,7 +747,7 @@ ofp_igmp_ifdetach(struct ofp_ifnet *ifp)
 		OFP_SLIST_FOREACH_SAFE(inm, &igi->igi_relinmhead, inm_nrele,
 		    tinm) {
 			OFP_SLIST_REMOVE_HEAD(&igi->igi_relinmhead, inm_nrele);
-			inm_release_locked(inm);
+			ofp_inm_release_locked(inm);
 		}
 	}
 
@@ -1249,7 +1255,7 @@ igmp_input_v3_group_query(struct ofp_in_multi *inm, struct ofp_igmp_ifinfo *igi,
 	if (nsrc == 0) {
 		if (inm->inm_state == IGMP_G_QUERY_PENDING_MEMBER ||
 		    inm->inm_state == IGMP_SG_QUERY_PENDING_MEMBER) {
-			inm_clear_recorded(inm);
+			ofp_inm_clear_recorded(inm);
 			timer = min(inm->inm_timer, timer);
 		}
 		inm->inm_state = IGMP_G_QUERY_PENDING_MEMBER;
@@ -1290,7 +1296,7 @@ igmp_input_v3_group_query(struct ofp_in_multi *inm, struct ofp_igmp_ifinfo *igi,
 		ap = (const struct ofp_in_addr *)(igmpv3 + 1);
 		nrecorded = 0;
 		for (i = 0; i < nsrc; i++, ap++) {
-			retval = inm_record_source(inm, ap->s_addr);
+			retval = ofp_inm_record_source(inm, ap->s_addr);
 			if (retval < 0)
 				break;
 			nrecorded += retval;
@@ -1794,7 +1800,7 @@ ofp_igmp_fasttimo(void *arg)
 			    inm_nrele, tinm) {
 				OFP_SLIST_REMOVE_HEAD(&igi->igi_relinmhead,
 				    inm_nrele);
-				inm_release_locked(inm);
+				ofp_inm_release_locked(inm);
 			}
 		}
 	}
@@ -1916,11 +1922,12 @@ igmp_v3_process_group_timers(struct ofp_igmp_ifinfo *igi,
 
 			retval = igmp_v3_enqueue_group_record(qrq, inm, 0, 1,
 			    (inm->inm_state == IGMP_SG_QUERY_PENDING_MEMBER));
+			(void)retval;
 			CTR2(KTR_IGMPV3, "%s: enqueue record = %d",
 			    __func__, retval);
 			inm->inm_state = IGMP_REPORTING_MEMBER;
 			/* XXX Clear recorded sources for next time. */
-			inm_clear_recorded(inm);
+			ofp_inm_clear_recorded(inm);
 		}
 		/* FALLTHROUGH */
 	case IGMP_REPORTING_MEMBER:
@@ -1945,7 +1952,7 @@ igmp_v3_process_group_timers(struct ofp_igmp_ifinfo *igi,
 			 */
 			(void)igmp_v3_merge_state_changes(inm, scq);
 
-			inm_commit(inm);
+			ofp_inm_commit(inm);
 			CTR3(KTR_IGMPV3, "%s: T1 -> T0 for %s/%s", __func__,
 			    ofp_print_ip_addr(inm->inm_addr.s_addr), inm->inm_ifp->if_name);
 
@@ -1991,7 +1998,7 @@ igmp_v3_suppress_group_record(struct ofp_in_multi *inm)
 		return;
 
 	if (inm->inm_state == IGMP_SG_QUERY_PENDING_MEMBER)
-		inm_clear_recorded(inm);
+		ofp_inm_clear_recorded(inm);
 
 	inm->inm_timer = 0;
 	inm->inm_state = IGMP_REPORTING_MEMBER;
@@ -2106,7 +2113,7 @@ igmp_v3_cancel_link_timers(struct ofp_igmp_ifinfo *igi)
 			/* FALLTHROUGH */
 		case IGMP_G_QUERY_PENDING_MEMBER:
 		case IGMP_SG_QUERY_PENDING_MEMBER:
-			inm_clear_recorded(inm);
+			ofp_inm_clear_recorded(inm);
 			/* FALLTHROUGH */
 		case IGMP_REPORTING_MEMBER:
 			inm->inm_state = IGMP_REPORTING_MEMBER;
@@ -2123,7 +2130,7 @@ igmp_v3_cancel_link_timers(struct ofp_igmp_ifinfo *igi)
 	IF_ADDR_RUNLOCK(ifp);
 	OFP_SLIST_FOREACH_SAFE(inm, &igi->igi_relinmhead, inm_nrele, tinm) {
 		OFP_SLIST_REMOVE_HEAD(&igi->igi_relinmhead, inm_nrele);
-		inm_release_locked(inm);
+		ofp_inm_release_locked(inm);
 	}
 }
 
@@ -2428,7 +2435,7 @@ igmp_initial_join(struct ofp_in_multi *inm, struct ofp_igmp_ifinfo *igi)
 		 */
 		if (igi->igi_version == IGMP_VERSION_3 &&
 		    inm->inm_state == IGMP_LEAVING_MEMBER)
-			inm_release_locked(inm);
+			ofp_inm_release_locked(inm);
 
 		inm->inm_state = IGMP_REPORTING_MEMBER;
 
@@ -2499,7 +2506,7 @@ igmp_initial_join(struct ofp_in_multi *inm, struct ofp_igmp_ifinfo *igi)
 	 * can consider the state change to have been communicated.
 	 */
 	if (syncstates) {
-		inm_commit(inm);
+		ofp_inm_commit(inm);
 		CTR3(KTR_IGMPV3, "%s: T1 -> T0 for %s/%s", __func__,
 		    ofp_print_ip_addr(inm->inm_addr.s_addr), inm->inm_ifp->if_name);
 	}
@@ -2536,7 +2543,7 @@ igmp_handle_state_change(struct ofp_in_multi *inm, struct ofp_igmp_ifinfo *igi)
 "%s: not kicking state machine for silent group", __func__);
 		}
 		CTR1(KTR_IGMPV3, "%s: nothing to do", __func__);
-		inm_commit(inm);
+		ofp_inm_commit(inm);
 		CTR3(KTR_IGMPV3, "%s: T1 -> T0 for %s/%s", __func__,
 		    ofp_print_ip_addr(inm->inm_addr.s_addr), inm->inm_ifp->if_name);
 		return (0);
@@ -2652,7 +2659,7 @@ igmp_final_leave(struct ofp_in_multi *inm, struct ofp_igmp_ifinfo *igi)
 	}
 
 	if (syncstates) {
-		inm_commit(inm);
+		ofp_inm_commit(inm);
 		CTR3(KTR_IGMPV3, "%s: T1 -> T0 for %s/%s", __func__,
 		    ofp_print_ip_addr(inm->inm_addr.s_addr), inm->inm_ifp->if_name);
 		inm->inm_st[1].iss_fmode = OFP_MCAST_UNDEFINED;
@@ -3382,6 +3389,7 @@ igmp_v3_dispatch_general_query(struct ofp_igmp_ifinfo *igi)
 			    inm, 0, 0, 0);
 			CTR2(KTR_IGMPV3, "%s: enqueue record = %d",
 			    __func__, retval);
+			(void)retval;
 			break;
 		case IGMP_G_QUERY_PENDING_MEMBER:
 		case IGMP_SG_QUERY_PENDING_MEMBER:
@@ -3441,7 +3449,7 @@ igmp_intr(odp_packet_t m)
 		return;
 	}
 
-	ipopts = V_igmp_sendra ? m_raopt : ODP_PACKET_INVALID;
+	ipopts = V_igmp_sendra ? ofp_m_raopt : ODP_PACKET_INVALID;
 
 	imo.imo_multicast_ttl  = 1;
 	imo.imo_multicast_vif  = -1;
@@ -3556,6 +3564,7 @@ igmp_v3_encap_report(struct ofp_ifnet *ifp, odp_packet_t m)
 	return (m);
 }
 
+#ifdef IGMP_DEBUG
 static const char *
 igmp_rec_type_to_str(const int type)
 {
@@ -3584,6 +3593,7 @@ igmp_rec_type_to_str(const int type)
 	}
 	return "unknown";
 }
+#endif
 
 void
 ofp_igmp_init(void)
@@ -3596,13 +3606,13 @@ ofp_igmp_init(void)
 
 	igmp_pool = ofp_socket_pool_create("igmp", 1000);
 
-	m_raopt = igmp_ra_alloc();
+	ofp_m_raopt = igmp_ra_alloc();
 
 	ofp_timer_start(200000UL, ofp_igmp_fasttimo, NULL, 0);
 
 	// HJo netisr_register(&igmp_nh);
 }
-//HJo SYSINIT(igmp_init, SI_SUB_PSEUDO, SI_ORDER_MIDDLE, igmp_init, NULL);
+//HJo SYSINIT(ofp_igmp_init, SI_SUB_PSEUDO, SI_ORDER_MIDDLE, igmp_init, NULL);
 
 #if 0
 void
@@ -3614,8 +3624,8 @@ ofp_igmp_uninit(void *unused)
 
 	// HJo netisr_unregister(&igmp_nh);
 
-	odp_packet_free(m_raopt);
-	m_raopt = ODP_PACKET_INVALID;
+	odp_packet_free(ofp_m_raopt);
+	ofp_m_raopt = ODP_PACKET_INVALID;
 
 	IGMP_LOCK_DESTROY();
 }

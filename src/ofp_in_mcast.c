@@ -32,7 +32,7 @@
  * IPv4 multicast socket, group, and socket option processing module.
  */
 
-#define KTR
+//#define KTR
 
 #include "ofpi_errno.h"
 #include "ofpi.h"
@@ -157,7 +157,11 @@ struct ofp_sockaddr_dl {
 
 #define LLADDR(s) ((caddr_t)((s)->sdl_data + (s)->sdl_nlen))
 
+#ifdef KTR
 #define CTR1(_l, _fmt, ...)  OFP_INFO(_fmt, ##__VA_ARGS__)
+#else
+#define CTR1(_l, _fmt, ...)  do { } while (0)
+#endif
 #define CTR2 CTR1
 #define CTR3 CTR1
 #define CTR4 CTR1
@@ -198,26 +202,26 @@ static MALLOC_DEFINE(M_IPMSOURCE, "ip_msource",
  * any need for in_multi itself to be virtualized -- it is bound to an ifp
  * anyway no matter what happens.
  */
-odp_rwlock_t in_multi_mtx;
-//HJo MTX_SYSINIT(in_multi_mtx, &in_multi_mtx, "in_multi_mtx", MTX_DEF);
+odp_rwlock_t ofp_in_multi_mtx;
+//HJo MTX_SYSINIT(ofp_in_multi_mtx, &in_multi_mtx, "in_multi_mtx", MTX_DEF);
 
 /*
  * Functions with non-static linkage defined in this file should be
  * declared in in_var.h:
- *  imo_multi_filter()
- *  in_addmulti()
- *  in_delmulti()
- *  in_joingroup()
- *  in_joingroup_locked()
- *  in_leavegroup()
- *  in_leavegroup_locked()
+ *  ofp_imo_multi_filter()
+ *  ofp_in_addmulti()
+ *  ofp_in_delmulti()
+ *  ofp_in_joingroup()
+ *  ofp_in_joingroup_locked()
+ *  ofp_in_leavegroup()
+ *  ofp_in_leavegroup_locked()
  * and ip_var.h:
- *  inp_freemoptions()
- *  inp_getmoptions()
- *  inp_setmoptions()
+ *  ofp_inp_freemoptions()
+ *  ofp_inp_getmoptions()
+ *  ofp_inp_setmoptions()
  *
- * XXX: Both carp and pf need to use the legacy (*,G) KPIs in_addmulti()
- * and in_delmulti().
+ * XXX: Both carp and pf need to use the legacy (*,G) KPIs ofp_in_addmulti()
+ * and ofp_in_delmulti().
  */
 static void	imf_commit(struct ofp_in_mfilter *);
 static int	imf_get_source(struct ofp_in_mfilter *imf,
@@ -276,10 +280,10 @@ OFP_SYSCTL_ULONG(_net_inet_ip_mcast, OFP_OID_AUTO, maxsocksrc,
     "Max source filters per socket");
 //HJo TUNABLE_ULONG("net.inet.ip.mcast.maxsocksrc", &in_mcast_maxsocksrc);
 
-int in_mcast_loop = OFP_IP_DEFAULT_MULTICAST_LOOP;
+int ofp_in_mcast_loop = OFP_IP_DEFAULT_MULTICAST_LOOP;
 OFP_SYSCTL_INT(_net_inet_ip_mcast, OFP_OID_AUTO, loop, OFP_CTLFLAG_RW | OFP_CTLFLAG_TUN,
-    &in_mcast_loop, 0, "Loopback multicast datagrams by default");
-//HJo TUNABLE_INT("net.inet.ip.mcast.loop", &in_mcast_loop);
+    &ofp_in_mcast_loop, 0, "Loopback multicast datagrams by default");
+//HJo TUNABLE_INT("net.inet.ip.mcast.loop", &ofp_in_mcast_loop);
 
 OFP_SYSCTL_NODE(_net_inet_ip_mcast, OFP_OID_AUTO, filters,
     OFP_CTLFLAG_RD | OFP_CTLFLAG_MPSAFE, sysctl_ip_mcast_filters,
@@ -449,7 +453,7 @@ imo_match_source(const struct ofp_ip_moptions *imo, const size_t gidx,
  * if the socket was not a member of the group, or the source was muted, etc.
  */
 int
-imo_multi_filter(const struct ofp_ip_moptions *imo, const struct ofp_ifnet *ifp,
+ofp_imo_multi_filter(const struct ofp_ip_moptions *imo, const struct ofp_ifnet *ifp,
 		 const struct ofp_sockaddr *group, const struct ofp_sockaddr *src)
 {
 	size_t gidx;
@@ -604,7 +608,7 @@ in_getmulti(struct ofp_ifnet *ifp, const struct ofp_in_addr *group,
  * delete the underlying link-layer membership.
  */
 void
-inm_release_locked(struct ofp_in_multi *inm)
+ofp_inm_release_locked(struct ofp_in_multi *inm)
 {
 	struct ofp_ifmultiaddr *ifma;
 
@@ -641,7 +645,7 @@ inm_release_locked(struct ofp_in_multi *inm)
  * FIXME: Should reap.
  */
 void
-inm_clear_recorded(struct ofp_in_multi *inm)
+ofp_inm_clear_recorded(struct ofp_in_multi *inm)
 {
 	struct ofp_ip_msource	*ims;
 
@@ -680,7 +684,7 @@ inm_clear_recorded(struct ofp_in_multi *inm)
  * Return <0 if any error occured (negated errno code).
  */
 int
-inm_record_source(struct ofp_in_multi *inm, const ofp_in_addr_t naddr)
+ofp_inm_record_source(struct ofp_in_multi *inm, const ofp_in_addr_t naddr)
 {
 	struct ofp_ip_msource	 find;
 	struct ofp_ip_msource	*ims, *nims;
@@ -1119,7 +1123,7 @@ inm_merge(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *imf)
 	}
 
 	CTR3(KTR_IGMPV3, "%s: merged imf %p to inm %p", __func__, imf, inm);
-	inm_print(inm);
+	ofp_inm_print(inm);
 
 out_reap:
 	if (schanged > 0) {
@@ -1134,13 +1138,13 @@ out_reap:
  * Called by IGMP after a state change has been enqueued.
  */
 void
-inm_commit(struct ofp_in_multi *inm)
+ofp_inm_commit(struct ofp_in_multi *inm)
 {
 	struct ofp_ip_msource	*ims;
 
 	CTR2(KTR_IGMPV3, "%s: commit inm %p", __func__, inm);
 	CTR1(KTR_IGMPV3, "%s: pre commit:", __func__);
-	inm_print(inm);
+	ofp_inm_print(inm);
 
 	RB_FOREACH(ims, ip_msource_tree, &inm->inm_srcs) {
 		ims->ims_st[0] = ims->ims_st[1];
@@ -1187,18 +1191,18 @@ inm_purge(struct ofp_in_multi *inm)
 /*
  * Join a multicast group; unlocked entry point.
  *
- * SMPng: XXX: in_joingroup() is called from in_control() when Giant
+ * SMPng: XXX: ofp_in_joingroup() is called from in_control() when Giant
  * is not held. Fortunately, ifp is unlikely to have been detached
  * at this point, so we assume it's OK to recurse.
  */
 int
-in_joingroup(struct ofp_ifnet *ifp, const struct ofp_in_addr *gina,
+ofp_in_joingroup(struct ofp_ifnet *ifp, const struct ofp_in_addr *gina,
     /*const*/ struct ofp_in_mfilter *imf, struct ofp_in_multi **pinm)
 {
 	int error;
 
 	IN_MULTI_LOCK();
-	error = in_joingroup_locked(ifp, gina, imf, pinm);
+	error = ofp_in_joingroup_locked(ifp, gina, imf, pinm);
 	IN_MULTI_UNLOCK();
 
 	return (error);
@@ -1214,11 +1218,11 @@ in_joingroup(struct ofp_ifnet *ifp, const struct ofp_in_addr *gina,
  * code is returned.
  */
 int
-in_joingroup_locked(struct ofp_ifnet *ifp, const struct ofp_in_addr *gina,
+ofp_in_joingroup_locked(struct ofp_ifnet *ifp, const struct ofp_in_addr *gina,
     /*const*/ struct ofp_in_mfilter *imf, struct ofp_in_multi **pinm)
 {
 	struct ofp_in_mfilter	 timf;
-	struct ofp_in_multi		*inm;
+	struct ofp_in_multi	*inm;
 	int			 error;
 
 	IN_MULTI_LOCK_ASSERT();
@@ -1261,7 +1265,7 @@ in_joingroup_locked(struct ofp_ifnet *ifp, const struct ofp_in_addr *gina,
 out_inm_release:
 	if (error) {
 		CTR2(KTR_IGMPV3, "%s: dropping ref on %p", __func__, inm);
-		inm_release_locked(inm);
+		ofp_inm_release_locked(inm);
 	} else {
 		*pinm = inm;
 	}
@@ -1273,7 +1277,7 @@ out_inm_release:
  * Leave a multicast group; unlocked entry point.
  */
 int
-in_leavegroup(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *imf)
+ofp_in_leavegroup(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *imf)
 {
 	struct ofp_ifnet *ifp;
 	int error;
@@ -1282,7 +1286,7 @@ in_leavegroup(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *imf)
 	(void)ifp;
 
 	IN_MULTI_LOCK();
-	error = in_leavegroup_locked(inm, imf);
+	error = ofp_in_leavegroup_locked(inm, imf);
 	IN_MULTI_UNLOCK();
 
 	return (error);
@@ -1302,7 +1306,7 @@ in_leavegroup(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *imf)
  * makes a state change downcall into IGMP.
  */
 int
-in_leavegroup_locked(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *imf)
+ofp_in_leavegroup_locked(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *imf)
 {
 	struct ofp_in_mfilter	 timf;
 	int			 error;
@@ -1342,7 +1346,7 @@ in_leavegroup_locked(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *
 		CTR1(KTR_IGMPV3, "%s: failed igmp downcall", __func__);
 
 	CTR2(KTR_IGMPV3, "%s: dropping ref on %p", __func__, inm);
-	inm_release_locked(inm);
+	ofp_inm_release_locked(inm);
 
 	return (error);
 }
@@ -1354,7 +1358,7 @@ in_leavegroup_locked(struct ofp_in_multi *inm, /*const*/ struct ofp_in_mfilter *
  * This KPI is for legacy kernel consumers only.
  */
 struct ofp_in_multi *
-in_addmulti(struct ofp_in_addr *ap, struct ofp_ifnet *ifp)
+ofp_in_addmulti(struct ofp_in_addr *ap, struct ofp_ifnet *ifp)
 {
 	struct ofp_in_multi *pinm;
 	int error;
@@ -1362,7 +1366,7 @@ in_addmulti(struct ofp_in_addr *ap, struct ofp_ifnet *ifp)
 	KASSERT(OFP_IN_LOCAL_GROUP(odp_be_to_cpu_32(ap->s_addr)),
 	    ("%s: %s not in 224.0.0.0/24", __func__, inet_ntoa(*ap)));
 
-	error = in_joingroup(ifp, ap, NULL, &pinm);
+	error = ofp_in_joingroup(ifp, ap, NULL, &pinm);
 	if (error != 0)
 		pinm = NULL;
 
@@ -1374,10 +1378,10 @@ in_addmulti(struct ofp_in_addr *ap, struct ofp_ifnet *ifp)
  * This KPI is for legacy kernel consumers only.
  */
 void
-in_delmulti(struct ofp_in_multi *inm)
+ofp_in_delmulti(struct ofp_in_multi *inm)
 {
 
-	(void)in_leavegroup(inm, NULL);
+	(void)ofp_in_leavegroup(inm, NULL);
 }
 /*#endif*/
 
@@ -1581,7 +1585,7 @@ static struct ofp_ip_moptions *
 inp_findmoptions(struct inpcb *inp)
 {
 	struct ofp_ip_moptions	 *imo;
-	struct ofp_in_multi		**immp;
+	struct ofp_in_multi	**immp;
 	struct ofp_in_mfilter	 *imfp;
 	size_t			  idx;
 
@@ -1599,7 +1603,7 @@ inp_findmoptions(struct inpcb *inp)
 	imo->imo_multicast_addr.s_addr = OFP_INADDR_ANY;
 	imo->imo_multicast_vif = -1;
 	imo->imo_multicast_ttl = OFP_IP_DEFAULT_MULTICAST_TTL;
-	imo->imo_multicast_loop = in_mcast_loop;
+	imo->imo_multicast_loop = ofp_in_mcast_loop;
 	imo->imo_num_memberships = 0;
 	imo->imo_max_memberships = OFP_IP_MIN_MEMBERSHIPS;
 	imo->imo_membership = immp;
@@ -1626,7 +1630,7 @@ inp_findmoptions(struct inpcb *inp)
  * SMPng: NOTE: assumes INP write lock is held.
  */
 void
-inp_freemoptions(struct ofp_ip_moptions *imo)
+ofp_inp_freemoptions(struct ofp_ip_moptions *imo)
 {
 	struct ofp_in_mfilter	*imf;
 	size_t			 idx, nmships;
@@ -1638,7 +1642,7 @@ inp_freemoptions(struct ofp_ip_moptions *imo)
 		imf = imo->imo_mfilters ? &imo->imo_mfilters[idx] : NULL;
 		if (imf)
 			imf_leave(imf);
-		(void)in_leavegroup(imo->imo_membership[idx], imf);
+		(void)ofp_in_leavegroup(imo->imo_membership[idx], imf);
 		if (imf)
 			imf_purge(imf);
 	}
@@ -1770,7 +1774,7 @@ inp_get_source_filters(struct inpcb *inp, struct sockopt *sopt)
  * Return the IP multicast options in response to user getsockopt().
  */
 int
-inp_getmoptions(struct inpcb *inp, struct sockopt *sopt)
+ofp_inp_getmoptions(struct inpcb *inp, struct sockopt *sopt)
 {
 	struct ofp_ip_mreqn	 mreqn;
 	struct ofp_ip_moptions	*imo;
@@ -1941,7 +1945,6 @@ inp_lookup_mcast_ifp(const struct inpcb *inp,
 	return (ifp);
 }
 
-#define T OFP_DBG("HERE\n");
 /*
  * Join an IPv4 multicast group, possibly with a source.
  */
@@ -1958,7 +1961,6 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 	size_t				 idx;
 	int				 error, is_new;
 
-	T;
 	ifp = NULL;
 	imf = NULL;
 	lims = NULL;
@@ -1976,7 +1978,6 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 	case OFP_IP_ADD_SOURCE_MEMBERSHIP: {
 		struct ofp_ip_mreq_source	 mreqs;
 
-		T;
 		if (sopt->sopt_name == OFP_IP_ADD_MEMBERSHIP) {
 			error = ofp_sooptcopyin(sopt, &mreqs,
 			    sizeof(struct ofp_ip_mreq),
@@ -1995,7 +1996,6 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		if (error)
 			return (error);
 
-		T;
 		gsa->sin.sin_family = OFP_AF_INET;
 		gsa->sin.sin_len = sizeof(struct ofp_sockaddr_in);
 		gsa->sin.sin_addr = mreqs.imr_multiaddr;
@@ -2009,7 +2009,6 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		if (!OFP_IN_MULTICAST(odp_be_to_cpu_32(gsa->sin.sin_addr.s_addr)))
 			return (OFP_EINVAL);
 
-		T;
 		ifp = inp_lookup_mcast_ifp(inp, &gsa->sin,
 		    mreqs.imr_interface);
 		CTR3(KTR_IGMPV3, "%s: imr_interface = %s, ifp = %p",
@@ -2062,18 +2061,14 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		break;
 	}
 
-	T;
 	if (ifp == NULL || (ifp->if_flags & OFP_IFF_MULTICAST) == 0)
 		return (OFP_EADDRNOTAVAIL);
 
-	T;
 	imo = inp_findmoptions(inp);
 	idx = imo_match_group(imo, ifp, &gsa->sa);
 	if ((int)idx == -1) {
-		T;
 		is_new = 1;
 	} else {
-		T;
 		inm = imo->imo_membership[idx];
 		imf = &imo->imo_mfilters[idx];
 		if (ssa->ss.ss_family != OFP_AF_UNSPEC) {
@@ -2083,7 +2078,6 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			 * it just adds the source to the filter list.
 			 */
 			if (imf->imf_st[1] != OFP_MCAST_INCLUDE) {
-				T;
 				error = OFP_EINVAL;
 				goto out_inp_locked;
 			}
@@ -2106,12 +2100,10 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			lims = imo_match_source(imo, idx, &ssa->sa);
 			if (lims != NULL /*&&
 			    lims->imsl_st[1] == OFP_MCAST_INCLUDE*/) {
-				T;
 				error = OFP_EADDRNOTAVAIL;
 				goto out_inp_locked;
 			}
 		} else {
-			T;
 			/*
 			 * OFP_MCAST_JOIN_GROUP on an existing exclusive
 			 * membership is an error; return EADDRINUSE
@@ -2133,14 +2125,12 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		}
 	}
 
-	T;
 	/*
 	 * Begin state merge transaction at socket layer.
 	 */
 	INP_WLOCK_ASSERT(inp);
 
 	if (is_new) {
-		T;
 		if (imo->imo_num_memberships == imo->imo_max_memberships) {
 			error = imo_grow(imo);
 			if (error)
@@ -2151,7 +2141,6 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		 * grafting the new source filter in same code path
 		 * as for join-source on existing membership.
 		 */
-		T;
 		idx = imo->imo_num_memberships;
 		imo->imo_membership[idx] = NULL;
 		imo->imo_num_memberships++;
@@ -2174,7 +2163,6 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 	 * not be in-mode) for interop with full-state API.
 	 */
 	if (ssa->ss.ss_family != OFP_AF_UNSPEC) {
-		T;
 		/* Membership starts in IN mode */
 		if (is_new) {
 			CTR1(KTR_IGMPV3, "%s: new join w/source", __func__);
@@ -2189,9 +2177,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			error = OFP_ENOMEM;
 			goto out_imo_free;
 		}
-		T;
 	} else {
-		T;
 		/* No address specified; Membership starts in EX mode */
 		if (is_new) {
 			CTR1(KTR_IGMPV3, "%s: new join w/o source", __func__);
@@ -2204,9 +2190,8 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 	 */
 	IN_MULTI_LOCK();
 
-	T;
 	if (is_new) {
-		error = in_joingroup_locked(ifp, &gsa->sin.sin_addr, imf,
+		error = ofp_in_joingroup_locked(ifp, &gsa->sin.sin_addr, imf,
 		    &inm);
 		if (error)
 			goto out_imo_free;
@@ -2427,7 +2412,7 @@ inp_leave_group(struct inpcb *inp, struct sockopt *sopt)
 		 * Give up the multicast address record to which
 		 * the membership points.
 		 */
-		(void)in_leavegroup_locked(inm, imf);
+		(void)ofp_in_leavegroup_locked(inm, imf);
 	} else {
 		CTR1(KTR_IGMPV3, "%s: merge inm state", __func__);
 		error = inm_merge(inm, imf);
@@ -2717,7 +2702,7 @@ out_inp_locked:
  * is refactored to no longer use vifs.
  */
 int
-inp_setmoptions(struct inpcb *inp, struct sockopt *sopt)
+ofp_inp_setmoptions(struct inpcb *inp, struct sockopt *sopt)
 {
 	struct ofp_ip_moptions	*imo;
 	int			 error;
@@ -2909,7 +2894,7 @@ ofp_ip_ctloutput(struct socket *so, struct sockopt *sopt)
 		case OFP_MCAST_LEAVE_SOURCE_GROUP:
 		case OFP_MCAST_BLOCK_SOURCE:
 		case OFP_MCAST_UNBLOCK_SOURCE:
-			error = inp_setmoptions(inp, sopt);
+			error = ofp_inp_setmoptions(inp, sopt);
 			break;
 		} /* switch (sopt->sopt_name) */
 		break;
@@ -3060,7 +3045,7 @@ inm_state_str(const int state)
  * Dump an in_multi structure to the console.
  */
 void
-inm_print(const struct ofp_in_multi *inm)
+ofp_inm_print(const struct ofp_in_multi *inm)
 {
 	int t;
 #if 0 //HJo
@@ -3097,9 +3082,9 @@ inm_print(const struct ofp_in_multi *inm)
 #else /* !KTR */
 
 void
-inm_print(const struct ofp_in_multi *inm)
+ofp_inm_print(const struct ofp_in_multi *inm)
 {
-
+	(void)inm;
 }
 
 #endif /* KTR */
@@ -3255,7 +3240,7 @@ free_llsa_out:
  * exists, results are undefined. This entry point should only be used
  * from subsystems which do appropriate locking to hold ifp for the
  * duration of the call.
- * Network-layer protocol domains must use if_delmulti_ifma().
+ * Network-layer protocol domains must use ofp_if_delmulti_ifma().
  */
 int
 ofp_if_delmulti(struct ofp_ifnet *ifp, struct ofp_sockaddr *sa)
