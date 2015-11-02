@@ -125,12 +125,10 @@ AC_ARG_WITH([odp],
 # if optional parameter used, extend path flags for compliler and linker
 if test $ODPPATHSET = 1 ; then
     # extend the compiler and linker flags according to the path set
-    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -I$with_odp/include/odp/helper -DHAVE_LIBODP"
+    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -I$with_odp/include/odp/helper"
     AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
-    AC_DEFINE(HAVE_LIBODP, [1], [Have libodp ?])
 else
-    AC_CHECK_LIB(odp, odp_packet_alloc, [
-		AC_DEFINE(HAVE_LIBODP, [1], [Have libodp ?])], [
+    AC_CHECK_LIB(odp, odp_packet_alloc, [], [
 		echo "Error! This package needs OpenDataPlane (libodp.a) installed"
 		exit -1
 		])
