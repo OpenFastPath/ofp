@@ -66,6 +66,7 @@
 #include "ofpi_ethernet.h"
 #include "ofpi_ioctl.h"
 #include "ofpi_in_var.h"
+#include "ofpi_vxlan.h"
 
 #include "ofpi_pkt_processing.h"
 #include "ofpi_log.h"
@@ -264,6 +265,11 @@ ofp_udp_input(odp_packet_t m, int off)
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
+	/* Offer to VXLAN handler. */
+	res = ofp_vxlan_input(m);
+	if (res != OFP_PKT_CONTINUE)
+		return res;
+
 	ifp = odp_packet_user_ptr(m);
 	UDPSTAT_INC(udps_ipackets);
 
@@ -424,7 +430,7 @@ ofp_udp_input(odp_packet_t m, int off)
 				group.sin_family = OFP_AF_INET;
 				group.sin_addr = ip->ip_dst;
 
-				blocked = imo_multi_filter(imo, ifp,
+				blocked = ofp_imo_multi_filter(imo, ifp,
 					(struct ofp_sockaddr *)&group,
 					(struct ofp_sockaddr *)&udp_in);
 				if (blocked != OFP_MCAST_PASS) {
