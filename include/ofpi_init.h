@@ -11,8 +11,10 @@
 
 #include "ofpi_hook.h"
 
+extern odp_pool_t ofp_packet_pool;
+
 int ofp_init_pre_global(const char *pool_name,
-			       odp_pool_param_t *pool_params,
-			       ofp_pkt_hook hooks[], odp_pool_t *pool);
+			odp_pool_param_t *pool_params,
+			ofp_pkt_hook hooks[], odp_pool_t *pool);
 
 #endif /* __OFPI_INIT_H__ */
