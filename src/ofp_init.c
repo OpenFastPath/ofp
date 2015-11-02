@@ -40,6 +40,7 @@
 #include "ofpi_reass.h"
 #include "ofpi_inet.h"
 #include "ofpi_igmp_var.h"
+#include "ofpi_vxlan.h"
 
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
@@ -47,6 +48,7 @@
 #define LINUX_THREADS_MAX	4
 #define SHM_PKT_POOL_SIZE	(512*2048)
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
+#define SHM_PKT_POOL_USER_AREA_SIZE	16
 
 int ofp_init_pre_global(const char *pool_name,
 			       odp_pool_param_t *pool_params,
@@ -85,6 +87,9 @@ int ofp_init_pre_global(const char *pool_name,
 	HANDLE_ERROR(ofp_portconf_alloc_shared_memory());
 	HANDLE_ERROR(ofp_portconf_init_global());
 
+	ofp_vxlan_alloc_shared_memory();
+	ofp_vxlan_init_global();
+
 	*pool = odp_pool_create(pool_name, pool_params);
 	if (*pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
@@ -113,10 +118,11 @@ int ofp_init_global(ofp_init_global_t *params)
 #endif /* SP */
 
 	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.type        = ODP_POOL_PACKET;
+	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num        = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
+	pool_params.type           = ODP_POOL_PACKET;
 
 	HANDLE_ERROR(ofp_init_pre_global("packet_pool", &pool_params,
 		params->pkt_hook, &ofp_packet_pool));
@@ -130,11 +136,13 @@ int ofp_init_global(ofp_init_global_t *params)
 	memset(&pktio_param, 0, sizeof(pktio_param));
 	pktio_param.in_mode = (params->burst_recv_mode) ? ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED;
 
+	ofp_set_vxlan_interface_queue();
+
 	/* Create interfaces */
 	for (i = 0; i < params->if_count; ++i) {
 		int16_t port = i;
 
-		if (port >= GRE_PORTS) {
+		if (port >= VXLAN_PORTS) {
 			OFP_ERR("Interfaces are depleted");
 			break;
 		}
@@ -292,6 +300,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		ifnet->if_state = OFP_IFT_STATE_USED;
 	}
 
+
 #ifdef SP
 	/* Start Netlink server process */
 	odph_linux_pthread_create(&nl_thread,
@@ -317,6 +326,7 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_timer_lookup_shared_memory());
 	HANDLE_ERROR(ofp_hook_lookup_shared_memory());
 	HANDLE_ERROR(ofp_arp_lookup_shared_memory());
+	HANDLE_ERROR(ofp_vxlan_lookup_shared_memory());
 
 	HANDLE_ERROR(ofp_arp_init_local());
 
