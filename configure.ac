@@ -119,20 +119,30 @@ LIBS="-lodp -lodphelper $LIBS"
 AC_ARG_WITH([odp],
     [AS_HELP_STRING([--with-odp=prefix],
 	[non-standard install prefix of odp])],
-    [ODPPATHSET=1],
-    [ODPPATHSET=0])
+    [# extend the compiler and linker flags according to the path set
+     AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -I$with_odp/include/odp/helper"
+     AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
+     FIND_LIB_ODP_SO="$with_odp/lib"],
+    [])
 
-# if optional parameter used, extend path flags for compliler and linker
-if test $ODPPATHSET = 1 ; then
-    # extend the compiler and linker flags according to the path set
-    AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -I$with_odp/include/odp/helper"
-    AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
-else
-    AC_CHECK_LIB(odp, odp_packet_alloc, [], [
-		echo "Error! This package needs OpenDataPlane (libodp.a) installed"
-		exit -1
-		])
-fi
+##########################################################################
+# Save and set temporary compilation flags
+##########################################################################
+OLD_LDFLAGS=$LDFLAGS
+OLD_CPPFLAGS=$CPPFLAGS
+LDFLAGS="$AM_LDFLAGS $LDFLAGS"
+CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
+
+AC_CHECK_LIB(odp, odp_packet_alloc, [],
+    [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
+AC_CHECK_HEADERS([odp.h], [],
+    [AC_MSG_FAILURE(["Can't find ODP headers"])])
+
+##########################################################################
+# Restore old saved variables
+##########################################################################
+LDFLAGS=$OLD_LDFLAGS
+CPPFLAGS=$OLD_CPPFLAGS
 
 # Enable/disable OFP_DEBUG
 ofp_debug=no
