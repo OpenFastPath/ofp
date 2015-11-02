@@ -22,8 +22,11 @@
  * Ports start from 0, and the last value is NUM_PORTS - 1.
  */
 #define GRE_PORTS (NUM_PORTS - 1)
+#define VXLAN_PORTS (NUM_PORTS - 2)
+#define PHYS_PORT(_port) (_port < VXLAN_PORTS)
 #define OFP_IFNAME_PREFIX "fp"
 #define OFP_GRE_IFNAME_PREFIX "gre"
+#define OFP_VXLAN_IFNAME_PREFIX "vxlan"
 
 OFP_TAILQ_HEAD(ofp_ifmultihead, ofp_ifmultiaddr);
 
@@ -104,7 +107,13 @@ struct ofp_ifnet {
 	uint16_t	if_mtu;
 	uint32_t	ip_addr; /* network byte order */
 	uint32_t	ip_p2p; /* network byte order */
-	uint32_t	ip_local; /* network byte order */
+	union {
+		uint32_t	ip_local; /* network byte order */
+		struct {
+			uint16_t physport;
+			uint16_t physvlan;
+		};
+	};
 	uint32_t	ip_remote; /* network byte order */
 	uint32_t	bcast_addr; /* network byte order */
 	int		masklen;
@@ -119,6 +128,7 @@ struct ofp_ifnet {
 #define OFP_IFT_LOCAL  2
 #define OFP_IFT_LOOP   3
 #define OFP_IFT_GRE    4
+#define OFP_IFT_VXLAN  5
 	uint8_t		if_type;
 #define	OFP_IFF_UP		0x1		/* (n) interface is up */
 #define	OFP_IFF_BROADCAST	0x2		/* (i) broadcast address valid */
