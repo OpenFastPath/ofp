@@ -9,7 +9,7 @@
 #define __OFP_PORTCONF_H__
 
 #include "odp.h"
-#include "linux.h"
+#include "odp/helper/linux.h"
 
 #define OFP_IFNAMSIZ  32
 

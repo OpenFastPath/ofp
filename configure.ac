@@ -120,7 +120,7 @@ AC_ARG_WITH([odp],
     [AS_HELP_STRING([--with-odp=prefix],
 	[non-standard install prefix of odp])],
     [# extend the compiler and linker flags according to the path set
-     AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include -I$with_odp/include/odp/helper"
+     AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include"
      AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
      FIND_LIB_ODP_SO="$with_odp/lib"],
     [])

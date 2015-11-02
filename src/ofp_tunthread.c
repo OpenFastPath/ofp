@@ -18,7 +18,7 @@
 #include <stropts.h>
 
 #include <odp.h>
-#include "linux.h"
+#include "odp/helper/linux.h"
 #include "ofpi_portconf.h"
 #include "ofpi_if_vlan.h"
 #include "ofpi_debug.h"

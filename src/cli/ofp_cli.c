@@ -20,7 +20,7 @@
 #include <time.h>
 
 #include <odp.h>
-#include "linux.h"
+#include "odp/helper/linux.h"
 
 #include "ofpi_pkt_processing.h"
 #include "ofpi_in.h"

@@ -16,7 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <odp.h>
-#include "linux.h"
+#include "odp/helper/linux.h"
 
 #include "ofpi_init.h"
 #include "ofpi_sysctl.h"

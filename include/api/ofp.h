@@ -8,7 +8,7 @@
 #define __OFP_H__
 
 #include <odp.h>
-#include "linux.h"
+#include "odp/helper/linux.h"
 
 /**
  * @file
