@@ -984,7 +984,7 @@ ofp_in_pcbfree(struct inpcb *inp)
 	*/
 	/* HJo: Multicast not supported
 	if (inp->inp_moptions != NULL)
-		inp_freemoptions(inp->inp_moptions);
+		ofp_inp_freemoptions(inp->inp_moptions);
 	*/
 
 	inp->inp_vflag = 0;

@@ -1336,7 +1336,7 @@ ofp_tcp_ctloutput(struct socket *so, struct sockopt *sopt)
 #ifdef INET
 		{
 			INP_WUNLOCK(inp);
-			error = ip_ctloutput(so, sopt);
+			error = ofp_ip_ctloutput(so, sopt);
 		}
 #endif
 		return (error);

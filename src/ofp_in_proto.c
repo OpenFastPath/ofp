@@ -157,7 +157,7 @@ struct protosw ofp_inetsw[] = {
 		.pr_init =              ofp_igmp_init,
 		.pr_ctloutput =		NULL /*rip_ctloutput*/,
 		.pr_fasttimo =		NULL /*igmp_fasttimo*/,
-		.pr_slowtimo =		NULL /*igmp_slowtimo*/,
+		.pr_slowtimo =		NULL /*ofp_igmp_slowtimo*/,
 		.pr_usrreqs =		&nousrreqs /*rip_usrreqs*/
 	}
 };

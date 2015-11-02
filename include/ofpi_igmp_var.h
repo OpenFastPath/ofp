@@ -187,12 +187,12 @@ CTASSERT(sizeof(struct igmpstat) == 168);
  * The IGMP lock is only taken with IGMP. Currently it is system-wide.
  * VIMAGE: The lock could be pushed to per-VIMAGE granularity in future.
  */
-#define	IGMP_LOCK_INIT()	odp_rwlock_init(&igmp_mtx)
-#define	IGMP_LOCK_DESTROY()	do {} while (0) /*mtx_destroy(&igmp_mtx)*/
-#define	IGMP_LOCK()		odp_rwlock_write_lock(&igmp_mtx)
-#define	IGMP_LOCK_ASSERT()	do {} while (0) /*mtx_assert(&igmp_mtx, MA_OWNED)*/
-#define	IGMP_UNLOCK()		odp_rwlock_write_unlock(&igmp_mtx)
-#define	IGMP_UNLOCK_ASSERT()	do {} while (0) /*mtx_assert(&igmp_mtx, MA_NOTOWNED)*/
+#define	IGMP_LOCK_INIT()	odp_rwlock_init(&ofp_igmp_mtx)
+#define	IGMP_LOCK_DESTROY()	do {} while (0) /*mtx_destroy(&ofp_igmp_mtx)*/
+#define	IGMP_LOCK()		odp_rwlock_write_lock(&ofp_igmp_mtx)
+#define	IGMP_LOCK_ASSERT()	do {} while (0) /*mtx_assert(&ofp_igmp_mtx, MA_OWNED)*/
+#define	IGMP_UNLOCK()		odp_rwlock_write_unlock(&ofp_igmp_mtx)
+#define	IGMP_UNLOCK_ASSERT()	do {} while (0) /*mtx_assert(&ofp_igmp_mtx, MA_NOTOWNED)*/
 
 struct ofp_igmp_ifinfo;
 struct ofp_in_multi;

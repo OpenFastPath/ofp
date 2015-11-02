@@ -192,11 +192,11 @@ SYSCTL_DECL(_net_inet_raw);
  * consumers of IN_*_MULTI() macros should acquire the locks before
  * calling them; users of the in_{add,del}multi() functions should not.
  */
-extern odp_rwlock_t in_multi_mtx;
-#define	IN_MULTI_LOCK()		odp_rwlock_write_lock(&in_multi_mtx)
-#define	IN_MULTI_UNLOCK()	odp_rwlock_write_unlock(&in_multi_mtx)
-#define	IN_MULTI_LOCK_ASSERT()	do {} while (0) /*mtx_assert(&in_multi_mtx, MA_OWNED)*/
-#define	IN_MULTI_UNLOCK_ASSERT() do {} while (0) /*mtx_assert(&in_multi_mtx, MA_NOTOWNED)*/
+extern odp_rwlock_t ofp_in_multi_mtx;
+#define	IN_MULTI_LOCK()		odp_rwlock_write_lock(&ofp_in_multi_mtx)
+#define	IN_MULTI_UNLOCK()	odp_rwlock_write_unlock(&ofp_in_multi_mtx)
+#define	IN_MULTI_LOCK_ASSERT()	do {} while (0) /*mtx_assert(&ofp_in_multi_mtx, MA_OWNED)*/
+#define	IN_MULTI_UNLOCK_ASSERT() do {} while (0) /*mtx_assert(&ofp_in_multi_mtx, MA_NOTOWNED)*/
 
 /*
  * Function for looking up an in_multi record for an IPv4 multicast address
@@ -251,7 +251,7 @@ inm_acquire_locked(struct ofp_in_multi *inm)
 }
 
 /*
- * Return values for imo_multi_filter().
+ * Return values for ofp_imo_multi_filter().
  */
 #define OFP_MCAST_PASS		0	/* Pass */
 #define OFP_MCAST_NOTGMEMBER	1	/* This host not a member of group */
@@ -262,23 +262,23 @@ struct ofp_rtentry;
 struct	route;
 struct ofp_ip_moptions;
 
-int	imo_multi_filter(const struct ofp_ip_moptions *, const struct ofp_ifnet *,
+int	ofp_imo_multi_filter(const struct ofp_ip_moptions *, const struct ofp_ifnet *,
 	    const struct ofp_sockaddr *, const struct ofp_sockaddr *);
-void	inm_commit(struct ofp_in_multi *);
-void	inm_clear_recorded(struct ofp_in_multi *);
-void	inm_print(const struct ofp_in_multi *);
-int	inm_record_source(struct ofp_in_multi *inm, const ofp_in_addr_t);
+void	ofp_inm_commit(struct ofp_in_multi *);
+void	ofp_inm_clear_recorded(struct ofp_in_multi *);
+void	ofp_inm_print(const struct ofp_in_multi *);
+int	ofp_inm_record_source(struct ofp_in_multi *inm, const ofp_in_addr_t);
 void	inm_release(struct ofp_in_multi *);
-void	inm_release_locked(struct ofp_in_multi *);
+void	ofp_inm_release_locked(struct ofp_in_multi *);
 struct ofp_in_multi *
-	in_addmulti(struct ofp_in_addr *, struct ofp_ifnet *);
-void	in_delmulti(struct ofp_in_multi *);
-int	in_joingroup(struct ofp_ifnet *, const struct ofp_in_addr *,
+	ofp_in_addmulti(struct ofp_in_addr *, struct ofp_ifnet *);
+void	ofp_in_delmulti(struct ofp_in_multi *);
+int	ofp_in_joingroup(struct ofp_ifnet *, const struct ofp_in_addr *,
 	    /*const*/ struct ofp_in_mfilter *, struct ofp_in_multi **);
-int	in_joingroup_locked(struct ofp_ifnet *, const struct ofp_in_addr *,
+int	ofp_in_joingroup_locked(struct ofp_ifnet *, const struct ofp_in_addr *,
 	    /*const*/ struct ofp_in_mfilter *, struct ofp_in_multi **);
-int	in_leavegroup(struct ofp_in_multi *, /*const*/ struct ofp_in_mfilter *);
-int	in_leavegroup_locked(struct ofp_in_multi *,
+int	ofp_in_leavegroup(struct ofp_in_multi *, /*const*/ struct ofp_in_mfilter *);
+int	ofp_in_leavegroup_locked(struct ofp_in_multi *,
 	    /*const*/ struct ofp_in_mfilter *);
 int	in_control(struct ofp_socket *, uint64_t, char *, struct ofp_ifnet *,
 		   void *);

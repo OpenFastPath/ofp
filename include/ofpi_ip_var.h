@@ -121,9 +121,9 @@ extern struct	pr_usrreqs rip_usrreqs;
 #define	V_ip_mrouter		VNET(ofp_ip_mrouter)
 #define	V_rsvp_on		VNET(ofp_rsvp_on)
 
-void	inp_freemoptions(struct ofp_ip_moptions *);
-int	inp_getmoptions(struct inpcb *, struct sockopt *);
-int	inp_setmoptions(struct inpcb *, struct sockopt *);
+void	ofp_inp_freemoptions(struct ofp_ip_moptions *);
+int	ofp_inp_getmoptions(struct inpcb *, struct sockopt *);
+int	ofp_inp_setmoptions(struct inpcb *, struct sockopt *);
 
 int	ofp_ip_ctloutput(struct socket *, struct sockopt *sopt);
 void	ip_drain(void);
