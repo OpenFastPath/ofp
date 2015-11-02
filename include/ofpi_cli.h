@@ -88,6 +88,7 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s);
 void f_ifconfig(struct cli_conn *conn, const char *s);
 void f_ifconfig_v6(struct cli_conn *conn, const char *s);
 void f_ifconfig_tun(struct cli_conn *conn, const char *s);
+void f_ifconfig_vxlan(struct cli_conn *conn, const char *s);
 void f_ifconfig_down(struct cli_conn *conn, const char *s);
 
 void f_sysctl_dump(struct cli_conn *conn, const char *s);

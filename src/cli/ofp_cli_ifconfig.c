@@ -73,6 +73,16 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 		"  Example:\r\n"
 		"    ifconfig %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1 vrf 2\r\n\r\n",
 		OFP_GRE_IFNAME_PREFIX);
+	ofp_sendf(conn->fd, "Create VXLAN interface:\r\n"
+		"  ifconfig vxlan DEV group IP4ADDR dev DEV_PHYS IP4NET\r\n"
+		"    DEV: vxlan interface name (interface number is the vni)\r\n"
+		"    IP4ADDR: group ip address in a.b.c.d format\r\n"
+		"    DEV_PHYS: interface name of the physical device\r\n"
+		"    IP4NET: network address in a.b.c.d/e format\r\n"
+		"  Example:\r\n"
+		"    ifconfig vxlan %s42 group 239.1.1.1 dev fp0 10.10.10.1/24\r\n",
+		"    (vni = 42)\r\n\r\n",
+		OFP_VXLAN_IFNAME_PREFIX);
 #ifdef INET6
 	ofp_sendf(conn->fd, "Create IPv6 interface:\r\n"
 		"  ifconfig -A inet6 DEV IP6NET\r\n"
@@ -111,7 +121,7 @@ void f_ifconfig(struct cli_conn *conn, const char *s)
 	addr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
 	port = ofp_name_to_port_vlan(dev, &vlan);
 
-	if (port == GRE_PORTS) {
+	if (port == GRE_PORTS || port == VXLAN_PORTS) {
 		ofp_sendf(conn->fd, "Invalid device name.\r\n");
 		return;
 	}
@@ -156,6 +166,46 @@ void f_ifconfig_tun(struct cli_conn *conn, const char *s)
 					    p2p, addr, masklen);
 	if (err != NULL)
 		ofp_sendf(conn->fd, err);
+	sendcrlf(conn);
+}
+
+/* ifconfig vxlan DEV group IP4ADDR dev DEV IP4NET */
+void f_ifconfig_vxlan(struct cli_conn *conn, const char *s)
+{
+	char dev[16], physdev[16], group[16];
+	uint32_t vxlan_group, addr;
+	int n, port, vlan, physport, physvlan, a, b, c, d, m;
+	const char *err;
+
+	if ((n = sscanf(s, "%s %s %s %d.%d.%d.%d/%d",
+			dev, group, physdev,
+			&a, &b, &c, &d, &m)) != 8) {
+		return;
+	}
+
+	addr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
+	port = ofp_name_to_port_vlan(dev, &vlan);
+
+	if (port != VXLAN_PORTS) {
+		ofp_sendf(conn->fd, "Invalid device name %s.\r\n", dev);
+		sendcrlf(conn);
+		return;
+	}
+
+	physport = ofp_name_to_port_vlan(physdev, &physvlan);
+
+	if (!ip4addr_get(group, &vxlan_group)) {
+		ofp_sendf(conn->fd, "Invalid group address.\r\n");
+		sendcrlf(conn);
+		return;
+	}
+
+	/* vrf is copied from the physical port */
+	err = ofp_config_interface_up_vxlan(0, addr, m, vlan, vxlan_group,
+					    physport, physvlan);
+	if (err != NULL)
+		ofp_sendf(conn->fd, err);
+
 	sendcrlf(conn);
 }
 

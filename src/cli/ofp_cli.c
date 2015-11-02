@@ -885,6 +885,11 @@ struct cli_command commands[] = {
 		f_ifconfig_tun
 	},
 	{
+		"ifconfig vxlan DEV group IP4ADDR dev DEV IP4NET",
+		"Create VXLAN interface",
+		f_ifconfig_vxlan
+	},
+	{
 		"ifconfig DEV down",
 		"Delete interface",
 		f_ifconfig_down
