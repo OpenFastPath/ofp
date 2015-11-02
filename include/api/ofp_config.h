@@ -18,7 +18,7 @@
 /* Enable features */
 
 /**Enable PERFORMANCE measurements mode. Some validations are skipped.*/
-#define OFP_PERFORMANCE
+/* #define OFP_PERFORMANCE */
 
 
 
