@@ -103,7 +103,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	fd = tap_alloc(fp_name, IFF_TAP  | IFF_NO_PI);
 	if (fd < 0) {
 		OFP_ERR("tap_alloc failed");
-		exit(-1);
+		return -1;
 	}
 
 	hwaddr.sa_family = AF_UNIX;
@@ -122,7 +122,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	if (ioctl(fd, SIOCSIFHWADDR, &ifr) < 0) {
 		perror("SIOCSIFHWADDR");
 		close(fd);
-		exit(-1);
+		return -1;
 	}
 
 	gen_fd = socket(PF_INET, SOCK_DGRAM, 0);
@@ -138,7 +138,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 		perror("SIOCSIFMTU");
 		close(gen_fd);
 		close(fd);
-		exit(-1);
+		return -1;
 	}
 
 	/* Get flags */
@@ -149,7 +149,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 		perror("SIOCGIFFLAGS");
 		close(gen_fd);
 		close(fd);
-		exit(-1);
+		return -1;
 	}
 
 	/* Set flags - ifconfig up*/
@@ -160,7 +160,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 			perror("SIOCSIFFLAGS");
 			close(gen_fd);
 			close(fd);
-			exit(-1);
+			return -1;
 		}
 	}
 
@@ -172,7 +172,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 		perror("SIOCSIFINDEX");
 		close(gen_fd);
 		close(fd);
-		exit(-1);
+		return -1;
 	}
 
 	/* Store ifindex in viu and create table */

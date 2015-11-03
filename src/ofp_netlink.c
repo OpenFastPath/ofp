@@ -729,8 +729,8 @@ void *start_netlink_nl_server(void *arg)
 	ofp_init_local();
 
 	if ((route_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) < 0) {
-		OFP_ERR("socket failed");
-		exit(-1);
+		OFP_ERR("Failed to create NETLINK socket");
+		return NULL;
 	}
 	bzero(&la, sizeof(la));
 	la.nl_family = AF_NETLINK;
@@ -741,8 +741,8 @@ void *start_netlink_nl_server(void *arg)
 #endif /* INET6 */
 		RTMGRP_LINK;
 	if (bind(route_fd, (struct sockaddr *) &la, sizeof(la)) < 0) {
-		OFP_ERR("bind failed");
-		exit(-1);
+		OFP_ERR("Failed to bind NETLINK socket");
+		return NULL;
 	}
 
 	FD_ZERO(&read_fd);
