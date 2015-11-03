@@ -342,6 +342,7 @@ static VNET_DEFINE(int, igmp_default_version) = IGMP_VERSION_3;
 VNET_DEFINE(int, if_index);
 
 static int igmp_pool;
+odp_timer_t ofp_igmp_fasttimo_timer = ODP_TIMER_INVALID;
 
 static void *ofp_igmp_alloc(int size)
 {
@@ -1705,7 +1706,8 @@ ofp_igmp_fasttimo(void *arg)
 	loop = 0;
 	uri_fasthz = 0;
 
-	ofp_timer_start(200000UL, ofp_igmp_fasttimo, NULL, 0);
+	ofp_igmp_fasttimo_timer = ofp_timer_start(200000UL, ofp_igmp_fasttimo,
+					NULL, 0);
 
 	/*
 	 * Quick check to see if any work needs to be done, in order to
@@ -3608,13 +3610,14 @@ ofp_igmp_init(void)
 
 	ofp_m_raopt = igmp_ra_alloc();
 
-	ofp_timer_start(200000UL, ofp_igmp_fasttimo, NULL, 0);
+	ofp_igmp_fasttimo_timer = ofp_timer_start(200000UL, ofp_igmp_fasttimo,
+					NULL, 0);
 
 	// HJo netisr_register(&igmp_nh);
 }
 //HJo SYSINIT(ofp_igmp_init, SI_SUB_PSEUDO, SI_ORDER_MIDDLE, igmp_init, NULL);
 
-#if 0
+
 void
 ofp_igmp_uninit(void *unused)
 {
@@ -3622,15 +3625,21 @@ ofp_igmp_uninit(void *unused)
 
 	CTR1(KTR_IGMPV3, "%s: tearing down", __func__);
 
-	// HJo netisr_unregister(&igmp_nh);
+	/* HJo netisr_unregister(&igmp_nh);*/
 
-	odp_packet_free(ofp_m_raopt);
-	ofp_m_raopt = ODP_PACKET_INVALID;
+	if (ofp_igmp_fasttimo_timer != ODP_TIMER_INVALID) {
+		ofp_timer_cancel(ofp_igmp_fasttimo_timer);
+		ofp_igmp_fasttimo_timer = ODP_TIMER_INVALID;
+	}
+
+	if (ofp_m_raopt != ODP_PACKET_INVALID) {
+		odp_packet_free(ofp_m_raopt);
+		ofp_m_raopt = ODP_PACKET_INVALID;
+	}
 
 	IGMP_LOCK_DESTROY();
 }
 //HJo SYSUNINIT(igmp_uninit, SI_SUB_PSEUDO, SI_ORDER_MIDDLE, igmp_uninit, NULL);
-#endif
 
 #if 0 //HJo
 

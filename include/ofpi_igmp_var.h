@@ -205,6 +205,7 @@ void	ofp_igmp_ifdetach(struct ofp_ifnet *);
 int	ofp_igmp_input(odp_packet_t , int);
 void	ofp_igmp_slowtimo(void);
 void	ofp_igmp_init(void);
+void	ofp_igmp_uninit(void *unused);
 
 SYSCTL_DECL(_net_inet_igmp);
 
