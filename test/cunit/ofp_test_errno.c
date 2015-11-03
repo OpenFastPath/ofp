@@ -16,7 +16,7 @@
 #include "ofp_errno.h"
 
 #include "odp/barrier.h"
-#include "linux.h"
+#include "odp/helper/linux.h"
 #include "odp/init.h"
 
 #include <unistd.h>
