@@ -87,8 +87,8 @@ int ofp_init_pre_global(const char *pool_name,
 	HANDLE_ERROR(ofp_portconf_alloc_shared_memory());
 	HANDLE_ERROR(ofp_portconf_init_global());
 
-	ofp_vxlan_alloc_shared_memory();
-	ofp_vxlan_init_global();
+	HANDLE_ERROR(ofp_vxlan_alloc_shared_memory());
+	HANDLE_ERROR(ofp_vxlan_init_global());
 
 	*pool = odp_pool_create(pool_name, pool_params);
 	if (*pool == ODP_POOL_INVALID) {
@@ -136,7 +136,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	memset(&pktio_param, 0, sizeof(pktio_param));
 	pktio_param.in_mode = (params->burst_recv_mode) ? ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED;
 
-	ofp_set_vxlan_interface_queue();
+	HANDLE_ERROR(ofp_set_vxlan_interface_queue());
 
 	/* Create interfaces */
 	for (i = 0; i < params->if_count; ++i) {
