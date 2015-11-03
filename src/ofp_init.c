@@ -50,6 +50,10 @@
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
 #define SHM_PKT_POOL_USER_AREA_SIZE	16
 
+#define POOL_NAME_PKT "packet_pool"
+
+static void schedule_shutdown(void);
+
 int ofp_init_pre_global(const char *pool_name,
 			       odp_pool_param_t *pool_params,
 			       ofp_pkt_hook hooks[], odp_pool_t *pool)
@@ -124,7 +128,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
 	pool_params.type           = ODP_POOL_PACKET;
 
-	HANDLE_ERROR(ofp_init_pre_global("packet_pool", &pool_params,
+	HANDLE_ERROR(ofp_init_pre_global(POOL_NAME_PKT, &pool_params,
 		params->pkt_hook, &ofp_packet_pool));
 
 	/* cpu mask for slow path threads */
@@ -335,4 +339,131 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_arp_init_local());
 
 	return 0;
+}
+
+int ofp_term_global(void)
+{
+	int rc = 0;
+
+	if (ofp_term_post_global(POOL_NAME_PKT)) {
+		OFP_ERR("Failed to cleanup resources\n");
+		rc = -1;
+	}
+
+	return rc;
+}
+
+int ofp_term_post_global(const char *pool_name)
+{
+	odp_pool_t pool;
+	int rc = 0;
+
+	if (ofp_inet_term()) {
+		OFP_ERR("Failed to cleanup inet/inet6 domains.\n");
+		rc = -1;
+	}
+
+	/* Cleanup sockets */
+	ofp_socket_term_global();
+	ofp_socket_free_shared_memory();
+
+	/* Cleanup vxlan */
+	ofp_vxlan_term_global();
+	ofp_vxlan_free_shared_memory();
+
+	/* Cleanup interface related objects */
+	ofp_portconf_term_global();
+	ofp_portconf_free_shared_memory();
+
+	/* Cleanup routes */
+	ofp_route_term_global();
+	ofp_route_free_shared_memory();
+
+	/* Cleanup ARP*/
+	ofp_arp_term_global();
+	ofp_arp_free_shared_memory();
+
+	/* Cleanup hooks */
+	ofp_hook_term_global();
+	ofp_hook_free_shared_memory();
+
+	/* Cleanup stats */
+	ofp_stat_term_global();
+	ofp_stat_free_shared_memory();
+
+	/* Cleanup packet capture */
+	ofp_pcap_term_global();
+	ofp_pcap_free_shared_memory();
+
+	/* Cleanup reassembly queues*/
+	ofp_reassembly_term_global();
+	ofp_reassembly_free_shared_memory();
+
+	/* Cleanup avl trees*/
+	ofp_avl_term_global();
+	ofp_avl_free_shared_memory();
+
+	/* Cleanup timers - phase 1*/
+	ofp_timer_stop_global();
+
+	/* Cleanup pending events */
+	schedule_shutdown();
+
+	/* Cleanup timers - phase 2*/
+	ofp_timer_term_global();
+	ofp_timer_free_shared_memory();
+
+	/* Cleanup packet pool */
+	pool = odp_pool_lookup(pool_name);
+	if (pool == ODP_POOL_INVALID) {
+		OFP_ERR("Failed to locate pool %s\n", pool_name);
+		rc = -1;
+	} else {
+		odp_pool_destroy(pool);
+		pool = ODP_POOL_INVALID;
+	}
+
+	return rc;
+}
+
+int ofp_term_local(void)
+{
+	return 0;
+}
+
+static void schedule_shutdown(void)
+{
+	odp_event_t evt;
+	odp_queue_t from;
+
+	while (1) {
+		evt = odp_schedule(&from, ODP_SCHED_NO_WAIT);
+		if (evt == ODP_EVENT_INVALID)
+			break;
+		switch (odp_event_type(evt)) {
+		case ODP_EVENT_TIMEOUT:
+			{
+				ofp_timer_evt_cleanup(evt);
+				break;
+			}
+		case ODP_EVENT_PACKET:
+			{
+				odp_packet_free(odp_packet_from_event(evt));
+				break;
+			}
+		case ODP_EVENT_BUFFER:
+			{
+				odp_buffer_free(odp_buffer_from_event(evt));
+				break;
+			}
+		case ODP_EVENT_CRYPTO_COMPL:
+			{
+				odp_crypto_compl_free(
+					odp_crypto_compl_from_event(evt));
+				break;
+			}
+		}
+	}
+
+	odp_schedule_pause();
 }

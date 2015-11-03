@@ -11,6 +11,8 @@
 #include "ofpi_domain.h"
 #include "ofpi_protosw.h"
 #include "ofpi_ip6protosw.h"
+#include "ofpi_sysctl.h"
+#include "ofpi_igmp_var.h"
 
 int ofp_inet_init(void)
 {
@@ -21,6 +23,13 @@ int ofp_inet_init(void)
 #ifdef INET6
 	domain_init(&ofp_inet6domain);
 #endif /* INET6 */
+
+	return 0;
+}
+
+int ofp_inet_term(void)
+{
+	ofp_igmp_uninit(NULL);
 
 	return 0;
 }

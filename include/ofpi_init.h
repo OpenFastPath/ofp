@@ -17,4 +17,6 @@ int ofp_init_pre_global(const char *pool_name,
 			odp_pool_param_t *pool_params,
 			ofp_pkt_hook hooks[], odp_pool_t *pool);
 
+int ofp_term_post_global(const char *pool_name);
+
 #endif /* __OFPI_INIT_H__ */

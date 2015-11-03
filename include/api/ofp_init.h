@@ -67,4 +67,31 @@ int ofp_init_global(ofp_init_global_t *params);
  */
 int ofp_init_local(void);
 
+/**
+ * OFP global termination
+ *
+ * This function must be called only once in an ODP control
+ * thread before exiting application.
+ *
+ * @retval 0 on success
+ * @retval -1 on failure
+ *
+ * @see ofp_term_local() which is required per thread before
+ *      use.
+ */
+int ofp_term_global(void);
+
+/**
+ * Thread local OFP termination
+ *
+ * All threads must call this function before thread
+ * termination.
+ *
+ * @retval 0 on success
+ * @retval -1 on failure
+ *
+ * @see ofp_term_global() which may be called after this.
+ */
+int ofp_term_local(void);
+
 #endif /* __OFP_INIT_H__ */

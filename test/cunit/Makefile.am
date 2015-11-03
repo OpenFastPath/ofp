@@ -39,7 +39,8 @@ check_PROGRAMS = \
 	ofp_test_port_conf \
 	ofp_test_stat \
 	ofp_test_util \
-	ofp_test_in_cksum
+	ofp_test_in_cksum \
+	ofp_test_init
 
 TESTS = ${check_PROGRAMS}
 
