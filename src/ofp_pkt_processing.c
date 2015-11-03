@@ -1342,13 +1342,14 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	odp_queue_t in_queue, ofp_pkt_processing_func pkt_func)
 {
-	struct ofp_ifnet *ifnet;
+	struct ofp_ifnet *ifnet = NULL;
 	odp_pktio_t pktio;
 	int res;
 
 	/* Packets from VXLAN interfaces do not have an outq even
 	 * they have a valid pktio. Use loopback context instead. */
-	ifnet = (struct ofp_ifnet *)odp_queue_context(in_queue);
+	if (in_queue != ODP_QUEUE_INVALID)
+		ifnet = (struct ofp_ifnet *)odp_queue_context(in_queue);
 
 	if (odp_likely(ifnet == NULL)) {
 		pktio = odp_packet_input(pkt);
