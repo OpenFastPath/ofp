@@ -112,23 +112,13 @@ static inline odp_bool_t ofp_ip6_equal(uint8_t *addr1, uint8_t *addr2)
 	? 1 : 0);
 }
 
-#if 0
-#define ofp_copy_mac(dst, src) { \
-	*((uint32_t *)(dst)) = *((uint32_t *)(src));\
-	*(uint16_t *)(((uint32_t *)dst) + 1) = \
-		*(uint16_t *)(((uint32_t *)src) + 1); \
-}
-#else
-#define ofp_copy_mac(dst, src) {\
-	memcpy(dst, src, OFP_ETHER_ADDR_LEN); \
-}
-#endif
-
-/*Note: destination and source must have 8 octets available
-	On destination address, 2 bytes after MAC will be written
-	On source address, 2 bytes after MAC will be read*/
-#define ofp_copy_mac_64(dst, src) {\
-	*(uint64_t *)dst = *(uint64_t *)src;\
-}
+#define ofp_copy_mac(dst_8, src_8) do { \
+	uint32_t *dst_32 = (uint32_t *)(uintptr_t)dst_8; \
+	uint32_t *src_32 = (uint32_t *)(uintptr_t)src_8; \
+	uint16_t *dst_16 = (uint16_t *)(uintptr_t)dst_8; \
+	uint16_t *src_16 = (uint16_t *)(uintptr_t)src_8; \
+	*dst_32 = *src_32; \
+	dst_16[2] = src_16[2]; \
+} while (0)
 
 #endif

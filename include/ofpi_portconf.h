@@ -104,26 +104,6 @@ struct ofp_ifnet {
 #define OFP_IFT_STATE_FREE 0
 #define OFP_IFT_STATE_USED 1
 	uint8_t		if_state;
-	uint16_t	if_mtu;
-	uint32_t	ip_addr; /* network byte order */
-	uint32_t	ip_p2p; /* network byte order */
-	union {
-		uint32_t	ip_local; /* network byte order */
-		struct {
-			uint16_t physport;
-			uint16_t physvlan;
-		};
-	};
-	uint32_t	ip_remote; /* network byte order */
-	uint32_t	bcast_addr; /* network byte order */
-	int		masklen;
-#ifdef INET6
-	uint8_t		link_local[16];
-	uint8_t		ip6_addr[16];
-	uint8_t		ip6_prefix;
-#endif /* INET6 */
-	uint8_t		mac[OFP_ETHER_ADDR_LEN];
-	void		*vlan_structs;
 #define OFP_IFT_ETHER  1
 #define OFP_IFT_LOCAL  2
 #define OFP_IFT_LOOP   3
@@ -155,6 +135,28 @@ struct ofp_ifnet {
 #define	OFP_IFF_RENAMING	0x400000	/* (n) interface is being renamed */
 #define OFP_IFF_PROMISCINET 	0x800000	/* (n) interface is in PROMISCUOUS_INET mode */
 	uint32_t	if_flags;
+
+	uint8_t		mac[OFP_ETHER_ADDR_LEN];
+	uint16_t	if_mtu;
+
+	uint32_t	ip_addr; /* network byte order */
+	uint32_t	ip_p2p; /* network byte order */
+	union {
+		uint32_t	ip_local; /* network byte order */
+		struct {
+			uint16_t physport;
+			uint16_t physvlan;
+		};
+	};
+	uint32_t	ip_remote; /* network byte order */
+	uint32_t	bcast_addr; /* network byte order */
+	uint8_t		masklen;
+#ifdef INET6
+	uint8_t		link_local[16];
+	uint8_t		ip6_addr[16];
+	uint8_t		ip6_prefix;
+#endif /* INET6 */
+	void		*vlan_structs;
 
 	char		if_name[OFP_IFNAMSIZ];
 	odp_pktio_t	pktio;

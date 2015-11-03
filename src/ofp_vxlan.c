@@ -151,7 +151,7 @@ static void ofp_vxlan_tmo(void *arg)
 	    tmo + VXLAN_MAC_IP_AGE_TICKS < shm->tick) {
 		OFP_DBG("VXLAN: tick=%d delete mac-dst %s->%s from pos 0x%x",
 			shm->tick,
-			ofp_print_mac((uint8_t *)mac),
+			ofp_print_mac((uint8_t *)(uintptr_t)mac),
 			ofp_print_ip_addr(shm->mac_to_dst[i].addr.v), i);
 		odp_atomic_store_u64(&shm->mac_to_dst[i].mac, KEY_RECYCLED);
 	}
