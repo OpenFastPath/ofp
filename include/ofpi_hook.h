@@ -11,13 +11,13 @@
 #include "api/ofp_types.h"
 #include "api/ofp_hook.h"
 
-#define OFP_HOOK(_hook_id_, _pkt_, _arg_, _pres_) { \
+#define OFP_HOOK(_hook_id_, _pkt_, _arg_, _pres_) do { \
 	ofp_pkt_hook *_pkt_hook_ = ofp_get_packet_hooks(); \
 	if (_pkt_hook_ && _pkt_hook_[_hook_id_]) \
 		*_pres_ = _pkt_hook_[_hook_id_](_pkt_, _arg_); \
 	else \
 		*_pres_ = OFP_PKT_CONTINUE; \
-}
+} while(0)
 
 ofp_pkt_hook *ofp_get_packet_hooks(void);
 

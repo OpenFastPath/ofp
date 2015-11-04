@@ -68,17 +68,17 @@ struct arp_cache {
 
 #define ARP_GET_CACHE(_cache) (&(shm->arp.entries[(_cache)->entry_idx]))
 
-#define ARP_SET_CACHE(_cache, _key, _entry) {\
+#define ARP_SET_CACHE(_cache, _key, _entry) do {\
 	(_cache)->key.vrf = (_key)->vrf;\
 	(_cache)->key.ipv4_addr = (_key)->ipv4_addr;\
 	(_cache)->entry_idx = (_entry) - &(shm->arp.entries[0]);\
-}
+} while (0)
 
-#define ARP_DEL_CACHE(_cache) {\
+#define ARP_DEL_CACHE(_cache) do {\
 	(_cache)->key.vrf = 0;\
 	(_cache)->key.ipv4_addr = 0;\
 	(_cache)->entry_idx = 0;\
-}
+} while (0)
 
 int ofp_arp_alloc_shared_memory(void);
 void ofp_arp_free_shared_memory(void);

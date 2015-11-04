@@ -25,23 +25,23 @@ void ofp_stat_term_global(void);
 
 extern unsigned long int ofp_stat_flags;
 
-#define _UPDATE_LATENCY(_core, _current_cycle, _n) {\
+#define _UPDATE_LATENCY(_core, _current_cycle, _n) do {\
 	if (st->per_core[_core].last_input_cycles) \
 		st->per_core[_core].input_latency[ilog2(odp_time_diff_cycles(\
 			st->per_core[_core].last_input_cycles, \
 			_current_cycle))] += _n;	\
 	st->per_core[_core].last_input_cycles = _current_cycle;\
-}
+} while (0)
 
-#define OFP_UPDATE_PACKET_LATENCY_STAT(_n) {\
+#define OFP_UPDATE_PACKET_LATENCY_STAT(_n) do {\
 	if (ofp_stat_flags & OFP_STAT_COMPUTE_LATENCY) { \
 		struct ofp_packet_stat *st = ofp_get_packet_statistics(); \
 		if (st)	{						\
 			uint64_t _in_cycles = odp_time_cycles(); \
 			int _core = odp_cpu_id(); \
-			_UPDATE_LATENCY(_core, _in_cycles, _n) \
+			_UPDATE_LATENCY(_core, _in_cycles, _n);\
 		} \
 	} \
-}
+} while (0)
 
 #endif

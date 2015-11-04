@@ -60,18 +60,18 @@ enum ofp_log_packet {
 
 extern struct ofp_flag_descript_s ofp_flag_descript[];
 
-#define OFP_DEBUG_PACKET(_type_, pkt, port) {\
-		if (ofp_debug_flags & ofp_flag_descript[_type_].flag) { \
-			ofp_print_packet( \
-				ofp_flag_descript[_type_].flag_descript, \
+#define OFP_DEBUG_PACKET(_type_, pkt, port) do {\
+	if (ofp_debug_flags & ofp_flag_descript[_type_].flag) { \
+		ofp_print_packet( \
+			ofp_flag_descript[_type_].flag_descript, \
 				pkt); \
-			if (ofp_debug_flags & OFP_DEBUG_CAPTURE) { \
-				ofp_save_packet_to_pcap_file( \
-					ofp_flag_descript[_type_].flag, \
+		if (ofp_debug_flags & OFP_DEBUG_CAPTURE) { \
+			ofp_save_packet_to_pcap_file( \
+				ofp_flag_descript[_type_].flag, \
 					pkt, port); \
-			} \
 		} \
-	}
+	} \
+} while (0)
 
 #ifdef __cplusplus
 }
