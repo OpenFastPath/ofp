@@ -327,7 +327,6 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 	struct arp_key key;
 	uint32_t set;
 	uint64_t tnew;
-	odp_bool_t usetime_is_old = FALSE;
 	uint32_t entry_idx;
 	struct arp_cache *cache;
 
@@ -355,10 +354,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 
 	ofp_copy_mac(ll_addr, &entry->macaddr);
 
-	if (entry->usetime_upd_tmo == ODP_TIMER_INVALID)
-		usetime_is_old = TRUE;
-
-	if (odp_unlikely(usetime_is_old == TRUE)) {
+	if (odp_unlikely(entry->usetime_upd_tmo == ODP_TIMER_INVALID)) {
 		odp_rwlock_write_lock(&entry->usetime_rwlock);
 		if (entry->usetime_upd_tmo == ODP_TIMER_INVALID) {
 			tnew = odp_time_cycles();
@@ -575,8 +571,8 @@ void ofp_arp_init_tables(void)
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[i]);
 
-	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
+	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 }
 
 int ofp_arp_init_global(void)
