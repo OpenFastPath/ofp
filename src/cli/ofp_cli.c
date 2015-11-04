@@ -18,6 +18,7 @@
 #include <string.h>
 #include <pwd.h>
 #include <time.h>
+#include <errno.h>
 
 #include <odp.h>
 #include "odp/helper/linux.h"
@@ -1389,7 +1390,7 @@ static int cli_read(int fd)
 
 	//receive data from client
 	if (recv(fd, &c, 1, 0) <= 0) {
-		perror("recv");
+		OFP_ERR("Failed to recive data on socket: %s", strerror(errno));
 		close_connection(conn);
 		return -1;
 	}

@@ -16,6 +16,7 @@
 #include <linux/if_tun.h>
 #include <netinet/if_ether.h>
 #include <stropts.h>
+#include <errno.h>
 
 #include <odp.h>
 #include "odp/helper/linux.h"
@@ -120,7 +121,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 
 	/* Setting HW address of FP kernel representation */
 	if (ioctl(fd, SIOCSIFHWADDR, &ifr) < 0) {
-		perror("SIOCSIFHWADDR");
+		OFP_ERR("Failed to set MAC address: %s", strerror(errno));
 		close(fd);
 		return -1;
 	}
@@ -135,7 +136,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	OFP_DBG("Fastpath device %s MTU %i", fp_name, ifr.ifr_mtu);
 
 	if (ioctl(gen_fd, SIOCSIFMTU, &ifr) < 0) {
-		perror("SIOCSIFMTU");
+		OFP_ERR("Failed to set MTU: %s", strerror(errno));
 		close(gen_fd);
 		close(fd);
 		return -1;
@@ -146,7 +147,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	strncpy(ifr.ifr_name, fp_name, IFNAMSIZ);
 	ifr.ifr_name[IFNAMSIZ - 1] = 0;
 	if (ioctl(gen_fd, SIOCGIFFLAGS, &ifr) < 0) {
-		perror("SIOCGIFFLAGS");
+		OFP_ERR("Failed to get interface flags: %s", strerror(errno));
 		close(gen_fd);
 		close(fd);
 		return -1;
@@ -157,7 +158,8 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 		/* ifconfig up */
 		ifr.ifr_flags |= IFF_UP;
 		if (ioctl(gen_fd, SIOCSIFFLAGS, &ifr) < 0) {
-			perror("SIOCSIFFLAGS");
+			OFP_ERR("Failed to set interface flags: %s",
+					strerror(errno));
 			close(gen_fd);
 			close(fd);
 			return -1;
@@ -169,7 +171,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	strncpy(ifr.ifr_name, fp_name, IFNAMSIZ);
 	ifr.ifr_name[IFNAMSIZ - 1] = 0;
 	if (ioctl(gen_fd, SIOCGIFINDEX, &ifr) < 0) {
-		perror("SIOCSIFINDEX");
+		OFP_ERR("Failed to get interface index: %s", strerror(errno));
 		close(gen_fd);
 		close(fd);
 		return -1;
