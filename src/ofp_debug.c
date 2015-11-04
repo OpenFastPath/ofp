@@ -1,6 +1,6 @@
 /*-
- * Copyright (c) 2014 ENEA Software AB
- * Copyright (c) 2014 Nokia
+ * Copyright (c) 2015 ENEA Software AB
+ * Copyright (c) 2015 Nokia
  *
  * SPDX-License-Identifier:     BSD-3-Clause
  */
@@ -20,6 +20,7 @@ void ofp_set_debug_flags(int flags)
 {
 	ofp_debug_flags = flags;
 }
+
 int ofp_get_debug_flags(void)
 {
 	return ofp_debug_flags;
@@ -29,6 +30,7 @@ void ofp_set_debug_capture_ports(int ports)
 {
 	ofp_debug_capture_ports = ports;
 }
+
 int ofp_get_debug_capture_ports(void)
 {
 	return ofp_debug_capture_ports;

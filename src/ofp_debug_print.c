@@ -1,6 +1,6 @@
 /*-
- * Copyright (c) 2014 ENEA Software AB
- * Copyright (c) 2014 Nokia
+ * Copyright (c) 2015 ENEA Software AB
+ * Copyright (c) 2015 Nokia
  *
  * SPDX-License-Identifier:     BSD-3-Clause
  */
@@ -21,7 +21,7 @@
  *
  * @param work Work queue entry.
  */
-#define fprintf(a, b...) do { \
+#define ofp_printf(a, b...) do { \
 		if (ofp_debug_flags & OFP_DEBUG_PRINT_CONSOLE) {\
 			printf(b); \
 		} \
@@ -30,7 +30,7 @@
 
 static void print_arp(FILE *f, char *p)
 {
-	fprintf(f, "ARP %d  %s -> %s ",
+	ofp_printf(f, "ARP %d  %s -> %s ",
 		p[7],						/* opcode */
 		ofp_print_ip_addr(*((uint32_t *)(p+14))),	/* sender IP */
 		ofp_print_ip_addr(*((uint32_t *)(p+24))));	/* target IP */
@@ -45,7 +45,7 @@ static void print_ipv6(FILE *f, char *p)
 	if (ip6hdr->ofp_ip6_nxt == OFP_IPPROTO_UDP) {
 		uh = (struct ofp_udphdr *)(ip6hdr + 1);
 
-		fprintf(f, "IPv6 UDP: len=%d  %s port %d -> %s port %d ",
+		ofp_printf(f, "IPv6 UDP: len=%d  %s port %d -> %s port %d ",
 			odp_be_to_cpu_16(uh->uh_ulen),
 			ofp_print_ip6_addr(ip6hdr->ip6_src.ofp_s6_addr),
 			odp_be_to_cpu_16(uh->uh_sport),
@@ -54,25 +54,25 @@ static void print_ipv6(FILE *f, char *p)
 	} else if (ip6hdr->ofp_ip6_nxt == OFP_IPPROTO_ICMPV6) {
 		icmp = (struct ofp_icmp6_hdr *)(ip6hdr + 1);
 
-		fprintf(f, "IPv6 ICMP: len=%d",
+		ofp_printf(f, "IPv6 ICMP: len=%d",
 			odp_be_to_cpu_16(ip6hdr->ofp_ip6_plen));
 
 		switch (icmp->icmp6_type) {
 		case OFP_ND_ROUTER_SOLICIT:
-			fprintf(f, " type=Router-Solicitation");
+			ofp_printf(f, " type=Router-Solicitation");
 			break;
 		case OFP_ND_ROUTER_ADVERT:
-			fprintf(f, " type=Router-Advertisement %s%s",
+			ofp_printf(f, " type=Router-Advertisement %s%s",
 				(icmp->ofp_icmp6_data8[1] & 0x80) ? "M" : "",
 				(icmp->ofp_icmp6_data8[1] & 0x40) ? "O" : "");
 			break;
 		case OFP_ND_NEIGHBOR_SOLICIT:
-			fprintf(f, " type=Neighbor-Solicitation target=%s",
+			ofp_printf(f, " type=Neighbor-Solicitation target=%s",
 				ofp_print_ip6_addr(icmp->ofp_icmp6_data8 +
 						     4));
 			break;
 		case OFP_ND_NEIGHBOR_ADVERT:
-			fprintf(f,
+			ofp_printf(f,
 				" type=Neighbor-Advertisement %s%s%s target=%s",
 				(icmp->ofp_icmp6_data8[0] & 0x80) ? "R" : "",
 				(icmp->ofp_icmp6_data8[0] & 0x40) ? "S" : "",
@@ -81,23 +81,23 @@ static void print_ipv6(FILE *f, char *p)
 						     4));
 			break;
 		case OFP_ND_REDIRECT:
-			fprintf(f, " type=Redirect target=%s destination=%s",
+			ofp_printf(f, " type=Redirect target=%s destination=%s",
 				ofp_print_ip6_addr(icmp->ofp_icmp6_data8 +
 						     4),
 				ofp_print_ip6_addr(icmp->ofp_icmp6_data8 +
 						     20));
 			break;
 		default:
-			fprintf(f, " type=%d", icmp->icmp6_type);
+			ofp_printf(f, " type=%d", icmp->icmp6_type);
 		}
 
-		fprintf(f, " code=%d\n", icmp->icmp6_code);
-		fprintf(f, "  %s -> %s ",
+		ofp_printf(f, " code=%d\n", icmp->icmp6_code);
+		ofp_printf(f, "  %s -> %s ",
 			ofp_print_ip6_addr(ip6hdr->ip6_src.ofp_s6_addr),
 			ofp_print_ip6_addr(ip6hdr->ip6_dst.ofp_s6_addr));
 
 	} else {
-		fprintf(f, "IPv6 PKT: len=%d next=%d %s -> %s ",
+		ofp_printf(f, "IPv6 PKT: len=%d next=%d %s -> %s ",
 			odp_be_to_cpu_16(ip6hdr->ofp_ip6_plen),
 			ip6hdr->ofp_ip6_nxt,
 			ofp_print_ip6_addr(ip6hdr->ip6_src.ofp_s6_addr),
@@ -116,7 +116,7 @@ static void print_ipv4(FILE *f, char *p)
 		uh = (struct ofp_udphdr *)(((uint8_t *)iphdr) +
 					     (iphdr->ip_hl<<2));
 
-		fprintf(f, "IP UDP PKT len=%d  %s:%d -> %s:%d ",
+		ofp_printf(f, "IP UDP PKT len=%d  %s:%d -> %s:%d ",
 			odp_be_to_cpu_16(uh->uh_ulen),
 			ofp_print_ip_addr(iphdr->ip_src.s_addr),
 			odp_be_to_cpu_16(uh->uh_sport),
@@ -126,7 +126,7 @@ static void print_ipv4(FILE *f, char *p)
 	} else if (iphdr->ip_p == OFP_IPPROTO_TCP) {
 		th = (struct ofp_tcphdr *)(((uint8_t *)iphdr) +
 					     (iphdr->ip_hl<<2));
-		fprintf(f, "IP len=%d TCP %s:%d -> %s:%d\n"
+		ofp_printf(f, "IP len=%d TCP %s:%d -> %s:%d\n"
 			"   seq=0x%x ack=0x%x off=%d\n   flags=",
 			odp_be_to_cpu_16(iphdr->ip_len),
 			ofp_print_ip_addr(iphdr->ip_src.s_addr),
@@ -137,22 +137,22 @@ static void print_ipv4(FILE *f, char *p)
 			odp_be_to_cpu_32(th->th_ack),
 			th->th_off);
 		if (th->th_flags & OFP_TH_FIN)
-			fprintf(f, "F");
+			ofp_printf(f, "F");
 		if (th->th_flags & OFP_TH_SYN)
-			fprintf(f, "S");
+			ofp_printf(f, "S");
 		if (th->th_flags & OFP_TH_RST)
-			fprintf(f, "R");
+			ofp_printf(f, "R");
 		if (th->th_flags & OFP_TH_PUSH)
-			fprintf(f, "P");
+			ofp_printf(f, "P");
 		if (th->th_flags & OFP_TH_ACK)
-			fprintf(f, "A");
+			ofp_printf(f, "A");
 		if (th->th_flags & OFP_TH_URG)
-			fprintf(f, "U");
+			ofp_printf(f, "U");
 		if (th->th_flags & OFP_TH_ECE)
-			fprintf(f, "E");
+			ofp_printf(f, "E");
 		if (th->th_flags & OFP_TH_CWR)
-			fprintf(f, "C");
-		fprintf(f, " win=%u sum=0x%x urp=%u",
+			ofp_printf(f, "C");
+		ofp_printf(f, " win=%u sum=0x%x urp=%u",
 			odp_be_to_cpu_16(th->th_win),
 			odp_be_to_cpu_16(th->th_sum),
 			odp_be_to_cpu_16(th->th_urp));
@@ -161,21 +161,21 @@ static void print_ipv4(FILE *f, char *p)
 #if 0
 		if (odp_be_to_cpu_16(th->th_win) == 0) {
 			/* wrong value */
-			fprintf(f, "\n---- th_win == 0, quit\n");
+			ofp_printf(f, "\n---- th_win == 0, quit\n");
 			fflush(NULL);
 			int *a = 0;
 			*a = 8;
 		}
 #endif
 		if (len > 2000) {
-			fprintf(f, "\nToo long data!\n");
+			ofp_printf(f, "\nToo long data!\n");
 			int *a = 0, b = 8, c = 9;
 			*a = b + c;
 		} else if (0) {
 			for (i = 0; i < len; i++) {
 				if ((i & 0xf) == 0)
-					fprintf(f, "\n");
-				fprintf(f, " %02x", (uint8_t)p[i]);
+					ofp_printf(f, "\n");
+				ofp_printf(f, " %02x", (uint8_t)p[i]);
 			}
 		}
 	} else if (iphdr->ip_p == OFP_IPPROTO_ICMP) {
@@ -184,31 +184,31 @@ static void print_ipv4(FILE *f, char *p)
 
 		switch (icmp->icmp_type) {
 		case OFP_ICMP_ECHOREPLY:
-			fprintf(f,
+			ofp_printf(f,
 				"IP ICMP: echo reply  %s -> %s  id=%d seq=%d",
 				ofp_print_ip_addr(iphdr->ip_src.s_addr),
 				ofp_print_ip_addr(iphdr->ip_dst.s_addr),
 				icmp->ofp_icmp_id, icmp->ofp_icmp_seq);
 			break;
 		case OFP_ICMP_UNREACH:
-			fprintf(f, "IP ICMP: dest unreachable  %s -> %s ",
+			ofp_printf(f, "IP ICMP: dest unreachable  %s -> %s ",
 				ofp_print_ip_addr(iphdr->ip_src.s_addr),
 				ofp_print_ip_addr(iphdr->ip_dst.s_addr));
 			break;
 		case OFP_ICMP_ECHO:
-			fprintf(f, "IP ICMP: echo  %s -> %s  id=%d seq=%d",
+			ofp_printf(f, "IP ICMP: echo  %s -> %s  id=%d seq=%d",
 				ofp_print_ip_addr(iphdr->ip_src.s_addr),
 				ofp_print_ip_addr(iphdr->ip_dst.s_addr),
 				icmp->ofp_icmp_id, icmp->ofp_icmp_seq);
 			break;
 		default:
-			fprintf(f, "IP ICMP %d: code=%d  %s -> %s ",
+			ofp_printf(f, "IP ICMP %d: code=%d  %s -> %s ",
 				icmp->icmp_type, icmp->icmp_code,
 				ofp_print_ip_addr(iphdr->ip_src.s_addr),
 				ofp_print_ip_addr(iphdr->ip_dst.s_addr));
 		}
 	} else {
-		fprintf(f, "IP PKT len=%d proto=%d  %s -> %s ",
+		ofp_printf(f, "IP PKT len=%d proto=%d  %s -> %s ",
 			odp_be_to_cpu_16(iphdr->ip_len),
 			iphdr->ip_p,
 			ofp_print_ip_addr(iphdr->ip_src.s_addr),
@@ -223,7 +223,7 @@ static int print_gre(FILE *f, char *p, uint16_t *proto)
 
 	p += 4;
 
-	fprintf(f, "GRE proto=0x%04x ", odp_be_to_cpu_16(gre->ptype));
+	ofp_printf(f, "GRE proto=0x%04x ", odp_be_to_cpu_16(gre->ptype));
 	*proto = odp_be_to_cpu_16(gre->ptype);
 
 	if ((gre->flags & OFP_GRE_CP) ||
@@ -232,17 +232,17 @@ static int print_gre(FILE *f, char *p, uint16_t *proto)
 	}
 
 	if (gre->flags & OFP_GRE_KP) {
-		fprintf(f, "key=0x%02x%02x%02x%02x ", p[0], p[1], p[2], p[3]);
+		ofp_printf(f, "key=0x%02x%02x%02x%02x ", p[0], p[1], p[2], p[3]);
 		len += 4; p += 4;
 	}
 
 	if (gre->flags & OFP_GRE_SP) {
-		fprintf(f, "seq=0x%02x%02x%02x%02x ", p[0], p[1], p[2], p[3]);
+		ofp_printf(f, "seq=0x%02x%02x%02x%02x ", p[0], p[1], p[2], p[3]);
 		len += 4; p += 4;
 	}
 
 	if (gre->flags & OFP_GRE_RP)
-		fprintf(f, "routing ");
+		ofp_printf(f, "routing ");
 
 	return len;
 }
@@ -299,13 +299,13 @@ void ofp_print_packet_buffer(const char *comment, uint8_t *p)
 	int ms = (tv.tv_sec*1000+tv.tv_usec/1000) -
 		(tv0.tv_sec*1000+tv0.tv_usec/1000);
 
-	fprintf(f, "\n*************\n");
-	fprintf(f, "[%d] %s: %d.%03d\n", odp_cpu_id(), comment,
+	ofp_printf(f, "\n*************\n");
+	ofp_printf(f, "[%d] %s: %d.%03d\n", odp_cpu_id(), comment,
 		       ms/1000, ms%1000);
-	fprintf(f, "%s ->%s\n  ", ofp_print_mac(p+6), ofp_print_mac(p));
+	ofp_printf(f, "%s ->%s\n  ", ofp_print_mac(p+6), ofp_print_mac(p));
 
 	if (p[12] == 0x81 && p[13] == 0x00) {
-		fprintf(f, "VLAN %d ", (p[14]<<8)|p[15]);
+		ofp_printf(f, "VLAN %d ", (p[14]<<8)|p[15]);
 		p += 4;
 	}
 
@@ -313,9 +313,9 @@ void ofp_print_packet_buffer(const char *comment, uint8_t *p)
 		uint8_t *label = p+14;
 		int i;
 
-		fprintf(f, "MPLS ");
+		ofp_printf(f, "MPLS ");
 		while (1) {
-			fprintf(f, "[label=%d ttl=%d] ",
+			ofp_printf(f, "[label=%d ttl=%d] ",
 				label[0]*16*256 + label[1]*16 + label[2]/16,
 				label[3]);
 			if (label[2] & 1)
@@ -354,11 +354,11 @@ void ofp_print_packet_buffer(const char *comment, uint8_t *p)
 		} else
 			print_ipv4(f, (char *)(p + L2_HEADER_NO_VLAN_SIZE));
 	} else {
-		fprintf(f, "UNKNOWN ETH PACKET TYPE 0x%02x%02x ",
+		ofp_printf(f, "UNKNOWN ETH PACKET TYPE 0x%02x%02x ",
 			p[12], p[13]);
 	}
 
-	fprintf(f, "\n");
+	ofp_printf(f, "\n");
 	fclose(f);
 	fflush(stdout);
 }
