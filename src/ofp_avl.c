@@ -57,14 +57,14 @@ struct ofp_avl_mem {
 static __thread struct ofp_avl_mem *shm;
 
 
-static void AVL_NODEFREE(avl_node *node)
+static void avl_mem_node_free(avl_node *node)
 {
     node->right = shm->free_nodes;
     shm->free_nodes = node;
     shm->nodes_allocated--;
 }
 
-static avl_node *AVL_NODEALLOC(void)
+static avl_node *avl_mem_node_alloc(void)
 {
     avl_node *p = shm->free_nodes;
     if (shm->free_nodes) {
@@ -76,13 +76,13 @@ static avl_node *AVL_NODEALLOC(void)
     return p;
 }
 
-static void AVL_TREEFREE(avl_tree *tree)
+static void avl_mem_tree_free(avl_tree *tree)
 {
     tree->compare_arg = shm->free_trees;
     shm->free_trees = tree;
 }
 
-static avl_tree *AVL_TREEALLOC(void)
+static avl_tree *avl_mem_tree_alloc(void)
 {
     avl_tree *p = shm->free_trees;
     if (shm->free_trees) {
@@ -95,7 +95,7 @@ avl_node *
 avl_node_new (void *        key,
               avl_node *    parent)
 {
-    avl_node * node = AVL_NODEALLOC();//(avl_node *) malloc (sizeof (avl_node));
+    avl_node * node = avl_mem_node_alloc();
 
     if (!node) {
         return NULL;
@@ -118,15 +118,14 @@ avl_tree *
 avl_tree_new (avl_key_compare_fun_type compare_fun,
               void * compare_arg)
 {
-	avl_tree * t = AVL_TREEALLOC();
+	avl_tree * t = avl_mem_tree_alloc();
 
 	if (!t) {
-		OFP_ERR("AVL_TREEALLOC failed");
+		OFP_ERR("avl_mem_tree_alloc failed");
 		return NULL;
 	} else {
 		avl_node * root = avl_node_new((void *)NULL, (avl_node *) NULL);
 		if (!root) {
-			//XXXX free (t);
 			return NULL;
 		} else {
 			t->root = root;
@@ -155,7 +154,7 @@ avl_tree_free_helper (avl_node * node, avl_free_key_fun_type free_key_fun)
 #ifdef HAVE_AVL_NODE_LOCK
 	thread_rwlock_destroy (&node->rwlock);
 #endif
-	AVL_NODEFREE(node);
+	avl_mem_node_free(node);
 }
 
 void
@@ -168,10 +167,10 @@ avl_tree_free (avl_tree * tree, avl_free_key_fun_type free_key_fun)
 #ifdef HAVE_AVL_NODE_LOCK
 		thread_rwlock_destroy(&tree->root->rwlock);
 #endif
-		AVL_NODEFREE(tree->root);
+		avl_mem_node_free(tree->root);
 	}
 	thread_rwlock_destroy(&tree->rwlock);
-	AVL_TREEFREE(tree);
+	avl_mem_tree_free(tree);
 }
 
 int
@@ -529,7 +528,7 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
 #ifdef HAVE_AVL_NODE_LOCK
     thread_rwlock_destroy (&x->rwlock);
 #endif
-    AVL_NODEFREE(x);
+    avl_mem_node_free(x);
 
     while (shorter && p->parent) {
 
