@@ -1,5 +1,5 @@
-/* Copyright (c) 2014, ENEA Software AB
- * Copyright (c) 2014, Nokia
+/* Copyright (c) 2015, ENEA Software AB
+ * Copyright (c) 2015, Nokia
  * All rights reserved.
  *
  * SPDX-License-Identifier:	BSD-3-Clause
@@ -410,8 +410,9 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 
 #if (ARP_SANITY_CHECK)
 	newarp = arp_lookup(set, &key);
-	if (newarp != NULL && *((uint8_t *)&newarp->macaddr + 5) != 0)
-		OFP_ERR("Saving packet to destination which has valid MAC");
+	if (newarp != NULL &&
+		*((uint8_t *)&newarp->macaddr + OFP_ETHER_ADDR_LEN) != 0)
+		OFP_ERR("ARP Entry failed the sanity check!");
 #endif
 
 	newarp = insert_new_entry(set, &key);
