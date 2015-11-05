@@ -9,4 +9,8 @@
 
 #include "ofp_config.h"
 
+#define SEC_USEC 1000000UL
+
+#define ARP_SANITY_CHECK 1
+
 #endif

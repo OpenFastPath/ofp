@@ -11,6 +11,7 @@
 #include <string.h>
 #include <odp.h>
 
+#include "ofpi_config.h"
 #include "ofpi_portconf.h"
 #include "ofpi_timer.h"
 #include "ofpi_arp.h"
@@ -20,19 +21,13 @@
 
 #define SHM_NAME_ARP "OfpArpShMem"
 
-#define ARP_SANITY_CHECK 1
-
-#define NUM_SETS 2048 /* Must be power of two */
-#define NUM_ARPS (NUM_SETS * 4)
-
-#define NUM_PKTS 2048 /* number of saved packets waiting for arp reply */
-
-#define SEC_USEC 1000000UL
-#define CLEANUP_TIMER_INTERVAL (60 * SEC_USEC)
-#define ENTRY_TIMEOUT (1200 * ODP_TIME_SEC) /* 20 minutes */
-#define ENTRY_UPD_TIMEOUT (2 * SEC_USEC)
+#define NUM_SETS ARP_ENTRY_TABLE_SIZE
+#define NUM_ARPS ARP_ENTRIES_SIZE
+#define CLEANUP_TIMER_INTERVAL (ARP_CLEANUP_TIMER_INTERVAL * SEC_USEC)
+#define ENTRY_TIMEOUT (ARP_ENTRY_TIMEOUT * ODP_TIME_SEC) /* 20 minutes */
+#define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * SEC_USEC)
 #define ENTRY_USETIME_INVALID 0xFFFFFFFF
-#define SAVED_PKT_TIMEOUT (10 * SEC_USEC)
+#define SAVED_PKT_TIMEOUT (ARP_SAVED_PKT_TIMEOUT * SEC_USEC)
 
 #if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)
 #define hashfunc ofp_hashlittle
@@ -58,7 +53,7 @@ struct _arp {
 };
 
 struct _pkt {
-	struct pkt_entry entries[NUM_PKTS] ODP_ALIGNED_CACHE;
+	struct pkt_entry entries[ARP_WAITING_PKTS_SIZE] ODP_ALIGNED_CACHE;
 	struct pkt_list free_entries;
 	odp_rwlock_t fr_ent_rwlock;
 };
@@ -578,7 +573,7 @@ void ofp_arp_init_tables(void)
 		OFP_SLIST_INSERT_HEAD(&shm->arp.free_entries, &shm->arp.entries[i],
 				  next);
 
-	for (i = NUM_PKTS - 1; i >= 0; --i)
+	for (i = ARP_WAITING_PKTS_SIZE - 1; i >= 0; --i)
 		OFP_SLIST_INSERT_HEAD(&shm->pkt.free_entries, &shm->pkt.entries[i],
 				  next);
 

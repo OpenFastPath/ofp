@@ -58,4 +58,20 @@
  * It defines the number of radix tree nodes used to store routes.*/
 #define ROUTE6_NODES 65536
 
+/**Arp entry table size. Controls memory size for arp entries.
+ * Must be power of two */
+#define ARP_ENTRY_TABLE_SIZE 2048
+/**Total number of arp entries that can be stored. */
+#define ARP_ENTRIES_SIZE (NUM_SETS * 4)
+/**Cleanup Timer Interval (s)*/
+#define ARP_CLEANUP_TIMER_INTERVAL 60
+/**Arp entries are removed after this timeout interval(s)*/
+#define ARP_ENTRY_TIMEOUT 1200
+/**Timer trigger(s) to scan for old arp entries.*/
+#define ARP_ENTRY_UPD_TIMEOUT 2
+/**Time interval(s) while a packet is saved and waiting for an ARP reply. */
+#define ARP_SAVED_PKT_TIMEOUT 10
+/**Maximum number of saved packets waiting for an ARP reply. */
+#define ARP_WAITING_PKTS_SIZE 2048
+
 #endif
