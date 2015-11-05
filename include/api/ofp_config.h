@@ -26,6 +26,13 @@
 
 /* Configure values */
 
+/** Packet pool size. */
+#define SHM_PKT_POOL_SIZE		(512*2048)
+/** Packet pool buffer size. */
+#define SHM_PKT_POOL_BUFFER_SIZE	1856
+/** Packet pool user area size. */
+#define SHM_PKT_POOL_USER_AREA_SIZE	16
+
 /**Value of burst size used in default_event_dispatcher.*/
 #define OFP_EVENT_BURST_SIZE 16
 

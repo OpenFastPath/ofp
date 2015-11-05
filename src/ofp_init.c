@@ -18,11 +18,11 @@
 #include <odp.h>
 #include "odp/helper/linux.h"
 
+#include "ofpi_config.h"
 #include "ofpi_init.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_util.h"
 #include "ofpi_stat.h"
-#include "config.h"
 #include "ofpi_netlink.h"
 #include "ofpi_portconf.h"
 #include "ofpi_route.h"
@@ -45,12 +45,7 @@
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
 
-#define LINUX_THREADS_MAX	4
-#define SHM_PKT_POOL_SIZE	(512*2048)
-#define SHM_PKT_POOL_BUFFER_SIZE	1856
-#define SHM_PKT_POOL_USER_AREA_SIZE	16
-
-#define POOL_NAME_PKT "packet_pool"
+#define SHM_PACKET_POOL_NAME "packet_pool"
 
 static void schedule_shutdown(void);
 
@@ -127,7 +122,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
 	pool_params.type           = ODP_POOL_PACKET;
 
-	HANDLE_ERROR(ofp_init_pre_global(POOL_NAME_PKT, &pool_params,
+	HANDLE_ERROR(ofp_init_pre_global(SHM_PACKET_POOL_NAME, &pool_params,
 		params->pkt_hook, &ofp_packet_pool));
 
 	/* cpu mask for slow path threads */
@@ -344,7 +339,7 @@ int ofp_term_global(void)
 {
 	int rc = 0;
 
-	if (ofp_term_post_global(POOL_NAME_PKT)) {
+	if (ofp_term_post_global(SHM_PACKET_POOL_NAME)) {
 		OFP_ERR("Failed to cleanup resources\n");
 		rc = -1;
 	}

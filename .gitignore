@@ -56,3 +56,5 @@ Makefile
 *.trs
 *.deps
 *.xml
+*.gcno
+*.gcda
