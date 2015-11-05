@@ -10,6 +10,7 @@
 
 #include <odp.h>
 
+#include "ofpi_config.h"
 #include "ofpi_log.h"
 #include "ofpi_stat.h"
 #include "ofpi_util.h"
@@ -41,7 +42,6 @@ struct ofp_perf_stat *ofp_get_perf_statistics(void)
 	return &shm_stat->ofp_perf_stat;
 }
 
-#define SEC_USEC 1000000UL
 #define PROBES 3UL
 static void ofp_perf_tmo(void *arg)
 {

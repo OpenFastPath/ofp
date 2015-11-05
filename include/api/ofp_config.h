@@ -20,6 +20,11 @@
 /**Enable PERFORMANCE measurements mode. Some validations are skipped.*/
 /* #define OFP_PERFORMANCE */
 
+/**Enable burst send of packets.*/
+#ifdef OFP_PERFORMANCE
+/* #define OFP_SEND_PKT_BURST */
+#endif
+
 /**OFP configured to send ICMP redirect*/
 /* #define OFP_SEND_ICMP_REDIRECT */
 
@@ -39,6 +44,11 @@
 
 /**Value of burst size used in default_event_dispatcher.*/
 #define OFP_EVENT_BURST_SIZE 16
+/**Maximum number of packets received when scheduling with schedule_multi.
+ * Value in default_event_dispatcher().*/
+#define OFP_PKT_SCHED_MULTI_EVENT_SIZE 16
+/**Number of packets sent at once in send_pkt_burst_out() */
+#define OFP_PKT_TX_BURST_SIZE 16
 
 #ifdef MTRIE
 /**Controls memory size for IPv4 MTRIE 16/8/8 data structure.

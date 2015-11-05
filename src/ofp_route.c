@@ -23,8 +23,6 @@
 #define SHM_NAME_ROUTE "OfpRouteShMem"
 #define SHM_NAME_ROUTE_LK "OfpLocksShMem"
 
-#define USE_RW_LOCK 1
-
 /* number of saved packets waiting for Neighbor Advertisement */
 #define NUM_PKTS 2048
 

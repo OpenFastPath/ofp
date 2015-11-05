@@ -59,7 +59,7 @@ void *default_event_dispatcher(void *arg)
 	odp_event_t ev;
 	odp_packet_t pkt;
 	odp_queue_t in_queue;
-	odp_event_t events[OFP_EVENT_BURST_SIZE];
+	odp_event_t events[OFP_PKT_SCHED_MULTI_EVENT_SIZE];
 	int event_idx = 0;
 	int event_cnt = 0;
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
@@ -76,7 +76,7 @@ void *default_event_dispatcher(void *arg)
 	/* PER CORE DISPATCHER */
 	while (1) {
 		event_cnt = odp_schedule_multi(&in_queue, ODP_SCHED_WAIT,
-					 events, OFP_EVENT_BURST_SIZE);
+					 events, OFP_PKT_SCHED_MULTI_EVENT_SIZE);
 		for (event_idx = 0; event_idx < event_cnt; event_idx++) {
 			ev = events[event_idx];
 
@@ -444,12 +444,11 @@ enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
 {
 	uint32_t pkts_sent;
 #if 1
-#define OFP_PKT_BURST_SIZE 16
-	static __thread odp_packet_t pkt_tbl[OFP_PKT_BURST_SIZE];
+	static __thread odp_packet_t pkt_tbl[OFP_PKT_TX_BURST_SIZE];
 	static __thread uint32_t count = 0;
 	uint32_t i;
 
-	if (count == OFP_PKT_BURST_SIZE) {
+	if (count == OFP_PKT_TX_BURST_SIZE) {
 		pkts_sent = odp_pktio_send(ofp_port_pktio_get(dev->port), pkt_tbl, count);
 		for (i = pkts_sent; i < count; i++)
 			odp_packet_free(pkt_tbl[i]);
@@ -1024,10 +1023,15 @@ static enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
 	odata->ip->ip_sum = 0;
 	odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *)odata->ip, odata->ip->ip_hl<<2);
 #endif
-	if (odata->is_local_address)
+	if (odata->is_local_address) {
 		return send_pkt_loop(odata->dev_out, pkt);
-	else
+	} else {
+#ifdef OFP_SEND_PKT_BURST
+		return send_pkt_burst_out(odata->dev_out, pkt);
+#else
 		return send_pkt_out(odata->dev_out, pkt);
+#endif
+	}
 }
 
 static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
@@ -1357,10 +1361,15 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 		eth_vlan->evl_proto = odp_cpu_to_be_16(OFP_ETHERTYPE_IPV6);
 	}
 
-	if (is_local_address)
+	if (is_local_address) {
 		return send_pkt_loop(dev_out, pkt);
-	else
+	} else {
+#ifdef OFP_SEND_PKT_BURST
+		return send_pkt_burst_out(dev_out, pkt);
+#else
 		return send_pkt_out(dev_out, pkt);
+#endif
+	}
 }
 #endif /* INET6 */
 
