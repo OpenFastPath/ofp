@@ -1,5 +1,5 @@
-/* Copyright (c) 2014, ENEA Software AB
- * Copyright (c) 2014, Nokia
+/* Copyright (c) 2015, ENEA Software AB
+ * Copyright (c) 2015, Nokia
  * All rights reserved.
  *
  * SPDX-License-Identifier:	BSD-3-Clause
@@ -27,20 +27,21 @@
 #include "ofpi_rt_lookup.h"
 #include "ofpi_log.h"
 
-#define SHM_NAME_RT_LOOKUP "OfpRtlookupShMem"
+#define SHM_NAME_RT_LOOKUP	"OfpRtlookupShMem"
+
+#define NUM_NODES		ROUTE4_NODES
+#define NUM_NODES_6		ROUTE6_NODES
 
 /*
  * Shared data
  */
 struct ofp_rt_lookup_mem {
 	struct ofp_rtl_node *global_stack[65];
-#define NUM_NODES 65536
 	struct ofp_rtl_node node_list[NUM_NODES];
 	struct ofp_rtl_node *free_nodes;
 	int nodes_allocated, max_nodes_allocated;
 
 	struct ofp_rtl6_node *global_stack6[129];
-#define NUM_NODES_6 65536
 	struct ofp_rtl6_node node_list6[NUM_NODES_6];
 	struct ofp_rtl6_node *free_nodes6;
 	int nodes_allocated6, max_nodes_allocated6;
@@ -94,8 +95,6 @@ static struct ofp_rtl6_node *NODEALLOC6(void)
 	}
 	return p;
 }
-
-#define OFP_OOPS(_s) OFP_DBG(_s)
 
 int ofp_rtl_init(struct ofp_rtl_tree *tree)
 {
@@ -165,8 +164,11 @@ ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 	}
 
 	node = NODEALLOC();
-	if (!node)
-		return NULL;//tree;
+	if (!node) {
+		OFP_ERR("NODEALLOC failed");
+		return data;
+	}
+
 	memset(node, 0, sizeof(*node));
 
 	node->left = NULL;
@@ -195,7 +197,11 @@ ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 		depth++;
 	}
 
-	if (!last) OFP_OOPS("!last");
+	if (!last) {
+		OFP_ERR("!last");
+		return data;
+	}
+
 	if (addr & mask) {
 		last->right = node;
 	} else {
@@ -219,7 +225,7 @@ ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 		node = tmp;
 	}
 
-	return NULL; //tree;
+	return data;
 }
 
 
@@ -323,7 +329,10 @@ void ofp_rtl_destroy(struct ofp_rtl_tree *tree, void (*func)(void *data))
 	node = tree->root;
 
 	for (;;) {
-		if (depth == OFP_RTL_MAXDEPTH + 1) OFP_OOPS("rtl maxdetph exceeded");
+		if (depth == OFP_RTL_MAXDEPTH + 1) {
+			OFP_ERR("rtl maxdetph exceeded");
+			return;
+		}
 
 		if (!node->left && !node->right) {
 			if (func && (node->flags & OFP_RTL_FLAGS_VALID_DATA))
@@ -398,8 +407,11 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 		return &node->data;
 
 	node = NODEALLOC6();
-	if (!node)
-		return NULL;//tree;
+	if (!node) {
+		OFP_ERR("NODEALLOC6 failed!");
+		return data;
+	}
+
 	memset(node, 0, sizeof(*node));
 
 	node->left = NULL;
@@ -428,7 +440,11 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 		depth++;
 	}
 
-	if (!last) OFP_OOPS("!last");
+	if (!last) {
+		OFP_ERR("!last");
+		return data;
+	}
+
 	if (ofp_rt_bit_set(addr, bit)) {
 		last->right = node;
 	} else {
@@ -452,7 +468,7 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 		node = tmp;
 	}
 
-	return NULL; //tree;
+	return data;
 }
 
 struct ofp_nh6_entry *

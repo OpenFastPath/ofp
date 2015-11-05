@@ -1,5 +1,5 @@
-/* Copyright (c) 2014, ENEA Software AB
- * Copyright (c) 2014, Nokia
+/* Copyright (c) 2015, ENEA Software AB
+ * Copyright (c) 2015, Nokia
  * All rights reserved.
  *
  * SPDX-License-Identifier:	BSD-3-Clause
@@ -20,25 +20,27 @@
 #include "ofpi_rt_lookup.h"
 #include "ofpi_log.h"
 
-#define SHM_NAME_RT_LOOKUP_MTRIE "OfpRtlookupMtrieShMem"
+#define SHM_NAME_RT_LOOKUP_MTRIE	"OfpRtlookupMtrieShMem"
+
+#define ROUTE_LIST_SIZE			ROUTE4_RULE_LIST_SIZE
+#define NUM_NODES			ROUTE4_MTRIE8_TABLE_NODES
+#define NUM_NODES_LARGE			ROUTE4_MTRIE16_TABLE_NODES
+
+#define NUM_NODES_6			ROUTE6_NODES
 
 /*
  * Shared data
  */
 struct ofp_rt_lookup_mem {
-#define NUM_NODES 1024
-#define NUM_NODES_LARGE 128
 	struct ofp_rtl_node small_list[NUM_NODES][1<<IPV4_LEVEL];
 	struct ofp_rtl_node large_list[NUM_NODES_LARGE][1<<IPV4_FIRST_LEVEL];
 	struct ofp_rtl_node *free_small;
 	struct ofp_rtl_node *free_large;
 
-#define ROUTE_LIST_SIZE 65536
 	struct ofp_rt_rule rules[ROUTE_LIST_SIZE];
 	int nodes_allocated, max_nodes_allocated;
 
 	struct ofp_rtl6_node *global_stack6[129];
-#define NUM_NODES_6 65536
 	struct ofp_rtl6_node node_list6[NUM_NODES_6];
 	struct ofp_rtl6_node *free_nodes6;
 	int nodes_allocated6, max_nodes_allocated6;
@@ -60,18 +62,19 @@ static void NODEFREE(struct ofp_rtl_node *node)
 
 static struct ofp_rtl_node *NODEALLOC(void)
 {
-	struct ofp_rtl_node *p = shm->free_small;
-	if (shm->free_small) {
-		shm->free_small = shm->free_small->next;
+	struct ofp_rtl_node *rtl_node = shm->free_small;
+	if (rtl_node) {
+		shm->free_small = rtl_node->next;
+
 		shm->nodes_allocated++;
+		if (shm->nodes_allocated > shm->max_nodes_allocated)
+			shm->max_nodes_allocated = shm->nodes_allocated;
+
+		rtl_node->root = 0;
+		rtl_node->ref = 0;
 	}
-	if (shm->nodes_allocated > shm->max_nodes_allocated)
-		shm->max_nodes_allocated = shm->nodes_allocated;
 
-	p->root = 0;
-	p->ref = 0;
-
-	return p;
+	return rtl_node;
 }
 
 int ofp_rtl_init(struct ofp_rtl_tree *tree)
@@ -120,9 +123,6 @@ static struct ofp_rtl6_node *NODEALLOC6(void)
 	}
 	return p;
 }
-
-#define OFP_OOPS(_s) OFP_DBG(_s)
-
 
 int ofp_rtl6_init(struct ofp_rtl6_tree *tree)
 {
@@ -276,14 +276,18 @@ ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 		if (elem->next == NULL)
 			elem->next = NODEALLOC();
 
+		if (elem->next == NULL) {
+			OFP_ERR("NODEALLOC failed!");
+			return data;
+		}
+
 		if (elem->masklen == 0)
 			elem->masklen = masklen;
 
 		node = elem->next;
 	}
-	odp_sync_stores();
 
-	return 0;
+	return NULL;
 }
 
 struct ofp_nh_entry *
@@ -403,8 +407,11 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 		return &node->data;
 
 	node = NODEALLOC6();
-	if (!node)
-		return NULL;//tree;
+	if (!node) {
+		OFP_ERR("NODEALLOC6 failed!");
+		return data;
+	}
+
 	memset(node, 0, sizeof(*node));
 
 	node->left = NULL;
@@ -433,7 +440,11 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 		depth++;
 	}
 
-	if (!last) OFP_OOPS("!last");
+	if (!last) {
+		OFP_ERR("!last");
+		return data;
+	}
+
 	if (ofp_rt_bit_set(addr, bit)) {
 		last->right = node;
 	} else {
@@ -457,7 +468,7 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 		node = tmp;
 	}
 
-	return NULL; //tree;
+	return data;
 }
 
 struct ofp_nh6_entry *
