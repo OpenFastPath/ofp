@@ -55,6 +55,17 @@ struct ofp_timer_mem {
 
 static __thread struct ofp_timer_mem *shm;
 
+static void ofp_timer_shm_init(void)
+{
+	memset(shm, 0, sizeof(*shm));
+	shm->pool = ODP_POOL_INVALID;
+	shm->buf_pool = ODP_POOL_INVALID;
+	shm->queue = ODP_QUEUE_INVALID;
+	shm->socket_timer_pool = ODP_TIMER_POOL_INVALID;
+	shm->socket_timer = ODP_TIMER_INVALID;
+	shm->timer_1s = ODP_TIMER_INVALID;
+}
+
 static void one_sec(void *arg)
 {
 	struct ofp_timer_internal *bufdata;
@@ -145,7 +156,7 @@ int ofp_timer_init_global(int resolution_us,
 
 	if (shm->queue == ODP_QUEUE_INVALID) {
 		OFP_ERR("odp_queue_create failed");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	odp_spinlock_init(&shm->lock);
@@ -173,6 +184,13 @@ void ofp_timer_term_global(void)
 {
 	int i;
 	struct ofp_timer_internal *bufdata, *next;
+
+	if (ofp_timer_lookup_shared_memory()) {
+		OFP_WARN("Timer Shared memory not found.");
+		return;
+	}
+
+	ofp_timer_stop_global();
 
 /* Cleanup long timers*/
 	for (i = 0; i < TIMER_NUM_LONG_SLOTS; i++) {
@@ -208,7 +226,7 @@ void ofp_timer_term_global(void)
 		shm->pool = ODP_POOL_INVALID;
 	}
 
-	memset(shm, 0, sizeof(*shm));
+	ofp_timer_shm_init();
 }
 
 int ofp_timer_alloc_shared_memory(void)
@@ -219,7 +237,7 @@ int ofp_timer_alloc_shared_memory(void)
 		return -1;
 	}
 
-	memset(shm, 0, sizeof(*shm));
+	ofp_timer_shm_init();
 	return 0;
 }
 
@@ -251,20 +269,16 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 	odp_timeout_t tmo;
 
 	/* Init shm if not done yet. */
-	if (shm == NULL)
-		ofp_timer_lookup_shared_memory();
-
-	/* If shm is still NULL we have a problem. */
-	if (shm == NULL) {
+	if ((shm == NULL) && ofp_timer_lookup_shared_memory()) {
 		OFP_ERR("ofp_timer_lookup_shared_memory failed");
-		exit(1);
+		return ODP_TIMER_INVALID;
 	}
 
 	/* Alloc user buffer */
 	buf = odp_buffer_alloc(shm->buf_pool);
 	if (buf == ODP_BUFFER_INVALID) {
 		OFP_ERR("odp_buffer_alloc failed");
-		exit(1);
+		return ODP_TIMER_INVALID;
 	}
 
 	bufdata = (struct ofp_timer_internal *)odp_buffer_addr(buf);
@@ -297,8 +311,9 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		/* Alloc timout event */
 		tmo = odp_timeout_alloc(shm->pool);
 		if (tmo == ODP_TIMEOUT_INVALID) {
+			odp_buffer_free(buf);
 			OFP_ERR("odp_timeout_alloc failed");
-			exit(1);
+			return ODP_TIMER_INVALID;
 		}
 		bufdata->t_ev = odp_timeout_to_event(tmo);
 
@@ -310,15 +325,19 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		shm->socket_timer = odp_timer_alloc(shm->socket_timer_pool,
 						    shm->queue, bufdata);
 		if (shm->socket_timer == ODP_TIMER_INVALID) {
+			odp_timeout_free(tmo);
+			odp_buffer_free(buf);
 			OFP_ERR("odp_timer_alloc failed");
-			exit(1);
+			return ODP_TIMER_INVALID;
 		}
 
 		t = odp_timer_set_abs(shm->socket_timer, tick, &bufdata->t_ev);
 
 		if (t != ODP_TIMER_SUCCESS) {
+			odp_timeout_free(tmo);
+			odp_buffer_free(buf);
 			OFP_ERR("odp_timer_set_abs failed");
-			exit(1);
+			return ODP_TIMER_INVALID;
 		}
 
 		return shm->socket_timer;
