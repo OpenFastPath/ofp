@@ -987,7 +987,7 @@ static void print_nodes(int fd, struct cli_node *node)
 		ofp_sendf(fd, "%s ", n->word);
 	}
 
-	printf("\n");
+	ofp_sendf(fd, "\n");
 	while (ni > 0) {
 		n = stack[--ni];
 		depth -= strlen(n->word) + 1;
@@ -1395,8 +1395,6 @@ static int cli_read(int fd)
 		return -1;
 	}
 
-	//printf("ch = %02x = %c\n", c, c);
-
 	if (conn->status & WAITING_PASSWD) {
 		unsigned int plen = strlen(conn->passwd);
 		if (c == 10 || c == 13) {
@@ -1419,7 +1417,6 @@ static int cli_read(int fd)
 		conn->status |= WAITING_TELNET_2;
 		return 0;
 	} else if (conn->status & WAITING_TELNET_2) {
-	//printf("telnet: 0x%x 0x%x=%d\n", conn->ch1, c, c);
 	static int num_dsp_chars = 0;
 	static char dsp_chars[8];
 
@@ -1429,7 +1426,6 @@ static int cli_read(int fd)
 			conn->status &= ~WAITING_TELNET_2;
 			cli_display_width = dsp_chars[1];
 			cli_display_height = dsp_chars[3];
-			//printf("display size = %dx%d\n", dsp_chars[1], dsp_chars[3]);
 		}
 		return 0;
 	}
@@ -1455,7 +1451,6 @@ static int cli_read(int fd)
 		conn->status |= WAITING_ESC_2;
 		return 0;
 	} else if (conn->status & WAITING_ESC_2) {
-		//printf("ESC ch1=0x%x ch2=0x%x\n", conn->ch1, c);
 		conn->status &= ~WAITING_ESC_2;
 		if (conn->ch1 != 0x5b)
 			return 0;
@@ -1472,7 +1467,6 @@ static int cli_read(int fd)
 			break;
 		case 0x31: // home
 			cli_curses = !cli_curses;
-			printf("CURSES=%d\n", cli_curses);
 			return 0;
 		case 0x32: // ins
 		case 0x33: // delete
@@ -1606,7 +1600,7 @@ static void *cli_server(void *arg)
 
 	config_file_name = (char *)arg;
 
-	printf("CLI server started on core %i\n", odp_cpu_id());
+	OFP_INFO("CLI server started on core %i\n", odp_cpu_id());
 
 	if (odp_init_local(ODP_THREAD_CONTROL)) {
 		OFP_ERR("Error: ODP local init failed.\n");

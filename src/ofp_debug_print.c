@@ -23,7 +23,7 @@
  */
 #define ofp_printf(a, b...) do { \
 		if (ofp_debug_flags & OFP_DEBUG_PRINT_CONSOLE) {\
-			printf(b); \
+			OFP_LOG_NO_CTX_NO_LEVEL(b); \
 		} \
 		fprintf(a, b); } \
 	while (0)
@@ -253,11 +253,10 @@ static void print_pkt_binary(odp_packet_t pkt)
 	uint32_t i;
 	uint8_t *pnt = odp_packet_data(pkt);
 
-	printf("PACKET:\n");
-	for (i = 0; i < odp_packet_len(pkt); i++) {
-		printf("%02hhx ", pnt[i]);
-	}
-	printf("\n");
+	OFP_LOG_NO_CTX_NO_LEVEL("PACKET:\n");
+	for (i = 0; i < odp_packet_len(pkt); i++)
+		OFP_LOG_NO_CTX_NO_LEVEL("%02hhx ", pnt[i]);
+	OFP_LOG_NO_CTX_NO_LEVEL("\n");
 }
 #endif
 

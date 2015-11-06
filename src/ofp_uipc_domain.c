@@ -236,8 +236,8 @@ domain_add(void *data)
 	    dp->dom_name));
 #ifndef INVARIANTS
 	if (domain_init_status < 1)
-		printf("WARNING: attempt to domain_add(%s) before "
-		    "domaininit()\n", dp->dom_name);
+		OFP_WARN("attempt to domain_add(%s) before domaininit()",
+			dp->dom_name);
 #endif
 #ifdef notyet
 	KASSERT(domain_init_status < 2,
@@ -245,8 +245,8 @@ domain_add(void *data)
 	    dp->dom_name));
 #else
 	if (domain_init_status >= 2)
-		printf("WARNING: attempt to domain_add(%s) after "
-		    "domainfinalize()\n", dp->dom_name);
+		OFP_WARN("attempt to domain_add(%s) after domainfinalize()",
+			dp->dom_name);
 #endif
 	mtx_unlock(&dom_mtx);
 }

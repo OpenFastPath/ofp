@@ -521,12 +521,13 @@ void ofp_print_reass_queue(void)
 	struct frag *frag, *chain;
 	struct ofp_ip *frag_ip, *chain_ip;
 
-	printf("\nREASS QUEUES:\n");
+	OFP_LOG_NO_CTX_NO_LEVEL("\nREASS QUEUES:\n");
 	for (i = 0; i < IPREASS_NHASH; i++) {
 		chain = shm->ipq[i];
 		while (chain) {
 			chain_ip = FRAG_IP(chain);
-			printf("Chain i=%d chain=%p src=%x dst=%x p=%d id=%d:\n",
+			OFP_LOG_NO_CTX_NO_LEVEL(
+			      "Chain i=%d chain=%p src=%x dst=%x p=%d id=%d:\n",
 			       i, chain,
 			       chain_ip->ip_src.s_addr,
 			       chain_ip->ip_dst.s_addr,
@@ -535,16 +536,17 @@ void ofp_print_reass_queue(void)
 			frag = chain;
 			while (frag) {
 				frag_ip = FRAG_IP(frag);
-				printf("  [frag=%p off=%d len=%d]\n",
+				OFP_LOG_NO_CTX_NO_LEVEL(
+				       "  [frag=%p off=%d len=%d]\n",
 				       frag,
 				       frag_ip->ip_off,
 				       frag_ip->ip_len);
 				frag = NEXT_FRAG(frag);
 			}
-			printf("\n");
+			OFP_LOG_NO_CTX_NO_LEVEL("\n");
 			chain = NEXT_CHAIN(chain);
 		}
 	}
-	printf("\n");
+	OFP_LOG_NO_CTX_NO_LEVEL("\n");
 }
 #endif

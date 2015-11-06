@@ -121,7 +121,7 @@ static struct ofp_rtl6_node *NODEALLOC6(void)
 	return p;
 }
 
-#define OFP_OOPS(_s) printf(_s)
+#define OFP_OOPS(_s) OFP_DBG(_s)
 
 
 int ofp_rtl6_init(struct ofp_rtl6_tree *tree)

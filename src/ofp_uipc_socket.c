@@ -1371,7 +1371,7 @@ ofp_sosend(struct socket *so, struct ofp_sockaddr *addr, struct uio *uio,
 
 	if (so->so_proto->pr_flags & PR_CONNREQUIRED) {
 		if (!(so->so_state & (SS_ISCONNECTED|SS_ISCONNECTING))) {
-			printf("state = %x\n", so->so_state);
+			OFP_ERR("OFP_ENOTCONN: state = %x\n", so->so_state);
 			return OFP_ENOTCONN;
 		} else if (addr)
 			return OFP_EISCONN;

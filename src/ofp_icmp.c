@@ -179,7 +179,7 @@ ofp_icmp_error(odp_packet_t pkt_in, int type, int code, uint32_t dest, int mtu)
 
 #ifdef ICMPPRINTFS
 	if (icmpprintfs)
-		printf("icmp_error(%p, %x, %d)\n", oip, type, code);
+		OFP_DBG("icmp_error(%p, %x, %d)", oip, type, code);
 #endif
 /*	if (type != ICMP_REDIRECT)
 		ICMPSTAT_INC(icps_error);*/
@@ -327,7 +327,7 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 	if (icmpprintfs) {
 		char buf[4 * sizeof "123"];
 		strcpy(buf, inet_ntoa(ip->ip_src));
-		printf("icmp_input from %s to %s, len %d\n",
+		OFP_DBG("icmp_input from %s to %s, len %d",
 		       buf, inet_ntoa(ip->ip_dst), icmplen);
 	}
 #endif
@@ -345,7 +345,7 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 
 #ifdef ICMPPRINTFS
 	if (icmpprintfs)
-		printf("icmp_input, type %d code %d\n", icp->icmp_type,
+		OFP_DBG("icmp_input, type %d code %d", icp->icmp_type,
 		    icp->icmp_code);
 #endif
 	/*
@@ -441,7 +441,7 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 */
 #ifdef ICMPPRINTFS
 		if (icmpprintfs)
-			printf("deliver to protocol %d\n", icp->icmp_ip.ip_p);
+			OFP_DBG("deliver to protocol %d", icp->icmp_ip.ip_p);
 #endif
 		icmpsrc.sin_addr = icp->ofp_icmp_ip.ip_dst;
 		/*
@@ -662,7 +662,7 @@ match:
 		if (opts) {
 #ifdef ICMPPRINTFS
 		    if (icmpprintfs)
-			    printf("icmp_reflect optlen %d rt %d => ",
+			    OFP_DBG("icmp_reflect optlen %d rt %d => ",
 				optlen, opts->m_len);
 #endif
 		    for (cnt = optlen; cnt > 0; cnt -= len, cp += len) {
@@ -698,7 +698,7 @@ match:
 		    }
 #ifdef ICMPPRINTFS
 		    if (icmpprintfs)
-			    printf("%d\n", opts->m_len);
+			    OFP_DBG("%d", opts->m_len);
 #endif
 		}
 		 * Now strip out original options by copying rest of first
@@ -739,7 +739,7 @@ icmp_send(odp_packet_t pkt, struct ofp_nh_entry *nh)
 	if (icmpprintfs) {
 		char buf[4 * sizeof "123"];
 		strcpy(buf, inet_ntoa(ip->ip_dst));
-		printf("icmp_send dst %s src %s\n",
+		OFP_DBG("icmp_send dst %s src %s",
 		       buf, inet_ntoa(ip->ip_src));
 	}
 #endif

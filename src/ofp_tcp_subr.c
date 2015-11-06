@@ -238,12 +238,18 @@ static odp_spinlock_t isn_mtx;
 #define	ISN_LOCK()	mtx_lock(&isn_mtx)
 #define	ISN_UNLOCK()	mtx_unlock(&isn_mtx)
 #else
-#define	ISN_LOCK_INIT()	do { printf("%s:%d: isn lock init\n",__FILE__,__LINE__); \
-		odp_spinlock_init(&isn_mtx); } while(0)
-#define	ISN_LOCK() do { /*printf("%s:%d: isn lock\n",__FILE__,__LINE__);*/ \
-		odp_spinlock_lock(&isn_mtx); } while(0)
-#define	ISN_UNLOCK() do { /*printf("%s:%d: isn unlock\n",__FILE__,__LINE__);*/ \
-		odp_spinlock_unlock(&isn_mtx); } while(0)
+#define	ISN_LOCK_INIT()	do { \
+		OFP_DBG("isn lock init"); \
+		odp_spinlock_init(&isn_mtx); \
+	} while (0)
+#define	ISN_LOCK() do { \
+		/*OFP_DBG("isn lock");*/ \
+		odp_spinlock_lock(&isn_mtx); \
+	} while (0)
+#define	ISN_UNLOCK() do { \
+		/*OFP_DBG("isn unlock");*/ \
+		odp_spinlock_unlock(&isn_mtx); \
+	} while (0)
 #endif
 
 
@@ -272,16 +278,16 @@ ofp_tcp_init(void)
 #if 0
 	if (hhook_head_register(HHOOK_TYPE_TCP, HHOOK_TCP_EST_IN,
 	    &V_tcp_hhh[HHOOK_TCP_EST_IN], HHOOK_NOWAIT|HHOOK_HEADISINVNET) != 0)
-		printf("%s: WARNING: unable to register helper hook\n", __func__);
+		OFP_WARN("unable to register helper hook");
 	if (hhook_head_register(HHOOK_TYPE_TCP, HHOOK_TCP_EST_OUT,
 	    &V_tcp_hhh[HHOOK_TCP_EST_OUT], HHOOK_NOWAIT|HHOOK_HEADISINVNET) != 0)
-		printf("%s: WARNING: unable to register helper hook\n", __func__);
+		OFP_WARN("unable to register helper hook");
 #endif
 	hashsize = TCBHASHSIZE;
 #if 0 /* We trust size is power of 2. */
 	TUNABLE_INT_FETCH("net.inet.tcp.tcbhashsize", &hashsize);
 	if (!powerof2(hashsize)) {
-		printf("WARNING: TCB hash size not a power of 2\n");
+		OFP_WARN("TCB hash size not a power of 2");
 		hashsize = 512; /* safe default */
 	}
 #endif

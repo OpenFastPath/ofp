@@ -2421,7 +2421,8 @@ in6_if2idlen(struct ifnet *ifp)
 		 * we always use the constant, but make an explicit notice
 		 * indicating the "unknown" case.
 		 */
-		printf("in6_if2idlen: unknown link type (%d)\n", ifp->if_type);
+		OFP_WARN("in6_if2idlen: unknown link type (%d)\n",
+			ifp->if_type);
 		return (64);
 	}
 }
@@ -2859,7 +2860,7 @@ ofp_in6_selectsrc(struct ofp_sockaddr_in6 *dstsock, void *opts,
 
 	nh = ofp_get_next_hop6(0, dstsock->sin6_addr.ofp_s6_addr, NULL);
 	if (!nh) {
-		printf("route not found\n");
+		OFP_ERR("route not found\n");
 		return OFP_EHOSTUNREACH;
 	}
 

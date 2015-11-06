@@ -67,6 +67,9 @@
 		fprintf(stderr, fmt, ##__VA_ARGS__);	\
 	} while (0)
 
+#define OFP_LOG_NO_CTX_NO_LEVEL(fmt, ...) \
+		fprintf(stderr, fmt, ##__VA_ARGS__)
+
 enum ofp_log_level_s {
 	OFP_LOG_ERROR = 0,
 	OFP_LOG_WARNING,

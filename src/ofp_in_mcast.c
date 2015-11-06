@@ -2602,7 +2602,7 @@ inp_set_source_filters(struct inpcb *inp, struct sockopt *sopt)
 		int			 i;
 
 		INP_WUNLOCK(inp);
- 
+
 		CTR2(KTR_IGMPV3, "%s: loading %lu source list entries",
 		    __func__, (unsigned long)msfr.msfr_nsrcs);
 		kss = malloc(sizeof(struct ofp_sockaddr_storage_2) * msfr.msfr_nsrcs);
@@ -3048,35 +3048,38 @@ void
 ofp_inm_print(const struct ofp_in_multi *inm)
 {
 	int t;
+
+	(void)inm;
 #if 0 //HJo
 	if ((ktr_mask & KTR_IGMPV3) == 0)
 		return;
 #endif
-	printf("%s: --- begin inm %p ---\n", __func__, inm);
-	printf("addr %s ifp %p(%s) ifma %p\n",
+	OFP_INFO("%s: --- begin inm %p ---", __func__, inm);
+	OFP_INFO("addr %s ifp %p(%s) ifma %p",
 	    inet_ntoa(inm->inm_addr),
 	    inm->inm_ifp,
 	    inm->inm_ifp->if_name,
 	    inm->inm_ifma);
-	printf("timer %u state %s refcount %u scq.len %u\n",
+	OFP_INFO("timer %u state %s refcount %u scq.len %u",
 	    inm->inm_timer,
 	    inm_state_str(inm->inm_state),
 	    inm->inm_refcount,
 	    inm->inm_scq.ifq_len);
-	printf("igi %p nsrc %u sctimer %u scrv %u\n",
+	OFP_INFO("igi %p nsrc %u sctimer %u scrv %u",
 	    inm->inm_igi,
 	    inm->inm_nsrc,
 	    inm->inm_sctimer,
 	    inm->inm_scrv);
 	for (t = 0; t < 2; t++) {
-		printf("t%d: fmode %s asm %u ex %u in %u rec %u\n", t,
+		OFP_LOG_NO_CTX(OFP_LOG_INFO,
+		    "t%d: fmode %s asm %u ex %u in %u rec %u\n", t,
 		    inm_mode_str(inm->inm_st[t].iss_fmode),
 		    inm->inm_st[t].iss_asm,
 		    inm->inm_st[t].iss_ex,
 		    inm->inm_st[t].iss_in,
 		    inm->inm_st[t].iss_rec);
 	}
-	printf("%s: --- end inm %p ---\n", __func__, inm);
+	OFP_INFO("%s: --- end inm %p ---", __func__, inm);
 }
 
 #else /* !KTR */
@@ -3400,7 +3403,7 @@ if_delmulti_locked(struct ofp_ifnet *ifp, struct ofp_ifmultiaddr *ifma, int deta
 	 */
 	if (detaching) {
 #ifdef DIAGNOSTIC
-		printf("%s: detaching ifnet instance %p\n", __func__, ifp);
+		OFP_DBG("detaching ifnet instance %p", ifp);
 #endif
 		/*
 		 * ifp may already be nulled out if we are being reentered
@@ -3461,7 +3464,7 @@ ofp_if_delmulti_ifma(struct ofp_ifmultiaddr *ifma)
 	ifp = ifma->ifma_ifp;
 #ifdef DIAGNOSTIC
 	if (ifp == NULL) {
-		printf("%s: ifma_ifp seems to be detached\n", __func__);
+		OFP_DBG("ifma_ifp seems to be detached\n");
 	} else {
 		struct ifnet *oifp;
 
@@ -3470,7 +3473,7 @@ ofp_if_delmulti_ifma(struct ofp_ifmultiaddr *ifma)
 			if (ifp == oifp)
 				break;
 		if (ifp != oifp) {
-			printf("%s: ifnet %p disappeared\n", __func__, ifp);
+			OFP_DBG("ifnet %p disappeared\n", ifp);
 			ifp = NULL;
 		}
 		IFNET_RUNLOCK_NOSLEEP();

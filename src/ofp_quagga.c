@@ -527,7 +527,7 @@ static void print_netlink_msg_ctx (netlink_msg_ctx_t *ctx)
 	char buf[1024];
 
 	netlink_msg_ctx_snprint(ctx, buf, sizeof(buf));
-	printf("%s\n", buf);
+	log(0, "%s\n", buf);
 }
 
 /*

@@ -1201,7 +1201,7 @@ tcp6_connect(struct tcpcb *tp, struct ofp_sockaddr *nam, struct thread *td)
 				  : &inp->in6p_laddr,
 				  inp->inp_lport,  0, NULL);
 	if (oinp) {
-		printf("OFP_EADDRINUSE\n");
+		OFP_ERR("OFP_EADDRINUSE");
 		error = OFP_EADDRINUSE;
 		goto out;
 	}
