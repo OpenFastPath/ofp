@@ -119,7 +119,10 @@ int ofp_portconf_init_global(void)
 	int i;
 
 	memset(&shm->ofp_ifnet_data, 0, sizeof(shm->ofp_ifnet_data));
-	for (i = 0; i < NUM_PORTS; i++) {
+
+	shm->ofp_num_ports = NUM_PORTS;
+
+	for (i = 0; i < shm->ofp_num_ports; i++) {
 		shm->ofp_ifnet_data[i].vlan_structs =
 					new_vlan(vlan_ifnet_compare, NULL);
 		shm->ofp_ifnet_data[i].port = i;
@@ -151,7 +154,6 @@ int ofp_portconf_init_global(void)
 		shm->ofp_ifnet_data[i].mac[1] = i;
 	}
 
-	shm->ofp_num_ports = NUM_PORTS;
 #ifdef SP
 	for (i = 0; i < NUM_LINUX_INTERFACES; ++i)
 		shm->linux_interface_table[i].port = PORT_UNDEF;
@@ -330,7 +332,7 @@ void ofp_show_interfaces(int fd)
 	int i;
 
 	/* fp interfaces */
-	for (i = 0; i < shm->ofp_num_ports - 2; i++) {
+	for (i = 0; i < OFP_FP_INTERFACE_MAX; i++) {
 		iter_vlan(&shm->ofp_ifnet_data[i], &fd);
 		vlan_iterate_inorder(shm->ofp_ifnet_data[i].vlan_structs,
 					iter_vlan, &fd);
@@ -384,7 +386,7 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 #ifdef SP
 	(void)ret;
 #endif
-	if (port < 0 || port >= shm->ofp_num_ports - 1)
+	if (port < 0 || port >= OFP_FP_INTERFACE_MAX)
 		return "Wrong port number";
 
 	mask = ~0;
@@ -651,7 +653,7 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 #endif
 	memset(gw6, 0, 16);
 
-	if (port < 0 || port >= shm->ofp_num_ports - 1)
+	if (port < 0 || port >= OFP_FP_INTERFACE_MAX)
 		return "Wrong port number";
 
 	data = ofp_get_ifnet(port, vlan);
@@ -849,6 +851,11 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 
 struct ofp_ifnet *ofp_get_ifnet(int port, uint16_t vlan)
 {
+	if (port >= shm->ofp_num_ports) {
+		OFP_ERR("ifnet port larger than structure allocated!");
+		return NULL;
+	}
+
 	if (vlan) {
 		struct ofp_ifnet key, *data;
 
@@ -981,7 +988,7 @@ struct ofp_ifnet *ofp_get_ifnet_match(uint32_t ip,
 	uint16_t port;
 
 	if (vlan == 0) {
-		for (port = 0; port < shm->ofp_num_ports; port++) {
+		for (port = 0; port < OFP_FP_INTERFACE_MAX; port++) {
 			struct ofp_ifnet *ifnet =
 				&shm->ofp_ifnet_data[port];
 
@@ -989,7 +996,7 @@ struct ofp_ifnet *ofp_get_ifnet_match(uint32_t ip,
 				return ifnet;
 		}
 	} else {
-		for (port = 0; port < shm->ofp_num_ports; port++) {
+		for (port = 0; port < OFP_FP_INTERFACE_MAX; port++) {
 			uint16_t vlan_id = vlan_iterate_inorder(
 				shm->ofp_ifnet_data[port].vlan_structs,
 				vlan_match_ip, &ip);
@@ -1040,7 +1047,7 @@ void ofp_get_interfaces(struct ofp_ifconf *ifc)
 	ifc->ifc_current_len = 0;
 
 	/* fp interfaces */
-	for (i = 0; i < shm->ofp_num_ports - 1; i++) {
+	for (i = 0; i < OFP_FP_INTERFACE_MAX; i++) {
 		iter_interface(&shm->ofp_ifnet_data[i], ifc);
 		vlan_iterate_inorder(shm->ofp_ifnet_data[i].vlan_structs,
 					iter_interface, ifc);
@@ -1085,7 +1092,7 @@ struct ofp_ifnet *ofp_get_ifnet_by_ip(uint32_t ip, uint16_t vrf)
 	uint16_t vlan;
 	struct iter_ip iterdata;
 
-	for (port = 0; port < shm->ofp_num_ports - 1; ++port) {
+	for (port = 0; port < OFP_FP_INTERFACE_MAX; ++port) {
 		ifnet = &shm->ofp_ifnet_data[port];
 		if (ifnet->ip_addr == ip && ifnet->vrf == vrf)
 			return ifnet;
@@ -1094,7 +1101,7 @@ struct ofp_ifnet *ofp_get_ifnet_by_ip(uint32_t ip, uint16_t vrf)
 	iterdata.addr = ip;
 	iterdata.vrf = vrf;
 
-	for (port = 0; port < shm->ofp_num_ports - 1; ++port) {
+	for (port = 0; port < OFP_FP_INTERFACE_MAX; ++port) {
 		vlan = vlan_iterate_inorder(
 			shm->ofp_ifnet_data[port].vlan_structs,
 			vlan_match_ip_vrf, &iterdata);
@@ -1232,7 +1239,7 @@ void ofp_portconf_term_global(void)
 	int i;
 	struct ofp_ifnet *ifnet;
 
-	for (i = 0; i < NUM_PORTS; ++i) {
+	for (i = 0; i < shm->ofp_num_ports; ++i) {
 		ifnet = &shm->ofp_ifnet_data[i];
 
 		if (ifnet->if_state == OFP_IFT_STATE_FREE)

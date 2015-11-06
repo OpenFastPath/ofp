@@ -33,6 +33,10 @@
 /** Packet pool user area size. */
 #define SHM_PKT_POOL_USER_AREA_SIZE	16
 
+/**Maximum number of fastpath interfaces used.
+ * For each fastpath interface a PKTIO in opened by OFP.*/
+#define OFP_FP_INTERFACE_MAX 8
+
 /**Value of burst size used in default_event_dispatcher.*/
 #define OFP_EVENT_BURST_SIZE 16
 

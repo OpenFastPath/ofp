@@ -12,16 +12,22 @@
 
 #include "odp.h"
 #include "odp/helper/linux.h"
+#include "ofpi_config.h"
 #include "api/ofp_portconf.h"
 #include "ofpi_ethernet.h"
 #include "ofpi_queue.h"
 #include "api/ofp_socket.h"
 
-#define NUM_PORTS 16
+#define NUM_PORTS (OFP_FP_INTERFACE_MAX + 2)
+
 /* GRE ports are the last port assigned in the port vector.
  * Ports start from 0, and the last value is NUM_PORTS - 1.
  */
 #define GRE_PORTS (NUM_PORTS - 1)
+
+/* VXLANs ports are the before last port assigned in the port vector.
+ * Ports start from 0, and the last value is NUM_PORTS - 1.
+ */
 #define VXLAN_PORTS (NUM_PORTS - 2)
 #define PHYS_PORT(_port) (_port < VXLAN_PORTS)
 #define OFP_IFNAME_PREFIX "fp"
