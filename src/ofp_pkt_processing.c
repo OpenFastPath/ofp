@@ -123,11 +123,12 @@ void *default_event_dispatcher(void *arg)
 
 enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 {
-	uint16_t vlan = 0;
+	uint16_t vlan = 0, ethtype;
 	struct ofp_ether_header *eth;
 	struct ofp_ifnet *ifnet = odp_packet_user_ptr(pkt);
 
 	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
+	ethtype = odp_be_to_cpu_16(eth->ether_type);
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(eth == NULL)) {
 		OFP_DBG("eth is NULL");
@@ -143,22 +144,26 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 	}
 #endif
 
-	if (odp_be_to_cpu_16(eth->ether_type) == OFP_ETHERTYPE_VLAN) {
+	if (ethtype == OFP_ETHERTYPE_VLAN) {
 		struct ofp_ether_vlan_header *vlan_hdr;
 
 		vlan_hdr = (struct ofp_ether_vlan_header *)eth;
-		vlan = OFP_EVL_VLANOFTAG(vlan_hdr->evl_tag);
+		vlan = OFP_EVL_VLANOFTAG(odp_be_to_cpu_16(vlan_hdr->evl_tag));
+		ethtype = odp_be_to_cpu_16(vlan_hdr->evl_proto);
+		ifnet = ofp_get_ifnet(ifnet->port, vlan);
+		if (!ifnet)
+			return OFP_PKT_DROP;
+		if (odp_likely(ifnet->port != VXLAN_PORTS))
+			odp_packet_user_ptr_set(pkt, ifnet);
 #ifndef OFP_PERFORMANCE
 		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_vlan_header));
 #endif
 	}
 
-	if (odp_likely(ifnet->port != VXLAN_PORTS))
-		odp_packet_user_ptr_set(pkt, ofp_get_ifnet(ifnet->port, vlan));
-	OFP_DBG("ETH TYPE = %x\n", odp_be_to_cpu_16(eth->ether_type));
+	OFP_DBG("ETH TYPE = %04x\n", ethtype);
 
 	/* network layer classifier */
-	switch (odp_be_to_cpu_16(eth->ether_type)) {
+	switch (ethtype) {
 	/* STUB: except for ARP, just terminate all traffic to slowpath.
 	 * FIXME: test/implement other cases */
 #ifdef INET
