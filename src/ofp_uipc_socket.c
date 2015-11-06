@@ -1295,8 +1295,8 @@ restart:
 					goto release;
 
 				int cancopy = resid;
-				if (cancopy > SHM_PKT_POOL_BUF_SIZE)
-					cancopy = SHM_PKT_POOL_BUF_SIZE;
+				if (cancopy > SHM_PKT_POOL_BUFFER_SIZE)
+					cancopy = SHM_PKT_POOL_BUFFER_SIZE;
 				if (cancopy > space)
 					cancopy = space;
 				odp_packet_reset(top, cancopy);

@@ -27,9 +27,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define SHM_PKT_POOL_SIZE      (32*2048)
-#define SHM_PKT_POOL_BUF_SIZE  3000
-
 static const char *pool_name = "packet_pool";
 
 static int init_suite(void)
@@ -52,9 +49,9 @@ static int init_suite(void)
 
 	memset(pkt_hook, 0, sizeof(pkt_hook));
 
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
 	(void) ofp_init_pre_global(pool_name, &pool_params,

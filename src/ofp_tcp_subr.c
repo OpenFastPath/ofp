@@ -336,7 +336,7 @@ ofp_tcp_init(void)
 #endif /* INET6 */
 	if (ofp_max_protohdr < TCP_MINPROTOHDR)
 		ofp_max_protohdr = TCP_MINPROTOHDR;
-	if (ofp_max_linkhdr + TCP_MINPROTOHDR > SHM_PKT_POOL_BUF_SIZE)
+	if (ofp_max_linkhdr + TCP_MINPROTOHDR > SHM_PKT_POOL_BUFFER_SIZE)
 		panic("ofp_tcp_init");
 #undef TCP_MINPROTOHDR
 

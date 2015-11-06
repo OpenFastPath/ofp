@@ -14,10 +14,10 @@
 #include "odp/rwlock.h"
 #include "odp/thread.h"
 #include "odp/cpu.h"
+#include "ofpi_config.h"
 #include "ofpi_socket.h"
 
-#define SHM_PKT_POOL_BUF_SIZE	1856
-#define MCLBYTES SHM_PKT_POOL_BUF_SIZE
+#define MCLBYTES SHM_PKT_POOL_BUFFER_SIZE
 #define	RLIM_INFINITY	((uint64_t)(((uint64_t)1 << 63) - 1))
 
 /*

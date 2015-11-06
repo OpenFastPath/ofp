@@ -42,10 +42,6 @@ uint8_t macaddr[6] = { 0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA };
 /*
  * INIT
  */
-#define SHM_PKT_POOL_SIZE      (32*2048)
-#define SHM_PKT_POOL_SEG_SIZE  1856
-#define SHM_PKT_POOL_BUF_SIZE  3000
-
 static int
 init_suite(void)
 {
@@ -68,9 +64,8 @@ init_suite(void)
 	}
 
 
-	pool_params.pkt.seg_len = SHM_PKT_POOL_SEG_SIZE;
-	pool_params.pkt.len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type = ODP_POOL_PACKET;
 
 	pool = odp_pool_create("packet_pool", &pool_params);

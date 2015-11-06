@@ -42,15 +42,14 @@
  * Test data
  */
 
-#define SHM_PKT_POOL_SIZE      (32*2048)
-#define SHM_PKT_POOL_BUF_SIZE  3000
+#define PKT_BUF_SIZE  3000
 
 static uint32_t port = 0, vlan = 0, vrf = 0, def_mtu = 1500;
 static uint32_t dev_ip = 0x650AA8C0;   /* C0.A8.0A.65 = 192.168.10.101 */
 static uint8_t dev_mac[6] = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
 static uint32_t dst_ipaddr = 0x660AA8C0; /* C0.A8.0A.66 = 192.168.10.102 */
 static uint8_t dst_mac[6] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-static uint8_t orig_pkt_data[SHM_PKT_POOL_BUF_SIZE];
+static uint8_t orig_pkt_data[PKT_BUF_SIZE];
 static struct ofp_nh_entry nexthop;
 static struct ofp_ifnet *dev;
 
@@ -105,9 +104,9 @@ init_suite(void)
 
 	memset(pkt_hook, 0, sizeof(pkt_hook));
 
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
 	(void) ofp_init_pre_global("packet_pool", &pool_params,

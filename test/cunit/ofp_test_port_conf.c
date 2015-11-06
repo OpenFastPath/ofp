@@ -37,9 +37,6 @@
 /*
  * Test data
  */
-#define SHM_PKT_POOL_SIZE      (32*2048)
-#define SHM_PKT_POOL_BUF_SIZE  3000
-
 uint8_t ifmac[6] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
 uint32_t ifmtu = 1480;
 uint8_t link_local[16];
@@ -72,9 +69,9 @@ init_suite(void)
 
 	memset(pkt_hook, 0, sizeof(pkt_hook));
 
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
 	(void) ofp_init_pre_global("packet_pool", &pool_params,

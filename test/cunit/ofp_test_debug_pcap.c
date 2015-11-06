@@ -49,9 +49,6 @@ uint8_t pcap_header[24] = {
 /*
  * INIT
  */
-#define SHM_PKT_POOL_SIZE      (32*2048)
-#define SHM_PKT_POOL_BUF_SIZE  1856
-
 static int
 init_suite(void)
 {
@@ -73,9 +70,9 @@ init_suite(void)
 	HANDLE_ERROR(ofp_pcap_alloc_shared_memory());
 	HANDLE_ERROR(ofp_pcap_init_global());
 
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num = SHM_PKT_POOL_SIZE/SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type = ODP_POOL_PACKET;
 
 	pool = odp_pool_create("packet_pool", &pool_params);

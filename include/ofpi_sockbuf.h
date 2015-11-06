@@ -201,7 +201,7 @@ void	ofp_sbunlock(struct sockbuf *sb);
  */
 #if 1
 #define	sbspace(sb) \
-	((long)(SHM_PKT_POOL_BUF_SIZE * \
+	((long)(SHM_PKT_POOL_BUFFER_SIZE * \
 		((sb)->sb_put >= (sb)->sb_get ?				\
 		 (SOCKBUF_LEN - ((sb)->sb_put - (sb)->sb_get) - 1) :	\
 		 ((sb)->sb_get - (sb)->sb_put - 1))))

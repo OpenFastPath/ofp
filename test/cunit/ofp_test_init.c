@@ -61,9 +61,6 @@ clean_suite(void)
 	return rc;
 }
 
-#define SHM_PKT_POOL_SIZE      (32*2048)
-#define SHM_PKT_POOL_BUF_SIZE  1856
-
 static void
 test_global_termination(void)
 {
@@ -72,9 +69,9 @@ test_global_termination(void)
 	odp_pool_t pool;
 
 	memset(pkt_hook, 0, sizeof(pkt_hook));
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
 	CU_ASSERT_EQUAL(ofp_init_pre_global("packet_pool", &pool_params,

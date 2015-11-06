@@ -218,9 +218,6 @@ test_init_ifnet(void)
 				      tun_mask);
 }
 
-#define SHM_PKT_POOL_SIZE      (32*2048)
-#define SHM_PKT_POOL_BUF_SIZE  1856
-
 static int
 init_suite(void)
 {
@@ -246,9 +243,9 @@ init_suite(void)
 	pkt_hook[OFP_HOOK_FWD_IPv6] = fastpath_ip6_forward_hook;
 	pkt_hook[OFP_HOOK_GRE]	    = fastpath_gre_hook;
 
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUF_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUF_SIZE;
+	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
 	(void) ofp_init_pre_global("packet_pool", &pool_params,
