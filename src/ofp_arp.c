@@ -450,11 +450,36 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 	return OFP_PKT_PROCESSED;
 }
 
+static void ofp_arp_entry_cleanup_on_tmo(int set, struct arp_entry *entry)
+{
+	OFP_INFO("ARP entry removed on timeout: vrf: %3d IP: %-15s MAC: %-17s",
+		entry->key.vrf, ofp_print_ip_addr(entry->key.ipv4_addr),
+		ofp_print_mac((uint8_t *)&entry->macaddr));
+
+	remove_entry(set, entry);
+}
+
+static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
+						uint64_t now)
+{
+	uint64_t usetime, cycles, ns;
+
+	usetime = odp_atomic_load_u64(&entry->usetime);
+	if (usetime >= now)
+		return 0;
+	cycles = odp_time_diff_cycles(usetime, now);
+	ns = odp_time_cycles_to_ns(cycles);
+	if (ns > ENTRY_TIMEOUT)
+		return 1;
+
+	return 0;
+}
+
 void ofp_arp_cleanup(void *arg)
 {
 	struct arp_entry *entry, *next_entry;
 	int i, cli;
-	uint64_t now, cycles, ns, usetime;
+	uint64_t now;
 
 	cli =  *(int *)arg;
 	now = odp_time_cycles();
@@ -465,20 +490,9 @@ void ofp_arp_cleanup(void *arg)
 		entry = OFP_SLIST_FIRST(&shm->arp.table[i]);
 		while (entry) {
 			next_entry = OFP_SLIST_NEXT(entry, next);
-			if (OFP_SLIST_FIRST(&entry->pkt_list_head) == NULL) {
-				usetime = odp_atomic_load_u64(&entry->usetime);
-				if (usetime < now) {
-					cycles = odp_time_diff_cycles(
-						usetime,
-						now);
-					ns = odp_time_cycles_to_ns(cycles);
-					if (ns > ENTRY_TIMEOUT) {
-						show_arp_entry(1, entry);
-
-						remove_entry(i, entry);
-					}
-				}
-			}
+			if (OFP_SLIST_FIRST(&entry->pkt_list_head) == NULL &&
+					ofp_arp_entry_is_timeout(entry, now))
+				ofp_arp_entry_cleanup_on_tmo(i, entry);
 			entry = next_entry;
 		}
 
