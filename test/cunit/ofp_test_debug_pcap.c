@@ -67,7 +67,6 @@ init_suite(void)
 		return -1;
 	}
 
-	HANDLE_ERROR(ofp_pcap_alloc_shared_memory());
 	HANDLE_ERROR(ofp_pcap_init_global());
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;

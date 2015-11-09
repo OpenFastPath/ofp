@@ -10,12 +10,9 @@
 
 #include "api/ofp_stat.h"
 
-int ofp_stat_alloc_shared_memory(void);
-void ofp_stat_free_shared_memory(void);
 int ofp_stat_lookup_shared_memory(void);
-
 int ofp_stat_init_global(void);
-void ofp_stat_term_global(void);
+int ofp_stat_term_global(void);
 
 #define OFP_UPDATE_PACKET_STAT(_s, _n) do {				\
 	struct ofp_packet_stat *st = ofp_get_packet_statistics(); \

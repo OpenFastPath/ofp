@@ -73,22 +73,27 @@ static void ofp_start_perf_stat(void)
 	ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
 }
 
-int ofp_stat_alloc_shared_memory(void)
+static int ofp_stat_alloc_shared_memory(void)
 {
 	shm_stat = ofp_shared_memory_alloc(SHM_NAME_STAT, sizeof(*shm_stat));
 	if (shm_stat == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
 	}
-
-	memset(shm_stat, 0, sizeof(*shm_stat));
 	return 0;
 }
 
-void ofp_stat_free_shared_memory(void)
+static int ofp_stat_free_shared_memory(void)
 {
-	ofp_shared_memory_free(SHM_NAME_STAT);
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_STAT)) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
 	shm_stat = NULL;
+
+	return rc;
 }
 
 int ofp_stat_lookup_shared_memory(void)
@@ -103,13 +108,23 @@ int ofp_stat_lookup_shared_memory(void)
 
 int ofp_stat_init_global(void)
 {
+	HANDLE_ERROR(ofp_stat_alloc_shared_memory());
+
 	memset(shm_stat, 0, sizeof(*shm_stat));
+
 	return 0;
 }
 
-void ofp_stat_term_global(void)
+int ofp_stat_term_global(void)
 {
-	memset(shm_stat, 0, sizeof(*shm_stat));
+	int rc = 0;
+
+	if (ofp_stat_lookup_shared_memory())
+		return -1;
+
+	CHECK_ERROR(ofp_stat_free_shared_memory(), rc);
+
+	return rc;
 }
 
 void ofp_set_stat_flags(unsigned long int flags)

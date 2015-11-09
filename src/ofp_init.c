@@ -58,13 +58,10 @@ int ofp_init_pre_global(const char *pool_name,
 
 	HANDLE_ERROR(ofp_avl_init_global());
 
-	HANDLE_ERROR(ofp_reassembly_alloc_shared_memory());
 	HANDLE_ERROR(ofp_reassembly_init_global());
 
-	HANDLE_ERROR(ofp_pcap_alloc_shared_memory());
 	HANDLE_ERROR(ofp_pcap_init_global());
 
-	HANDLE_ERROR(ofp_stat_alloc_shared_memory());
 	HANDLE_ERROR(ofp_stat_init_global());
 
 	HANDLE_ERROR(ofp_timer_alloc_shared_memory());
@@ -382,16 +379,13 @@ int ofp_term_post_global(const char *pool_name)
 	ofp_hook_free_shared_memory();
 
 	/* Cleanup stats */
-	ofp_stat_term_global();
-	ofp_stat_free_shared_memory();
+	CHECK_ERROR(ofp_stat_term_global(), rc);
 
 	/* Cleanup packet capture */
-	ofp_pcap_term_global();
-	ofp_pcap_free_shared_memory();
+	CHECK_ERROR(ofp_pcap_term_global(), rc);
 
 	/* Cleanup reassembly queues*/
-	ofp_reassembly_term_global();
-	ofp_reassembly_free_shared_memory();
+	CHECK_ERROR(ofp_reassembly_term_global(), rc);
 
 	/* Cleanup avl trees*/
 	CHECK_ERROR(ofp_avl_term_global(), rc);

@@ -19,13 +19,14 @@
 #include "ofpi_util.h"
 
 #define SHM_NAME_PCAP "OfpPcapShMem"
+#define PCAP_FILE_NAME_MAX_SIZE 128
 
 struct ofp_pcap_mem {
 	odp_rwlock_t lock_pcap_rw;
 	FILE *pcap_fd;
 	int   pcap_first;
 	int   pcap_is_fifo;
-	char  pcap_file_name[128];
+	char  pcap_file_name[PCAP_FILE_NAME_MAX_SIZE];
 };
 static __thread struct ofp_pcap_mem *shm;
 
@@ -162,7 +163,7 @@ static void sigpipe_handler(int s)
 	}
 }
 
-int ofp_pcap_alloc_shared_memory(void)
+static int ofp_pcap_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_PCAP, sizeof(*shm));
 	if (shm == NULL) {
@@ -170,15 +171,20 @@ int ofp_pcap_alloc_shared_memory(void)
 		return -1;
 	}
 
-	memset(shm, 0, sizeof(*shm));
-
 	return 0;
 }
 
-void ofp_pcap_free_shared_memory(void)
+static int ofp_pcap_free_shared_memory(void)
 {
-	ofp_shared_memory_free(SHM_NAME_PCAP);
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_PCAP)) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+
 	shm = NULL;
+	return rc;
 }
 
 int ofp_pcap_lookup_shared_memory(void)
@@ -193,22 +199,43 @@ int ofp_pcap_lookup_shared_memory(void)
 
 int ofp_pcap_init_global(void)
 {
+	HANDLE_ERROR(ofp_pcap_alloc_shared_memory());
+
+	memset(shm, 0, sizeof(*shm));
 	odp_rwlock_init(&shm->lock_pcap_rw);
-	strcpy(shm->pcap_file_name, DEFAULT_DEBUG_PCAP_FILE_NAME);
+	strncpy(shm->pcap_file_name, DEFAULT_DEBUG_PCAP_FILE_NAME,
+		PCAP_FILE_NAME_MAX_SIZE);
+	shm->pcap_file_name[PCAP_FILE_NAME_MAX_SIZE - 1] = 0;
 	shm->pcap_first = 1;
-	signal(SIGPIPE, sigpipe_handler);
+	shm->pcap_fd = NULL;
+
+	if (signal(SIGPIPE, sigpipe_handler) == SIG_ERR) {
+		OFP_ERR("Failed to set SIGPIPE handler.");
+		return -1;
+	}
 
 	return 0;
 }
 
-void ofp_pcap_term_global(void)
+int ofp_pcap_term_global(void)
 {
-	signal(SIGPIPE, SIG_DFL);
+	int rc = 0;
+
+	if (ofp_pcap_lookup_shared_memory())
+		return -1;
+
+	if (signal(SIGPIPE, SIG_DFL) == SIG_ERR) {
+		OFP_ERR("Failed to reset SIGPIPE handler.");
+		rc = -1;
+	}
 
 	if (shm->pcap_fd) {
 		fclose(shm->pcap_fd);
 		shm->pcap_fd = NULL;
 		shm->pcap_first = 1;
 	}
-	memset(shm, 0, sizeof(*shm));
+
+	CHECK_ERROR(ofp_pcap_free_shared_memory(), rc);
+
+	return rc;
 }
