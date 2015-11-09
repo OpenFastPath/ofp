@@ -1273,7 +1273,7 @@ void ofp_print_avl_stat(int fd)
               shm->nodes_allocated, shm->max_nodes_allocated, NUM_NODES);
 }
 
-int ofp_avl_alloc_shared_memory(void)
+static int ofp_avl_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_AVL, sizeof(*shm));
 	if (shm == NULL) {
@@ -1286,10 +1286,16 @@ int ofp_avl_alloc_shared_memory(void)
 	return 0;
 }
 
-void ofp_avl_free_shared_memory(void)
+static int ofp_avl_free_shared_memory(void)
 {
-	ofp_shared_memory_free(SHM_NAME_AVL);
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_AVL) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
 	shm = NULL;
+	return rc;
 }
 
 int ofp_avl_lookup_shared_memory(void)
@@ -1306,6 +1312,8 @@ int ofp_avl_lookup_shared_memory(void)
 int ofp_avl_init_global(void)
 {
 	uint32_t i;
+
+	HANDLE_ERROR(ofp_avl_alloc_shared_memory());
 
 	memset(shm, 0, sizeof(*shm));
 
@@ -1325,7 +1333,14 @@ int ofp_avl_init_global(void)
 	return 0;
 }
 
-void ofp_avl_term_global(void)
+int ofp_avl_term_global(void)
 {
-	memset(shm, 0, sizeof(*shm));
+	int rc = 0;
+
+	if (ofp_avl_lookup_shared_memory())
+		return -1;
+
+	CHECK_ERROR(ofp_avl_free_shared_memory(), rc);
+
+	return rc;
 }

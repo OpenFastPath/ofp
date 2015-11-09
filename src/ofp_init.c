@@ -61,7 +61,6 @@ int ofp_init_pre_global(const char *pool_name,
 	/* Init shared memories */
 	ofp_register_sysctls();
 
-	HANDLE_ERROR(ofp_avl_alloc_shared_memory());
 	HANDLE_ERROR(ofp_avl_init_global());
 
 	HANDLE_ERROR(ofp_reassembly_alloc_shared_memory());
@@ -400,8 +399,7 @@ int ofp_term_post_global(const char *pool_name)
 	ofp_reassembly_free_shared_memory();
 
 	/* Cleanup avl trees*/
-	ofp_avl_term_global();
-	ofp_avl_free_shared_memory();
+	CHECK_ERROR(ofp_avl_term_global(), rc);
 
 	/* Cleanup timers - phase 1*/
 	ofp_timer_stop_global();

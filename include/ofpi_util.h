@@ -33,6 +33,15 @@
 			return -1;					\
 	} while (0)
 
+/* CHECK_ERROR will not log any message.
+   LOGGING must be done during execution of (x) statement (usually a function)
+   '_ret_code' is set to -1 on error.
+*/
+#define CHECK_ERROR(x, _ret_code)  do {					\
+		if ((x))						\
+			_ret_code = -1;					\
+	} while (0)
+
 #define panic(x)  do {							\
 		OFP_ERR(x);						\
 		abort();						\
