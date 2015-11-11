@@ -311,7 +311,6 @@ MALLOC_DECLARE(M_PCB);
 MALLOC_DECLARE(M_SONAME);
 #endif
 
-extern int	maxsockets;
 extern uint64_t	ofp_sb_max;
 extern struct uma_zone *socket_zone;
 extern so_gen_t so_gencnt;
@@ -416,8 +415,6 @@ odp_packet_t ofp_packet_alloc(uint32_t len);
 odp_rwlock_t *ofp_accept_mtx(void);
 void ofp_accept_lock(void);
 void ofp_accept_unlock(void);
-
-#define maxsockets 1024
 
 /* Pools */
 

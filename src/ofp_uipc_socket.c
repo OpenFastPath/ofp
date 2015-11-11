@@ -138,8 +138,7 @@
  * Shared data
  */
 struct ofp_socket_mem {
-#define NUM_SOCKETS maxsockets
-	struct socket socket_list[NUM_SOCKETS];
+	struct socket socket_list[OFP_NUM_SOCKETS_MAX];
 	struct socket *free_sockets;
 	int sockets_allocated, max_sockets_allocated;
 	int socket_zone;
@@ -175,7 +174,7 @@ void ofp_print_long_counters(void);
 void ofp_print_sockets(void)
 {
 	int i;
-	for (i = 0; i < NUM_SOCKETS; i++) {
+	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
 		struct socket *so = &shm->socket_list[i];
 		if (!so->so_proto)
 			continue;
@@ -210,7 +209,7 @@ int ofp_socket_pool_create(const char *name, int size)
 
 	pool_params.buf.size  = size + 8; /* HJo: FIX */
 	pool_params.buf.align = 0;
-	pool_params.buf.num  = NUM_SOCKETS;
+	pool_params.buf.num  = OFP_NUM_SOCKETS_MAX;
 	pool_params.type  = ODP_POOL_BUFFER;
 
 	if (shm->num_pools >= OFP_NUM_SOCKET_POOLS) {
@@ -325,8 +324,8 @@ int ofp_socket_init_global(odp_pool_t pool)
 
 	memset(shm, 0, sizeof(*shm));
 
-	for (i = 0; i < NUM_SOCKETS; i++) {
-		shm->socket_list[i].next = (i == NUM_SOCKETS - 1) ?
+	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
+		shm->socket_list[i].next = (i == OFP_NUM_SOCKETS_MAX - 1) ?
 			NULL : &(shm->socket_list[i+1]);
 		shm->socket_list[i].so_number = i + OFP_SOCK_NUM_OFFSET;
 	}
