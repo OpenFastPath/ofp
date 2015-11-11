@@ -68,11 +68,11 @@ void *default_event_dispatcher(void *arg)
 #else
 	if (odp_init_local()) {
 #endif
-		OFP_ERR("Error: ODP local init failed.\n");
+		OFP_ERR("odp_init_local failed");
 		return NULL;
 	}
 	if (ofp_init_local()) {
-		OFP_ERR("Error: OFP local init failed.\n");
+		OFP_ERR("ofp_init_local failed");
 		return NULL;
 	}
 
@@ -164,7 +164,7 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 #endif
 	}
 
-	OFP_DBG("ETH TYPE = %04x\n", ethtype);
+	OFP_DBG("ETH TYPE = %04x", ethtype);
 
 	/* network layer classifier */
 	switch (ethtype) {
@@ -195,9 +195,10 @@ ipv4_transport_classifier(odp_packet_t pkt, uint8_t ip_proto)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	OFP_DBG("ip_proto=%d pr_input=%p\n", ip_proto, ofp_inetsw[ofp_ip_protox[ip_proto]].pr_input);
-	return ofp_inetsw[ofp_ip_protox[ip_proto]].pr_input(pkt,
-		ip->ip_hl << 2);
+	OFP_DBG("ip_proto=%d pr_input=%p",
+		ip_proto, ofp_inetsw[ofp_ip_protox[ip_proto]].pr_input);
+
+	return ofp_inetsw[ofp_ip_protox[ip_proto]].pr_input(pkt, ip->ip_hl << 2);
 }
 
 /*
@@ -330,16 +331,19 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		}
 
 		OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
-		OFP_DBG("OFP_HOOK returned %d\n", res);
-		if (res != OFP_PKT_CONTINUE)
+		if (res != OFP_PKT_CONTINUE) {
+			OFP_DBG("OFP_HOOK_LOCAL returned %d", res);
 			return res;
+		}
 
 		return ipv4_transport_classifier(pkt, ip->ip_p);
 	}
 
 	OFP_HOOK(OFP_HOOK_FWD_IPv4, pkt, NULL, &res);
-	if (res != OFP_PKT_CONTINUE)
+	if (res != OFP_PKT_CONTINUE) {
+		OFP_DBG("OFP_HOOK_FWD_IPv4 returned %d", res);
 		return res;
+	}
 
 	nh = ofp_get_next_hop(dev->vrf, ip->ip_dst.s_addr, &flags);
 	if (nh == NULL) {
@@ -402,16 +406,20 @@ enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
 			2 * sizeof(uint32_t)) == 0)) {
 
 		OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
-		if (res != OFP_PKT_CONTINUE)
+		if (res != OFP_PKT_CONTINUE) {
+			OFP_DBG("OFP_HOOK_LOCAL returned %d", res);
 			return res;
+		}
 
 		return ipv6_transport_classifier(pkt, ipv6->ofp_ip6_nxt);
 
 	}
 
 	OFP_HOOK(OFP_HOOK_FWD_IPv6, pkt, NULL, &res);
-	if (res != OFP_PKT_CONTINUE)
+	if (res != OFP_PKT_CONTINUE) {
+		OFP_DBG("OFP_HOOK_FWD_IPv6 returned %d", res);
 		return res;
+	}
 
 	nh = ofp_get_next_hop6(dev->vrf, ipv6->ip6_dst.ofp_s6_addr, &flags);
 	if (nh == NULL)
@@ -478,7 +486,7 @@ extern void print_ipv4(FILE *f, char *p);
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 	odp_packet_t pkt)
 {
-	OFP_DBG("\n");
+	OFP_DBG("Sent packet out %s", dev->if_name);
 
 	if (odp_queue_enq(ofp_get_ifnet(dev->port, 0)->outq_def,
 			odp_packet_to_event(pkt))) {

@@ -486,9 +486,7 @@ static inline void rw_assert(struct ofp_rec_rwlock *lock, int mode, const char *
 #define INP_INFO_WLOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_WLOCKED, __FILE__, __LINE__)
 #define INP_INFO_UNLOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_UNLOCKED, __FILE__, __LINE__)
 
-#define	INP_HASH_LOCK_INIT(ipi, d)	do { OFP_DBG("%s:%d: hash lock init %p",\
-						    __FILE__,__LINE__,ipi);\
-		odp_rwlock_init(&(ipi)->ipi_hash_lock);} while(0)
+#define	INP_HASH_LOCK_INIT(ipi, d)	odp_rwlock_init(&(ipi)->ipi_hash_lock);
 #define	INP_HASH_LOCK_DESTROY(ipi)	rw_destroy(&(ipi)->ipi_hash_lock)
 
 

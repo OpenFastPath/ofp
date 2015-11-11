@@ -239,7 +239,7 @@ static odp_spinlock_t isn_mtx;
 #define	ISN_UNLOCK()	mtx_unlock(&isn_mtx)
 #else
 #define	ISN_LOCK_INIT()	do { \
-		OFP_DBG("isn lock init"); \
+		/*OFP_DBG("isn lock init");*/ \
 		odp_spinlock_init(&isn_mtx); \
 	} while (0)
 #define	ISN_LOCK() do { \
