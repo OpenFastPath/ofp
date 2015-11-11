@@ -284,9 +284,36 @@ int ofp_vxlan_prepend_hdr(odp_packet_t pkt, struct ofp_ifnet *vxdev,
 	return OFP_PKT_CONTINUE;
 }
 
+static int ofp_vxlan_alloc_shared_memory(void)
+{
+	shm = ofp_shared_memory_alloc(SHM_NAME_VXLAN, sizeof(*shm));
+	if (shm == NULL) {
+		OFP_ERR("Error: %s shared mem alloc failed on core: %u.\n",
+			SHM_NAME_VXLAN, odp_cpu_id());
+		return -1;
+	}
+	return 0;
+}
+
+static int ofp_vxlan_free_shared_memory(void)
+{
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_VXLAN) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+
+	shm = NULL;
+	return rc;
+}
+
 int ofp_vxlan_init_global(void)
 {
+	HANDLE_ERROR(ofp_vxlan_alloc_shared_memory());
+
 	memset(shm, 0, sizeof(*shm));
+
 	ofp_vxlan_timer = ofp_timer_start(VXLAN_TICK, ofp_vxlan_tmo, NULL, 0);
 	if (ODP_TIMER_INVALID == ofp_vxlan_timer) {
 		OFP_ERR("Failed to start VXLAN timer.");
@@ -295,14 +322,24 @@ int ofp_vxlan_init_global(void)
 	return 0;
 }
 
-void ofp_vxlan_term_global(void)
+int ofp_vxlan_term_global(void)
 {
+	int rc = 0;
+
+	if (ofp_vxlan_lookup_shared_memory())
+		return -1;
+
 	if (ofp_vxlan_timer != ODP_TIMER_INVALID) {
-		if (ofp_timer_cancel(ofp_vxlan_timer))
+		if (ofp_timer_cancel(ofp_vxlan_timer)) {
 			OFP_ERR("Failed to cancel VXLAN timer.");
+			rc = -1;
+		}
 		ofp_vxlan_timer = ODP_TIMER_INVALID;
 	}
-	memset(shm, 0, sizeof(*shm));
+
+	CHECK_ERROR(ofp_vxlan_free_shared_memory(), rc);
+
+	return rc;
 }
 
 void ofp_vxlan_init_local(void)
@@ -311,25 +348,6 @@ void ofp_vxlan_init_local(void)
 
 void ofp_vxlan_term_local(void)
 {
-}
-
-int ofp_vxlan_alloc_shared_memory(void)
-{
-	shm = ofp_shared_memory_alloc(SHM_NAME_VXLAN, sizeof(*shm));
-	if (shm == NULL) {
-		OFP_ERR("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_VXLAN, odp_cpu_id());
-		return -1;
-	}
-
-	memset(shm, 0, sizeof(*shm));
-	return 0;
-}
-
-void ofp_vxlan_free_shared_memory(void)
-{
-	ofp_shared_memory_free(SHM_NAME_VXLAN);
-	shm = NULL;
 }
 
 int ofp_vxlan_lookup_shared_memory(void)
@@ -363,6 +381,28 @@ int ofp_set_vxlan_interface_queue(void)
 
 	/* Set device loopq queue context */
 	ofp_queue_context_set(ifnet->loopq_def, ifnet);
+
+	return 0;
+}
+
+int ofp_clean_vxlan_interface_queue(void)
+{
+	struct ofp_ifnet *ifnet = ofp_get_ifnet(VXLAN_PORTS, 0);
+
+	if (ifnet == NULL) {
+		OFP_ERR("Error: Failed to locate VXLAN port");
+		return -1;
+	}
+
+	if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
+		OFP_ERR("Error: VXLAN port queue not initialized");
+		return -1;
+	}
+
+	if (odp_queue_destroy(ifnet->loopq_def)) {
+		OFP_ERR("Error: Failed to destroi VXLAN port queue");
+		return -1;
+	}
 
 	return 0;
 }

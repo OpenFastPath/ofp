@@ -86,6 +86,29 @@ static void one_sec(void *arg)
 	shm->timer_1s = ofp_timer_start(1000000UL, one_sec, NULL, 0);
 }
 
+static int ofp_timer_alloc_shared_memory(void)
+{
+	shm = ofp_shared_memory_alloc(SHM_NAME_TIMER, sizeof(*shm));
+	if (shm == NULL) {
+		OFP_ERR("ofp_shared_memory_alloc failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int ofp_timer_free_shared_memory(void)
+{
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_TIMER) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+	shm = NULL;
+	return rc;
+}
+
 int ofp_timer_init_global(int resolution_us,
 		int min_us, int max_us,
 		int tmo_count)
@@ -96,6 +119,10 @@ int ofp_timer_init_global(int resolution_us,
 
 	/* For later tuning. */
 	(void)tmo_count;
+
+	HANDLE_ERROR(ofp_timer_alloc_shared_memory());
+
+	ofp_timer_shm_init();
 
 	/* Timout pool */
 	memset(&pool_params, 0, sizeof(pool_params));
@@ -165,25 +192,28 @@ int ofp_timer_init_global(int resolution_us,
 	return 0;
 }
 
-void ofp_timer_stop_global(void)
+int ofp_timer_stop_global(void)
 {
+	int rc = 0;
+
 	if (shm->timer_1s != ODP_TIMER_INVALID) {
-		ofp_timer_cancel(shm->timer_1s);
+		CHECK_ERROR(ofp_timer_cancel(shm->timer_1s), rc);
 		shm->timer_1s = ODP_TIMER_INVALID;
 	}
+
+	return rc;
 }
 
-void ofp_timer_term_global(void)
+int ofp_timer_term_global(void)
 {
 	int i;
 	struct ofp_timer_internal *bufdata, *next;
+	int rc = 0;
 
-	if (ofp_timer_lookup_shared_memory()) {
-		OFP_WARN("Timer Shared memory not found.");
-		return;
-	}
+	if (ofp_timer_lookup_shared_memory())
+		return -1;
 
-	ofp_timer_stop_global();
+	CHECK_ERROR(ofp_timer_stop_global(), rc);
 
 /* Cleanup long timers*/
 	for (i = 0; i < TIMER_NUM_LONG_SLOTS; i++) {
@@ -200,7 +230,7 @@ void ofp_timer_term_global(void)
 
 /* Cleanup timer related ODP objects*/
 	if (shm->queue != ODP_QUEUE_INVALID) {
-		odp_queue_destroy(shm->queue);
+		CHECK_ERROR(odp_queue_destroy(shm->queue), rc);
 		shm->queue = ODP_QUEUE_INVALID;
 	}
 
@@ -210,35 +240,20 @@ void ofp_timer_term_global(void)
 	}
 
 	if (shm->buf_pool != ODP_POOL_INVALID) {
-		odp_pool_destroy(shm->buf_pool);
+		CHECK_ERROR(odp_pool_destroy(shm->buf_pool), rc);
 		shm->buf_pool = ODP_POOL_INVALID;
 	}
 
 	if (shm->pool != ODP_POOL_INVALID) {
-		odp_pool_destroy(shm->pool);
+		CHECK_ERROR(odp_pool_destroy(shm->pool), rc);
 		shm->pool = ODP_POOL_INVALID;
 	}
 
-	ofp_timer_shm_init();
+	CHECK_ERROR(ofp_timer_free_shared_memory(), rc);
+
+	return rc;
 }
 
-int ofp_timer_alloc_shared_memory(void)
-{
-	shm = ofp_shared_memory_alloc(SHM_NAME_TIMER, sizeof(*shm));
-	if (shm == NULL) {
-		OFP_ERR("ofp_shared_memory_alloc failed");
-		return -1;
-	}
-
-	ofp_timer_shm_init();
-	return 0;
-}
-
-void ofp_timer_free_shared_memory(void)
-{
-	ofp_shared_memory_free(SHM_NAME_TIMER);
-	shm = NULL;
-}
 
 int ofp_timer_lookup_shared_memory(void)
 {
@@ -373,9 +388,10 @@ int ofp_timer_cancel(odp_timer_t tim)
 		return -1;
 	}
 	else {
-		if (odp_timer_cancel(tim, &timeout_event) < 0) {
-			OFP_DBG("Timeout already expired or inactive");
-			return -1;
+		if (odp_timer_cancel(tim, &timeout_event) < 0)
+		{
+			OFP_WARN("Timeout already expired or inactive");
+			return 0;
 		}
 
 		if (timeout_event != ODP_EVENT_INVALID) {

@@ -69,13 +69,11 @@ int ofp_init_pre_global(const char *pool_name,
 
 	HANDLE_ERROR(ofp_stat_init_global());
 
-	HANDLE_ERROR(ofp_timer_alloc_shared_memory());
 	HANDLE_ERROR(ofp_timer_init_global(OFP_TIMER_RESOLUTION_US,
 			OFP_TIMER_MIN_US,
 			OFP_TIMER_MAX_US,
 			OFP_TIMER_TMO_COUNT));
 
-	HANDLE_ERROR(ofp_hook_alloc_shared_memory());
 	HANDLE_ERROR(ofp_hook_init_global(hooks));
 
 	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
@@ -87,7 +85,6 @@ int ofp_init_pre_global(const char *pool_name,
 	HANDLE_ERROR(ofp_portconf_alloc_shared_memory());
 	HANDLE_ERROR(ofp_portconf_init_global());
 
-	HANDLE_ERROR(ofp_vxlan_alloc_shared_memory());
 	HANDLE_ERROR(ofp_vxlan_init_global());
 
 	*pool = ofp_pool_create(pool_name, pool_params);
@@ -348,6 +345,8 @@ int ofp_term_global(void)
 {
 	int rc = 0;
 
+	CHECK_ERROR(ofp_clean_vxlan_interface_queue(), rc);
+
 	if (ofp_term_post_global(SHM_PACKET_POOL_NAME)) {
 		OFP_ERR("Failed to cleanup resources\n");
 		rc = -1;
@@ -371,8 +370,7 @@ int ofp_term_post_global(const char *pool_name)
 	ofp_socket_free_shared_memory();
 
 	/* Cleanup vxlan */
-	ofp_vxlan_term_global();
-	ofp_vxlan_free_shared_memory();
+	CHECK_ERROR(ofp_vxlan_term_global(), rc);
 
 	/* Cleanup interface related objects */
 	ofp_portconf_term_global();
@@ -387,8 +385,7 @@ int ofp_term_post_global(const char *pool_name)
 	ofp_arp_free_shared_memory();
 
 	/* Cleanup hooks */
-	ofp_hook_term_global();
-	ofp_hook_free_shared_memory();
+	CHECK_ERROR(ofp_hook_term_global(), rc);
 
 	/* Cleanup stats */
 	CHECK_ERROR(ofp_stat_term_global(), rc);
@@ -403,14 +400,13 @@ int ofp_term_post_global(const char *pool_name)
 	CHECK_ERROR(ofp_avl_term_global(), rc);
 
 	/* Cleanup timers - phase 1*/
-	ofp_timer_stop_global();
+	CHECK_ERROR(ofp_timer_stop_global(), rc);
 
 	/* Cleanup pending events */
 	schedule_shutdown();
 
 	/* Cleanup timers - phase 2*/
-	ofp_timer_term_global();
-	ofp_timer_free_shared_memory();
+	CHECK_ERROR(ofp_timer_term_global(), rc);
 
 	/* Cleanup packet pool */
 	pool = odp_pool_lookup(pool_name);
