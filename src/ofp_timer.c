@@ -373,9 +373,8 @@ int ofp_timer_cancel(odp_timer_t tim)
 		return -1;
 	}
 	else {
-		if (odp_timer_cancel(tim, &timeout_event) < 0)
-		{
-			OFP_WARN("Timeout already expired or inactive");
+		if (odp_timer_cancel(tim, &timeout_event) < 0) {
+			OFP_DBG("Timeout already expired or inactive");
 			return -1;
 		}
 
@@ -390,7 +389,7 @@ int ofp_timer_cancel(odp_timer_t tim)
 		}
 
 		if (odp_timer_free(tim) != ODP_EVENT_INVALID) {
-			OFP_ERR("odp_timer_free failed in ofp_timer_cancel");
+			OFP_ERR("odp_timer_free failed");
 			return -1;
 		}
 	}
@@ -413,15 +412,26 @@ void ofp_timer_handle(odp_event_t ev)
 	odp_timer_free(tim);
 }
 
-void ofp_timer_evt_cleanup(odp_event_t evt)
+/*
+ * During shutdown process, all OFP submodules cancel their timers. However, it
+ * is possible that the timer is cancelled (thus preventing further expiration),
+ * but a timeout event for a previous expiration of this timer is sitting in a
+ * queue waiting to be scheduled. schedule_shutdown() calls this function to
+ * cleanup these events.
+ */
+void ofp_timer_evt_cleanup(odp_event_t ev)
 {
-	struct ofp_timer_internal *bufdata;
 	odp_timeout_t tmo;
+	odp_timer_t tim;
+	struct ofp_timer_internal *bufdata;
 
-	tmo = odp_timeout_from_event(evt);
-	bufdata = (struct ofp_timer_internal *)odp_timeout_user_ptr(tmo);
+	tmo = odp_timeout_from_event(ev);
+	tim = odp_timeout_timer(tmo);
+	bufdata = (struct ofp_timer_internal *) odp_timeout_user_ptr(tmo);
+
 	odp_buffer_free(bufdata->buf);
 	odp_timeout_free(tmo);
+	odp_timer_free(tim);
 }
 
 /* timer_num defines the timer type. At the moment
