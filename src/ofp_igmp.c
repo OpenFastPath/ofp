@@ -412,7 +412,7 @@ igmp_scrub_context(odp_packet_t m)
 
 #ifdef KTR
 static __inline char *
-inet_ntoa_haddr(odp_in_addr_t haddr)
+inet_ntoa_haddr(ofp_in_addr_t haddr)
 {
 	struct ofp_in_addr ia;
 
