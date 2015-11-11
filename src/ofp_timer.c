@@ -40,7 +40,6 @@ struct ofp_timer_mem {
 	odp_pool_t pool;
 	odp_pool_t buf_pool;
 	odp_queue_t queue;
-	odp_timer_t socket_timer;
 	odp_timer_pool_t socket_timer_pool;
 	struct ofp_timer_internal *long_table[TIMER_NUM_LONG_SLOTS];
 	int sec_counter;
@@ -62,7 +61,6 @@ static void ofp_timer_shm_init(void)
 	shm->buf_pool = ODP_POOL_INVALID;
 	shm->queue = ODP_QUEUE_INVALID;
 	shm->socket_timer_pool = ODP_TIMER_POOL_INVALID;
-	shm->socket_timer = ODP_TIMER_INVALID;
 	shm->timer_1s = ODP_TIMER_INVALID;
 }
 
@@ -172,11 +170,6 @@ void ofp_timer_stop_global(void)
 	if (shm->timer_1s != ODP_TIMER_INVALID) {
 		ofp_timer_cancel(shm->timer_1s);
 		shm->timer_1s = ODP_TIMER_INVALID;
-	}
-
-	if (shm->socket_timer != ODP_TIMER_INVALID) {
-		ofp_timer_cancel(shm->socket_timer);
-		shm->socket_timer = ODP_TIMER_INVALID;
 	}
 }
 
@@ -307,6 +300,7 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		return (odp_timer_t) bufdata->id;
 	} else {
 		/* Short 10 ms resolution timeout */
+		odp_timer_t timer;
 
 		/* Alloc timout event */
 		tmo = odp_timeout_alloc(shm->pool);
@@ -322,16 +316,16 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		tick      = odp_timer_current_tick(shm->socket_timer_pool);
 		tick     += period;
 
-		shm->socket_timer = odp_timer_alloc(shm->socket_timer_pool,
-						    shm->queue, bufdata);
-		if (shm->socket_timer == ODP_TIMER_INVALID) {
+		timer = odp_timer_alloc(shm->socket_timer_pool,
+					shm->queue, bufdata);
+		if (timer == ODP_TIMER_INVALID) {
 			odp_timeout_free(tmo);
 			odp_buffer_free(buf);
 			OFP_ERR("odp_timer_alloc failed");
 			return ODP_TIMER_INVALID;
 		}
 
-		t = odp_timer_set_abs(shm->socket_timer, tick, &bufdata->t_ev);
+		t = odp_timer_set_abs(timer, tick, &bufdata->t_ev);
 
 		if (t != ODP_TIMER_SUCCESS) {
 			odp_timeout_free(tmo);
@@ -340,7 +334,7 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 			return ODP_TIMER_INVALID;
 		}
 
-		return shm->socket_timer;
+		return timer;
 	}
 	return ODP_TIMER_INVALID;
 }
