@@ -596,23 +596,26 @@ void ofp_print_rt_stat(int fd)
 			  shm->nodes_allocated6, shm->max_nodes_allocated6, NUM_NODES_6);
 }
 
-int ofp_rt_lookup_alloc_shared_memory(void)
+static int ofp_rt_lookup_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc");
 		return -1;
 	}
-
-	memset(shm, 0, sizeof(*shm));
-
 	return 0;
 }
 
-void ofp_rt_lookup_free_shared_memory(void)
+static int ofp_rt_lookup_free_shared_memory(void)
 {
-	ofp_shared_memory_free(SHM_NAME_RT_LOOKUP);
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_RT_LOOKUP) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
 	shm = NULL;
+	return rc;
 }
 
 int ofp_rt_lookup_lookup_shared_memory(void)
@@ -629,6 +632,10 @@ int ofp_rt_lookup_lookup_shared_memory(void)
 int ofp_rt_lookup_init_global(void)
 {
 	int i;
+
+	HANDLE_ERROR(ofp_rt_lookup_alloc_shared_memory());
+
+	memset(shm, 0, sizeof(*shm));
 
 	for (i = 0; i < NUM_NODES; i++) {
 		shm->node_list[i].left = (i == 0) ?
@@ -649,8 +656,15 @@ int ofp_rt_lookup_init_global(void)
 	return 0;
 }
 
-void ofp_rt_lookup_term_global(void)
+int ofp_rt_lookup_term_global(void)
 {
-	memset(shm, 0, sizeof(*shm));
+	int rc = 0;
+
+	if (ofp_rt_lookup_lookup_shared_memory())
+		return -1;
+
+	CHECK_ERROR(ofp_rt_lookup_free_shared_memory(), rc);
+
+	return rc;
 }
 

@@ -76,10 +76,8 @@ int ofp_init_pre_global(const char *pool_name,
 
 	HANDLE_ERROR(ofp_hook_init_global(hooks));
 
-	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
 	HANDLE_ERROR(ofp_arp_init_global());
 
-	HANDLE_ERROR(ofp_route_alloc_shared_memory());
 	HANDLE_ERROR(ofp_route_init_global());
 
 	HANDLE_ERROR(ofp_portconf_alloc_shared_memory());
@@ -377,12 +375,10 @@ int ofp_term_post_global(const char *pool_name)
 	ofp_portconf_free_shared_memory();
 
 	/* Cleanup routes */
-	ofp_route_term_global();
-	ofp_route_free_shared_memory();
+	CHECK_ERROR(ofp_route_term_global(), rc);
 
 	/* Cleanup ARP*/
-	ofp_arp_term_global();
-	ofp_arp_free_shared_memory();
+	CHECK_ERROR(ofp_arp_term_global(), rc);
 
 	/* Cleanup hooks */
 	CHECK_ERROR(ofp_hook_term_global(), rc);

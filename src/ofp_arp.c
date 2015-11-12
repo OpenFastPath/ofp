@@ -149,9 +149,10 @@ static inline void *insert_new_entry(int set, struct arp_key *key)
 	return new;
 }
 
-static inline void remove_entry(int set, struct arp_entry *entry)
+static inline int remove_entry(int set, struct arp_entry *entry)
 {
 	struct arp_cache *cache;
+	int rc = 0;
 
 	/* remove from set */
 	OFP_SLIST_REMOVE(&shm->arp.table[set], entry, arp_entry, next);
@@ -166,7 +167,7 @@ static inline void remove_entry(int set, struct arp_entry *entry)
 	odp_rwlock_write_lock(&entry->usetime_rwlock);
 
 	if (entry->usetime_upd_tmo != ODP_TIMER_INVALID) {
-		ofp_timer_cancel(entry->usetime_upd_tmo);
+		CHECK_ERROR(ofp_timer_cancel(entry->usetime_upd_tmo), rc);
 		entry->usetime_upd_tmo = ODP_TIMER_INVALID;
 	}
 
@@ -174,6 +175,7 @@ static inline void remove_entry(int set, struct arp_entry *entry)
 
 	/* free */
 	entry_free(entry);
+	return rc;
 }
 
 static inline void show_arp_entry(int fd, struct arp_entry *entry)
@@ -532,9 +534,10 @@ void ofp_arp_show_saved_packets(int fd)
 	}
 }
 
-void ofp_arp_init_tables(void)
+int ofp_arp_init_tables(void)
 {
 	int i;
+	int rc = 0;
 
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_write_lock(&shm->arp.table_rwlock[i]);
@@ -543,12 +546,15 @@ void ofp_arp_init_tables(void)
 
 	for (i = 0; i < NUM_ARPS; ++i) {
 		if (shm->arp.entries[i].pkt_tmo != ODP_TIMER_INVALID)
-			ofp_timer_cancel(shm->arp.entries[i].pkt_tmo);
+			CHECK_ERROR(ofp_timer_cancel(
+				shm->arp.entries[i].pkt_tmo), rc);
 
 		odp_rwlock_write_lock(&shm->arp.entries[i].usetime_rwlock);
 
 		if (shm->arp.entries[i].usetime_upd_tmo != ODP_TIMER_INVALID) {
-			ofp_timer_cancel(shm->arp.entries[i].usetime_upd_tmo);
+			CHECK_ERROR(ofp_timer_cancel(
+				shm->arp.entries[i].usetime_upd_tmo),
+				rc);
 			shm->arp.entries[i].usetime_upd_tmo = ODP_TIMER_INVALID;
 		}
 		odp_rwlock_write_unlock(&shm->arp.entries[i].usetime_rwlock);
@@ -582,12 +588,41 @@ void ofp_arp_init_tables(void)
 
 	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
+
+	return rc;
+}
+
+static int ofp_arp_alloc_shared_memory(void)
+{
+	shm = ofp_shared_memory_alloc(SHM_NAME_ARP, sizeof(*shm));
+	if (shm == NULL) {
+		OFP_ERR("ofp_shared_memory_alloc failed");
+		return -1;
+	}
+	return 0;
+}
+
+static int ofp_arp_free_shared_memory(void)
+{
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_ARP) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+	shm = NULL;
+	return rc;
 }
 
 int ofp_arp_init_global(void)
 {
 	int i;
 	int cli = 0;
+
+	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
+
+	memset(shm, 0, sizeof(*shm));
+	shm->cleanup_timer = ODP_TIMER_INVALID;
 
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_init(&shm->arp.table_rwlock[i]);
@@ -601,21 +636,29 @@ int ofp_arp_init_global(void)
 
 	}
 
-	ofp_arp_init_tables();
+	HANDLE_ERROR(ofp_arp_init_tables());
 
 	shm->cleanup_timer = ofp_timer_start(CLEANUP_TIMER_INTERVAL,
 			  ofp_arp_cleanup, &cli, sizeof(cli));
+	if (shm->cleanup_timer == ODP_TIMER_INVALID) {
+		OFP_ERR("Failed to create ARP cleanup timer");
+		return -1;
+	}
 	return 0;
 }
 
-void ofp_arp_term_global(void)
+int ofp_arp_term_global(void)
 {
 	int i;
 	struct arp_entry *entry, *next_entry;
 	struct pkt_entry *pktentry;
+	int rc = 0;
+
+	if (ofp_arp_lookup_shared_memory())
+		return -1;
 
 	if (shm->cleanup_timer != ODP_TIMER_INVALID)
-		ofp_timer_cancel(shm->cleanup_timer);
+		CHECK_ERROR(ofp_timer_cancel(shm->cleanup_timer), rc);
 
 	for (i = 0; i < NUM_SETS; i++) {
 		entry = OFP_SLIST_FIRST(&shm->arp.table[i]);
@@ -624,7 +667,8 @@ void ofp_arp_term_global(void)
 			next_entry = OFP_SLIST_NEXT(entry, next);
 
 			if (entry->pkt_tmo != ODP_TIMER_INVALID)
-				ofp_timer_cancel(entry->pkt_tmo);
+				CHECK_ERROR(ofp_timer_cancel(entry->pkt_tmo),
+					rc);
 
 			pktentry = OFP_SLIST_FIRST(&entry->pkt_list_head);
 			while (pktentry) {
@@ -637,11 +681,14 @@ void ofp_arp_term_global(void)
 					OFP_SLIST_FIRST(&entry->pkt_list_head);
 			}
 
-			remove_entry(i, entry);
+			CHECK_ERROR(remove_entry(i, entry), rc);
 			entry = next_entry;
 		}
 	}
-	memset(shm, 0, sizeof(*shm));
+
+	CHECK_ERROR(ofp_arp_free_shared_memory(), rc);
+
+	return rc;
 }
 
 int ofp_arp_init_local(void)
@@ -651,25 +698,6 @@ int ofp_arp_init_local(void)
 
 void ofp_arp_term_local(void)
 {
-}
-
-int ofp_arp_alloc_shared_memory(void)
-{
-	shm = ofp_shared_memory_alloc(SHM_NAME_ARP, sizeof(*shm));
-	if (shm == NULL) {
-		OFP_ERR("Error: %s shared mem alloc failed on core: %u.\n",
-			SHM_NAME_ARP, odp_cpu_id());
-		return -1;
-	}
-
-	memset(shm, 0, sizeof(*shm));
-	return 0;
-}
-
-void ofp_arp_free_shared_memory(void)
-{
-	ofp_shared_memory_free(SHM_NAME_ARP);
-	shm = NULL;
 }
 
 int ofp_arp_lookup_shared_memory(void)

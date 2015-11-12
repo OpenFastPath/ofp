@@ -242,28 +242,33 @@ void ofp_arp_show_saved_packets(int fd)
 	(void) fd;
 }
 
-void ofp_arp_init_tables(void)
+int ofp_arp_init_tables(void)
 {
+	return 0;
 }
 
 /******************************************************************************/
 
-int ofp_arp_alloc_shared_memory(void)
+static int ofp_arp_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_ARP_CK, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
 	}
-
-	memset(shm, 0, sizeof(*shm));
 	return 0;
 }
 
-void ofp_arp_free_shared_memory(void)
+static int void ofp_arp_free_shared_memory(void)
 {
-	ofp_shared_memory_free(SHM_NAME_ARP_CK);
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_ARP_CK) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
 	shm = NULL;
+	return rc;
 }
 
 int ofp_arp_lookup_shared_memory(void)
@@ -278,6 +283,10 @@ int ofp_arp_lookup_shared_memory(void)
 
 int ofp_arp_init_global(void)
 {
+	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
+
+	memset(shm, 0, sizeof(*shm));
+
 	memset((void *)&(shm->arp_table[0]), 0x0, sizeof(shm->arp_table));
 	memset((void *)&(shm->arp_entries[0][0]), 0x0,
 	       sizeof(shm->arp_entries));
@@ -287,9 +296,16 @@ int ofp_arp_init_global(void)
 	return 0;
 }
 
-void ofp_arp_term_global(void)
+int ofp_arp_term_global(void)
 {
-	memset(shm, 0, sizeof(*shm));
+	int rc = 0;
+
+	if (ofp_arp_lookup_shared_memory())
+		return -1;
+
+	CHECK_ERROR(ofp_arp_free_shared_memory(), rc);
+
+	return rc;
 }
 
 int ofp_arp_init_local(void)

@@ -79,30 +79,6 @@ static int routes_avl_compare(void *compare_arg, void *a, void *b)
 	return (a1->vrf - b1->vrf);
 }
 
-int ofp_route_init_global(void)
-{
-	int i;
-
-	odp_rwlock_init(&ofp_locks_shm->lock_config_rw);
-	odp_rwlock_init(&ofp_locks_shm->lock_route_rw);
-
-	HANDLE_ERROR(ofp_rt_lookup_init_global());
-
-	/*avl_tree_new(routes_avl_compare, NULL);*/
-	ofp_rtl_init(&shm->default_routes);
-	ofp_rtl6_init(&shm->default_routes_6);
-	shm->vrf_routes = avl_tree_new(routes_avl_compare, NULL);
-
-	odp_rwlock_init(&shm->pkt6.fr_ent_rwlock);
-	memset(shm->pkt6.entries, 0, sizeof(shm->pkt6.entries));
-	OFP_SLIST_INIT(&shm->pkt6.free_entries);
-	for (i = NUM_PKTS - 1; i >= 0; --i)
-		OFP_SLIST_INSERT_HEAD(&shm->pkt6.free_entries,
-			&shm->pkt6.entries[i], next);
-
-	return 0;
-}
-
 static inline void *pkt6_entry_alloc(void)
 {
 	struct pkt6_entry *pktentry;
@@ -538,10 +514,8 @@ uint16_t ofp_get_probable_vlan(int port, uint32_t addr)
 	return data.vlan;
 }
 
-int ofp_route_alloc_shared_memory(void)
+static int ofp_route_alloc_shared_memory(void)
 {
-	HANDLE_ERROR(ofp_rt_lookup_alloc_shared_memory());
-
 	shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
@@ -552,25 +526,29 @@ int ofp_route_alloc_shared_memory(void)
 		sizeof(*ofp_locks_shm));
 	if (ofp_locks_shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
-		ofp_shared_memory_free(SHM_NAME_ROUTE);
-		shm = NULL;
 		return -1;
 	}
 
-	memset(shm, 0, sizeof(*shm));
-	memset(ofp_locks_shm, 0, sizeof(*ofp_locks_shm));
 	return 0;
 }
 
-void ofp_route_free_shared_memory(void)
+static int ofp_route_free_shared_memory(void)
 {
-	ofp_shared_memory_free(SHM_NAME_ROUTE);
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_ROUTE) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
 	shm = NULL;
 
-	ofp_shared_memory_free(SHM_NAME_ROUTE_LK);
+	if (ofp_shared_memory_free(SHM_NAME_ROUTE_LK) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
 	ofp_locks_shm = NULL;
 
-	ofp_rt_lookup_free_shared_memory();
+	return rc;
 }
 
 int ofp_route_lookup_shared_memory(void)
@@ -586,28 +564,70 @@ int ofp_route_lookup_shared_memory(void)
 	ofp_locks_shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE_LK);
 	if (ofp_locks_shm == NULL) {
 		OFP_ERR("ofp_shared_memory_lookup failed");
-		ofp_shared_memory_free(SHM_NAME_ROUTE);
-		shm = NULL;
 		return -1;
 	}
 
 	return 0;
 }
-
-void ofp_route_term_global(void)
+int ofp_route_init_global(void)
 {
-	if (shm->vrf_routes) {
-		avl_tree_free(shm->vrf_routes, free_data);
-		shm->vrf_routes = NULL;
-	}
+	int i;
 
-#ifdef INET6
-	ofp_rtl_traverse6(0, &shm->default_routes_6, route6_cleanup);
-#endif /*INET6*/
+	HANDLE_ERROR(ofp_rt_lookup_init_global());
+
+	HANDLE_ERROR(ofp_route_alloc_shared_memory());
 
 	memset(shm, 0, sizeof(*shm));
+	for (i = 0; i < NUM_PKTS; i++)
+		shm->pkt6.entries[i].pkt = ODP_PACKET_INVALID;
 
-	ofp_rt_lookup_term_global();
+	memset(ofp_locks_shm, 0, sizeof(*ofp_locks_shm));
+	odp_rwlock_init(&ofp_locks_shm->lock_config_rw);
+	odp_rwlock_init(&ofp_locks_shm->lock_route_rw);
+
+	/*avl_tree_new(routes_avl_compare, NULL);*/
+	HANDLE_ERROR(ofp_rtl_init(&shm->default_routes));
+	HANDLE_ERROR(ofp_rtl6_init(&shm->default_routes_6));
+	shm->vrf_routes = avl_tree_new(routes_avl_compare, NULL);
+	if (shm->vrf_routes == NULL) {
+		OFP_ERR("AVL tree allocation failure.");
+		return -1;
+	}
+
+	odp_rwlock_init(&shm->pkt6.fr_ent_rwlock);
+	memset(shm->pkt6.entries, 0, sizeof(shm->pkt6.entries));
+	OFP_SLIST_INIT(&shm->pkt6.free_entries);
+	for (i = NUM_PKTS - 1; i >= 0; --i)
+		OFP_SLIST_INSERT_HEAD(&shm->pkt6.free_entries,
+			&shm->pkt6.entries[i], next);
+
+	return 0;
+}
+
+int ofp_route_term_global(void)
+{
+	int rc = 0;
+
+	shm = ofp_shared_memory_lookup(SHM_NAME_ROUTE);
+	if (shm == NULL) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		rc = -1;
+	} else {
+		if (shm->vrf_routes) {
+			avl_tree_free(shm->vrf_routes, free_data);
+			shm->vrf_routes = NULL;
+		}
+
+#ifdef INET6
+		ofp_rtl_traverse6(0, &shm->default_routes_6, route6_cleanup);
+#endif /*INET6*/
+	}
+
+	CHECK_ERROR(ofp_route_free_shared_memory(), rc);
+
+	CHECK_ERROR(ofp_rt_lookup_term_global(), rc);
+
+	return rc;
 }
 
 static int free_data(void *data)
