@@ -289,22 +289,26 @@ void ofp_accept_unlock(void)
 	odp_rwlock_write_unlock(&shm->ofp_accept_mtx);
 }
 
-int ofp_socket_alloc_shared_memory(void)
+static int ofp_socket_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_SOCKET, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
 	}
-
-	memset(shm, 0, sizeof(*shm));
 	return 0;
 }
 
-void ofp_socket_free_shared_memory(void)
+static int ofp_socket_free_shared_memory(void)
 {
-	ofp_shared_memory_free(SHM_NAME_SOCKET);
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_SOCKET) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
 	shm = NULL;
+	return rc;
 }
 
 
@@ -322,7 +326,12 @@ int ofp_socket_init_global(odp_pool_t pool)
 {
 	uint32_t i;
 
+	HANDLE_ERROR(ofp_socket_alloc_shared_memory());
+
 	memset(shm, 0, sizeof(*shm));
+	shm->pool = ODP_POOL_INVALID;
+	for (i = 0; i < OFP_NUM_SOCKET_POOLS; i++)
+		shm->pools[i] = ODP_POOL_INVALID;
 
 	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
 		shm->socket_list[i].next = (i == OFP_NUM_SOCKETS_MAX - 1) ?
@@ -340,16 +349,30 @@ int ofp_socket_init_global(odp_pool_t pool)
 	return 0;
 }
 
-void ofp_socket_term_global(void)
+int ofp_socket_term_global(void)
 {
 	int i;
 	struct inpcb *inp, *inp_temp;
 	struct tcptw *tw;
 	struct tcpcb *tp;
+	struct sleeper *p, *next;
+	int rc = 0;
 
 	if (ofp_tcp_slow_timer != ODP_TIMER_INVALID) {
-		ofp_timer_cancel(ofp_tcp_slow_timer);
+		CHECK_ERROR(ofp_timer_cancel(ofp_tcp_slow_timer), rc);
 		ofp_tcp_slow_timer = ODP_TIMER_INVALID;
+	}
+
+	p = shm->sleep_list;
+	while (p) {
+		next = p->next;
+		if (p->tmo != ODP_TIMER_INVALID) {
+			CHECK_ERROR(ofp_timer_cancel(p->tmo), rc);
+			p->tmo = ODP_TIMER_INVALID;
+		}
+		p->go = 1;
+		p = next;
+
 	}
 
 	OFP_LIST_FOREACH_SAFE(inp, V_tcbinfo.ipi_listhead, inp_list, inp_temp) {
@@ -385,14 +408,15 @@ void ofp_socket_term_global(void)
 		uma_zfree(V_tcbinfo.ipi_zone, inp);
 	}
 
-
 	for (i = 0; i < shm->num_pools; i++)
 		if (shm->pools[i] != ODP_POOL_INVALID) {
-			odp_pool_destroy(shm->pools[i]);
+			CHECK_ERROR(odp_pool_destroy(shm->pools[i]), rc);
 			shm->pools[i] = ODP_POOL_INVALID;
 		}
 
-	memset(shm, 0, sizeof(*shm));
+	CHECK_ERROR(ofp_socket_free_shared_memory(), rc);
+
+	return rc;
 }
 
 struct socket *ofp_get_sock_by_fd(int fd)

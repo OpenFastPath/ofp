@@ -80,7 +80,6 @@ int ofp_init_pre_global(const char *pool_name,
 
 	HANDLE_ERROR(ofp_route_init_global());
 
-	HANDLE_ERROR(ofp_portconf_alloc_shared_memory());
 	HANDLE_ERROR(ofp_portconf_init_global());
 
 	HANDLE_ERROR(ofp_vxlan_init_global());
@@ -91,7 +90,6 @@ int ofp_init_pre_global(const char *pool_name,
 		return -1;
 	}
 
-	HANDLE_ERROR(ofp_socket_alloc_shared_memory());
 	HANDLE_ERROR(ofp_socket_init_global(*pool));
 	HANDLE_ERROR(ofp_inet_init());
 
@@ -364,15 +362,13 @@ int ofp_term_post_global(const char *pool_name)
 	}
 
 	/* Cleanup sockets */
-	ofp_socket_term_global();
-	ofp_socket_free_shared_memory();
+	CHECK_ERROR(ofp_socket_term_global(), rc);
 
 	/* Cleanup vxlan */
 	CHECK_ERROR(ofp_vxlan_term_global(), rc);
 
 	/* Cleanup interface related objects */
-	ofp_portconf_term_global();
-	ofp_portconf_free_shared_memory();
+	CHECK_ERROR(ofp_portconf_term_global(), rc);
 
 	/* Cleanup routes */
 	CHECK_ERROR(ofp_route_term_global(), rc);
@@ -410,7 +406,7 @@ int ofp_term_post_global(const char *pool_name)
 		OFP_ERR("Failed to locate pool %s\n", pool_name);
 		rc = -1;
 	} else {
-		odp_pool_destroy(pool);
+		CHECK_ERROR(odp_pool_destroy(pool), rc);
 		pool = ODP_POOL_INVALID;
 	}
 
