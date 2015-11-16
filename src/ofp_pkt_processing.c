@@ -51,7 +51,6 @@
 #include "ofpi_vxlan.h"
 #include "api/ofp_init.h"
 
-
 extern odp_pool_t ofp_packet_pool;
 
 void *default_event_dispatcher(void *arg)
@@ -128,7 +127,6 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 	struct ofp_ifnet *ifnet = odp_packet_user_ptr(pkt);
 
 	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
-	ethtype = odp_be_to_cpu_16(eth->ether_type);
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(eth == NULL)) {
 		OFP_DBG("eth is NULL");
@@ -143,6 +141,7 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_header));
 	}
 #endif
+	ethtype = odp_be_to_cpu_16(eth->ether_type);
 
 	if (ethtype == OFP_ETHERTYPE_VLAN) {
 		struct ofp_ether_vlan_header *vlan_hdr;
@@ -339,7 +338,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 
 	nh = ofp_get_next_hop(dev->vrf, ip->ip_dst.s_addr, &flags);
 	if (nh == NULL) {
-		OFP_DBG("nh is NULL");
+		OFP_DBG("nh is NULL, vrf=%d dest=%x", dev->vrf, ip->ip_dst.s_addr);
 		return OFP_PKT_CONTINUE;
 	}
 
@@ -646,7 +645,7 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 	memcpy(arp->eth_dst, e1->ether_dhost, OFP_ETHER_ADDR_LEN);
 	arp->ip_dst = gw;
 
-	pkt = odp_packet_alloc(ofp_get_ifnet(dev->port, 0)->pkt_pool, size);
+	pkt = odp_packet_alloc(ofp_packet_pool, size);
 	if (pkt == ODP_PACKET_INVALID) {
 		OFP_ERR("odp_packet_alloc falied");
 		return;
@@ -763,7 +762,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	pkt_pool = ofp_get_ifnet(dev_out->port, 0)->pkt_pool;
+	pkt_pool = ofp_packet_pool;
 	tot_len = odp_be_to_cpu_16(ip->ip_len);
 	pl_len = tot_len - (ip->ip_hl<<2);
 	seg_len = (dev_out->if_mtu - sizeof(struct ofp_ip)) & 0xfff8;
