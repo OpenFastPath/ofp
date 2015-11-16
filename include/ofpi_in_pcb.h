@@ -486,17 +486,29 @@ static inline void rw_assert(struct ofp_rec_rwlock *lock, int mode, const char *
 #define INP_INFO_WLOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_WLOCKED, __FILE__, __LINE__)
 #define INP_INFO_UNLOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_UNLOCKED, __FILE__, __LINE__)
 
-#define	INP_HASH_LOCK_INIT(ipi, d)	odp_rwlock_init(&(ipi)->ipi_hash_lock);
-#define	INP_HASH_LOCK_DESTROY(ipi)	rw_destroy(&(ipi)->ipi_hash_lock)
+#ifdef OFP_STATIC_SOCKET_CONFIG
+# define INP_HASH_LOCK_INIT(ipi, d)
+# define INP_HASH_LOCK_DESTROY(ipi)
 
+# define INP_HASH_RLOCK(ipi)
+# define INP_HASH_WLOCK(ipi)
+# define INP_HASH_RUNLOCK(ipi)
+# define INP_HASH_WUNLOCK(ipi)
 
-#define	INP_HASH_RLOCK(ipi)	odp_rwlock_read_lock(&(ipi)->ipi_hash_lock)
-#define	INP_HASH_WLOCK(ipi)	odp_rwlock_write_lock(&(ipi)->ipi_hash_lock)
-#define	INP_HASH_RUNLOCK(ipi)	odp_rwlock_read_unlock(&(ipi)->ipi_hash_lock)
-#define	INP_HASH_WUNLOCK(ipi)	odp_rwlock_write_unlock(&(ipi)->ipi_hash_lock)
+# define INP_HASH_LOCK_ASSERT(ipi)
+# define INP_HASH_WLOCK_ASSERT(ipi)
+#else
+# define INP_HASH_LOCK_INIT(ipi, d)	odp_rwlock_init(&(ipi)->ipi_hash_lock);
+# define INP_HASH_LOCK_DESTROY(ipi)  rw_destroy(&(ipi)->ipi_hash_lock)
 
-#define	INP_HASH_LOCK_ASSERT(ipi)	//rw_assert(&(ipi)->ipi_hash_lock, RA_LOCKED)
-#define	INP_HASH_WLOCK_ASSERT(ipi)	//rw_assert(&(ipi)->ipi_hash_lock, RA_WLOCKED)
+# define INP_HASH_RLOCK(ipi)	odp_rwlock_read_lock(&(ipi)->ipi_hash_lock)
+# define INP_HASH_WLOCK(ipi)	odp_rwlock_write_lock(&(ipi)->ipi_hash_lock)
+# define INP_HASH_RUNLOCK(ipi)	odp_rwlock_read_unlock(&(ipi)->ipi_hash_lock)
+# define INP_HASH_WUNLOCK(ipi)	odp_rwlock_write_unlock(&(ipi)->ipi_hash_lock)
+
+# define INP_HASH_LOCK_ASSERT(ipi)	/*rw_assert(&(ipi)->ipi_hash_lock, RA_LOCKED)*/
+# define INP_HASH_WLOCK_ASSERT(ipi)	/*rw_assert(&(ipi)->ipi_hash_lock, RA_WLOCKED)*/
+#endif
 
 #define	IN_IFADDR_RLOCK()		OFP_IFNET_LOCK_READ(ifaddr_list)
 #define	IN_IFADDR_RUNLOCK()		OFP_IFNET_UNLOCK_READ(ifaddr_list)

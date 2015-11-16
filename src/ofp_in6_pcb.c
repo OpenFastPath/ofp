@@ -1232,8 +1232,9 @@ in6_pcblookup_hash(struct inpcbinfo *pcbinfo, struct ofp_in6_addr *faddr,
 				return (NULL);
 		} else
 			panic("locking bug");
-	} else
+	} else {
 		INP_HASH_RUNLOCK(pcbinfo);
+	}
 	return (inp);
 }
 

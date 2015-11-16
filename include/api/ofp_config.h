@@ -25,6 +25,33 @@
 /* #define OFP_SEND_PKT_BURST */
 #endif
 
+/**Enable static socket configuration mode.
+ * It is meant to be used with application where the socket
+ * configuration does not change during intensive packet
+ * processing phase of application.
+ * The purpose is to increase performance by removing locks.
+ * Application run time is divided in two phases:
+ *  - Initialization phase: all socket creation and configuration
+ *    is done during this phase. It starts after completion of
+ *    OFP global/local initialization and may expand until after
+ * creation of dispatched threads.
+ *  - Intensive packet processing phase: no new sockets / binds
+ *    are permitted.
+ * Restrictions:
+ *  During "Initialization phase", all socket operations must be
+ *  serialized.
+ *  During "Intensive packet processing phase", calls to
+ *  ofp_socket(), ofp_bind(), ofp_accept(), ofp_connect(),
+ *  ofp_listen(), ofp_shutdown() and ofp_close() are forbidden.
+ *  Also, socket must be bound (preferably not to OFP_INADDR_ANY).
+ * Implementation details:
+ *   Implementation is based on disabling locks on UDP and TCP
+ *   hash of PCBs. When OFP_STATIC_SOCKET_CONFIG is defined then
+ *   protocols PCB hash will not be protected against concurrent
+ *   adding or removing of items.
+ */
+/* #define OFP_STATIC_SOCKET_CONFIG */
+
 /**OFP configured to send ICMP redirect*/
 /* #define OFP_SEND_ICMP_REDIRECT */
 

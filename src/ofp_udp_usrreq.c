@@ -1124,8 +1124,9 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 
 	if (unlock_udbinfo == UH_WLOCKED)
 		INP_HASH_WUNLOCK(&ofp_udbinfo);
-	else if (unlock_udbinfo == UH_RLOCKED)
+	else if (unlock_udbinfo == UH_RLOCKED) {
 		INP_HASH_RUNLOCK(&ofp_udbinfo);
+	}
 
 #if 0
 	error = ofp_ip_output(m, inp->inp_options, NULL, ipflags,

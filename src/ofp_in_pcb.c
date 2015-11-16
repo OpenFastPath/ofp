@@ -1479,8 +1479,9 @@ in_pcblookup_hash(struct inpcbinfo *pcbinfo, struct ofp_in_addr faddr,
 			}
 		} else
 			panic("locking bug");
-	} else
+	} else {
 		INP_HASH_RUNLOCK(pcbinfo);
+	}
 
 	return (inp);
 }
