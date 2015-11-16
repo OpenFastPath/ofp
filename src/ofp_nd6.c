@@ -63,7 +63,7 @@ enum ofp_return_code ofp_nd6_ns_output(struct ofp_ifnet *dev,
 	size += sizeof(struct ofp_ip6_hdr) + sizeof(struct ofp_icmp6_hdr) +
 		16 /*target addr*/ + 8; /* option*/
 
-	pkt = odp_packet_alloc(ofp_get_ifnet(dev->port, 0)->pkt_pool, size);
+	pkt = odp_packet_alloc(ofp_packet_pool, size);
 	if (pkt == ODP_PACKET_INVALID)
 		return OFP_PKT_DROP;
 
@@ -192,7 +192,7 @@ enum ofp_return_code ofp_nd6_na_output(struct ofp_ifnet *dev,
 		sizeof(struct ofp_nd_neighbor_advert) +
 		8; /* option - Target link-layer address*/
 
-	pkt = odp_packet_alloc(ofp_get_ifnet(dev->port, 0)->pkt_pool, size);
+	pkt = odp_packet_alloc(ofp_packet_pool, size);
 	if (pkt == ODP_PACKET_INVALID)
 		return OFP_PKT_DROP;
 
