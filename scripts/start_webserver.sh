@@ -7,6 +7,8 @@ fi
 intf=$1
 echo Starting Web Server on interface $intf
 
+www_dir="${www_dir:-"/var/www/"}"
+export www_dir
 ./example/webserver/webserver -i $intf -c 2 &
 
 sleep 1

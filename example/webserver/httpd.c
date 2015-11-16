@@ -14,9 +14,6 @@ void httpd_main(uint32_t addr);
 int sigreceived = 0;
 static uint32_t myaddr;
 
-/* Set www_dir to point to your web directory. */
-static const char *www_dir = "/home/hjokinen/Dropbox/kolumbus-web";
-
 /* Table of concurrent connections */
 #define NUM_CONNECTIONS 16
 static struct {
@@ -62,6 +59,8 @@ static int sendf(int fd, const char *fmt, ...)
 /* Send one file. */
 static void get_file(int s, char *url)
 {
+	/* Set www_dir to point to your web directory. */
+	char *www_dir = NULL;
 	char bufo[512];
 	int n, w;
 
@@ -87,6 +86,8 @@ static void get_file(int s, char *url)
 		else if (!strcmp(p2, "ico")) mime = "image/vnd.microsoft.icon";
 		else if (!strcmp(p2, "js")) mime = "text/javascript";
 	}
+
+	www_dir = getenv("www_dir");
 
 	snprintf(bufo, sizeof(bufo), "%s/%s", www_dir, p);
 	FILE *f = fopen(bufo, "rb");
