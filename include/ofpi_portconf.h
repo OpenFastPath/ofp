@@ -147,13 +147,9 @@ struct ofp_ifnet {
 
 	uint32_t	ip_addr; /* network byte order */
 	uint32_t	ip_p2p; /* network byte order */
-	union {
-		uint32_t	ip_local; /* network byte order */
-		struct {
-			uint16_t physport;
-			uint16_t physvlan;
-		};
-	};
+	uint32_t	ip_local; /* network byte order */
+	uint16_t	physport;
+	uint16_t	physvlan;
 	uint32_t	ip_remote; /* network byte order */
 	uint32_t	bcast_addr; /* network byte order */
 	uint8_t		masklen;
@@ -355,5 +351,9 @@ struct ofp_ifnet *ofp_get_ifnet_by_ip(uint32_t ip, uint16_t vrf);
 /* Finds the tunnel interface by tunnel addresses  */
 struct ofp_ifnet *ofp_get_ifnet_by_tunnel(uint32_t tun_loc,
 					      uint32_t tun_rem, uint16_t vrf);
+void ofp_join_device_to_multicat_group(struct ofp_ifnet *dev_root,
+				       struct ofp_ifnet *dev_vxlan,
+				       uint32_t group);
+void ofp_leave_multicast_group(struct ofp_ifnet *dev_vxlan);
 
 #endif
