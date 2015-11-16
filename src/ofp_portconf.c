@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "ofpi.h"
 #include "ofpi_portconf.h"
@@ -20,8 +22,8 @@
 #include "ofpi_tree.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_in_var.h"
-
 #include "ofpi_log.h"
+#include "ofpi_netlink.h"
 
 #define SHM_NAME_PORTS "OfpPortconfShMem"
 #define SHM_NAME_PORT_LOCKS "OfpPortconfLocksShMem"
@@ -233,8 +235,6 @@ static int iter_vlan(void *key, void *iter_arg)
 	}
 
 	if (iface->port == VXLAN_PORTS) {
-		struct ofp_ifnet *out = ofp_get_ifnet(iface->physport,
-						      iface->physvlan);
 #ifdef SP
 		ofp_sendf(fd, "vxlan%d	(%d) slowpath: %s\r\n", iface->vlan,
 			    iface->linux_index,
@@ -262,7 +262,8 @@ static int iter_vlan(void *key, void *iter_arg)
 			  ofp_print_ip6_addr(iface->link_local),
 #endif /* INET6 */
 			  ofp_print_ip_addr(iface->ip_p2p),
-			  out ? out->if_name : "N/A",
+			  ofp_port_vlan_to_ifnet_name(iface->physport,
+						      iface->physvlan),
 			  iface->if_mtu);
 		return 0;
 	}
@@ -363,14 +364,36 @@ int free_key(void *key)
 	return 1;
 }
 
-static inline int exec_sys_call_depending_on_vrf(char *cmd, uint16_t vrf)
+static int exec_sys_call_depending_on_vrf(const char *cmd, uint16_t vrf)
 {
+	char buf[PATH_MAX];
+	int netns;
+
+	OFP_DBG("system(%s) vrf=%d", cmd, vrf);
 	if (vrf == 0) {
-		OFP_DBG("system(%s);", cmd);
 		return system(cmd);
 	}
 
-	return 0;
+	/* Does vrf exist? */
+	snprintf(buf, sizeof(buf), "/var/run/netns/vrf%d", vrf);
+	netns = open(buf, O_RDONLY | O_CLOEXEC);
+	if (netns < 0) {
+		/* Create a vrf */
+		OFP_INFO("Creating network namespace 'vrf%d'...", vrf);
+		snprintf(buf, sizeof(buf), "ip netns add vrf%d", vrf);
+		int ret = system(buf);
+		if (ret < 0)
+			OFP_WARN("System call failed: '%s'", buf);
+		ofp_create_ns_socket(vrf);
+	}
+	close(netns);
+
+	/* Dummy cmd to create a new namespace? */
+	if (cmd == NULL || cmd[0] == 0)
+		return 0;
+
+	snprintf(buf, sizeof(buf), "ip netns exec vrf%d %s", vrf, cmd);
+	return system(buf);
 }
 
 const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
@@ -395,6 +418,18 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 	data = ofp_get_ifnet(port, vlan);
 
 	if (data && data->vrf != vrf) {
+#ifdef SP
+		if (vlan == 0 && data->vrf == 0) {
+			/* Create vrf in not exist using dummy call */
+			exec_sys_call_depending_on_vrf("", vrf);
+			/* Move to vrf (can be done only once!) */
+			snprintf(cmd, sizeof(cmd),
+				 "ip link set %s netns vrf%d",
+				 ofp_port_vlan_to_ifnet_name(port, 0), vrf);
+			ret = exec_sys_call_depending_on_vrf(cmd, 0);
+		}
+#endif /* SP */
+
 		ofp_config_interface_down(data->port, data->vlan);
 		data = ofp_get_ifnet(port, vlan);
 	}
@@ -403,9 +438,21 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 		if (data == NULL) {
 			data = ofp_get_create_ifnet(port, vlan);
 #ifdef SP
-			snprintf(cmd, sizeof(cmd), "vconfig add %s %d",
-				 ofp_port_vlan_to_ifnet_name(port, 0), vlan);
-			ret = exec_sys_call_depending_on_vrf(cmd, vrf);
+			char *iname = ofp_port_vlan_to_ifnet_name(port, 0);
+			snprintf(cmd, sizeof(cmd),
+				 "ip link add name %s.%d link %s type vlan id %d",
+				 iname, vlan, iname, vlan);
+			ret = exec_sys_call_depending_on_vrf(cmd, 0);
+
+			if (vrf) {
+				/* Create vrf if not exist using dummy call */
+				exec_sys_call_depending_on_vrf("", vrf);
+				/* Move to vrf */
+				snprintf(cmd, sizeof(cmd),
+					 "ip link set %s.%d netns vrf%d",
+					 iname, vlan, vrf);
+				ret = exec_sys_call_depending_on_vrf(cmd, 0);
+			}
 #endif /* SP */
 		} else {
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
@@ -551,11 +598,38 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 	return NULL;
 }
 
+void ofp_join_device_to_multicat_group(struct ofp_ifnet *dev_root,
+				       struct ofp_ifnet *dev_vxlan,
+				       uint32_t group)
+{
+	/* Join root device to multicast group. */
+	struct ofp_in_addr gina;
+	gina.s_addr = group;
+
+	OFP_DBG("Device joining multicast group: "
+		"interface=%d/%d vni=%d group=%x",
+		dev_root->port, dev_root->vlan,
+		dev_vlan->vlan, group);
+	/* Use data->ii_inet.ii_allhosts for Vxlan purposes. */
+	ofp_in_joingroup(dev_root, &gina, NULL, &(dev_vxlan->ii_inet.ii_allhosts));
+	fflush(NULL);
+}
+
+void ofp_leave_multicast_group(struct ofp_ifnet *dev_vxlan)
+{
+	if (dev_vxlan->ii_inet.ii_allhosts) {
+		/* Use data->ii_inet.ii_allhosts for Vxlan. */
+		ofp_in_leavegroup(dev_vxlan->ii_inet.ii_allhosts, NULL);
+	}
+	dev_vxlan->ii_inet.ii_allhosts = NULL;
+}
+
 const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 					  int vni, uint32_t group,
 					  int physport, int physvlan)
 {
 #ifdef SP
+	char cmd[200];
 	int ret = 0, new = 0;
 #endif /* SP */
 	struct ofp_ifnet *data, *dev_root;
@@ -600,38 +674,28 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 			     data->ip_addr, data->masklen, 0 /*gw*/);
 
 	/* Join root device to multicast group. */
-	struct ofp_in_addr gina;
-	gina.s_addr = group;
-
-	/* Use data->ii_inet.ii_allhosts for Vxlan purposes. */
-	ofp_in_joingroup(dev_root, &gina, NULL, &data->ii_inet.ii_allhosts);
+	ofp_join_device_to_multicat_group(dev_root, data, group);
 
 #ifdef SP
 	if (data->vrf == 0)
 		data->sp_status = OFP_SP_UP;
 	else
 		data->sp_status = OFP_SP_DOWN;
-	/*
+
 	snprintf(cmd, sizeof(cmd),
-		 "ip tunnel %s %s mode gre local %s remote %s ttl 255",
-		 (new ? "add" : "change"),
-		 ofp_port_vlan_to_ifnet_name(port, greid),
-		 ofp_print_ip_addr(tun_loc), ofp_print_ip_addr(tun_rem));
+		 "ip link add vxlan%d type vxlan id %d group %s dev %s",
+		 vni, vni, ofp_print_ip_addr(group),
+		 ofp_port_vlan_to_ifnet_name(physport, physvlan));
 	ret = exec_sys_call_depending_on_vrf(cmd, vrf);
-	*/
-	/*
+
 	snprintf(cmd, sizeof(cmd),
-		 "ip link set dev %s up",
-		 ofp_port_vlan_to_ifnet_name(port, vxlanid));
+		 "ip link set dev vxlan%d up", vni);
 	ret = exec_sys_call_depending_on_vrf(cmd, vrf);
-	*/
-	/*
+
 	snprintf(cmd, sizeof(cmd),
-		 "ip addr add dev %s %s peer %s",
-		 ofp_port_vlan_to_ifnet_name(port, greid),
-		 ofp_print_ip_addr(addr), ofp_print_ip_addr(p2p));
+		 "ip addr add dev vxlan%d %s", vni,
+		 ofp_print_ip_addr(addr));
 	ret = exec_sys_call_depending_on_vrf(cmd, vrf);
-	*/
 #endif /* SP */
 
 	return NULL;
@@ -663,8 +727,10 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 			data = ofp_get_create_ifnet(port, vlan);
 			data->vrf = 0;
 #ifdef SP
-			snprintf(cmd, sizeof(cmd), "vconfig add %s %d",
-				 ofp_port_vlan_to_ifnet_name(port, 0), vlan);
+			char *iname = ofp_port_vlan_to_ifnet_name(port, 0);
+			snprintf(cmd, sizeof(cmd),
+				 "ip link add name %s.%d link %s type vlan id %d",
+				 iname, vlan, iname, vlan);
 			ret = exec_sys_call_depending_on_vrf(cmd, data->vrf);
 #endif /* SP */
 		} else {
@@ -799,10 +865,9 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 			snprintf(cmd, sizeof(cmd), "ip tunnel del %s",
 				 ofp_port_vlan_to_ifnet_name(port, vlan));
 		else
-			snprintf(cmd, sizeof(cmd), "vconfig rem %s",
+			snprintf(cmd, sizeof(cmd), "ip link del %s",
 				 ofp_port_vlan_to_ifnet_name(port, vlan));
-		if (data->port != VXLAN_PORTS)
-			ret = exec_sys_call_depending_on_vrf(cmd, vrf);
+		ret = exec_sys_call_depending_on_vrf(cmd, vrf);
 #endif /*SP*/
 	} else {
 		data = ofp_get_ifnet(port, vlan);
