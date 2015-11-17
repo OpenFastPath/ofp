@@ -455,6 +455,8 @@ ofp_udp_pkt_sendto(int sockfd, odp_packet_t pkt,
 	struct ofp_sockaddr *addr =
 		(struct ofp_sockaddr *)(uintptr_t)dest_addr;
 	struct socket *so = ofp_get_sock_by_fd(sockfd);
+	struct thread   td;
+
 	(void)addrlen;
 
 	if (!so) {
@@ -462,8 +464,11 @@ ofp_udp_pkt_sendto(int sockfd, odp_packet_t pkt,
 		return -1;
 	}
 
+	td.td_proc.p_fibnum = 0;
+	td.td_ucred = NULL;
+
 	ofp_errno = (*so->so_proto->pr_usrreqs->pru_send)
-		(so, 0, pkt, addr, ODP_PACKET_INVALID, NULL);
+		(so, 0, pkt, addr, ODP_PACKET_INVALID, &td);
 
 	if (ofp_errno)
 		return -1;
