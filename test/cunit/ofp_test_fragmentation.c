@@ -88,7 +88,6 @@ init_suite(void)
 {
 	odp_pool_param_t pool_params;
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
-	odp_pool_t pool;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(NULL, NULL)) {
@@ -110,7 +109,7 @@ init_suite(void)
 	pool_params.type        = ODP_POOL_PACKET;
 
 	(void) ofp_init_pre_global("packet_pool", &pool_params,
-			pkt_hook, &pool);
+			pkt_hook, &ofp_packet_pool);
 
 	ofp_arp_init_local();
 

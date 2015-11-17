@@ -609,7 +609,7 @@ void ofp_join_device_to_multicat_group(struct ofp_ifnet *dev_root,
 	OFP_DBG("Device joining multicast group: "
 		"interface=%d/%d vni=%d group=%x",
 		dev_root->port, dev_root->vlan,
-		dev_vlan->vlan, group);
+		dev_vxlan->vlan, group);
 	/* Use data->ii_inet.ii_allhosts for Vxlan purposes. */
 	ofp_in_joingroup(dev_root, &gina, NULL, &(dev_vxlan->ii_inet.ii_allhosts));
 	fflush(NULL);
