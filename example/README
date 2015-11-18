@@ -30,6 +30,13 @@ webserver
 -------------------------------------------------------------------------------
 This is a simple web server that uses sockets as expected.
 
+To setup and run the web server:
+# setup www_dir (default: /var/www) do:
+export www_dir=/path/to/your/www
+./scripts/start_webserver.sh <ethX> <IP>
+
+# To stop the web server:
+./scripts/start_webserver.sh <ethX>
 
 
 webserver2
