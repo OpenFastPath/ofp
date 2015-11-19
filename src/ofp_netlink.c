@@ -861,6 +861,8 @@ void *start_netlink_nl_server(void *arg)
 	struct timeval timeout;
 	DIR *dir;
 	struct dirent *entry;
+	struct ofp_global_config_mem *ofp_global_cfg = NULL;
+
 	(void)arg;
 
 	/* Lookup shared memories */
@@ -894,7 +896,13 @@ void *start_netlink_nl_server(void *arg)
 		closedir(dir);
 	}
 
-	while (1) {
+	ofp_global_cfg = ofp_get_global_config();
+	if (!ofp_global_cfg) {
+		OFP_ERR("Error: Failed to retrieve global configuration.");
+		return NULL;
+	}
+
+	while (ofp_global_cfg->is_running) {
 		fds = read_fd;
 
 		timeout.tv_sec = 0;

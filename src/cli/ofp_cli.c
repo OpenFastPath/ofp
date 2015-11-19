@@ -29,34 +29,13 @@
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 #include "ofpi_portconf.h"
+#include "ofpi_init.h"
 
 /*
  * Only core 0 runs this.
  */
 
 static void *cli_server(void *arg);
-
-/** Start CLI server thread
- *  To be called by Application code to start the CLI server if needed;
- *
- * @param core_id int
- * @return void
- *
- */
-void ofp_start_cli_thread(int core_id, char *conf_file)
-{
-	odph_linux_pthread_t cli_linux_pthread;
-	odp_cpumask_t cpumask;
-
-	odp_cpumask_zero(&cpumask);
-	odp_cpumask_set(&cpumask, core_id);
-
-	odph_linux_pthread_create(&cli_linux_pthread,
-				  &cpumask,
-				  cli_server,
-				  conf_file);
-
-}
 
 static int close_cli;
 
@@ -1595,6 +1574,7 @@ static void *cli_server(void *arg)
 	int reuse = 1;
 	fd_set read_fd, fds;
 	char *config_file_name;
+	struct ofp_global_config_mem *ofp_global_cfg = NULL;
 
 	close_cli = 0;
 
@@ -1612,6 +1592,12 @@ static void *cli_server(void *arg)
 	}
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
+		return NULL;
+	}
+
+	ofp_global_cfg = ofp_get_global_config();
+	if (!ofp_global_cfg) {
+		OFP_ERR("Error: Failed to retrieve global configuration.");
 		return NULL;
 	}
 
@@ -1645,7 +1631,7 @@ static void *cli_server(void *arg)
 	FD_ZERO(&read_fd);
 	FD_SET(cli_serv_fd, &read_fd);
 
-	while (1) {
+	while (ofp_global_cfg->is_running) {
 		struct timeval timeout;
 		int r;
 
@@ -1696,16 +1682,76 @@ static void *cli_server(void *arg)
 				OFP_DBG("CLI connection closed\r\n");
 			}
 		}
-	} /* while (1) */
+	} /* while () */
 
 	if (cli_tmp_fd > 0)
 		close(cli_tmp_fd);
 	cli_tmp_fd = -1;
 
-	OFP_DBG("Connection closed\r\n");
-
 	close(cli_serv_fd);
 	cli_serv_fd = -1;
+
+	OFP_DBG("CLI server exiting");
+	return NULL;
+}
+
+/** Start CLI server thread
+ *  To be called by Application code to start the CLI server if needed;
+ *
+ * @param core_id int
+ * @retval 0 on success
+ * @retval -1 on failure
+ *
+ */
+int ofp_start_cli_thread(int core_id, char *conf_file)
+{
+	odp_cpumask_t cpumask;
+	struct ofp_global_config_mem *ofp_global_cfg;
+
+	ofp_global_cfg = ofp_get_global_config();
+	if (!ofp_global_cfg) {
+		OFP_ERR("Error: Failed to retrieve global configuration.");
+		ofp_global_cfg->cli_thread_is_running = 0;
+		return -1;
+	}
+	if (ofp_global_cfg->cli_thread_is_running) {
+		OFP_ERR("Error: CLI thread is running.");
+		return -1;
+	}
+	odp_cpumask_zero(&cpumask);
+	odp_cpumask_set(&cpumask, core_id);
+
+	if (odph_linux_pthread_create(&ofp_global_cfg->cli_thread,
+			&cpumask,
+			cli_server,
+			conf_file) == 0) {
+		OFP_ERR("Failed to start CLI thread.");
+		ofp_global_cfg->cli_thread_is_running = 0;
+		return -1;
+	}
+	ofp_global_cfg->cli_thread_is_running = 1;
+
+	return 0;
+}
+
+int ofp_stop_cli_thread(void)
+{
+	struct ofp_global_config_mem *ofp_global_cfg;
+
+	ofp_global_cfg = ofp_get_global_config();
+	if (!ofp_global_cfg) {
+		OFP_ERR("Error: Failed to retrieve global configuration.");
+		ofp_global_cfg->cli_thread_is_running = 0;
+		return -1;
+	}
+
+	if (ofp_global_cfg->cli_thread_is_running) {
+		close_connection(NULL);
+		odph_linux_pthread_join(&ofp_global_cfg->cli_thread, 1);
+		ofp_global_cfg->cli_thread_is_running = 0;
+	}
+
+	return 0;
 }
 
 /*end*/

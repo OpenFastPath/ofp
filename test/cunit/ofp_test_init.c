@@ -24,6 +24,8 @@
 #include <odp.h>
 #include <ofpi.h>
 #include <ofpi_log.h>
+#include <ofp_init.h>
+#include <ofp_cli.h>
 
 
 static int
@@ -49,11 +51,11 @@ clean_suite(void)
 {
 	int rc = 0;
 
-	if (odp_term_local()) {
+	if (odp_term_local() < 0) {
 		OFP_ERR("Error: ODP local termination failed.\n");
 		rc = -1;
 	}
-	if (odp_term_global()) {
+	if (odp_term_global() < 0) {
 		OFP_ERR("Error: ODP global termination failed.\n");
 		rc = -1;
 	}
@@ -62,7 +64,7 @@ clean_suite(void)
 }
 
 static void
-test_global_termination(void)
+test_global_resources_init_cleanup(void)
 {
 	odp_pool_param_t pool_params;
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
@@ -78,6 +80,18 @@ test_global_termination(void)
 			pkt_hook, &pool), 0);
 
 	CU_ASSERT_EQUAL(ofp_term_post_global("packet_pool"), 0);
+}
+
+static void
+test_global_init_cleanup(void)
+{
+	static ofp_init_global_t oig;
+
+	CU_ASSERT_EQUAL(ofp_init_global(&oig), 0);
+
+	ofp_start_cli_thread(oig.linux_core_id, NULL);
+
+	CU_ASSERT_EQUAL(ofp_term_global(), 0);
 }
 
 /*
@@ -102,7 +116,13 @@ main(void)
 	}
 
 	if (NULL == CU_ADD_TEST(ptr_suite,
-				test_global_termination)) {
+				test_global_resources_init_cleanup)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_global_init_cleanup)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}

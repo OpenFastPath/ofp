@@ -19,4 +19,18 @@ int ofp_init_pre_global(const char *pool_name,
 
 int ofp_term_post_global(const char *pool_name);
 
+struct ofp_global_config_mem {
+	odp_bool_t is_running ODP_ALIGNED_CACHE;
+
+#ifdef SP
+	odph_linux_pthread_t nl_thread;
+	odp_bool_t nl_thread_is_running;
+#endif /* SP */
+
+	odph_linux_pthread_t cli_thread;
+	odp_bool_t cli_thread_is_running;
+};
+
+struct ofp_global_config_mem *ofp_get_global_config(void);
+
 #endif /* __OFPI_INIT_H__ */

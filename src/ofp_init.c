@@ -50,15 +50,71 @@
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
 
+#define SHM_NAME_GLOBAL_CONFIG "OfpGlobalConfigShMem"
 #define SHM_PACKET_POOL_NAME "packet_pool"
 
+
+static __thread struct ofp_global_config_mem *shm;
+
 static void schedule_shutdown(void);
+
+static int ofp_global_config_alloc_shared_memory(void)
+{
+	shm = ofp_shared_memory_alloc(SHM_NAME_GLOBAL_CONFIG, sizeof(*shm));
+	if (shm == NULL) {
+		OFP_ERR("ofp_shared_memory_alloc failed");
+		return -1;
+	}
+	return 0;
+}
+
+static int ofp_global_config_free_shared_memory(void)
+{
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_GLOBAL_CONFIG) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+	shm = NULL;
+	return rc;
+}
+
+static int ofp_global_config_lookup_shared_memory(void)
+{
+	shm = ofp_shared_memory_lookup(SHM_NAME_GLOBAL_CONFIG);
+	if (shm == NULL) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+struct ofp_global_config_mem *ofp_get_global_config(void)
+{
+	if (ofp_global_config_lookup_shared_memory() == -1)
+		return NULL;
+	return shm;
+}
+
+static void ofp_stop(void)
+{
+	shm->is_running = 0;
+}
 
 int ofp_init_pre_global(const char *pool_name,
 			       odp_pool_param_t *pool_params,
 			       ofp_pkt_hook hooks[], odp_pool_t *pool)
 {
 	/* Init shared memories */
+
+	HANDLE_ERROR(ofp_global_config_alloc_shared_memory());
+	memset(shm, 0, sizeof(*shm));
+	shm->is_running = 1;
+	shm->nl_thread_is_running = 0;
+	shm->cli_thread_is_running = 0;
+
 	ofp_register_sysctls();
 
 	HANDLE_ERROR(ofp_avl_init_global());
@@ -105,9 +161,6 @@ int ofp_init_global(ofp_init_global_t *params)
 	odp_queue_param_t qparam;
 	char q_name[ODP_QUEUE_NAME_LEN];
 	odp_cpumask_t cpumask;
-#ifdef SP
-	odph_linux_pthread_t nl_thread;
-#endif /* SP */
 
 	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
 	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
@@ -147,6 +200,13 @@ int ofp_init_global(ofp_init_global_t *params)
 
 		struct ofp_ifnet *ifnet = ofp_get_ifnet((uint16_t)port, 0);
 
+		if (!ifnet) {
+			OFP_ERR("Failed to locate interface for port %d", port);
+			return -1;
+		}
+
+		ifnet->if_state = OFP_IFT_STATE_USED;
+
 		strncpy(ifnet->if_name, params->if_names[i], OFP_IFNAMSIZ);
 		ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
 		ifnet->pkt_pool = ofp_packet_pool;
@@ -162,7 +222,6 @@ int ofp_init_global(ofp_init_global_t *params)
 			OFP_ERR("odp_pktio_open failed");
 			return -1;
 		}
-
 
 		/*
 		 * Create and set the default INPUT queue associated with the 'pktio'
@@ -286,9 +345,6 @@ int ofp_init_global(ofp_init_global_t *params)
 		ofp_mac_to_link_local(ifnet->mac, ifnet->link_local);
 #endif /* INET6 */
 
-		/* Start packet receiver or transmitter */
-		odp_pktio_start(ifnet->pktio);
-
 		/* Start VIF slowpath receiver thread */
 		odph_linux_pthread_create(ifnet->rx_tbl,
 					 &cpumask,
@@ -301,18 +357,24 @@ int ofp_init_global(ofp_init_global_t *params)
 					 sp_tx_thread,
 					 ifnet);
 #endif /* SP */
-		ifnet->if_state = OFP_IFT_STATE_USED;
+		/* Start packet receiver or transmitter */
+		odp_pktio_start(ifnet->pktio);
 	}
 
 
 #ifdef SP
 	/* Start Netlink server process */
-	odph_linux_pthread_create(&nl_thread,
+	if (!odph_linux_pthread_create(&shm->nl_thread,
 				  &cpumask,
 				  START_NL_SERVER,
-				  NULL);
+				  NULL)) {
+		OFP_ERR("Failed to start Netlink thread.");
+		return -1;
+	}
+	shm->nl_thread_is_running = 1;
 #endif /* SP */
 
+	odp_schedule_resume();
 	return 0;
 }
 
@@ -320,6 +382,7 @@ int ofp_init_global(ofp_init_global_t *params)
 int ofp_init_local(void)
 {
 	/* Lookup shared memories */
+	HANDLE_ERROR(ofp_global_config_lookup_shared_memory());
 	HANDLE_ERROR(ofp_portconf_lookup_shared_memory());
 	HANDLE_ERROR(ofp_route_lookup_shared_memory());
 	HANDLE_ERROR(ofp_avl_lookup_shared_memory());
@@ -331,7 +394,6 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_hook_lookup_shared_memory());
 	HANDLE_ERROR(ofp_arp_lookup_shared_memory());
 	HANDLE_ERROR(ofp_vxlan_lookup_shared_memory());
-
 	HANDLE_ERROR(ofp_arp_init_local());
 
 	return 0;
@@ -340,6 +402,38 @@ int ofp_init_local(void)
 int ofp_term_global(void)
 {
 	int rc = 0;
+	uint16_t i;
+	struct ofp_ifnet *ifnet;
+
+	ofp_stop();
+
+	/* Terminate CLI thread*/
+	CHECK_ERROR(ofp_stop_cli_thread(), rc);
+
+	/* Terminate Netlink thread*/
+	if (shm->nl_thread_is_running) {
+		odph_linux_pthread_join(&shm->nl_thread, 1);
+		shm->nl_thread_is_running = 0;
+	}
+
+	/* Cleanup interfaces: queues and pktios*/
+	for (i = 0; i < NUM_PORTS; i++) {
+		ifnet = ofp_get_ifnet((uint16_t)i, 0);
+		if (!ifnet) {
+			OFP_ERR("Failed to locate interface for port %d", i);
+			rc = -1;
+			continue;
+		}
+		if (ifnet->if_state == OFP_IFT_STATE_FREE)
+			continue;
+
+#ifdef SP
+		close(ifnet->fd);
+		odph_linux_pthread_join(ifnet->rx_tbl, 1);
+		odph_linux_pthread_join(ifnet->tx_tbl, 1);
+		ifnet->fd = -1;
+#endif /*SP*/
+	}
 
 	CHECK_ERROR(ofp_clean_vxlan_interface_queue(), rc);
 
@@ -409,6 +503,8 @@ int ofp_term_post_global(const char *pool_name)
 		CHECK_ERROR(odp_pool_destroy(pool), rc);
 		pool = ODP_POOL_INVALID;
 	}
+
+	CHECK_ERROR(ofp_global_config_free_shared_memory(), rc);
 
 	return rc;
 }

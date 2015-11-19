@@ -24,6 +24,7 @@
 #include "ofpi_if_vlan.h"
 #include "ofpi_debug.h"
 #include "ofpi_pkt_processing.h"
+#include "ofpi_init.h"
 #include "ofpi_stat.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
@@ -87,7 +88,8 @@ static int tap_alloc(char *dev, int flags) {
 }
 
 /* Return the fd of the tap */
-int sp_setup_device(struct ofp_ifnet *ifnet) {
+int sp_setup_device(struct ofp_ifnet *ifnet)
+{
 	int fd;
 	struct ifreq ifr;
 	int gen_fd;
@@ -185,7 +187,8 @@ int sp_setup_device(struct ofp_ifnet *ifnet) {
 	return fd;
 }
 
-void * sp_rx_thread(void *ifnet_void) {
+void *sp_rx_thread(void *ifnet_void)
+{
 	struct ofp_ifnet *ifnet = (struct ofp_ifnet *) ifnet_void;
 	struct ofp_ifnet *pkt_ifnet;
 	struct ofp_ether_header *eth;
@@ -194,15 +197,22 @@ void * sp_rx_thread(void *ifnet_void) {
 	odp_packet_t pkt;
 	odp_event_t ev;
 	int len;
+	struct ofp_global_config_mem *ofp_global_cfg;
 
 	(void) len;
 
 	if (ofp_init_local()) {
-		OFP_ERR("Error: OFP local init failed.\n");
+		OFP_ERR("Error: OFP local init failed.");
 		return NULL;
 	}
 
-	while(1) {
+	ofp_global_cfg = ofp_get_global_config();
+	if (!ofp_global_cfg) {
+		OFP_ERR("Error: Failed to retrieve global configuration.");
+		return NULL;
+	}
+
+	while (ofp_global_cfg->is_running) {
 		ev = odp_queue_deq(ifnet->spq_def);
 
 		if (ev == ODP_EVENT_INVALID ||
@@ -244,22 +254,30 @@ void * sp_rx_thread(void *ifnet_void) {
 		odp_packet_free(pkt);
 	}
 
-	/* Never returns */
+	OFP_DBG("SP RX thread of %s exiting", ifnet->if_name);
 	return NULL;
 }
 
-void * sp_tx_thread(void *ifnet_void) {
+void *sp_tx_thread(void *ifnet_void)
+{
 	int len;
 	odp_packet_t pkt;
 	uint8_t *buf_pnt;
 	struct ofp_ifnet *ifnet = (struct ofp_ifnet *)ifnet_void;
+	struct ofp_global_config_mem *ofp_global_cfg;
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;
 	}
 
-	while (1) {
+	ofp_global_cfg = ofp_get_global_config();
+	if (!ofp_global_cfg) {
+		OFP_ERR("Error: Failed to retrieve global configuration.");
+		return NULL;
+	}
+
+	while (ofp_global_cfg->is_running) {
 		/* FIXME: coalese syscalls and speed this up */
 
 		pkt = odp_packet_alloc(ifnet->pkt_pool,
@@ -275,10 +293,14 @@ void * sp_tx_thread(void *ifnet_void) {
 		buf_pnt = odp_packet_data(pkt);
 
 		/* Blocking read */
-	drop_pkg:
+drop_pkg:
 		len = read(ifnet->fd, buf_pnt, odp_packet_len(pkt));
 		if (len <= 0) {
 			OFP_ERR("read failed");
+			if (!ofp_global_cfg->is_running) {
+				odp_packet_free(pkt);
+				break;
+			}
 			goto drop_pkg;
 		}
 
@@ -292,10 +314,15 @@ void * sp_tx_thread(void *ifnet_void) {
 			OFP_UPDATE_PACKET_STAT(tx_sp, 1);
 
 			/* Enqueue the packet to fastpath device */
-			odp_queue_enq(ifnet->outq_def, odp_packet_to_event(pkt));
+			if (odp_queue_enq(ifnet->outq_def,
+					odp_packet_to_event(pkt)) < 0) {
+				odp_packet_free(pkt);
+				OFP_ERR("odp_queue_enq failed");
+				continue;
+			}
 		}
 	}
 
-	/* Never returns */
+	OFP_DBG("SP TX thread of %s exiting", ifnet->if_name);
 	return NULL;
 }
