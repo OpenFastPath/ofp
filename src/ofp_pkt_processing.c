@@ -63,7 +63,11 @@ void *default_event_dispatcher(void *arg)
 	int event_cnt = 0;
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
 
+#if ODP_VERSION >= 102
 	if (odp_init_local(ODP_THREAD_WORKER)) {
+#else
+	if (odp_init_local()) {
+#endif
 		OFP_ERR("Error: ODP local init failed.\n");
 		return NULL;
 	}
@@ -113,6 +117,7 @@ void *default_event_dispatcher(void *arg)
 					odp_crypto_compl_from_event(ev));
 				continue;
 			}
+
 		}
 	}
 
@@ -1382,13 +1387,13 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	/* Packets from VXLAN interfaces do not have an outq even
 	 * they have a valid pktio. Use loopback context instead. */
 	if (in_queue != ODP_QUEUE_INVALID)
-		ifnet = (struct ofp_ifnet *)odp_queue_context(in_queue);
+		ifnet = (struct ofp_ifnet *)ofp_queue_context(in_queue);
 
 	if (odp_likely(ifnet == NULL)) {
 		pktio = odp_packet_input(pkt);
 		if (odp_likely(pktio != ODP_PKTIO_INVALID)) {
 			/* pkt received from eth interface */
-			ifnet = (struct ofp_ifnet *)odp_queue_context(
+			ifnet = (struct ofp_ifnet *)ofp_queue_context(
 			        odp_pktio_outq_getdef(pktio));
 		} else {
 			/* loopback and cunit error */

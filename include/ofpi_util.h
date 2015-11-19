@@ -99,6 +99,16 @@ char *ofp_port_vlan_to_ifnet_name(int port, int vlan);
 int ofp_sendf(int fd, const char *fmt, ...);
 int ofp_has_mac(uint8_t *mac);
 
+static inline odp_pool_t ofp_pool_create(const char *name,
+	odp_pool_param_t *params)
+{
+#if ODP_VERSION >= 102
+	return odp_pool_create(name, params);
+#else
+        return odp_pool_create(name, ODP_SHM_NULL, params);
+#endif
+}
+
 void *ofp_shared_memory_alloc(const char *name, uint64_t size);
 int ofp_shared_memory_free(const char *name);
 void *ofp_shared_memory_lookup(const char *name);

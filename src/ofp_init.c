@@ -16,7 +16,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <odp.h>
+
+#if ODP_VERSION == 103
+#include "linux.h"
+#else
 #include "odp/helper/linux.h"
+#endif
 
 #include "ofpi_config.h"
 #include "ofpi_init.h"
@@ -85,7 +90,7 @@ int ofp_init_pre_global(const char *pool_name,
 	HANDLE_ERROR(ofp_vxlan_alloc_shared_memory());
 	HANDLE_ERROR(ofp_vxlan_init_global());
 
-	*pool = odp_pool_create(pool_name, pool_params);
+	*pool = ofp_pool_create(pool_name, pool_params);
 	if (*pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
 		return -1;
@@ -107,7 +112,6 @@ int ofp_init_global(ofp_init_global_t *params)
 	odp_queue_param_t qparam;
 	char q_name[ODP_QUEUE_NAME_LEN];
 	odp_cpumask_t cpumask;
-	odp_pktio_param_t pktio_param;
 #ifdef SP
 	odph_linux_pthread_t nl_thread;
 #endif /* SP */
@@ -128,8 +132,11 @@ int ofp_init_global(ofp_init_global_t *params)
 
 	OFP_INFO("Slow path threads on core %d", odp_cpumask_first(&cpumask));
 
+#if ODP_VERSION >= 103
+	odp_pktio_param_t pktio_param;
 	memset(&pktio_param, 0, sizeof(pktio_param));
 	pktio_param.in_mode = (params->burst_recv_mode) ? ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED;
+#endif
 
 	HANDLE_ERROR(ofp_set_vxlan_interface_queue());
 
@@ -152,7 +159,12 @@ int ofp_init_global(ofp_init_global_t *params)
 		ifnet->pkt_pool = ofp_packet_pool;
 
 		/* Open a packet IO instance for this device */
+#if ODP_VERSION >= 103
 		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
+#else
+		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool);
+#endif
+
 		if (ifnet->pktio == ODP_PKTIO_INVALID) {
 			OFP_ERR("odp_pktio_open failed");
 			return -1;
@@ -194,7 +206,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		}
 
 		/* Set device outq queue context */
-		odp_queue_context_set(ifnet->outq_def, ifnet);
+		ofp_queue_context_set(ifnet->outq_def, ifnet);
 
 #ifdef SP
 		/* Create VIF local input queue */
@@ -234,7 +246,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		}
 
 		/* Set device loopq queue context */
-		odp_queue_context_set(ifnet->loopq_def, ifnet);
+		ofp_queue_context_set(ifnet->loopq_def, ifnet);
 
 		/* Set interface MTU*/
 		ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);

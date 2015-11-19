@@ -211,7 +211,7 @@ test_init_ifnet(void)
 		OFP_ERR("Poll queue create failed.\n");
 		return;
 	}
-	odp_queue_context_set(interface_queue[port], ifnet);
+	ofp_queue_context_set(interface_queue[port], ifnet);
 
 	ofp_config_interface_up_tun(GRE_PORTS, 100 + port, vrf, local_ip,
 				      tun_rem_ip, tun_p2p, tun_addr,

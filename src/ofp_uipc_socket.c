@@ -218,8 +218,7 @@ int ofp_socket_pool_create(const char *name, int size)
 		OFP_ERR("POOL: Too many pools!\n");
 		return -1;
 	}
-
-	pool = odp_pool_create(name, &pool_params);
+	pool = ofp_pool_create(name, &pool_params);
 	if (pool == ODP_POOL_INVALID) {
 		OFP_ERR("POOL: Cannot allocate pool!\n");
 		return -1;

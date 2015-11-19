@@ -116,7 +116,7 @@ void	ofp_in6_pcbnotify __P((struct inpcbinfo *, struct ofp_sockaddr *,
 			u_int, const struct ofp_sockaddr *, u_int, int, void *,
 			struct inpcb *(*)(struct inpcb *, int)));
 struct inpcb *
-	ofp_in6_rtchange __P((struct inpcb *, int));
+	ofp_in6_rtchange(struct inpcb *inp, int error_val);
 
 struct ofp_sockaddr *
 	ofp_in6_sockaddr __P((ofp_in_port_t port,

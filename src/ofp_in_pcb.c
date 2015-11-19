@@ -1090,11 +1090,9 @@ ofp_in_getpeeraddr(struct socket *so, struct ofp_sockaddr **nam)
 	return 0;
 }
 
-void
-ofp_in_pcbnotifyall(struct inpcbinfo *pcbinfo,
-	struct ofp_in_addr faddr, int errno,
-	struct inpcb *(*notify)(struct inpcb *, int))
-{
+void ofp_in_pcbnotifyall(struct inpcbinfo *pcbinfo,
+	struct ofp_in_addr faddr, int error_val,
+	struct inpcb *(*notify)(struct inpcb *inpcb_, int int_val)) {
 	struct inpcb *inp, *inp_temp;
 
 	INP_INFO_WLOCK(pcbinfo);
@@ -1111,7 +1109,7 @@ ofp_in_pcbnotifyall(struct inpcbinfo *pcbinfo,
 			INP_WUNLOCK(inp);
 			continue;
 		}
-		if ((*notify)(inp, errno))
+		if ((*notify)(inp, error_val))
 			INP_WUNLOCK(inp);
 	}
 	INP_INFO_WUNLOCK(pcbinfo);

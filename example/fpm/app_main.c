@@ -110,7 +110,12 @@ int main(int argc, char *argv[])
 	 * calls may be made. Local inits are made here for shared memory,
 	 * threads, pktio and scheduler.
 	 */
+#if ODP_VERSION >= 102
 	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
+#else
+	if (odp_init_local() != 0) {
+#endif
+
 		OFP_ERR("Error: ODP local init failed.\n");
 		odp_term_global();
 		return EXIT_FAILURE;
@@ -416,7 +421,11 @@ static void *perf_client(void *arg)
 {
 	(void) arg;
 
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
+#if ODP_VERSION >= 102
+	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
+#else
+	if (odp_init_local() != 0) {
+#endif
 		OFP_ERR("Error: ODP local init failed.\n");
 		return NULL;
 	}
