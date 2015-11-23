@@ -10,6 +10,15 @@
 
 #include "api/ofp_timer.h"
 
+#define MS_PER_SEC 1000UL
+
+#define US_PER_SEC 1000000UL
+#define US_PER_MS  1000UL
+
+#define NS_PER_SEC 1000000000UL
+#define NS_PER_MS  1000000UL
+#define NS_PER_US  1000UL
+
 #define OFP_TIMER_RESOLUTION_US	10000UL
 #define OFP_TIMER_MIN_US		0UL
 #define OFP_TIMER_MAX_US		10000000UL
