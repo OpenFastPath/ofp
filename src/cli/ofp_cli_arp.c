@@ -39,7 +39,7 @@ void f_arp_cleanup(struct cli_conn *conn, const char *s)
 
 	(void)s;
 
-	ofp_arp_cleanup(&cli);
+	ofp_arp_age_cb(&cli);
 	sendcrlf(conn);
 }
 

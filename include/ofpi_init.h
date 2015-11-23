@@ -15,7 +15,8 @@ extern odp_pool_t ofp_packet_pool;
 
 int ofp_init_pre_global(const char *pool_name,
 			odp_pool_param_t *pool_params,
-			ofp_pkt_hook hooks[], odp_pool_t *pool);
+			ofp_pkt_hook hooks[], odp_pool_t *pool,
+			int arp_age_interval, int arp_entry_timeout);
 
 int ofp_term_post_global(const char *pool_name);
 

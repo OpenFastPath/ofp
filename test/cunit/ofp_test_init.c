@@ -76,8 +76,9 @@ test_global_resources_init_cleanup(void)
 	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
-	CU_ASSERT_EQUAL(ofp_init_pre_global("packet_pool", &pool_params,
-			pkt_hook, &pool), 0);
+	CU_ASSERT_EQUAL(ofp_init_pre_global(
+				"packet_pool", &pool_params, pkt_hook, &pool,
+				ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT), 0);
 
 	CU_ASSERT_EQUAL(ofp_term_post_global("packet_pool"), 0);
 }

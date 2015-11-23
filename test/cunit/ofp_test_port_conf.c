@@ -74,8 +74,8 @@ init_suite(void)
 	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
-	(void) ofp_init_pre_global("packet_pool", &pool_params,
-			pkt_hook, &pool);
+	(void) ofp_init_pre_global("packet_pool", &pool_params, pkt_hook, &pool,
+				   ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT);
 
 	ofp_arp_init_local();
 

@@ -81,7 +81,7 @@ struct arp_cache {
 } while (0)
 
 int ofp_arp_lookup_shared_memory(void);
-int ofp_arp_init_global(void);
+int ofp_arp_init_global(int age_interval, int entry_timeout);
 int ofp_arp_term_global(void);
 int ofp_arp_init_local(void);
 void ofp_arp_term_local(void);
@@ -96,7 +96,7 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 
 void ofp_arp_show_table(int fd);
 void ofp_arp_show_saved_packets(int fd);
-void ofp_arp_cleanup(void *arg);
+void ofp_arp_age_cb(void *arg);
 int ofp_arp_init_tables(void);
 
 #endif /* __OFPI_ARP_H__ */

@@ -107,9 +107,9 @@
 #define ARP_ENTRY_TABLE_SIZE 2048
 /**Total number of arp entries that can be stored. */
 #define ARP_ENTRIES_SIZE (NUM_SETS * 4)
-/**Cleanup Timer Interval (s)*/
-#define ARP_CLEANUP_TIMER_INTERVAL 60
-/**Arp entries are removed after this timeout interval(s)*/
+/**Default ARP age interval (in seconds) */
+#define ARP_AGE_INTERVAL 60
+/**Default ARP entry timeout (in seconds) */
 #define ARP_ENTRY_TIMEOUT 1200
 /**Timer trigger(s) to scan for old arp entries.*/
 #define ARP_ENTRY_UPD_TIMEOUT 2

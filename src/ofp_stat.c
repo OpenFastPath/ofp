@@ -50,7 +50,7 @@ static void ofp_perf_tmo(void *arg)
 	(void)arg;
 
 	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF)
-		ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
+		ofp_timer_start(US_PER_SEC/PROBES, ofp_perf_tmo, NULL, 0);
 
 	odp_sync_stores();
 	for (core = 0; core < odp_cpu_count(); core++)
@@ -70,7 +70,7 @@ static void ofp_perf_tmo(void *arg)
 
 static void ofp_start_perf_stat(void)
 {
-	ofp_timer_start(SEC_USEC/PROBES, ofp_perf_tmo, NULL, 0);
+	ofp_timer_start(US_PER_SEC/PROBES, ofp_perf_tmo, NULL, 0);
 }
 
 static int ofp_stat_alloc_shared_memory(void)

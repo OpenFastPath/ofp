@@ -100,9 +100,9 @@ static void ofp_stop(void)
 	shm->is_running = 0;
 }
 
-int ofp_init_pre_global(const char *pool_name,
-			       odp_pool_param_t *pool_params,
-			       ofp_pkt_hook hooks[], odp_pool_t *pool)
+int ofp_init_pre_global(const char *pool_name, odp_pool_param_t *pool_params,
+			ofp_pkt_hook hooks[], odp_pool_t *pool,
+			int arp_age_interval, int arp_entry_timeout)
 {
 	/* Init shared memories */
 
@@ -131,7 +131,7 @@ int ofp_init_pre_global(const char *pool_name,
 
 	HANDLE_ERROR(ofp_hook_init_global(hooks));
 
-	HANDLE_ERROR(ofp_arp_init_global());
+	HANDLE_ERROR(ofp_arp_init_global(arp_age_interval, arp_entry_timeout));
 
 	HANDLE_ERROR(ofp_route_init_global());
 
@@ -169,7 +169,8 @@ int ofp_init_global(ofp_init_global_t *params)
 	pool_params.type           = ODP_POOL_PACKET;
 
 	HANDLE_ERROR(ofp_init_pre_global(SHM_PACKET_POOL_NAME, &pool_params,
-		params->pkt_hook, &ofp_packet_pool));
+					 params->pkt_hook, &ofp_packet_pool,
+					 ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT));
 
 	/* cpu mask for slow path threads */
 	odp_cpumask_zero(&cpumask);

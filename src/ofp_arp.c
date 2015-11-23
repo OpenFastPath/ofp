@@ -23,11 +23,9 @@
 
 #define NUM_SETS ARP_ENTRY_TABLE_SIZE
 #define NUM_ARPS ARP_ENTRIES_SIZE
-#define CLEANUP_TIMER_INTERVAL (ARP_CLEANUP_TIMER_INTERVAL * SEC_USEC)
-#define ENTRY_TIMEOUT (ARP_ENTRY_TIMEOUT * ODP_TIME_SEC) /* 20 minutes */
-#define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * SEC_USEC)
+#define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * US_PER_SEC)
 #define ENTRY_USETIME_INVALID 0xFFFFFFFF
-#define SAVED_PKT_TIMEOUT (ARP_SAVED_PKT_TIMEOUT * SEC_USEC)
+#define SAVED_PKT_TIMEOUT (ARP_SAVED_PKT_TIMEOUT * US_PER_SEC)
 
 #if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)
 #define hashfunc ofp_hashlittle
@@ -61,7 +59,10 @@ struct _pkt {
 struct ofp_arp_mem {
 	struct _arp arp;
 	struct _pkt pkt;
-	odp_timer_t cleanup_timer;
+
+	unsigned int entry_timeout;      /* ARP entry timeout (in seconds) */
+	unsigned int age_interval;       /* ageing interval (in seconds) */
+	odp_timer_t age_timer;
 };
 
 static __thread struct ofp_arp_mem *shm;
@@ -457,22 +458,24 @@ static void ofp_arp_entry_cleanup_on_tmo(int set, struct arp_entry *entry)
 }
 
 static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
-						uint64_t now)
+					   uint64_t now)
 {
 	uint64_t usetime, cycles, ns;
 
 	usetime = odp_atomic_load_u64(&entry->usetime);
+
 	if (usetime >= now)
 		return 0;
+
 	cycles = odp_time_diff_cycles(usetime, now);
 	ns = odp_time_cycles_to_ns(cycles);
-	if (ns > ENTRY_TIMEOUT)
+	if (ns > (shm->entry_timeout * NS_PER_SEC))
 		return 1;
 
 	return 0;
 }
 
-void ofp_arp_cleanup(void *arg)
+void ofp_arp_age_cb(void *arg)
 {
 	struct arp_entry *entry, *next_entry;
 	int i, cli;
@@ -496,9 +499,11 @@ void ofp_arp_cleanup(void *arg)
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[i]);
 	}
 
-	if (!cli)
-		shm->cleanup_timer = ofp_timer_start(CLEANUP_TIMER_INTERVAL,
-			ofp_arp_cleanup, &cli, sizeof(cli));
+	if (!cli) {
+		shm->age_timer = ofp_timer_start(
+			shm->age_interval * US_PER_SEC, ofp_arp_age_cb,
+			&cli, sizeof(cli));
+	}
 }
 
 void ofp_arp_show_table(int fd)
@@ -614,7 +619,7 @@ static int ofp_arp_free_shared_memory(void)
 	return rc;
 }
 
-int ofp_arp_init_global(void)
+int ofp_arp_init_global(int age_interval, int entry_timeout)
 {
 	int i;
 	int cli = 0;
@@ -622,7 +627,7 @@ int ofp_arp_init_global(void)
 	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
 
 	memset(shm, 0, sizeof(*shm));
-	shm->cleanup_timer = ODP_TIMER_INVALID;
+	shm->age_timer = ODP_TIMER_INVALID;
 
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_init(&shm->arp.table_rwlock[i]);
@@ -638,12 +643,20 @@ int ofp_arp_init_global(void)
 
 	HANDLE_ERROR(ofp_arp_init_tables());
 
-	shm->cleanup_timer = ofp_timer_start(CLEANUP_TIMER_INTERVAL,
-			  ofp_arp_cleanup, &cli, sizeof(cli));
-	if (shm->cleanup_timer == ODP_TIMER_INVALID) {
-		OFP_ERR("Failed to create ARP cleanup timer");
+	if (entry_timeout < age_interval) {
+		OFP_WARN("ARP age interval should be less than entry timeout, "
+			 "setting to %ds", entry_timeout);
+		age_interval = entry_timeout;
+	}
+	shm->entry_timeout = entry_timeout;
+	shm->age_interval = age_interval;
+	shm->age_timer = ofp_timer_start(
+		shm->age_interval * US_PER_SEC, ofp_arp_age_cb, &cli, sizeof(cli));
+	if (shm->age_timer == ODP_TIMER_INVALID) {
+		OFP_ERR("Failed to create ARP age timer");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -657,8 +670,8 @@ int ofp_arp_term_global(void)
 	if (ofp_arp_lookup_shared_memory())
 		return -1;
 
-	if (shm->cleanup_timer != ODP_TIMER_INVALID)
-		CHECK_ERROR(ofp_timer_cancel(shm->cleanup_timer), rc);
+	if (shm->age_timer != ODP_TIMER_INVALID)
+		CHECK_ERROR(ofp_timer_cancel(shm->age_timer), rc);
 
 	for (i = 0; i < NUM_SETS; i++) {
 		entry = OFP_SLIST_FIRST(&shm->arp.table[i]);
