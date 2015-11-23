@@ -57,6 +57,7 @@
 static __thread struct ofp_global_config_mem *shm;
 
 static void schedule_shutdown(void);
+static void cleanup_pkt_queue(odp_queue_t pkt_queue);
 
 static int ofp_global_config_alloc_shared_memory(void)
 {
@@ -249,7 +250,8 @@ int ofp_init_global(ofp_init_global_t *params)
 				OFP_ERR("odp_pktio_inq_setdef failed");
 				return -1;
 			}
-		}
+		} else
+			ifnet->inq_def = ODP_QUEUE_INVALID;
 
 		ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
 		if (ifnet->outq_def == ODP_QUEUE_INVALID) {
@@ -258,7 +260,10 @@ int ofp_init_global(ofp_init_global_t *params)
 		}
 
 		/* Set device outq queue context */
-		ofp_queue_context_set(ifnet->outq_def, ifnet);
+		if (odp_queue_context_set(ifnet->outq_def, ifnet) < 0) {
+			OFP_ERR("odp_queue_context_set failed");
+			return -1;
+		}
 
 #ifdef SP
 		/* Create VIF local input queue */
@@ -298,7 +303,10 @@ int ofp_init_global(ofp_init_global_t *params)
 		}
 
 		/* Set device loopq queue context */
-		ofp_queue_context_set(ifnet->loopq_def, ifnet);
+		if (odp_queue_context_set(ifnet->loopq_def, ifnet) < 0) {
+			OFP_ERR("odp_queue_context_set failed");
+			return -1;
+		}
 
 		/* Set interface MTU*/
 		ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
@@ -417,7 +425,7 @@ int ofp_term_global(void)
 	}
 
 	/* Cleanup interfaces: queues and pktios*/
-	for (i = 0; i < NUM_PORTS; i++) {
+	for (i = 0; i < VXLAN_PORTS; i++) {
 		ifnet = ofp_get_ifnet((uint16_t)i, 0);
 		if (!ifnet) {
 			OFP_ERR("Failed to locate interface for port %d", i);
@@ -427,12 +435,63 @@ int ofp_term_global(void)
 		if (ifnet->if_state == OFP_IFT_STATE_FREE)
 			continue;
 
+		if (ifnet->pktio == ODP_PKTIO_INVALID)
+			continue;
+
+		OFP_INFO("Cleaning device '%s' addr %s", ifnet->if_name,
+			ofp_print_mac((uint8_t *)ifnet->mac));
+
+		CHECK_ERROR(odp_pktio_stop(ifnet->pktio), rc);
 #ifdef SP
 		close(ifnet->fd);
 		odph_linux_pthread_join(ifnet->rx_tbl, 1);
 		odph_linux_pthread_join(ifnet->tx_tbl, 1);
 		ifnet->fd = -1;
 #endif /*SP*/
+
+		/* Multicasting. */
+		ofp_igmp_domifdetach(ifnet);
+		ifnet->ii_inet.ii_igmp = NULL;
+
+		if (ifnet->loopq_def != ODP_QUEUE_INVALID) {
+			if (odp_queue_destroy(ifnet->loopq_def) < 0) {
+				OFP_ERR("Failed to destroy loop queue for %s",
+					ifnet->if_name);
+				rc = -1;
+			}
+			ifnet->loopq_def = ODP_QUEUE_INVALID;
+		}
+#ifdef SP
+		if (ifnet->spq_def != ODP_QUEUE_INVALID) {
+			cleanup_pkt_queue(ifnet->spq_def);
+			if (odp_queue_destroy(ifnet->spq_def) < 0) {
+				OFP_ERR("Failed to destroy slow path "
+					"queue for %s", ifnet->if_name);
+				rc = -1;
+			}
+			ifnet->spq_def = ODP_QUEUE_INVALID;
+		}
+#endif /*SP*/
+		ifnet->outq_def = ODP_QUEUE_INVALID;
+
+		if (ifnet->pktio != ODP_PKTIO_INVALID) {
+			if (odp_pktio_close(ifnet->pktio) < 0) {
+				OFP_ERR("Failed to destroy pktio for %s",
+					ifnet->if_name);
+				rc = -1;
+			}
+			ifnet->pktio = ODP_PKTIO_INVALID;
+		}
+
+		if (ifnet->inq_def != ODP_QUEUE_INVALID) {
+			cleanup_pkt_queue(ifnet->inq_def);
+			if (odp_queue_destroy(ifnet->inq_def) < 0) {
+				OFP_ERR("Failed to destroy default input "
+					"queue for %s", ifnet->if_name);
+				rc = -1;
+			}
+			ifnet->inq_def = ODP_QUEUE_INVALID;
+		}
 	}
 
 	CHECK_ERROR(ofp_clean_vxlan_interface_queue(), rc);
@@ -499,8 +558,9 @@ int ofp_term_post_global(const char *pool_name)
 	if (pool == ODP_POOL_INVALID) {
 		OFP_ERR("Failed to locate pool %s\n", pool_name);
 		rc = -1;
-	} else {
-		CHECK_ERROR(odp_pool_destroy(pool), rc);
+	} else if (odp_pool_destroy(pool) < 0) {
+		OFP_ERR("Failed to destroy pool %s.\n", pool_name);
+		rc = -1;
 		pool = ODP_POOL_INVALID;
 	}
 
@@ -549,4 +609,16 @@ static void schedule_shutdown(void)
 	}
 
 	odp_schedule_pause();
+}
+
+static void cleanup_pkt_queue(odp_queue_t pkt_queue)
+{
+	odp_event_t evt;
+
+	while (1) {
+		evt = odp_queue_deq(pkt_queue);
+		if (evt == ODP_EVENT_INVALID)
+			break;
+		odp_packet_free(odp_packet_from_event(evt));
+	}
 }
