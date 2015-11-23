@@ -27,7 +27,19 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#undef ARP_AGE_INTERVAL
+#define ARP_AGE_INTERVAL 1
+
+#undef ARP_ENTRY_TIMEOUT
+#define ARP_ENTRY_TIMEOUT 2
+
+#define ALLOW_UNUSED_LOCAL(x) false ? (void)x : (void)0
+
 static const char *pool_name = "packet_pool";
+
+static odp_atomic_u32_t still_running;
+static odph_linux_pthread_t pp_thread_handle;
+void *pp_thread(void *arg);
 
 static int init_suite(void)
 {
@@ -54,16 +66,68 @@ static int init_suite(void)
 	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.type        = ODP_POOL_PACKET;
 
-	(void) ofp_init_pre_global(pool_name, &pool_params,
-			pkt_hook, &pool);
+	(void) ofp_init_pre_global(pool_name, &pool_params, pkt_hook, &pool,
+				   ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT);
+
+	/*
+	 * Start a packet processing thread to service timer events.
+	 */
+	odp_atomic_store_u32(&still_running, 1);
+
+	odp_cpumask_t cpumask;
+	odp_cpumask_zero(&cpumask);
+	odp_cpumask_set(&cpumask, 0x1);
+	odph_linux_pthread_create(&pp_thread_handle, &cpumask, pp_thread, NULL);
 
 	return 0;
 }
 
-/* Test insert, lookup, and remove. */
+static int end_suite(void)
+{
+	odp_atomic_store_u32(&still_running, 0);
+
+	odph_linux_pthread_join(&pp_thread_handle, 1);
+
+	return 0;
+}
+
+void *pp_thread(void *arg)
+{
+	ALLOW_UNUSED_LOCAL(arg);
+
+#if ODP_VERSION >= 102
+	if (odp_init_local(ODP_THREAD_WORKER)) {
+#else
+	if (odp_init_local()) {
+#endif
+		OFP_ERR("odp_init_local failed");
+		return NULL;
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("ofp_init_local failed");
+		return NULL;
+	}
+
+	while (odp_atomic_load_u32(&still_running)) {
+		odp_event_t event;
+		odp_queue_t source_queue;
+
+		event = odp_schedule(&source_queue, ODP_SCHED_WAIT);
+
+		if (odp_event_type(event) != ODP_EVENT_TIMEOUT) {
+			OFP_ERR("Unexpected event type %d",
+				odp_event_type(event));
+			continue;
+		}
+
+		ofp_timer_handle(event);
+	}
+	return NULL;
+}
+
 static void test_arp(void)
 {
-	struct ofp_ifnet dev0;
+	struct ofp_ifnet mock_ifnet;
 	struct in_addr ip;
 	uint8_t mac[OFP_ETHER_ADDR_LEN] = { 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, };
 
@@ -74,22 +138,37 @@ static void test_arp(void)
 
 	CU_ASSERT(0 == ofp_init_local());
 
-	memset(&dev0, 0, sizeof(dev0));
+	memset(&mock_ifnet, 0, sizeof(mock_ifnet));
 	CU_ASSERT(0 != inet_aton("1.1.1.1", &ip));
 
-	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &dev0));
+	/* Test entry insert, lookup, and remove. */
+	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 
-	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &dev0));
+	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
 
 	memset(mac_result, 0xFF, OFP_ETHER_ADDR_LEN);
-	CU_ASSERT(0 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &dev0));
+	CU_ASSERT(0 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 	CU_ASSERT(0 == memcmp(mac, mac_result, OFP_ETHER_ADDR_LEN));
 
-	CU_ASSERT(0 == ofp_arp_ipv4_remove(ip.s_addr, &dev0));
-	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &dev0));
-}
+	CU_ASSERT(0 == ofp_arp_ipv4_remove(ip.s_addr, &mock_ifnet));
+	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 
-/* TODO: Test arp timeout, reply/response */
+	/* Test entry is aged out. */
+	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
+	OFP_INFO("Inserted ARP entry");
+	sleep(ARP_AGE_INTERVAL + ARP_ENTRY_TIMEOUT);
+	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
+
+	/* Test entry is aged out after a few hits. */
+	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
+	OFP_INFO("Inserted ARP entry");
+	sleep(ARP_AGE_INTERVAL);
+	CU_ASSERT(0 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
+	sleep(ARP_AGE_INTERVAL);
+	CU_ASSERT(0 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
+	sleep(ARP_AGE_INTERVAL + ARP_ENTRY_TIMEOUT);
+	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
+}
 
 int main(void)
 {
@@ -102,7 +181,7 @@ int main(void)
 		return CU_get_error();
 
 	/* add a suite to the registry */
-	ptr_suite = CU_add_suite("ofp errno", init_suite, NULL);
+	ptr_suite = CU_add_suite("ofp errno", init_suite, end_suite);
 	if (NULL == ptr_suite) {
 		CU_cleanup_registry();
 		return CU_get_error();
