@@ -122,8 +122,8 @@ AC_ARG_WITH([odp],
     [# extend the compiler and linker flags according to the path set
      AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include"
      AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
-     FIND_LIB_ODP_SO="$with_odp/lib"],
-    [FIND_LIB_ODP_SO=$(dirname $(find /usr/lib /usr/local/lib -type f -name 'libodp.so*')|tail -1)])
+     export PKG_CONFIG_PATH=$with_odp/lib/pkgconfig],
+    [])
 
 ##########################################################################
 # Save and set temporary compilation flags
@@ -132,6 +132,12 @@ OLD_LDFLAGS=$LDFLAGS
 OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
+
+PKG_CHECK_MODULES([ODP], [libodp >= 1.4], [ODP_VERSION=104],
+    [PKG_CHECK_MODULES([ODP], [libodp >= 1.3], [ODP_VERSION=103],
+    [PKG_CHECK_MODULES([ODP], [libodp >= 1.2], [ODP_VERSION=102],
+    [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100]
+    )])])])
 
 AC_CHECK_LIB(odp, odp_packet_alloc, [],
     [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
@@ -144,7 +150,6 @@ AC_CHECK_HEADERS([odp.h], [],
 LDFLAGS=$OLD_LDFLAGS
 CPPFLAGS=$OLD_CPPFLAGS
 
-ODP_VERSION=$(ls $FIND_LIB_ODP_SO/libodp.so.* -r |head -1 |sed 's|.*libodp.so.||g' |awk -F'.' '{print $1}')
 AC_SUBST(ODP_VERSION)
 
 # Enable/disable OFP_DEBUG
