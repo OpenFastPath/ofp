@@ -39,7 +39,7 @@
 #define SHM_PKT_POOL_USER_AREA_SIZE	16
 
 /**Maximum number of sockets. */
-#define OFP_NUM_SOCKETS_MAX (1 << 20)  /* 1048576 */
+#define OFP_NUM_SOCKETS_MAX 1024
 
 /**Maximum number of fastpath interfaces used.
  * For each fastpath interface a PKTIO in opened by OFP.*/
