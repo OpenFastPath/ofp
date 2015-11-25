@@ -223,8 +223,9 @@ ofp_syncache_init(void)
 	}
 
 	/* Create the syncache entry zone. */
-	V_tcp_syncache.zone = uma_zcreate("syncache", sizeof(struct syncache),
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
+	V_tcp_syncache.zone = uma_zcreate(
+		"syncache", V_tcp_syncache.cache_limit, sizeof(struct syncache),
+		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 	uma_zone_set_max(V_tcp_syncache.zone, V_tcp_syncache.cache_limit);
 }
 

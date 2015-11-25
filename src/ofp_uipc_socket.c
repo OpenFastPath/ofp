@@ -199,18 +199,30 @@ void f_sockets(struct cli_conn *conn, const char *s)
 }
 #endif
 
-int ofp_socket_pool_create(const char *name, int size)
+
+struct uma_pool_metadata {
+	union {
+		odp_buffer_t buffer_handle;
+		uint64_t u64;
+	};
+	uint8_t data[0];
+};
+BUILD_ASSERT(sizeof(struct uma_pool_metadata) == 8);
+
+int ofp_uma_pool_create(const char *name, int nitems, int size)
 {
 	odp_pool_param_t pool_params;
 	odp_pool_t pool;
 	uma_zone_t zone;
 
-	OFP_INFO("Creating pool '%s', size=%d", name, size);
-
-	pool_params.buf.size  = size + 8; /* HJo: FIX */
+	pool_params.buf.size  = size + sizeof(struct uma_pool_metadata);
 	pool_params.buf.align = 0;
-	pool_params.buf.num  = OFP_NUM_SOCKETS_MAX;
-	pool_params.type  = ODP_POOL_BUFFER;
+	pool_params.buf.num   = nitems;
+	pool_params.type      = ODP_POOL_BUFFER;
+
+	OFP_INFO("Creating pool '%s', nitems=%d size=%d total=%d",
+		 name, pool_params.buf.num, pool_params.buf.size,
+		 pool_params.buf.num * pool_params.buf.size);
 
 	if (shm->num_pools >= OFP_NUM_SOCKET_POOLS) {
 		OFP_ERR("Exceeded max number (%d) of pools",
@@ -229,20 +241,10 @@ int ofp_socket_pool_create(const char *name, int size)
 	return zone;
 }
 
-struct sock_pool_data {
-	union {
-		odp_buffer_t buffer;
-		uint8_t dummy[8];
-	};
-	uint8_t data[8];
-};
-
-void *ofp_socket_pool_alloc(int zone)
+void *ofp_uma_pool_alloc(int zone)
 {
 	odp_buffer_t buffer;
-	struct sock_pool_data *addr;
-	static int gdb_visit_num = 0;
-	if (zone == 1) gdb_visit_num++;
+	struct uma_pool_metadata *meta;
 
 	if (zone < 0 || zone >= shm->num_pools) {
 		OFP_ERR("Wrong zone %d!", zone);
@@ -255,18 +257,18 @@ void *ofp_socket_pool_alloc(int zone)
 		return NULL;
 	}
 
-	addr = odp_buffer_addr(buffer);
-	addr->buffer = buffer;
+	meta = (struct uma_pool_metadata *) odp_buffer_addr(buffer);
+	meta->buffer_handle = buffer;
 
-	return &addr->data;
+	return (void *) &meta->data;
 }
 
-void ofp_socket_pool_free(void *item)
+void ofp_uma_pool_free(void *data)
 {
-	struct sock_pool_data *addr = (struct sock_pool_data *)
-		((uint8_t *)item - sizeof(addr->dummy));
+	struct uma_pool_metadata *meta = (struct uma_pool_metadata *)
+		((uint8_t *) data - sizeof(struct uma_pool_metadata));
 
-	odp_buffer_free(addr->buffer);
+	odp_buffer_free(meta->buffer_handle);
 }
 
 odp_packet_t ofp_packet_alloc(uint32_t len)

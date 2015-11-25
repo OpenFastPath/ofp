@@ -19,6 +19,13 @@
 
 #define L2_HEADER_NO_VLAN_SIZE 14
 
+/* Test a condition at compile time. */
+#define _BA1_(cond, line) \
+	extern int __build_assertion_ ## line[1 - 2*!(cond)] \
+	__attribute__ ((unused))
+#define _BA0_(c, x) _BA1_(c, x)
+#define BUILD_ASSERT(cond) _BA0_(cond, __LINE__)
+
 #define KASSERT(x, y)  do {						\
 		if (!(x)) {						\
 			OFP_ERR y ;					\

@@ -104,7 +104,10 @@ SYSCTL_VNET_INT(_net_inet_tcp_reass, OFP_OID_AUTO, overflows,
 static VNET_DEFINE(uma_zone_t, tcp_reass_zone);
 #define	V_tcp_reass_zone		VNET(tcp_reass_zone)
 
-int ofp_nmbclusters = 1024;
+/* Derived from libuinet sys/kern/subr_param.c and
+ * sys/kern/kern_mbuf.c */
+#define ofp_maxusers 64
+#define ofp_nmbclusters (1024 + ofp_maxusers * 64)
 
 /* Initialize TCP reassembly queue */
 #if 0
@@ -123,8 +126,9 @@ void
 ofp_tcp_reass_init(void)
 {
 	V_tcp_reass_maxseg = ofp_nmbclusters / 16;
-	V_tcp_reass_zone = uma_zcreate("tcpreass", sizeof (struct tseg_qent),
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
+	V_tcp_reass_zone = uma_zcreate(
+		"tcpreass", V_tcp_reass_maxseg, sizeof(struct tseg_qent),
+		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
 	uma_zone_set_max(V_tcp_reass_zone, V_tcp_reass_maxseg);
 }
 

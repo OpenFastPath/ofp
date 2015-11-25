@@ -132,13 +132,15 @@ ofp_tcp_tw_zone_change(void)
 void
 ofp_tcp_tw_init(void)
 {
-	V_tcptw_zone = uma_zcreate("tcptw", sizeof(struct tcptw),
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
+	V_tcptw_zone = uma_zcreate(
+		"tcptw", tcptw_auto_size(), sizeof(struct tcptw),
+		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
 	/* TUNABLE_INT_FETCH("net.inet.tcp.maxtcptw", &maxtcptw); */
-	if (maxtcptw == 0)
+	if (maxtcptw == 0) {
 		uma_zone_set_max(V_tcptw_zone, tcptw_auto_size());
-	else
+	} else {
 		uma_zone_set_max(V_tcptw_zone, maxtcptw);
+	}
 
 	OFP_TAILQ_INIT(&V_twq_2msl);
 }

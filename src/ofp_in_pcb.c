@@ -124,9 +124,10 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
 	pcbinfo->ipi_porthashbase = ofp_hashinit(porthash_nelements, 0,
 	    &pcbinfo->ipi_porthashmask);
 
-	pcbinfo->ipi_zone = uma_zcreate(inpcbzone_name, sizeof(struct inpcb),
-	    NULL, NULL, inpcbzone_init, inpcbzone_fini, UMA_ALIGN_PTR,
-	    inpcbzone_flags);
+	pcbinfo->ipi_zone = uma_zcreate(
+		inpcbzone_name, OFP_NUM_SOCKETS_MAX, sizeof(struct inpcb),
+		NULL, NULL, inpcbzone_init, inpcbzone_fini, UMA_ALIGN_PTR,
+		inpcbzone_flags);
 	uma_zone_set_max(pcbinfo->ipi_zone, maxsockets);
 }
 

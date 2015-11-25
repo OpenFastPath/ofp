@@ -169,6 +169,7 @@ OFP_SYSCTL_INT(_net_inet_tcp, OFP_OID_AUTO, soreceive_stream, OFP_CTLFLAG_RDTUN,
 
 VNET_DEFINE(uma_zone_t, ofp_sack_hole_zone);
 #define	V_sack_hole_zone		VNET(ofp_sack_hole_zone)
+#define OFP_SACK_HOLE_ZONE_NITEMS 65536  /* derived from ofp_tcp_sack_globalmaxholes */
 
 VNET_DEFINE(struct hhook_head *, ofp_tcp_hhh[HHOOK_TCP_LAST+1]);
 
@@ -299,8 +300,9 @@ ofp_tcp_init(void)
 	/*
 	 * These have to be type stable for the benefit of the timers.
 	 */
-	V_tcpcb_zone = uma_zcreate("tcpcb", sizeof(struct tcpcb_mem),
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
+	V_tcpcb_zone = uma_zcreate(
+		"tcpcb", OFP_NUM_SOCKETS_MAX, sizeof(struct tcpcb_mem),
+		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
 	uma_zone_set_max(V_tcpcb_zone, maxsockets);
 
 	ofp_tcp_tw_init();
@@ -309,8 +311,10 @@ ofp_tcp_init(void)
 	ofp_tcp_reass_init();
 
 	//TUNABLE_INT_FETCH("net.inet.tcp.sack.enable", &V_tcp_do_sack);
-	V_sack_hole_zone = uma_zcreate("sackhole", sizeof(struct sackhole),
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
+
+	V_sack_hole_zone = uma_zcreate(
+		"sackhole", OFP_SACK_HOLE_ZONE_NITEMS, sizeof(struct sackhole),
+		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
 
 	/* XXX virtualize those bellow? */
 	ofp_tcp_delacktime = TCPTV_DELACK;

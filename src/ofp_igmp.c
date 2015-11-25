@@ -341,19 +341,7 @@ static VNET_DEFINE(int, igmp_default_version) = IGMP_VERSION_3;
 
 VNET_DEFINE(int, if_index);
 
-static int igmp_pool;
 odp_timer_t ofp_igmp_fasttimo_timer = ODP_TIMER_INVALID;
-
-static void *ofp_igmp_alloc(int size)
-{
-	(void)size;
-	return ofp_socket_pool_alloc(igmp_pool);
-}
-
-static void ofp_igmp_free(void *buf)
-{
-	ofp_socket_pool_free(buf);
-}
 
 /*
  * Virtualized sysctls.
@@ -674,7 +662,7 @@ igi_alloc_locked(/*const*/ struct ofp_ifnet *ifp)
 
 	IGMP_LOCK_ASSERT();
 
-	igi = ofp_igmp_alloc(sizeof(struct ofp_igmp_ifinfo));
+	igi = malloc(sizeof(struct ofp_igmp_ifinfo));
 	if (igi == NULL)
 		goto out;
 
@@ -798,7 +786,7 @@ igi_delete_locked(const struct ofp_ifnet *ifp)
 			    ("%s: there are dangling in_multi references",
 			    __func__));
 
-			ofp_igmp_free(igi);
+			free(igi);
 			return;
 		}
 	}
@@ -3605,8 +3593,6 @@ ofp_igmp_init(void)
 	CTR1(KTR_IGMPV3, "%s: initializing", __func__);
 
 	IGMP_LOCK_INIT();
-
-	igmp_pool = ofp_socket_pool_create("igmp", 1000);
 
 	ofp_m_raopt = igmp_ra_alloc();
 
