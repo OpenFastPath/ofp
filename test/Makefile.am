@@ -8,8 +8,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/include/api
 
 LDADD = $(top_builddir)/lib/libofp.la
 
-check_PROGRAMS = cpp_test redefinitions_posix_test
+bin_PROGRAMS = cpp_test redefinitions_posix_test
 
-TESTS = ${check_PROGRAMS}
+TESTS = ${bin_PROGRAMS}
 
 cpp_test_SOURCES = cpp_test.cpp

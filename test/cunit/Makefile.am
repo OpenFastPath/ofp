@@ -28,7 +28,7 @@ AM_LDFLAGS += -static -lcunit
 
 LDADD = $(top_builddir)/lib/libofp.la
 
-check_PROGRAMS = \
+bin_PROGRAMS = \
 	ofp_test_arp \
 	ofp_test_debug_pcap \
 	ofp_test_debug_print \
@@ -42,6 +42,6 @@ check_PROGRAMS = \
 	ofp_test_in_cksum \
 	ofp_test_init
 
-TESTS = ${check_PROGRAMS}
+TESTS = ${bin_PROGRAMS}
 
 CLEANFILES = $(wildcard *.xml) packets.txt testbuf.txt test.pcap
