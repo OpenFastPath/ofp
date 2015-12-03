@@ -338,4 +338,5 @@ AC_MSG_RESULT([
 	ldflags:		${LDFLAGS}
 	am_ldflags:		${AM_LDFLAGS}
 	odp_version:		${ODP_VERSION}
+	cunit:			${cunit_support}
 ])
