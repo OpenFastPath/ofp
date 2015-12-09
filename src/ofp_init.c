@@ -113,7 +113,9 @@ int ofp_init_pre_global(const char *pool_name,
 	HANDLE_ERROR(ofp_global_config_alloc_shared_memory());
 	memset(shm, 0, sizeof(*shm));
 	shm->is_running = 1;
+#ifdef SP
 	shm->nl_thread_is_running = 0;
+#endif /* SP */
 	shm->cli_thread_is_running = 0;
 
 	ofp_register_sysctls();
@@ -418,11 +420,13 @@ int ofp_term_global(void)
 	/* Terminate CLI thread*/
 	CHECK_ERROR(ofp_stop_cli_thread(), rc);
 
+#ifdef SP
 	/* Terminate Netlink thread*/
 	if (shm->nl_thread_is_running) {
 		odph_linux_pthread_join(&shm->nl_thread, 1);
 		shm->nl_thread_is_running = 0;
 	}
+#endif /* SP */
 
 	/* Cleanup interfaces: queues and pktios*/
 	for (i = 0; i < VXLAN_PORTS; i++) {

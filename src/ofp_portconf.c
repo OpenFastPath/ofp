@@ -146,7 +146,7 @@ static int iter_vlan(void *key, void *iter_arg)
 			    iface->sp_status ? "on" : "off");
 #else
 		ofp_sendf(fd, "gre%d\r\n", iface->vlan);
-#endif
+#endif /* SP */
 
 		if (iface->vrf)
 			ofp_sendf(fd, "	VRF: %d\r\n", iface->vrf);
@@ -186,7 +186,7 @@ static int iter_vlan(void *key, void *iter_arg)
 			    iface->sp_status ? "on" : "off");
 #else
 		ofp_sendf(fd, "vxlan%d\r\n", iface->vlan);
-#endif
+#endif /* SP */
 
 		if (iface->vrf)
 			ofp_sendf(fd, "	VRF: %d\r\n", iface->vrf);
@@ -232,7 +232,7 @@ static int iter_vlan(void *key, void *iter_arg)
 			iface->port,
 			iface->vlan ? buf : "",
 			iface->if_name);
-#endif
+#endif /* SP */
 
 		if (iface->vrf)
 			ofp_sendf(fd, "	VRF: %d\r\n", iface->vrf);
@@ -309,6 +309,7 @@ int free_key(void *key)
 	return 1;
 }
 
+#ifdef SP
 static int exec_sys_call_depending_on_vrf(const char *cmd, uint16_t vrf)
 {
 	char buf[PATH_MAX];
@@ -340,6 +341,7 @@ static int exec_sys_call_depending_on_vrf(const char *cmd, uint16_t vrf)
 	snprintf(buf, sizeof(buf), "ip netns exec vrf%d %s", vrf, cmd);
 	return system(buf);
 }
+#endif /* SP */
 
 const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 			uint32_t addr, int masklen)
@@ -353,7 +355,7 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 
 #ifdef SP
 	(void)ret;
-#endif
+#endif /*SP*/
 	if (port < 0 || port >= OFP_FP_INTERFACE_MAX)
 		return "Wrong port number";
 
@@ -470,7 +472,7 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 #ifdef SP
 	(void)ret;
 	(void)new;
-#endif
+#endif /*SP*/
 
 	if (port != GRE_PORTS || greid == 0)
 		return "Wrong port number or tunnel ID.";
@@ -582,7 +584,7 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 #ifdef SP
 	(void)ret;
 	(void)new;
-#endif
+#endif /*SP*/
 	(void)vrf; /* vrf is copied from the root device */
 
 	dev_root = ofp_get_ifnet(physport, physvlan);
@@ -659,7 +661,7 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 
 #ifdef SP
 	(void)ret;
-#endif
+#endif /*SP*/
 	memset(gw6, 0, 16);
 
 	if (port < 0 || port >= OFP_FP_INTERFACE_MAX)
@@ -749,7 +751,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 
 #ifdef SP
 	(void)ret;
-#endif
+#endif /*SP*/
 	memset(gw6, 0, 16);
 
 	if (port < 0 || port >= shm->ofp_num_ports)
@@ -767,7 +769,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 
 #ifdef SP
 		vrf = data->vrf;
-#endif
+#endif /*SP*/
 		if (data->ip_addr) {
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
 					     (data->port == GRE_PORTS) ? data->ip_p2p : data->ip_addr,
@@ -819,7 +821,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 
 #ifdef SP
 		vrf = data->vrf;
-#endif
+#endif /*SP*/
 		if (data->ip_addr) {
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, 0 /*vlan*/, port,
 					     data->ip_addr, data->masklen, 0 /*gw*/);
@@ -847,7 +849,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 				 data->ip6_prefix);
 
 			ret = exec_sys_call_depending_on_vrf(cmd, vrf);
-#endif
+#endif /*SP*/
 			memset(data->ip6_addr, 0, 16);
 
 			/* Remove interface from the if_addr v4 queue */
@@ -1178,7 +1180,7 @@ odp_queue_t ofp_pktio_spq_get(odp_pktio_t pktio)
 	(void)pktio;
 
 	return ODP_QUEUE_INVALID;
-#endif
+#endif /*SP*/
 }
 
 odp_queue_t ofp_pktio_loopq_get(odp_pktio_t pktio)
@@ -1261,7 +1263,9 @@ int ofp_portconf_init_global(void)
 		shm->ofp_ifnet_data[i].outq_def = ODP_QUEUE_INVALID;
 		shm->ofp_ifnet_data[i].inq_def = ODP_QUEUE_INVALID;
 		shm->ofp_ifnet_data[i].loopq_def = ODP_QUEUE_INVALID;
+#ifdef SP
 		shm->ofp_ifnet_data[i].spq_def = ODP_QUEUE_INVALID;
+#endif /*SP*/
 		shm->ofp_ifnet_data[i].pkt_pool = ODP_POOL_INVALID;
 	}
 
