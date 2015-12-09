@@ -24,7 +24,7 @@
 #define NUM_SETS ARP_ENTRY_TABLE_SIZE
 #define NUM_ARPS ARP_ENTRIES_SIZE
 #define CLEANUP_TIMER_INTERVAL (ARP_CLEANUP_TIMER_INTERVAL * SEC_USEC)
-#define ENTRY_TIMEOUT (ARP_ENTRY_TIMEOUT * ODP_TIME_SEC) /* 20 minutes */
+#define ENTRY_TIMEOUT (ARP_ENTRY_TIMEOUT * ODP_TIME_SEC_IN_NS) /* 20 minutes */
 #define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * SEC_USEC)
 #define ENTRY_USETIME_INVALID 0xFFFFFFFF
 #define SAVED_PKT_TIMEOUT (ARP_SAVED_PKT_TIMEOUT * SEC_USEC)
@@ -188,7 +188,7 @@ static inline void show_arp_entry(int fd, struct arp_entry *entry)
 		    entry->key.vrf,
 		    ofp_print_ip_addr(entry->key.ipv4_addr),
 		    ofp_print_mac((uint8_t *)&entry->macaddr),
-		    odp_time_cycles_to_ns(diff) / ODP_TIME_SEC);
+                    odp_time_cycles_to_ns(diff) / ODP_TIME_SEC_IN_NS);
 }
 
 static inline void *pkt_entry_alloc(void)
