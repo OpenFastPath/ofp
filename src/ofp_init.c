@@ -17,11 +17,7 @@
 #include <unistd.h>
 #include <odp.h>
 
-#if ODP_VERSION == 103
-#include "linux.h"
-#else
 #include "odp/helper/linux.h"
-#endif
 
 #include "ofpi_config.h"
 #include "ofpi_init.h"
