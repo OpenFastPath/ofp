@@ -899,12 +899,12 @@ in6_losing(struct inpcb *in6p)
  * and allocate a (hopefully) better one.
  */
 struct inpcb *
-ofp_in6_rtchange(struct inpcb *inp, int errno)
+ofp_in6_rtchange(struct inpcb *inp, int error_val)
 {
 	/*
 	 * We don't store route pointers in the routing table anymore
 	 */
-	(void)errno;
+	(void)error_val;
 	return inp;
 }
 

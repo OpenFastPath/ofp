@@ -697,7 +697,7 @@ ofp_in_pcblookup_mbuf(struct inpcbinfo *pcbinfo, struct ofp_in_addr faddr,
 		  uint32_t fport, struct ofp_in_addr laddr, uint32_t lport,
 		  int lookupflags, struct ofp_ifnet *ifp, odp_packet_t m);
 void ofp_in_pcbnotifyall(struct inpcbinfo *pcbinfo,
-	struct ofp_in_addr faddr, int errno,
+	struct ofp_in_addr faddr, int error_val,
 	struct inpcb *(*notify)(struct inpcb *inp, int err));
 
 void	ofp_in_pcbref(struct inpcb *);
