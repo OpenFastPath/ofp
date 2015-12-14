@@ -8,6 +8,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "ofp.h"
 #include "httpd.h"
@@ -22,6 +23,9 @@ typedef struct {
 	int if_count;		/**< Number of interfaces to be used */
 	char **if_names;	/**< Array of pointers to interface names */
 	char *conf_file;
+	char *root_dir;
+	char *laddr;
+	uint16_t lport;
 } appl_args_t;
 
 /* helper funcs */
@@ -71,6 +75,7 @@ int main(int argc, char *argv[])
 	char cpumaskstr[64];
 
 	struct rlimit rlp;
+
 	getrlimit(RLIMIT_CORE, &rlp);
 	printf("RLIMIT_CORE: %ld/%ld\n", rlp.rlim_cur, rlp.rlim_max);
 	rlp.rlim_cur = 200000000;
@@ -141,8 +146,12 @@ int main(int argc, char *argv[])
 	/* Start CLI */
 	ofp_start_cli_thread(app_init_params.linux_core_id, params.conf_file);
 
+	sleep(2);
 	/* webserver */
-	ofp_start_webserver_thread(app_init_params.linux_core_id);
+	if (setup_webserver(params.root_dir, params.laddr, params.lport)) {
+		OFP_ERR("Error: Failed to setup webserver.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	odph_linux_pthread_join(thread_tbl, num_workers);
 	printf("End Main()\n");
@@ -170,13 +179,16 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 		{"help", no_argument, NULL, 'h'},		/* return 'h' */
 		{"configuration file", required_argument,
 			NULL, 'f'},/* return 'f' */
+		{"root", required_argument, NULL, 'r'},	/* return 'r' */
+		{"laddr", required_argument, NULL, 'l'},	/* return 'l' */
+		{"lport", required_argument, NULL, 'p'},	/* return 'p' */
 		{NULL, 0, NULL, 0}
 	};
 
 	memset(appl_args, 0, sizeof(*appl_args));
 
 	while (1) {
-		opt = getopt_long(argc, argv, "+c:i:hf:",
+		opt = getopt_long(argc, argv, "+c:i:hf:r:l:p:",
 				  longopts, &long_index);
 
 		if (opt == -1)
@@ -250,6 +262,48 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 
 			strcpy(appl_args->conf_file, optarg);
 			break;
+		case 'r':
+			len = strlen(optarg);
+			if (len == 0) {
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			len += 1;	/* add room for '\0' */
+
+			appl_args->root_dir = malloc(len);
+			if (appl_args->root_dir == NULL) {
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+
+			strcpy(appl_args->root_dir, optarg);
+			break;
+		case 'l':
+			len = strlen(optarg);
+			if (len == 0) {
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			len += 1;	/* add room for '\0' */
+
+			appl_args->laddr = malloc(len);
+			if (appl_args->laddr == NULL) {
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+
+			strcpy(appl_args->laddr, optarg);
+			break;
+		case 'p':
+			len = strlen(optarg);
+			if (len == 0) {
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			len += 1;	/* add room for '\0' */
+
+			appl_args->lport = (uint64_t)atoi(optarg);
+			break;
 
 		default:
 			break;
@@ -311,7 +365,14 @@ static void usage(char *progname)
 		   "\n"
 		   "Optional OPTIONS\n"
 		   "  -c, --count <number> Core count.\n"
+		   "  -r, --root <web root folder> Webserver root folder.\n"
+			"\tDefault: "DEFAULT_ROOT_DIRECTORY"\n"
+		   "  -l, --laddr <IPv4 address> IPv4 address were webserver binds.\n"
+			"\tDefault: %s\n"
+		   "  -p, --lport <port> Port address were webserver binds.\n"
+			"\tDefault: %d\n"
 		   "  -h, --help           Display help and exit.\n"
-		   "\n", NO_PATH(progname), NO_PATH(progname)
+		   "\n", NO_PATH(progname), NO_PATH(progname),
+		   ofp_print_ip_addr(DEFAULT_BIND_ADDRESS), DEFAULT_BIND_PORT
 		);
 }
