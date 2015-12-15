@@ -152,9 +152,9 @@ int ofp_timer_init_global(int resolution_us,
 
 	/* Timer pool */
 	memset(&timer_params, 0, sizeof(timer_params));
-	timer_params.res_ns = resolution_us*ODP_TIME_USEC;
-	timer_params.min_tmo = min_us*ODP_TIME_USEC;
-	timer_params.max_tmo = max_us*ODP_TIME_USEC;
+	timer_params.res_ns = resolution_us*ODP_TIME_USEC_IN_NS;
+	timer_params.min_tmo = min_us*ODP_TIME_USEC_IN_NS;
+	timer_params.max_tmo = max_us*ODP_TIME_USEC_IN_NS;
 	timer_params.num_timers = TIMER_NUM_TIMERS;
 	timer_params.priv = 0; /* Shared */
 	timer_params.clk_src = ODP_CLOCK_CPU;
@@ -326,7 +326,7 @@ odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
 		}
 		bufdata->t_ev = odp_timeout_to_event(tmo);
 
-		period_ns = tmo_us*ODP_TIME_USEC;
+		period_ns = tmo_us*ODP_TIME_USEC_IN_NS;
 		period    = odp_timer_ns_to_tick(shm->socket_timer_pool, period_ns);
 		tick      = odp_timer_current_tick(shm->socket_timer_pool);
 		tick     += period;
