@@ -18,6 +18,7 @@
 #include "ofpi_hash.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
+#include "ofpi_stat.h"
 
 #define SHM_NAME_ARP "OfpArpShMem"
 
@@ -183,15 +184,15 @@ static inline int remove_entry(int set, struct arp_entry *entry)
 
 static inline void show_arp_entry(int fd, struct arp_entry *entry)
 {
-	uint64_t t, diff;
+	odp_time_t t, time_diff;
 
-	t = odp_cpu_cycles();
-	diff = odp_time_diff_cycles(odp_atomic_load_u64(&entry->usetime), t);
+	t = odp_time_local();
+	time_diff = odp_time_diff(t, odp_atomic_load_u64(&entry->usetime));
 	ofp_sendf(fd, "%3d  %-15s %-17s %4u\r\n",
 		    entry->key.vrf,
 		    ofp_print_ip_addr(entry->key.ipv4_addr),
 		    ofp_print_mac((uint8_t *)&entry->macaddr),
-		    odp_time_cycles_to_ns(diff) / ODP_TIME_SEC_IN_NS);
+		    odp_time_cycles_to_ns(time_diff) / ODP_TIME_SEC_IN_NS);
 }
 
 static inline void *pkt_entry_alloc(void)
@@ -460,18 +461,18 @@ static void ofp_arp_entry_cleanup_on_tmo(int set, struct arp_entry *entry)
 }
 
 static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
-					   uint64_t now)
+						odp_time_t now)
 {
-	uint64_t usetime, cycles, ns;
+	uint64_t ns;
+	odp_time_t time_diff, usetime;
 
 	usetime = odp_atomic_load_u64(&entry->usetime);
 
 	if (usetime >= now)
 		return 0;
-
-	cycles = odp_time_diff_cycles(usetime, now);
-	ns = odp_time_cycles_to_ns(cycles);
-	if (ns > (shm->entry_timeout * NS_PER_SEC))
+	time_diff = odp_time_diff(now, usetime);
+	ns = odp_time_cycles_to_ns(time_diff);
+	if (ns > ENTRY_TIMEOUT)
 		return 1;
 
 	return 0;
