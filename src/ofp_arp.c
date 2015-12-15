@@ -192,7 +192,7 @@ static inline void show_arp_entry(int fd, struct arp_entry *entry)
 		    entry->key.vrf,
 		    ofp_print_ip_addr(entry->key.ipv4_addr),
 		    ofp_print_mac((uint8_t *)&entry->macaddr),
-		    odp_time_cycles_to_ns(time_diff) / ODP_TIME_SEC_IN_NS);
+		    odp_time_to_ns(time_diff) / ODP_TIME_SEC_IN_NS);
 }
 
 static inline void *pkt_entry_alloc(void)
@@ -471,7 +471,7 @@ static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 	if (usetime >= now)
 		return 0;
 	time_diff = odp_time_diff(now, usetime);
-	ns = odp_time_cycles_to_ns(time_diff);
+	ns = odp_time_to_ns(time_diff);
 	if (ns > ENTRY_TIMEOUT)
 		return 1;
 
