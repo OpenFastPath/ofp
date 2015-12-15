@@ -34,7 +34,7 @@ extern unsigned long int ofp_stat_flags;
 	if (ofp_stat_flags & OFP_STAT_COMPUTE_LATENCY) { \
 		struct ofp_packet_stat *st = ofp_get_packet_statistics(); \
 		if (st)	{						\
-			uint64_t _in_cycles = odp_time_cycles(); \
+			uint64_t _in_cycles = odp_cpu_cycles(); \
 			int _core = odp_cpu_id(); \
 			_UPDATE_LATENCY(_core, _in_cycles, _n);\
 		} \

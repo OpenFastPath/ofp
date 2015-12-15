@@ -185,7 +185,7 @@ static inline void show_arp_entry(int fd, struct arp_entry *entry)
 {
 	uint64_t t, diff;
 
-	t = odp_time_cycles();
+	t = odp_cpu_cycles();
 	diff = odp_time_diff_cycles(odp_atomic_load_u64(&entry->usetime), t);
 	ofp_sendf(fd, "%3d  %-15s %-17s %4u\r\n",
 		    entry->key.vrf,
@@ -246,7 +246,7 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	}
 
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
-	tnow = odp_time_cycles();
+	tnow = odp_cpu_cycles();
 	odp_atomic_store_u64(&new->usetime, tnow);
 
 	OFP_SLIST_SWAP(&send_list, &new->pkt_list_head, pkt_entry);
@@ -357,7 +357,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 	if (odp_unlikely(entry->usetime_upd_tmo == ODP_TIMER_INVALID)) {
 		odp_rwlock_write_lock(&entry->usetime_rwlock);
 		if (entry->usetime_upd_tmo == ODP_TIMER_INVALID) {
-			tnew = odp_time_cycles();
+			tnew = odp_cpu_cycles();
 			odp_atomic_store_u64(&entry->usetime, tnew);
 
 			entry_idx = entry - &shm->arp.entries[0];
@@ -484,7 +484,7 @@ void ofp_arp_age_cb(void *arg)
 	uint64_t now;
 
 	cli =  *(int *)arg;
-	now = odp_time_cycles();
+	now = odp_cpu_cycles();
 
 	for (i = 0; i < NUM_SETS; ++i) {
 		odp_rwlock_write_lock(&shm->arp.table_rwlock[i]);
