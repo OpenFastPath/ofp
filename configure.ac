@@ -133,11 +133,12 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
-PKG_CHECK_MODULES([ODP], [libodp >= 1.4], [ODP_VERSION=104],
+PKG_CHECK_MODULES([ODP], [libodp >= 1.5], [ODP_VERSION=105],
+    [PKG_CHECK_MODULES([ODP], [libodp >= 1.4], [ODP_VERSION=104],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.3], [ODP_VERSION=103],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.2], [ODP_VERSION=102],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100]
-    )])])])
+    )])])])])
 
 AC_CHECK_LIB(odp, odp_packet_alloc, [],
     [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
