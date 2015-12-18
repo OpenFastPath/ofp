@@ -133,8 +133,10 @@ inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	}
 
 	new = arp_malloc(set, &key);
-	if (odp_unlikely(new == NULL))
+	if (odp_unlikely(new == NULL)) {
+		ck_epoch_end(&arp_epoch, &record);
 		return -1;
+	}
 
 	new->ifx = dev->port;
 	memcpy(&new->macaddr, ll_addr, ETH_ALEN);
