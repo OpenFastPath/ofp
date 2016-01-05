@@ -187,7 +187,7 @@ static inline void show_arp_entry(int fd, struct arp_entry *entry)
 	odp_time_t t, time_diff;
 
 	t = odp_time_local();
-	time_diff = odp_time_diff(t, odp_atomic_load_u64(&entry->usetime));
+	time_diff = odp_time_diff(t, entry->usetime);
 	ofp_sendf(fd, "%3d  %-15s %-17s %4u\r\n",
 		    entry->key.vrf,
 		    ofp_print_ip_addr(entry->key.ipv4_addr),
@@ -248,7 +248,7 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
 	tnow = odp_cpu_cycles();
-	odp_atomic_store_u64(&new->usetime, tnow);
+	new->usetime = tnow;
 
 	OFP_SLIST_SWAP(&send_list, &new->pkt_list_head, pkt_entry);
 
@@ -359,7 +359,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 		odp_rwlock_write_lock(&entry->usetime_rwlock);
 		if (entry->usetime_upd_tmo == ODP_TIMER_INVALID) {
 			tnew = odp_cpu_cycles();
-			odp_atomic_store_u64(&entry->usetime, tnew);
+			entry->usetime = tnew;
 
 			entry_idx = entry - &shm->arp.entries[0];
 			entry->usetime_upd_tmo = ofp_timer_start(
@@ -420,7 +420,7 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 			  ofp_print_ip_addr(ipv4_addr));
 		return OFP_PKT_DROP;
 	}
-	odp_atomic_store_u64(&newarp->usetime, ENTRY_USETIME_INVALID);
+	newarp->usetime = ENTRY_USETIME_INVALID;
 
 	newpkt = pkt_entry_alloc();
 	if (newpkt == NULL) {
@@ -466,8 +466,7 @@ static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 	uint64_t ns;
 	odp_time_t time_diff, usetime;
 
-	usetime = odp_atomic_load_u64(&entry->usetime);
-
+	usetime = entry->usetime;
 	if (usetime >= now)
 		return 0;
 	time_diff = odp_time_diff(now, usetime);

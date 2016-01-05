@@ -10,6 +10,7 @@
 #include <odp.h>
 
 #include "ofpi_pkt_processing.h" /* return codes, i.e.: OFP_DROP */
+#include "ofpi_timer.h"
 
 struct arp_key {
 	uint32_t vrf;
@@ -46,7 +47,7 @@ struct pkt_list {
 struct arp_entry {
 	struct arp_key key;
 
-	odp_atomic_u64_t usetime;
+	odp_time_t usetime;
 	odp_timer_t usetime_upd_tmo;
 	odp_rwlock_t usetime_rwlock;
 
