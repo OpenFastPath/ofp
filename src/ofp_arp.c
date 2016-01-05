@@ -471,7 +471,7 @@ static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 		return 0;
 	time_diff = odp_time_diff(now, usetime);
 	ns = odp_time_to_ns(time_diff);
-	if (ns > ENTRY_TIMEOUT)
+	if (ns > (shm->entry_timeout * NS_PER_SEC))
 		return 1;
 
 	return 0;
