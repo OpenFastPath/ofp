@@ -3,23 +3,18 @@
  *
  * SPDX-License-Identifier:     BSD-3-Clause
  */
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <getopt.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <net/if.h>
 #include <linux/if_tun.h>
-#include <netinet/if_ether.h>
-#include <stropts.h>
 #include <errno.h>
 
 #include <odp.h>
-#include "odp/helper/linux.h"
 #include "ofpi_portconf.h"
 #include "ofpi_if_vlan.h"
 #include "ofpi_debug.h"
@@ -28,8 +23,6 @@
 #include "ofpi_stat.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
-
-#define FPM_DEBUG
 
 static int tap_alloc(char *dev, int flags) {
 
