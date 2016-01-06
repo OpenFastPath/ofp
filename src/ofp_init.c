@@ -100,12 +100,15 @@ static void ofp_stop(void)
 	shm->is_running = 0;
 }
 
-int ofp_init_pre_global(const char *pool_name, odp_pool_param_t *pool_params,
+int ofp_init_pre_global(const char *pool_name_unused,
+			odp_pool_param_t *pool_params_unused,
 			ofp_pkt_hook hooks[], odp_pool_t *pool,
 			int arp_age_interval, int arp_entry_timeout)
 {
-	/* Init shared memories */
+	(void)pool_name_unused;
+	(void)pool_params_unused;
 
+	/* Init shared memories */
 	HANDLE_ERROR(ofp_global_config_alloc_shared_memory());
 	memset(shm, 0, sizeof(*shm));
 	shm->is_running = 1;
@@ -139,7 +142,15 @@ int ofp_init_pre_global(const char *pool_name, odp_pool_param_t *pool_params,
 
 	HANDLE_ERROR(ofp_vxlan_init_global());
 
-	*pool = ofp_pool_create(pool_name, pool_params);
+	odp_pool_param_t pool_params;
+	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
+	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num        = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
+	pool_params.type           = ODP_POOL_PACKET;
+
+	*pool = ofp_pool_create(SHM_PACKET_POOL_NAME, &pool_params);
 	if (*pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
 		return -1;
@@ -338,20 +349,10 @@ static int ofp_free_port_alloc(void)
 
 int ofp_init_global(ofp_init_global_t *params)
 {
-	odp_pool_param_t pool_params;
-	int i, ret;
-	odp_queue_param_t qparam;
-	char q_name[ODP_QUEUE_NAME_LEN];
+	int i;
 	odp_cpumask_t cpumask;
 
-	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
-	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num        = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
-	pool_params.type           = ODP_POOL_PACKET;
-
-	HANDLE_ERROR(ofp_init_pre_global(SHM_PACKET_POOL_NAME, &pool_params,
+	HANDLE_ERROR(ofp_init_pre_global(NULL, NULL,
 					 params->pkt_hook, &ofp_packet_pool,
 					 ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT));
 
