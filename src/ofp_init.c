@@ -168,6 +168,39 @@ static int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
 	return 0;
 }
 
+/* Create loop queue */
+static int ofp_loopq_create(struct ofp_ifnet *ifnet)
+{
+	odp_queue_param_t qparam;
+	char q_name[ODP_QUEUE_NAME_LEN];
+
+	/* Create loop queue */
+	snprintf(q_name, sizeof(q_name), "%s_loopq_def",
+			ifnet->if_name);
+	q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
+
+	memset(&qparam, 0, sizeof(odp_queue_param_t));
+	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
+	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
+	qparam.sched.group = ODP_SCHED_GROUP_ALL;
+
+	ifnet->loopq_def = odp_queue_create(q_name,
+					ODP_QUEUE_TYPE_SCHED,
+					&qparam);
+	if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
+		OFP_ERR("odp_queue_create failed");
+		return -1;
+	}
+
+	/* Set device loopq queue context */
+	if (odp_queue_context_set(ifnet->loopq_def, ifnet) < 0) {
+		OFP_ERR("odp_queue_context_set failed");
+		return -1;
+	}
+
+	return 0;
+}
+
 odp_pool_t ofp_packet_pool;
 
 int ofp_init_global(ofp_init_global_t *params)
@@ -270,6 +303,7 @@ int ofp_init_global(ofp_init_global_t *params)
 			ifnet->inq_def = ODP_QUEUE_INVALID;
 
 		HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
+		HANDLE_ERROR(ofp_loopq_create(ifnet));
 
 #ifdef SP
 		/* Create VIF local input queue */
@@ -289,30 +323,6 @@ int ofp_init_global(ofp_init_global_t *params)
 			return -1;
 		}
 #endif /*SP*/
-
-		/* Create loop queue */
-		snprintf(q_name, sizeof(q_name), "%s_loopq_def",
-				ifnet->if_name);
-		q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
-
-		memset(&qparam, 0, sizeof(odp_queue_param_t));
-		qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
-		qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
-		qparam.sched.group = ODP_SCHED_GROUP_ALL;
-
-		ifnet->loopq_def = odp_queue_create(q_name,
-						ODP_QUEUE_TYPE_SCHED,
-						&qparam);
-		if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("odp_queue_create failed");
-			return -1;
-		}
-
-		/* Set device loopq queue context */
-		if (odp_queue_context_set(ifnet->loopq_def, ifnet) < 0) {
-			OFP_ERR("odp_queue_context_set failed");
-			return -1;
-		}
 
 		/* Set interface MTU*/
 		ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
