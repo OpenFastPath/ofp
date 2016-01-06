@@ -175,9 +175,10 @@ int sp_setup_device(struct ofp_ifnet *ifnet)
 	/* Store ifindex in viu and create table */
 	ifnet->linux_index = ifr.ifr_ifindex;
 	ifnet->sp_status = OFP_SP_UP;
+	ifnet->fd = fd;
 
 	close(gen_fd);
-	return fd;
+	return 0;
 }
 
 void *sp_rx_thread(void *ifnet_void)

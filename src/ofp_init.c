@@ -377,11 +377,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		HANDLE_ERROR(ofp_sp_inq_create(ifnet));
 
 		/* Create the kernel representation of the FP interface. */
-		ifnet->fd = sp_setup_device(ifnet);
-		if (ifnet->fd == -1) {
-			OFP_ERR("Failed to setup TAP interface.");
-			return -1;
-		}
+		HANDLE_ERROR(sp_setup_device(ifnet));
 
 		/* Maintain table to access ifnet from linux ifindex */
 		ofp_update_ifindex_lookup_tab(ifnet);
