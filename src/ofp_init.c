@@ -236,6 +236,32 @@ static int ofp_mtu_set(struct ofp_ifnet *ifnet)
 	return 0;
 }
 
+/* Create VIF local input queue */
+static int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
+{
+	odp_queue_param_t qparam;
+	char q_name[ODP_QUEUE_NAME_LEN];
+
+	memset(&qparam, 0, sizeof(odp_queue_param_t));
+	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
+	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
+	qparam.sched.group = ODP_SCHED_GROUP_ALL;
+
+	snprintf(q_name, sizeof(q_name), "%s_inq_def", ifnet->if_name);
+	q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
+
+	ifnet->spq_def = odp_queue_create(q_name,
+					ODP_QUEUE_TYPE_POLL,
+					&qparam);
+
+	if (ifnet->spq_def == ODP_QUEUE_INVALID) {
+		OFP_ERR("odp_queue_create failed");
+		return -1;
+	}
+
+	return 0;
+}
+
 odp_pool_t ofp_packet_pool;
 
 int ofp_init_global(ofp_init_global_t *params)
@@ -343,30 +369,13 @@ int ofp_init_global(ofp_init_global_t *params)
 		HANDLE_ERROR(ofp_mac_set(ifnet));
 		HANDLE_ERROR(ofp_mtu_set(ifnet));
 
-#ifdef SP
-		/* Create VIF local input queue */
-		memset(&qparam, 0, sizeof(odp_queue_param_t));
-		qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
-		qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
-		qparam.sched.group = ODP_SCHED_GROUP_ALL;
-		snprintf(q_name, sizeof(q_name), "%s_inq_def", ifnet->if_name);
-		q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
-
-		ifnet->spq_def = odp_queue_create(q_name,
-						ODP_QUEUE_TYPE_POLL,
-						&qparam);
-
-		if (ifnet->spq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("odp_queue_create failed");
-			return -1;
-		}
-#endif /*SP*/
-
 		/* Multicasting. */
 		struct ofp_in_ifinfo *ii = &ifnet->ii_inet;
 		ii->ii_igmp = ofp_igmp_domifattach(ifnet);
 
 #ifdef SP
+		HANDLE_ERROR(ofp_sp_inq_create(ifnet));
+
 		/* Create the kernel representation of the FP interface. */
 		ifnet->fd = sp_setup_device(ifnet);
 		if (ifnet->fd == -1) {
