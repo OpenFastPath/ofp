@@ -151,6 +151,60 @@ int ofp_init_pre_global(const char *pool_name, odp_pool_param_t *pool_params,
 	return 0;
 }
 
+/* Open a packet IO instance for this ifnet device for the pktin_mode. */
+static int ofp_pktio_open(struct ofp_ifnet *ifnet, int pktin_mode)
+{
+#if ODP_VERSION >= 103
+	odp_pktio_param_t pktio_param;
+
+	memset(&pktio_param, 0, sizeof(pktio_param));
+	pktio_param.in_mode = pktin_mode;
+
+	ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
+#else
+	/* Open a packet IO instance for this device */
+	ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool);
+#endif
+
+	if (ifnet->pktio == ODP_PKTIO_INVALID) {
+		OFP_ERR("odp_pktio_open failed");
+		return -1;
+	}
+
+	/*
+	 * Create and set the default INPUT queue associated with the 'pktio'
+	 * resource
+	 */
+	if (pktin_mode == ODP_PKTIN_MODE_SCHED) {
+		odp_queue_param_t qparam;
+		char q_name[ODP_QUEUE_NAME_LEN];
+
+		memset(&qparam, 0, sizeof(odp_queue_param_t));
+		qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
+		qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
+		qparam.sched.group = ODP_SCHED_GROUP_ALL;
+		snprintf(q_name, sizeof(q_name), "%" PRIu64 "-pktio_inq_def",
+			 odp_pktio_to_u64(ifnet->pktio));
+		q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
+
+		ifnet->inq_def = odp_queue_create(q_name,
+						  ODP_QUEUE_TYPE_PKTIN,
+						  &qparam);
+		if (ifnet->inq_def == ODP_QUEUE_INVALID) {
+			OFP_ERR("odp_queue_create failed");
+			return -1;
+		}
+
+		if (odp_pktio_inq_setdef(ifnet->pktio, ifnet->inq_def) != 0) {
+			OFP_ERR("odp_pktio_inq_setdef failed");
+			return -1;
+		}
+	} else
+		ifnet->inq_def = ODP_QUEUE_INVALID;
+
+	return 0;
+}
+
 static int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
 {
 	ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
@@ -296,12 +350,6 @@ int ofp_init_global(ofp_init_global_t *params)
 
 	OFP_INFO("Slow path threads on core %d", odp_cpumask_first(&cpumask));
 
-#if ODP_VERSION >= 103
-	odp_pktio_param_t pktio_param;
-	memset(&pktio_param, 0, sizeof(pktio_param));
-	pktio_param.in_mode = (params->burst_recv_mode) ? ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED;
-#endif
-
 	HANDLE_ERROR(ofp_set_vxlan_interface_queue());
 
 	/* Create interfaces */
@@ -329,46 +377,9 @@ int ofp_init_global(ofp_init_global_t *params)
 		ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
 		ifnet->pkt_pool = ofp_packet_pool;
 
-		/* Open a packet IO instance for this device */
-#if ODP_VERSION >= 103
-		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
-#else
-		ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool);
-#endif
-
-		if (ifnet->pktio == ODP_PKTIO_INVALID) {
-			OFP_ERR("odp_pktio_open failed");
-			return -1;
-		}
-
-		/*
-		 * Create and set the default INPUT queue associated with the 'pktio'
-		 * resource
-		 */
-		if (params->burst_recv_mode == 0) {
-			memset(&qparam, 0, sizeof(odp_queue_param_t));
-			qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
-			qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
-			qparam.sched.group = ODP_SCHED_GROUP_ALL;
-			snprintf(q_name, sizeof(q_name), "%" PRIu64 "-pktio_inq_def",
-				 odp_pktio_to_u64(ifnet->pktio));
-			q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
-
-			ifnet->inq_def = odp_queue_create(q_name,
-							  ODP_QUEUE_TYPE_PKTIN,
-							  &qparam);
-			if (ifnet->inq_def == ODP_QUEUE_INVALID) {
-				OFP_ERR("odp_queue_create failed");
-				return -1;
-			}
-
-			ret = odp_pktio_inq_setdef(ifnet->pktio, ifnet->inq_def);
-			if (ret != 0) {
-				OFP_ERR("odp_pktio_inq_setdef failed");
-				return -1;
-			}
-		} else
-			ifnet->inq_def = ODP_QUEUE_INVALID;
+		HANDLE_ERROR(ofp_pktio_open(ifnet,
+						params->burst_recv_mode ?
+							ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED));
 
 		HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
 		HANDLE_ERROR(ofp_loopq_create(ifnet));
