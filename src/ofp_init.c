@@ -201,6 +201,23 @@ static int ofp_loopq_create(struct ofp_ifnet *ifnet)
 	return 0;
 }
 
+/* Set interface MTU*/
+static int ofp_mtu_set(struct ofp_ifnet *ifnet)
+{
+	ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
+	OFP_INFO("Device '%s' MTU=%d", ifnet->if_name, ifnet->if_mtu);
+
+	/* RFC 791, p. 24, "Every internet module must be able
+	 * to forward a datagram of 68 octets without further
+	 * fragmentation."*/
+	if (ifnet->if_mtu < 68 || ifnet->if_mtu > 9000) {
+		OFP_INFO("Invalid MTU. Overwrite MTU value to 1500");
+		ifnet->if_mtu = 1500;
+	}
+
+	return 0;
+}
+
 odp_pool_t ofp_packet_pool;
 
 int ofp_init_global(ofp_init_global_t *params)
@@ -305,6 +322,8 @@ int ofp_init_global(ofp_init_global_t *params)
 		HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
 		HANDLE_ERROR(ofp_loopq_create(ifnet));
 
+		HANDLE_ERROR(ofp_mtu_set(ifnet));
+
 #ifdef SP
 		/* Create VIF local input queue */
 		memset(&qparam, 0, sizeof(odp_queue_param_t));
@@ -323,18 +342,6 @@ int ofp_init_global(ofp_init_global_t *params)
 			return -1;
 		}
 #endif /*SP*/
-
-		/* Set interface MTU*/
-		ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
-		OFP_INFO("Device '%s' MTU=%d", ifnet->if_name, ifnet->if_mtu);
-
-		/* RFC 791, p. 24, "Every internet module must be able
-		 * to forward a datagram of 68 octets without further
-		 * fragmentation."*/
-		if (ifnet->if_mtu < 68 || ifnet->if_mtu > 9000) {
-			OFP_INFO("Invalid MTU. Overwrite MTU value to 1500");
-			ifnet->if_mtu = 1500;
-		}
 
 		/* Set interface MAC address */
 		if (odp_pktio_mac_addr(ifnet->pktio, ifnet->mac,
