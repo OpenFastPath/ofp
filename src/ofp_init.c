@@ -324,6 +324,17 @@ static int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 }
 
 odp_pool_t ofp_packet_pool;
+odp_atomic_u32_t free_port;
+
+static int ofp_free_port_alloc(void)
+{
+	int port = (int)odp_atomic_fetch_inc_u32(&free_port);
+	if (port >= OFP_FP_INTERFACE_MAX) {
+		OFP_ERR("Interfaces are depleted");
+		return -1;
+	}
+	return port;
+}
 
 int ofp_init_global(ofp_init_global_t *params)
 {
@@ -352,26 +363,23 @@ int ofp_init_global(ofp_init_global_t *params)
 
 	HANDLE_ERROR(ofp_set_vxlan_interface_queue());
 
+	odp_atomic_init_u32(&free_port, 0);
+
 	/* Create interfaces */
 	for (i = 0; i < params->if_count; ++i) {
-		int16_t port = i;
+		struct ofp_ifnet *ifnet;
+		int port;
 
-		if (port >= VXLAN_PORTS) {
-			OFP_ERR("Interfaces are depleted");
-			break;
+		port = ofp_free_port_alloc();
+		ifnet = ofp_get_ifnet((uint16_t)port, 0);
+
+		if (ifnet == NULL) {
+			OFP_ERR("Got ifnet NULL");
+			return -1;
 		}
 
 		OFP_DBG("Interface '%s' becomes '%s%d', port %d",
 			params->if_names[i], OFP_IFNAME_PREFIX, port, port);
-
-		struct ofp_ifnet *ifnet = ofp_get_ifnet((uint16_t)port, 0);
-
-		if (!ifnet) {
-			OFP_ERR("Failed to locate interface for port %d", port);
-			return -1;
-		}
-
-		ifnet->if_state = OFP_IFT_STATE_USED;
 
 		strncpy(ifnet->if_name, params->if_names[i], OFP_IFNAMSIZ);
 		ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
@@ -416,7 +424,13 @@ int ofp_init_global(ofp_init_global_t *params)
 					 ifnet);
 #endif /* SP */
 		/* Start packet receiver or transmitter */
-		odp_pktio_start(ifnet->pktio);
+		if (odp_pktio_start(ifnet->pktio) != 0) {
+			OFP_ERR("Failed to start pktio.");
+			return -1;
+		}
+
+		/* if_state parameter not used */
+		ifnet->if_state = OFP_IFT_STATE_USED;
 	}
 
 
