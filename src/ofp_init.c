@@ -102,11 +102,12 @@ static void ofp_stop(void)
 
 int ofp_init_pre_global(const char *pool_name_unused,
 			odp_pool_param_t *pool_params_unused,
-			ofp_pkt_hook hooks[], odp_pool_t *pool,
+			ofp_pkt_hook hooks[], odp_pool_t *pool_unused,
 			int arp_age_interval, int arp_entry_timeout)
 {
 	(void)pool_name_unused;
 	(void)pool_params_unused;
+	(void)pool_unused;
 
 	/* Init shared memories */
 	HANDLE_ERROR(ofp_global_config_alloc_shared_memory());
@@ -150,13 +151,13 @@ int ofp_init_pre_global(const char *pool_name_unused,
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
 	pool_params.type           = ODP_POOL_PACKET;
 
-	*pool = ofp_pool_create(SHM_PACKET_POOL_NAME, &pool_params);
-	if (*pool == ODP_POOL_INVALID) {
+	ofp_packet_pool = ofp_pool_create(SHM_PACKET_POOL_NAME, &pool_params);
+	if (ofp_packet_pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
 		return -1;
 	}
 
-	HANDLE_ERROR(ofp_socket_init_global(*pool));
+	HANDLE_ERROR(ofp_socket_init_global(ofp_packet_pool));
 	HANDLE_ERROR(ofp_inet_init());
 
 	return 0;
@@ -353,7 +354,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	odp_cpumask_t cpumask;
 
 	HANDLE_ERROR(ofp_init_pre_global(NULL, NULL,
-					 params->pkt_hook, &ofp_packet_pool,
+					 params->pkt_hook, NULL,
 					 ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT));
 
 	/* cpu mask for slow path threads */
