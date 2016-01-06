@@ -151,6 +151,23 @@ int ofp_init_pre_global(const char *pool_name, odp_pool_param_t *pool_params,
 	return 0;
 }
 
+static int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
+{
+	ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
+	if (ifnet->outq_def == ODP_QUEUE_INVALID) {
+		OFP_ERR("odp_pktio_outq_getdef failed");
+		return -1;
+	}
+
+	/* Set device outq queue context */
+	if (odp_queue_context_set(ifnet->outq_def, ifnet) < 0) {
+		OFP_ERR("odp_queue_context_set failed");
+		return -1;
+	}
+
+	return 0;
+}
+
 odp_pool_t ofp_packet_pool;
 
 int ofp_init_global(ofp_init_global_t *params)
@@ -252,17 +269,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		} else
 			ifnet->inq_def = ODP_QUEUE_INVALID;
 
-		ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
-		if (ifnet->outq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("odp_pktio_outq_getdef failed");
-			return -1;
-		}
-
-		/* Set device outq queue context */
-		if (odp_queue_context_set(ifnet->outq_def, ifnet) < 0) {
-			OFP_ERR("odp_queue_context_set failed");
-			return -1;
-		}
+		HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
 
 #ifdef SP
 		/* Create VIF local input queue */
