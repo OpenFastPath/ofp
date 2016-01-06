@@ -201,6 +201,24 @@ static int ofp_loopq_create(struct ofp_ifnet *ifnet)
 	return 0;
 }
 
+/* Set ifnet interface MAC address */
+static int ofp_mac_set(struct ofp_ifnet *ifnet)
+{
+	if (odp_pktio_mac_addr(ifnet->pktio, ifnet->mac,
+		sizeof(ifnet->mac)) < 0) {
+		OFP_ERR("Failed to retrieve MAC address");
+		return -1;
+	}
+	if (!ofp_has_mac(ifnet->mac)) {
+		ifnet->mac[0] = ifnet->port;
+		OFP_ERR("MAC overwritten");
+	}
+	OFP_INFO("Device '%s' addr %s", ifnet->if_name,
+		ofp_print_mac((uint8_t *)ifnet->mac));
+
+	return 0;
+}
+
 /* Set interface MTU*/
 static int ofp_mtu_set(struct ofp_ifnet *ifnet)
 {
@@ -322,6 +340,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
 		HANDLE_ERROR(ofp_loopq_create(ifnet));
 
+		HANDLE_ERROR(ofp_mac_set(ifnet));
 		HANDLE_ERROR(ofp_mtu_set(ifnet));
 
 #ifdef SP
@@ -342,19 +361,6 @@ int ofp_init_global(ofp_init_global_t *params)
 			return -1;
 		}
 #endif /*SP*/
-
-		/* Set interface MAC address */
-		if (odp_pktio_mac_addr(ifnet->pktio, ifnet->mac,
-			sizeof(ifnet->mac)) < 0) {
-			OFP_ERR("Failed to retrieve MAC address");
-			return -1;
-		}
-		if (!ofp_has_mac(ifnet->mac)) {
-			ifnet->mac[0] = port;
-			OFP_ERR("MAC overwritten");
-		}
-		OFP_INFO("Device '%s' addr %s", ifnet->if_name,
-			ofp_print_mac((uint8_t *)ifnet->mac));
 
 		/* Multicasting. */
 		struct ofp_in_ifinfo *ii = &ifnet->ii_inet;
