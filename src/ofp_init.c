@@ -236,6 +236,13 @@ static int ofp_mtu_set(struct ofp_ifnet *ifnet)
 	return 0;
 }
 
+/* IGMP protocol used for multicasting. */
+static void ofp_igmp_attach(struct ofp_ifnet *ifnet)
+{
+	struct ofp_in_ifinfo *ii = &ifnet->ii_inet;
+	ii->ii_igmp = ofp_igmp_domifattach(ifnet);
+}
+
 /* Create VIF local input queue */
 static int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 {
@@ -369,9 +376,7 @@ int ofp_init_global(ofp_init_global_t *params)
 		HANDLE_ERROR(ofp_mac_set(ifnet));
 		HANDLE_ERROR(ofp_mtu_set(ifnet));
 
-		/* Multicasting. */
-		struct ofp_in_ifinfo *ii = &ifnet->ii_inet;
-		ii->ii_igmp = ofp_igmp_domifattach(ifnet);
+		ofp_igmp_attach(ifnet);
 
 #ifdef SP
 		HANDLE_ERROR(ofp_sp_inq_create(ifnet));
