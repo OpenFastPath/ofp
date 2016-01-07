@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <odp.h>
+#include "odp.h"
 
 #include "ofpi_config.h"
 #include "ofpi_portconf.h"
@@ -229,7 +229,7 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	struct pkt_entry *pktentry;
 	struct pkt_list send_list;
 	uint32_t set;
-	uint64_t tnow;
+	odp_time_t tnow;
 
 	OFP_SLIST_INIT(&send_list);
 
@@ -245,7 +245,7 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	}
 
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
-	tnow = odp_cpu_cycles();
+	tnow = odp_time_local();
 	new->usetime = tnow;
 
 	OFP_SLIST_SWAP(&send_list, &new->pkt_list_head, pkt_entry);
@@ -325,7 +325,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 	struct arp_entry *entry;
 	struct arp_key key;
 	uint32_t set;
-	uint64_t tnew;
+	odp_time_t tnew;
 	uint32_t entry_idx;
 	struct arp_cache *cache;
 
@@ -356,7 +356,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 	if (odp_unlikely(entry->usetime_upd_tmo == ODP_TIMER_INVALID)) {
 		odp_rwlock_write_lock(&entry->usetime_rwlock);
 		if (entry->usetime_upd_tmo == ODP_TIMER_INVALID) {
-			tnew = odp_cpu_cycles();
+			tnew = odp_time_local();
 			entry->usetime = tnew;
 
 			entry_idx = entry - &shm->arp.entries[0];
@@ -479,10 +479,10 @@ void ofp_arp_age_cb(void *arg)
 {
 	struct arp_entry *entry, *next_entry;
 	int i, cli;
-	uint64_t now;
+	odp_time_t now;
 
 	cli =  *(int *)arg;
-	now = odp_cpu_cycles();
+	now = odp_time_local();
 
 	for (i = 0; i < NUM_SETS; ++i) {
 		odp_rwlock_write_lock(&shm->arp.table_rwlock[i]);
