@@ -18,7 +18,6 @@
 #include "ofpi_hash.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
-#include "ofpi_stat.h"
 
 #define SHM_NAME_ARP "OfpArpShMem"
 

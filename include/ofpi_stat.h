@@ -14,12 +14,6 @@ int ofp_stat_lookup_shared_memory(void);
 int ofp_stat_init_global(void);
 int ofp_stat_term_global(void);
 
-#if ODP_VERSION < 105
-#define odp_time_local odp_cpu_cycles
-#define odp_time_diff(x, y) odp_time_diff_cycles(y, x)
-#define odp_time_to_ns odp_time_cycles_to_ns
-#endif /* ODP_VERSION < 105 */
-
 #define OFP_UPDATE_PACKET_STAT(_s, _n) do {				\
 	struct ofp_packet_stat *st = ofp_get_packet_statistics(); \
 	if (st)							\

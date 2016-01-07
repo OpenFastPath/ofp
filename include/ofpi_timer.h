@@ -23,6 +23,9 @@
 #define ODP_TIME_USEC_IN_NS ODP_TIME_USEC
 #define ODP_TIME_MSEC_IN_NS ODP_TIME_MSEC
 #define ODP_TIME_SEC_IN_NS ODP_TIME_SEC
+#define odp_time_local odp_cpu_cycles
+#define odp_time_diff(x, y) odp_time_diff_cycles(y, x)
+#define odp_time_to_ns odp_time_cycles_to_ns
 typedef uint64_t odp_time_t;
 #endif /* ODP_VERSION < 105 */
 
