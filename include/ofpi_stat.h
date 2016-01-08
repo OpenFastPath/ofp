@@ -9,6 +9,7 @@
 #define _STAT_H_
 
 #include "api/ofp_stat.h"
+#include "ofpi_timer.h"
 
 int ofp_stat_lookup_shared_memory(void);
 int ofp_stat_init_global(void);
@@ -24,9 +25,12 @@ extern unsigned long int ofp_stat_flags;
 
 #define _UPDATE_LATENCY(_core, _current_cycle, _n) do {\
 	if (st->per_core[_core].last_input_cycles) \
-		st->per_core[_core].input_latency[ilog2(odp_time_diff(\
-			_current_cycle, \
-			st->per_core[_core].last_input_cycles))] += _n;	\
+		st->per_core[_core].input_latency[\
+			ilog2(odp_time_to_u64(odp_time_diff(\
+				_current_cycle, \
+				st->per_core[_core]\
+				.last_input_cycles)))]\
+			+= _n;	\
 	st->per_core[_core].last_input_cycles = _current_cycle;\
 } while (0)
 

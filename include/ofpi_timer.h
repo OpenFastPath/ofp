@@ -28,6 +28,7 @@
 #define odp_time_local odp_cpu_cycles
 #define odp_time_diff(x, y) odp_time_diff_cycles(y, x)
 #define odp_time_to_ns odp_time_cycles_to_ns
+#define odp_time_to_u64
 typedef uint64_t odp_time_t;
 #endif /* ODP_VERSION < 105 */
 

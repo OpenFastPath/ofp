@@ -10,6 +10,10 @@
 
 #include <odp.h>
 
+#if ODP_VERSION < 105
+typedef uint64_t odp_time_t;
+#endif /* ODP_VERSION < 105 */
+
 struct ofp_packet_stat {
 	struct {
 		unsigned int rx_fp;
@@ -20,7 +24,7 @@ struct ofp_packet_stat {
 		unsigned int rx_ip_frag;
 		unsigned int rx_ip_reass;
 		uint64_t input_latency[64];
-		uint64_t last_input_cycles;
+		odp_time_t last_input_cycles;
 	} per_core[ODP_CPUMASK_STR_SIZE];
 };
 
