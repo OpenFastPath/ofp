@@ -26,7 +26,6 @@
 #define CLEANUP_TIMER_INTERVAL (ARP_CLEANUP_TIMER_INTERVAL * SEC_USEC)
 #define ENTRY_TIMEOUT (ARP_ENTRY_TIMEOUT * ODP_TIME_SEC_IN_NS) /* 20 minutes */
 #define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * US_PER_SEC)
-#define ENTRY_USETIME_INVALID 0xFFFFFFFF
 #define SAVED_PKT_TIMEOUT (ARP_SAVED_PKT_TIMEOUT * US_PER_SEC)
 
 #if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)
@@ -419,7 +418,7 @@ int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 			  ofp_print_ip_addr(ipv4_addr));
 		return OFP_PKT_DROP;
 	}
-	newarp->usetime = ENTRY_USETIME_INVALID;
+	newarp->usetime = ODP_TIME_NULL;
 
 	newpkt = pkt_entry_alloc();
 	if (newpkt == NULL) {
