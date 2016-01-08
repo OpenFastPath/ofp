@@ -25,10 +25,10 @@
 #define ODP_TIME_SEC_IN_NS ODP_TIME_SEC
 #define ENTRY_USETIME_INVALID 0xFFFFFFFF
 #define ODP_TIME_NULL ENTRY_USETIME_INVALID
-#define odp_time_local odp_cpu_cycles
+#define odp_time_local(x) odp_cpu_cycles(x)
 #define odp_time_diff(x, y) odp_time_diff_cycles(y, x)
-#define odp_time_to_ns odp_time_cycles_to_ns
-#define odp_time_to_u64
+#define odp_time_to_ns(x) odp_time_cycles_to_ns(x)
+#define odp_time_to_u64(x) (x)
 typedef uint64_t odp_time_t;
 #endif /* ODP_VERSION < 105 */
 

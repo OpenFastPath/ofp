@@ -465,7 +465,7 @@ static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 	odp_time_t time_diff, usetime;
 
 	usetime = entry->usetime;
-	if (usetime >= now)
+	if (odp_time_to_ns(usetime) >= odp_time_to_ns(now))
 		return 0;
 	time_diff = odp_time_diff(now, usetime);
 	ns = odp_time_to_ns(time_diff);
