@@ -13,6 +13,13 @@
 #include "api/ofp_pkt_processing.h"
 #include "ofpi_in.h"
 
+#if ODP_VERSION < 103
+#define ODP_PKTIN_MODE_RECV 0
+#define ODP_PKTIN_MODE_SCHED 1
+#define odp_pktio_start(x) 0
+#define odp_pktio_stop(x) 0
+#endif /* ODP_VERSION < 103 */
+
 struct ip_out {
 	struct ofp_ifnet *dev_out;
 	struct ofp_nh_entry *nh;
