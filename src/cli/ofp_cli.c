@@ -21,15 +21,13 @@
 #include <errno.h>
 
 #include <odp.h>
-#include "odp/helper/linux.h"
 
+#include "ofpi.h"
 #include "ofpi_pkt_processing.h"
-#include "ofpi_in.h"
 #include "ofpi_cli.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 #include "ofpi_portconf.h"
-#include "ofpi_init.h"
 
 /*
  * Only core 0 runs this.

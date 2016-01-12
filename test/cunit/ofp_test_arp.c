@@ -19,7 +19,6 @@
 #include "ofp_log.h"
 
 #include "odp/barrier.h"
-#include "odp/helper/linux.h"
 #include "odp/init.h"
 
 #include <arpa/inet.h>

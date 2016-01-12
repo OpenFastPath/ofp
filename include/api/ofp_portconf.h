@@ -9,7 +9,12 @@
 #define __OFP_PORTCONF_H__
 
 #include "odp.h"
+
+#if ODP_VERSION == 102
+#include "linux.h"
+#else
 #include "odp/helper/linux.h"
+#endif /* odp_version == 102 */
 
 #define OFP_IFNAMSIZ  32
 

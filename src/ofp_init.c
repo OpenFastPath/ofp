@@ -17,10 +17,7 @@
 #include <unistd.h>
 #include <odp.h>
 
-#include "odp/helper/linux.h"
-
-#include "ofpi_config.h"
-#include "ofpi_init.h"
+#include "ofpi.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_util.h"
 #include "ofpi_stat.h"
@@ -32,8 +29,6 @@
 #include "ofpi_avl.h"
 #include "ofpi_cli.h"
 #include "ofpi_pkt_processing.h"
-#include "ofpi_timer.h"
-#include "ofpi_hook.h"
 
 #include "ofpi_tcp_var.h"
 #include "ofpi_socketvar.h"

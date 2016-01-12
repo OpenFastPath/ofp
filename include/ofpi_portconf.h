@@ -11,12 +11,13 @@
 #include <stdint.h>
 
 #include "odp.h"
-#include "odp/helper/linux.h"
-#include "ofpi_config.h"
+
 #include "api/ofp_portconf.h"
+#include "api/ofp_socket.h"
+
+#include "ofpi_config.h"
 #include "ofpi_ethernet.h"
 #include "ofpi_queue.h"
-#include "api/ofp_socket.h"
 
 #define NUM_PORTS (OFP_FP_INTERFACE_MAX + 2)
 

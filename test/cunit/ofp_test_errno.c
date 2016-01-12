@@ -13,11 +13,11 @@
 #include <CUnit/Basic.h>
 #endif
 
-#include "ofp_errno.h"
-
-#include "odp/barrier.h"
-#include "odp/helper/linux.h"
 #include "odp/init.h"
+#include "odp/barrier.h"
+
+#include "ofp_errno.h"
+#include "ofpi.h"
 
 #include <unistd.h>
 
