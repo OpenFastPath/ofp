@@ -357,7 +357,7 @@ void ofp_leave_multicast_group(struct ofp_ifnet *dev_vxlan);
 
 static inline int ofp_queue_context_set(odp_queue_t queue, void *context)
 {
-#if ODP_VERSION >= 102
+#if ODP_VERSION >= 103
 	return odp_queue_context_set(queue, context);
 #else
 	return odp_queue_set_context(queue, context);
