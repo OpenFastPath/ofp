@@ -11,7 +11,11 @@
 
 #include "ofpi_hook.h"
 
+#define SHM_NAME_GLOBAL_CONFIG "OfpGlobalConfigShMem"
+#define SHM_PACKET_POOL_NAME "packet_pool"
+
 extern odp_pool_t ofp_packet_pool;
+extern odp_cpumask_t cpumask;
 
 int ofp_init_pre_global(const char *pool_name,
 			odp_pool_param_t *pool_params,

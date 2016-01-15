@@ -39,6 +39,7 @@
  */
 struct ofp_portconf_mem {
 	struct ofp_ifnet ofp_ifnet_data[NUM_PORTS];
+	odp_atomic_u32_t free_port;
 	int ofp_num_ports;
 
 	struct ofp_in_ifaddrhead in_ifaddrhead;
@@ -127,7 +128,15 @@ static int vlan_match_ip(void *key, void *iter_arg)
 		return 0;
 }
 
-
+int ofp_free_port_alloc(void)
+{
+	int port = (int)odp_atomic_fetch_inc_u32(&shm->free_port);
+	if (port >= OFP_FP_INTERFACE_MAX) {
+		OFP_ERR("Interfaces are depleted");
+		return -1;
+	}
+	return port;
+}
 
 static int iter_vlan(void *key, void *iter_arg)
 {
@@ -1270,6 +1279,8 @@ int ofp_portconf_init_global(void)
 	}
 
 	memset(ofp_ifnet_locks_shm, 0, sizeof(*ofp_ifnet_locks_shm));
+
+	odp_atomic_init_u32(&shm->free_port, 0);
 
 	shm->ofp_num_ports = NUM_PORTS;
 

@@ -42,10 +42,6 @@
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
 
-#define SHM_NAME_GLOBAL_CONFIG "OfpGlobalConfigShMem"
-#define SHM_PACKET_POOL_NAME "packet_pool"
-
-
 static __thread struct ofp_global_config_mem *shm;
 
 static void schedule_shutdown(void);
@@ -334,22 +330,11 @@ static int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 }
 
 odp_pool_t ofp_packet_pool;
-odp_atomic_u32_t free_port;
-
-static int ofp_free_port_alloc(void)
-{
-	int port = (int)odp_atomic_fetch_inc_u32(&free_port);
-	if (port >= OFP_FP_INTERFACE_MAX) {
-		OFP_ERR("Interfaces are depleted");
-		return -1;
-	}
-	return port;
-}
+odp_cpumask_t cpumask;
 
 int ofp_init_global(ofp_init_global_t *params)
 {
 	int i;
-	odp_cpumask_t cpumask;
 
 	HANDLE_ERROR(ofp_init_pre_global(NULL, NULL,
 					 params->pkt_hook, NULL,
@@ -362,8 +347,6 @@ int ofp_init_global(ofp_init_global_t *params)
 	OFP_INFO("Slow path threads on core %d", odp_cpumask_first(&cpumask));
 
 	HANDLE_ERROR(ofp_set_vxlan_interface_queue());
-
-	odp_atomic_init_u32(&free_port, 0);
 
 	/* Create interfaces */
 	for (i = 0; i < params->if_count; ++i) {
