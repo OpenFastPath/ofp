@@ -49,6 +49,7 @@ extern "C" {
 #include "ofp_udp.h"
 #include "ofp_ip_var.h"
 #include "ofp_tcp.h"
+#include "ofp_odp_compat.h"
 
 #ifdef __cplusplus
 }

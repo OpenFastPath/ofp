@@ -150,11 +150,7 @@ int main(int argc, char *argv[])
 	 * Sets up to 'num' CPUs and returns the count actually set.
 	 * Use zero for all available CPUs.
 	 */
-#if ODP_VERSION < 104
-	num_workers = odp_cpumask_def_worker(&cpumask, num_workers);
-#else
 	num_workers = odp_cpumask_default_worker(&cpumask, num_workers);
-#endif
 	if (odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr)) < 0) {
 		OFP_ERR("Error: Too small buffer provided to " \
 			"odp_cpumask_to_str\n");

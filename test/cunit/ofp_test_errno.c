@@ -16,6 +16,7 @@
 #include "odp/init.h"
 #include "odp/barrier.h"
 
+#include "ofp_odp_compat.h"
 #include "ofp_errno.h"
 #include "ofpi.h"
 
@@ -48,11 +49,7 @@ static void test_tls_errno(void)
 	odp_barrier_t barrier__;
 	odp_barrier_t *barrier;
 
-#if ODP_VERSION < 104
-	CU_ASSERT(1 == odp_cpumask_def_worker(&cpumask, 1));
-#else
 	CU_ASSERT(1 == odp_cpumask_default_worker(&cpumask, 1));
-#endif
 
 	barrier = &barrier__;
 	odp_barrier_init(barrier, 2);
