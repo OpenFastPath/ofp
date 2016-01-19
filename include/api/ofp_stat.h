@@ -9,10 +9,7 @@
 #define __OFP_STAT_H__
 
 #include <odp.h>
-
-#if ODP_VERSION < 105
-typedef uint64_t odp_time_t;
-#endif /* ODP_VERSION < 105 */
+#include "ofp_odp_compat.h"
 
 struct ofp_packet_stat {
 	struct {

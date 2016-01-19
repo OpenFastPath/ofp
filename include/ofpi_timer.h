@@ -9,6 +9,7 @@
 #define _OFPI_TIMER_H
 
 #include "api/ofp_timer.h"
+#include "ofpi_odp_compat.h"
 
 #define MS_PER_SEC 1000UL
 
@@ -18,19 +19,6 @@
 #define NS_PER_SEC 1000000000UL
 #define NS_PER_MS  1000000UL
 #define NS_PER_US  1000UL
-
-#if ODP_VERSION < 105
-#define ODP_TIME_USEC_IN_NS ODP_TIME_USEC
-#define ODP_TIME_MSEC_IN_NS ODP_TIME_MSEC
-#define ODP_TIME_SEC_IN_NS ODP_TIME_SEC
-#define ENTRY_USETIME_INVALID 0xFFFFFFFF
-#define ODP_TIME_NULL ENTRY_USETIME_INVALID
-#define odp_time_local(x) odp_cpu_cycles(x)
-#define odp_time_diff(x, y) odp_time_diff_cycles(y, x)
-#define odp_time_to_ns(x) odp_time_cycles_to_ns(x)
-#define odp_time_to_u64(x) (x)
-typedef uint64_t odp_time_t;
-#endif /* ODP_VERSION < 105 */
 
 #define OFP_TIMER_RESOLUTION_US	10000UL
 #define OFP_TIMER_MIN_US		0UL
