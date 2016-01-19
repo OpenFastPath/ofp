@@ -10,6 +10,7 @@
 
 #include <odp.h>
 
+#include "api/ofp_odp_compat.h"
 #include "ofpi_config.h"
 #include "ofpi_ethernet.h"
 #include "ofpi_if_vlan.h"

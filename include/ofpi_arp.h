@@ -10,7 +10,7 @@
 #include <odp.h>
 
 #include "ofpi_pkt_processing.h" /* return codes, i.e.: OFP_DROP */
-#include "ofpi_timer.h"
+#include "ofpi.h"
 
 struct arp_key {
 	uint32_t vrf;
