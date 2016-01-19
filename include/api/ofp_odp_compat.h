@@ -13,4 +13,6 @@ typedef uint64_t odp_time_t;
 #define odp_cpumask_default_worker(cpumask, num_workers) odp_cpumask_def_worker(cpumask, num_workers)
 #elif ODP_VERSION < 102
 #define odp_cpumask_default_worker(cpumask, num_workers) odp_cpumask_count(cpumask)
+#define ODP_THREAD_WORKER
+#define ODP_THREAD_CONTROL
 #endif
