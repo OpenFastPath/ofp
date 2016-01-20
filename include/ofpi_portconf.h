@@ -18,6 +18,7 @@
 #include "ofpi_config.h"
 #include "ofpi_ethernet.h"
 #include "ofpi_queue.h"
+#include "ofpi_odp_compat.h"
 
 #define NUM_PORTS (OFP_FP_INTERFACE_MAX + 2)
 
@@ -357,19 +358,11 @@ void ofp_leave_multicast_group(struct ofp_ifnet *dev_vxlan);
 
 static inline int ofp_queue_context_set(odp_queue_t queue, void *context)
 {
-#if ODP_VERSION >= 103
 	return odp_queue_context_set(queue, context);
-#else
-	return odp_queue_set_context(queue, context);
-#endif
 }
 
 static inline void *ofp_queue_context(odp_queue_t queue)
 {
-#if ODP_VERSION >= 103
 		return odp_queue_context(queue);
-#else
-		return odp_queue_get_context(queue);
-#endif
 }
 #endif

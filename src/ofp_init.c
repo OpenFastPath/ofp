@@ -37,6 +37,7 @@
 #include "ofpi_inet.h"
 #include "ofpi_igmp_var.h"
 #include "ofpi_vxlan.h"
+#include "ofpi_odp_compat.h"
 
 #include "ofpi_log.h"
 #include "ofpi_debug.h"

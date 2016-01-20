@@ -10,6 +10,8 @@
 #define ODP_PKTIN_MODE_SCHED 1
 #define odp_pktio_start(x) 0
 #define odp_pktio_stop(x) 0
+#define odp_queue_context(x) odp_queue_get_context(x)
+#define odp_queue_context_set(q, ctx) odp_queue_set_context(q, ctx)
 #endif /* ODP_VERSION < 103 */
 
 #if ODP_VERSION < 105
