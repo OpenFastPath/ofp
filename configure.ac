@@ -112,9 +112,6 @@ fi
 # adding the ODP library (e.g. with static name 'libodp.a')
 ##########################################################################
 
-# prepending lib to the files to link
-LIBS="-lodp -lodphelper $LIBS"
-
 # introduce the optional configure parameter for a non-standard install prefix of XXX
 AC_ARG_WITH([odp],
     [AS_HELP_STRING([--with-odp=prefix],
@@ -137,8 +134,16 @@ PKG_CHECK_MODULES([ODP], [libodp >= 1.5], [ODP_VERSION=105],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.4], [ODP_VERSION=104],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.3], [ODP_VERSION=103],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.2], [ODP_VERSION=102],
+    [PKG_CHECK_MODULES([ODP], [libodp >= 1.1], [ODP_VERSION=101],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100]
-    )])])])])
+    )])])])])])
+
+# prepending lib to the files to link
+if [[ "${ODP_VERSION}" -gt 101 ]]; then
+LIBS="-lodp -lodphelper $LIBS"
+else
+LIBS="-lodp $LIBS"
+fi
 
 AC_CHECK_LIB(odp, odp_packet_alloc, [],
     [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
