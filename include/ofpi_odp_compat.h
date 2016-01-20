@@ -29,3 +29,7 @@
 #endif /* ODP_VERSION < 104 */
 
 #endif /* ODP_VERSION < 105 */
+
+#if ODP_VERSION < 102
+#define odp_pool_create(name, params) odp_pool_create(name, ODP_SHM_NULL, params)
+#endif /* ODP_VERSION < 102 */
