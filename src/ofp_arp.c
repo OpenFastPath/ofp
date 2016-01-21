@@ -61,7 +61,7 @@ struct ofp_arp_mem {
 	struct _arp arp;
 	struct _pkt pkt;
 
-	unsigned int entry_timeout;      /* ARP entry timeout (in seconds) */
+	odp_time_t entry_timeout;        /* ARP entry timeout */
 	unsigned int age_interval;       /* ageing interval (in seconds) */
 	odp_timer_t age_timer;
 };
@@ -461,6 +461,11 @@ static void ofp_arp_entry_cleanup_on_tmo(int set, struct arp_entry *entry)
 static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 						odp_time_t now)
 {
+#if ODP_VERSION >= 105
+	odp_time_t end = odp_time_sum(entry->usetime, shm->entry_timeout);
+
+	return odp_time_cmp(now, end) > 0;
+#else
 	uint64_t ns;
 	odp_time_t time_diff, usetime;
 
@@ -469,10 +474,11 @@ static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 		return 0;
 	time_diff = odp_time_diff(now, usetime);
 	ns = odp_time_to_ns(time_diff);
-	if (ns > (shm->entry_timeout * NS_PER_SEC))
+	if (ns > shm->entry_timeout)
 		return 1;
 
 	return 0;
+#endif
 }
 
 void ofp_arp_age_cb(void *arg)
@@ -648,7 +654,8 @@ int ofp_arp_init_global(int age_interval, int entry_timeout)
 			 "setting to %ds", entry_timeout);
 		age_interval = entry_timeout;
 	}
-	shm->entry_timeout = entry_timeout;
+	shm->entry_timeout =
+		odp_time_local_from_ns(entry_timeout * NS_PER_SEC);
 	shm->age_interval = age_interval;
 	shm->age_timer = ofp_timer_start(
 		shm->age_interval * US_PER_SEC, ofp_arp_age_cb, &cli, sizeof(cli));

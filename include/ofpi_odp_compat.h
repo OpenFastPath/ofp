@@ -22,6 +22,7 @@
 #define ODP_TIME_NULL ENTRY_USETIME_INVALID
 #define odp_time_diff(x, y) odp_time_diff_cycles(y, x)
 #define odp_time_to_ns(x) odp_time_cycles_to_ns(x)
+#define odp_time_local_from_ns(x) (x)
 #define odp_time_to_u64(x) (x)
 
 #if ODP_VERSION < 104
