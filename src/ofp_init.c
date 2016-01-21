@@ -643,6 +643,7 @@ int ofp_term_post_global(const char *pool_name)
 	}
 
 	CHECK_ERROR(ofp_global_config_free_shared_memory(), rc);
+	CHECK_ERROR(ofp_unregister_sysctls(), rc);
 
 	return rc;
 }

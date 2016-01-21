@@ -184,12 +184,12 @@ sysctl_register_oid(struct ofp_sysctl_oid *oidp)
 		OFP_SLIST_INSERT_HEAD(parent, oidp, oid_link);
 }
 
-#if 0
-static void
+
+static int
 sysctl_unregister_oid(struct ofp_sysctl_oid *oidp)
 {
 	struct ofp_sysctl_oid *p;
-	int error;
+	int error = 0;
 
 	SYSCTL_ASSERT_XLOCKED();
 	error = OFP_ENOENT;
@@ -213,8 +213,11 @@ sysctl_unregister_oid(struct ofp_sysctl_oid *oidp)
 	 */
 	if (error)
 		OFP_ERR("Failed to unregister sysctl");
+
+	return error;
 }
 
+#if 0
 /* Initialize a new context to keep track of dynamically added sysctls. */
 static int
 sysctl_ctx_init(struct sysctl_ctx_list *c)
@@ -583,6 +586,21 @@ sysctl_register_all(void *arg)
 	SET_FOREACH(oidp, sysctl_set)
 		sysctl_register_oid(*oidp);
 	SYSCTL_XUNLOCK();
+}
+
+static int
+sysctl_unregister_all(void *arg)
+{
+	int ret = 0;
+	struct ofp_sysctl_oid **oidp;
+	(void)arg;
+
+	SYSCTL_XLOCK();
+	SET_FOREACH(oidp, sysctl_set)
+		if (sysctl_unregister_oid(*oidp))
+			ret = -1;
+	SYSCTL_XUNLOCK();
+	return ret;
 }
 
 SYSINIT(sysctl, SI_SUB_KMEM, SI_ORDER_ANY, sysctl_register_all, 0);
@@ -1686,6 +1704,12 @@ ofp_register_sysctls(void)
 {
 	sysctl_register_all(NULL);
 	sysctl_sysctl_debug(NULL, NULL,	0, NULL);
+}
+
+int
+ofp_unregister_sysctls(void)
+{
+	return sysctl_unregister_all(NULL);
 }
 
 void

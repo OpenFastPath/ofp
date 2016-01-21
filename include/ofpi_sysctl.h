@@ -78,6 +78,7 @@ int	ofp_kernel_sysctl(struct thread *td, const int *name, unsigned int namelen, 
 int	ofp_sysctl_find_oid(const int *name, unsigned int namelen, struct ofp_sysctl_oid **noid,
 			      int *nindx, struct ofp_sysctl_req *req);
 void	ofp_register_sysctls(void);
+int	ofp_unregister_sysctls(void);
 void	ofp_sysctl_write_tree(int fd);
 
 #endif	/* !_SYS_SYSCTL_H_ */
