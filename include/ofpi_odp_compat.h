@@ -36,3 +36,7 @@
 #if ODP_VERSION < 102
 #define odp_pool_create(name, params) odp_pool_create(name, ODP_SHM_NULL, params)
 #endif /* ODP_VERSION < 102 */
+
+#if ODP_VERSION == 100
+#define odp_packet_user_area(pkt) (struct vxlan_user_data *)odp_packet_user_ptr(pkt)
+#endif /* ODP_VERSION == 100 */
