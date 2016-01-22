@@ -10,11 +10,7 @@
 
 #include "odp.h"
 
-#if ODP_VERSION == 102
-#include "linux.h"
-#else
-#include "odp/helper/linux.h"
-#endif /* odp_version == 102 */
+#include "ofp_odp_compat.h"
 
 #define OFP_IFNAMSIZ  32
 
