@@ -40,3 +40,7 @@
 #if ODP_VERSION == 100
 #define odp_packet_user_area(pkt) (struct vxlan_user_data *)odp_packet_user_ptr(pkt)
 #endif /* ODP_VERSION == 100 */
+
+#if ODP_VERSION < 101
+#define odp_pmr_create(term, val1, val2, valsz) odp_pmr_create_range(term, val1, val2, valsz)
+#endif /* ODP_VERSION < 101 */
