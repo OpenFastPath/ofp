@@ -144,7 +144,9 @@ int ofp_init_pre_global(const char *pool_name_unused,
 	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.num        = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
+#if ODP_VERSION > 100
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
+#endif /* ODP_VERSION > 100 */
 	pool_params.type           = ODP_POOL_PACKET;
 
 	ofp_packet_pool = ofp_pool_create(SHM_PACKET_POOL_NAME, &pool_params);
