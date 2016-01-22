@@ -46,6 +46,8 @@
  * MULTICAST Revision: 3.5.1.3
  */
 
+#include "api/ofp_sysctl.h"
+
 #ifndef BURN_BRIDGES
 /*
  * Pre-IGMPV3 igmpstat structure.

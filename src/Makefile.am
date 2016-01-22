@@ -29,6 +29,7 @@ cli/ofp_cli_sysctl.c \
 cli/ofp_cli.c \
 ofp_hash.c \
 ofp_icmp.c \
+ofp_ifnet.c \
 ofp_init.c \
 ofp_inet.c \
 ofp_in_pcb.c \
