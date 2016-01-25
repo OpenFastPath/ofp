@@ -1112,6 +1112,12 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	struct ip_out odata;
 	enum ofp_return_code ret;
 
+	OFP_HOOK(OFP_HOOK_OUT_IPv4, pkt, NULL, &ret);
+	if (ret != OFP_PKT_CONTINUE) {
+		OFP_DBG("OFP_HOOK_OUT_IPv4 returned %d", ret);
+		return ret;
+	}
+
 	odata.dev_out = NULL;
 	odata.vrf = send_ctx ? send_ctx->vrf : 0;
 	odata.is_local_address = 0;
@@ -1279,9 +1285,17 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 	int vrf = send_ctx ? send_ctx->vrf : 0;
 	uint8_t is_local_address = 0;
 	uint8_t *mac = NULL;
+	enum ofp_return_code ret;
 
 	if (odp_packet_l3_offset(pkt) == ODP_PACKET_OFFSET_INVALID)
 		odp_packet_l3_offset_set(pkt, 0);
+
+	OFP_HOOK(OFP_HOOK_OUT_IPv6, pkt, NULL, &ret);
+	if (ret != OFP_PKT_CONTINUE) {
+		OFP_DBG("OFP_HOOK_OUT_IPv6 returned %d", ret);
+		return ret;
+	}
+
 	ip6 = (struct ofp_ip6_hdr *) odp_packet_l3_ptr(pkt, NULL);
 	if (odp_unlikely(ip6 == NULL))
 		return OFP_PKT_DROP;

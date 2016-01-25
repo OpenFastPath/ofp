@@ -36,6 +36,12 @@
 
 #include "test_raw_frames.h"
 
+static int my_test_val;
+#define TEST_HOOK_OUT_IPv4		0x8006
+#define TEST_HOOK_OUT_IPv6		0x8007
+
+#define TEST_HOOK_OUT_IPv4_VALUE	0xFF01
+#define TEST_HOOK_OUT_IPv6_VALUE	0xFF02
 #define fail_with_odp(msg) do { OFP_ERR(msg); CU_FAIL(msg); } while (0)
 
 /*
@@ -157,6 +163,27 @@ static void init_ifnet(void)
 				      tun_p2p + 1, tun_addr + 1, tun_mask);
 }
 
+static enum ofp_return_code fastpath_hook_out_IPv4(odp_packet_t pkt,
+		void *arg)
+{
+	(void)pkt;
+	(void)arg;
+
+	if (my_test_val == TEST_HOOK_OUT_IPv4)
+		return TEST_HOOK_OUT_IPv4_VALUE;
+	return OFP_PKT_CONTINUE;
+}
+static enum ofp_return_code fastpath_hook_out_IPv6(odp_packet_t pkt,
+		void *arg)
+{
+	(void)pkt;
+	(void)arg;
+
+	if (my_test_val == TEST_HOOK_OUT_IPv6)
+		return TEST_HOOK_OUT_IPv6_VALUE;
+	return OFP_PKT_CONTINUE;
+}
+
 static int
 init_suite(void)
 {
@@ -177,6 +204,10 @@ init_suite(void)
 	}
 
 	memset(pkt_hook, 0, sizeof(pkt_hook));
+	pkt_hook[OFP_HOOK_OUT_IPv4] = fastpath_hook_out_IPv4;
+#ifdef INET6
+	pkt_hook[OFP_HOOK_OUT_IPv6] = fastpath_hook_out_IPv6;
+#endif /* INET6 */
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
@@ -595,6 +626,47 @@ test_send_frame_vlan_to_vlan(void)
 		CU_FAIL("Frame data mismatch.");
 }
 
+static void
+test_hook_out_ipv4(void)
+{
+	int res;
+	odp_packet_t pkt = ODP_PACKET_INVALID;
+
+	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame),
+				  tun_p2p)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	my_test_val = TEST_HOOK_OUT_IPv4;
+	res = ofp_ip_output(pkt, NULL);
+	my_test_val = 0;
+
+	CU_ASSERT_EQUAL(res, TEST_HOOK_OUT_IPv4_VALUE);
+	CU_PASS("test_hook_out_ipv4");
+}
+
+#ifdef INET6
+static void
+test_hook_out_ipv6(void)
+{
+	int res;
+	odp_packet_t pkt = ODP_PACKET_INVALID;
+
+	if (create_odp_packet_ip6(&pkt, ip6udp_frame, sizeof(ip6udp_frame))) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	my_test_val = TEST_HOOK_OUT_IPv6;
+	res = ofp_ip6_output(pkt, NULL);
+	my_test_val = 0;
+
+	CU_ASSERT_EQUAL(res, TEST_HOOK_OUT_IPv6_VALUE);
+	CU_PASS("test_hook_out_ipv6");
+}
+#endif /*INET6*/
+
 /*
  * Main
  */
@@ -661,6 +733,19 @@ main(void)
 		return CU_get_error();
 	}
 
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_hook_out_ipv4)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+
+#ifdef INET6
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_hook_out_ipv6)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+#endif /*INET6*/
 
 #if OFP_TESTMODE_AUTO
 	CU_set_output_filename("CUnit-PKT-OUT");

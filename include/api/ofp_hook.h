@@ -54,7 +54,11 @@ enum ofp_hook_id {
 	OFP_HOOK_FWD_IPv6,	/**< Registers a function to handle all IPv6
 					packets	that require forwarding */
 	OFP_HOOK_GRE,		/**< Registers a function to handle GRE tunnels
-                                        not registered to OFP */
+					not registered to OFP */
+	OFP_HOOK_OUT_IPv4,	/**< Registers a function to handle all IPv4
+					packets to be sent by OFP*/
+	OFP_HOOK_OUT_IPv6,	/**< Registers a function to handle all IPv6
+					packets to be sent by OFP*/
 	OFP_HOOK_MAX
 };
 
