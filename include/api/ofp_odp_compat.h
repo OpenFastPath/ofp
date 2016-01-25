@@ -19,9 +19,11 @@ typedef uint64_t odp_time_t;
 #endif /* ODP_VERSION < 105 */
 
 #if ODP_VERSION < 104 && ODP_VERSION > 101
-#define odp_cpumask_default_worker(cpumask, num_workers) odp_cpumask_def_worker(cpumask, num_workers)
+#define odp_cpumask_default_worker(cpumask, num_workers) \
+	odp_cpumask_def_worker(cpumask, num_workers)
 #elif ODP_VERSION < 102
-#define odp_cpumask_default_worker(cpumask, num_workers) odp_cpumask_count(cpumask)
+#define odp_cpumask_default_worker(cpumask, num_workers) \
+	odp_cpumask_count(cpumask)
 #define odp_init_local(x) odp_init_local()
 #define ODP_THREAD_WORKER 0
 #define ODP_THREAD_CONTROL 1
@@ -51,5 +53,10 @@ static inline int ofp_linux_pthread_create(odph_linux_pthread_t *thread_tbl,
                                 );
 #endif /* ODP_VERSION == 100 */
 }
+
+#if ODP_VERSION < 101
+#define odp_pmr_create(term, val1, val2, valsz) \
+	odp_pmr_create_range(term, val1, val2, valsz)
+#endif /* ODP_VERSION < 101 */
 
 #endif
