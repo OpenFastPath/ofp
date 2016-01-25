@@ -7,6 +7,7 @@
 #ifndef __OFPI_IFNET_H__
 #define __OFPI_IFNET_H__
 
+#include "api/ofp_ifnet.h"
 #include "ofpi_portconf.h"
 
 /* Open a packet IO instance for this ifnet device for the pktin_mode. */

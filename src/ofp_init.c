@@ -178,75 +178,11 @@ int ofp_init_global(ofp_init_global_t *params)
 	HANDLE_ERROR(ofp_set_vxlan_interface_queue());
 
 	/* Create interfaces */
-	for (i = 0; i < params->if_count; ++i) {
-		struct ofp_ifnet *ifnet;
-		int port;
 
-		port = ofp_free_port_alloc();
-		ifnet = ofp_get_ifnet((uint16_t)port, 0);
-
-		if (ifnet == NULL) {
-			OFP_ERR("Got ifnet NULL");
-			return -1;
-		}
-
-		OFP_DBG("Interface '%s' becomes '%s%d', port %d",
-			params->if_names[i], OFP_IFNAME_PREFIX, port, port);
-
-		strncpy(ifnet->if_name, params->if_names[i], OFP_IFNAMSIZ);
-		ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
-		ifnet->pkt_pool = ofp_packet_pool;
-
-		HANDLE_ERROR(ofp_pktio_open(ifnet,
-						params->burst_recv_mode ?
-							ODP_PKTIN_MODE_RECV : ODP_PKTIN_MODE_SCHED));
-
-		HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
-		HANDLE_ERROR(ofp_loopq_create(ifnet));
-
-		HANDLE_ERROR(ofp_mac_set(ifnet));
-		HANDLE_ERROR(ofp_mtu_set(ifnet));
-
-		ofp_igmp_attach(ifnet);
-
-#ifdef SP
-		HANDLE_ERROR(ofp_sp_inq_create(ifnet));
-
-		/* Create the kernel representation of the FP interface. */
-		HANDLE_ERROR(sp_setup_device(ifnet));
-
-		/* Maintain table to access ifnet from linux ifindex */
-		ofp_update_ifindex_lookup_tab(ifnet);
-
-#ifdef INET6
-		/* ifnet MAC was set in sp_setup_device() */
-		ofp_mac_to_link_local(ifnet->mac, ifnet->link_local);
-#endif /* INET6 */
-
-		/* Start VIF slowpath receiver thread */
-		ofp_linux_pthread_create(ifnet->rx_tbl,
-					 &cpumask,
-					 sp_rx_thread,
-					 ifnet,
-					 ODP_THREAD_CONTROL);
-
-		/* Start VIF slowpath transmitter thread */
-		ofp_linux_pthread_create(ifnet->tx_tbl,
-					 &cpumask,
-					 sp_tx_thread,
-					 ifnet,
-					 ODP_THREAD_CONTROL);
-#endif /* SP */
-		/* Start packet receiver or transmitter */
-		if (odp_pktio_start(ifnet->pktio) != 0) {
-			OFP_ERR("Failed to start pktio.");
-			return -1;
-		}
-
-		/* if_state parameter not used */
-		ifnet->if_state = OFP_IFT_STATE_USED;
-	}
-
+	for (i = 0; i < params->if_count; ++i)
+		HANDLE_ERROR(ofp_ifnet_create(params->if_names[i],
+			params->burst_recv_mode ? ODP_PKTIN_MODE_RECV :
+						ODP_PKTIN_MODE_SCHED));
 
 #ifdef SP
 	/* Start Netlink server process */

@@ -185,4 +185,66 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 	return 0;
 }
 
+int ofp_ifnet_create(char *if_name, int recv_mode)
+{
+	int port = ofp_free_port_alloc();
+	struct ofp_ifnet *ifnet = ofp_get_ifnet((uint16_t)port, 0);
 
+	if (ifnet == NULL) {
+		OFP_ERR("Got ifnet NULL");
+		return -1;
+	}
+
+	OFP_DBG("Interface '%s' becomes '%s%d', port %d",
+		if_name, OFP_IFNAME_PREFIX, port, port);
+
+	ifnet->if_state = OFP_IFT_STATE_USED;
+	strncpy(ifnet->if_name, if_name, OFP_IFNAMSIZ);
+	ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
+	ifnet->pkt_pool = ofp_packet_pool;
+
+	HANDLE_ERROR(ofp_pktio_open(ifnet, recv_mode));
+
+	HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
+	HANDLE_ERROR(ofp_loopq_create(ifnet));
+
+	HANDLE_ERROR(ofp_mac_set(ifnet));
+	HANDLE_ERROR(ofp_mtu_set(ifnet));
+
+	ofp_igmp_attach(ifnet);
+
+#ifdef SP
+	HANDLE_ERROR(ofp_sp_inq_create(ifnet));
+
+	/* Create the kernel representation of the FP interface. */
+	HANDLE_ERROR(sp_setup_device(ifnet));
+
+	/* Maintain table to access ifnet from linux ifindex */
+	ofp_update_ifindex_lookup_tab(ifnet);
+#ifdef INET6
+	/* ifnet MAC was set in sp_setup_device() */
+	ofp_mac_to_link_local(ifnet->mac, ifnet->link_local);
+#endif /* INET6 */
+
+	/* Start VIF slowpath receiver thread */
+	ofp_linux_pthread_create(ifnet->rx_tbl,
+				 &cpumask,
+				 sp_rx_thread,
+				 ifnet,
+				 ODP_THREAD_CONTROL);
+
+	/* Start VIF slowpath transmitter thread */
+	ofp_linux_pthread_create(ifnet->tx_tbl,
+				 &cpumask,
+				 sp_tx_thread,
+				 ifnet,
+				 ODP_THREAD_CONTROL);
+#endif /* SP */
+	/* Start packet receiver or transmitter */
+	if (odp_pktio_start(ifnet->pktio) != 0) {
+		OFP_ERR("Failed to start pktio.");
+		return -1;
+	}
+
+	return 0;
+}
