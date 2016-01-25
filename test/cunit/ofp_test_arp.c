@@ -76,7 +76,11 @@ static int init_suite(void)
 	odp_cpumask_t cpumask;
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, 0x1);
-	odph_linux_pthread_create(&pp_thread_handle, &cpumask, pp_thread, NULL);
+	ofp_linux_pthread_create(&pp_thread_handle,
+				&cpumask,
+				pp_thread,
+				NULL,
+				ODP_THREAD_WORKER);
 
 	return 0;
 }
@@ -93,15 +97,6 @@ static int end_suite(void)
 void *pp_thread(void *arg)
 {
 	ALLOW_UNUSED_LOCAL(arg);
-
-#if ODP_VERSION >= 102
-	if (odp_init_local(ODP_THREAD_WORKER)) {
-#else
-	if (odp_init_local()) {
-#endif
-		OFP_ERR("odp_init_local failed");
-		return NULL;
-	}
 	if (ofp_init_local()) {
 		OFP_ERR("ofp_init_local failed");
 		return NULL;
