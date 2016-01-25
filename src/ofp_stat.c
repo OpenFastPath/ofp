@@ -14,8 +14,10 @@
 #include "ofpi_log.h"
 #include "ofpi_stat.h"
 #include "ofpi_util.h"
+#include "ofpi_odp_compat.h"
 
 #define SHM_NAME_STAT "OfpStatShMem"
+
 
 typedef struct {
 	struct ofp_packet_stat ofp_packet_statistics;
@@ -52,7 +54,8 @@ static void ofp_perf_tmo(void *arg)
 	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF)
 		ofp_timer_start(US_PER_SEC/PROBES, ofp_perf_tmo, NULL, 0);
 
-	odp_sync_stores();
+	odp_mb_release();
+
 	for (core = 0; core < odp_cpu_count(); core++)
 		value += shm_stat->ofp_packet_statistics.per_core[core].rx_fp;
 

@@ -44,4 +44,8 @@
 #define odp_packet_user_area(pkt) (struct vxlan_user_data *)odp_packet_user_ptr(pkt)
 #endif /* ODP_VERSION == 100 */
 
+#if ODP_VERSION < 106
+#define odp_mb_release() odp_sync_stores()
+#endif /* ODP_VERSION < 106 */
+
 #endif

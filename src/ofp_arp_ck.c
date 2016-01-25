@@ -24,6 +24,7 @@
 #include "ofpi_hash.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
+#include "ofpi_odp_compat.h"
 
 #include <config.h>
 
@@ -86,7 +87,7 @@ static inline void arp_free(void *p)
 	struct arp_entry *entry = (struct arp_entry *)p;
 
 	memset(&entry->key, 0, sizeof(entry->key));
-	odp_sync_stores();
+	odp_mb_release();
 }
 
 static inline struct arp_entry *arp_lookup(struct arp_key *key)
@@ -127,7 +128,7 @@ inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	if (odp_unlikely(new != NULL)) {
 		new->ifx = dev->port;
 		memcpy(&new->macaddr, ll_addr, ETH_ALEN);
-		odp_sync_stores();
+		odp_mb_release();
 		ck_epoch_end(&arp_epoch, &record);
 		return 0;
 	}
@@ -293,7 +294,7 @@ int ofp_arp_init_global(void)
 	memset((void *)&(shm->arp_entries[0][0]), 0x0,
 	       sizeof(shm->arp_entries));
 	ck_epoch_init(&arp_epoch);
-	odp_sync_stores();
+	odp_mb_release();
 
 	return 0;
 }
@@ -313,7 +314,7 @@ int ofp_arp_term_global(void)
 int ofp_arp_init_local(void)
 {
 	ck_epoch_register(&arp_epoch, &record);
-	odp_sync_stores();
+	odp_mb_release();
 	return 0;
 }
 

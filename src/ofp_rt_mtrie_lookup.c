@@ -19,6 +19,7 @@
 #include "odp/rwlock.h"
 #include "ofpi_rt_lookup.h"
 #include "ofpi_log.h"
+#include "ofpi_odp_compat.h"
 
 #define SHM_NAME_RT_LOOKUP_MTRIE	"OfpRtlookupMtrieShMem"
 
@@ -347,7 +348,7 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 			return NULL;
 
 	}
-	odp_sync_stores();
+	odp_mb_release();
 
 	if (insert != -1)
 		ofp_rtl_insert(tree,
