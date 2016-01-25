@@ -395,24 +395,18 @@ int ofp_init_global(ofp_init_global_t *params)
 #endif /* INET6 */
 
 		/* Start VIF slowpath receiver thread */
-		odph_linux_pthread_create(ifnet->rx_tbl,
+		ofp_linux_pthread_create(ifnet->rx_tbl,
 					 &cpumask,
 					 sp_rx_thread,
-					 ifnet
-#if ODP_VERSION >= 106
-					 , ODP_THREAD_CONTROL
-#endif
-					 );
+					 ifnet,
+					 ODP_THREAD_CONTROL);
 
 		/* Start VIF slowpath transmitter thread */
-		odph_linux_pthread_create(ifnet->tx_tbl,
+		ofp_linux_pthread_create(ifnet->tx_tbl,
 					 &cpumask,
 					 sp_tx_thread,
-					 ifnet
-#if ODP_VERSION >= 106
-					 , ODP_THREAD_CONTROL
-#endif
-					 );
+					 ifnet,
+					 ODP_THREAD_CONTROL);
 #endif /* SP */
 		/* Start packet receiver or transmitter */
 		if (odp_pktio_start(ifnet->pktio) != 0) {
@@ -427,15 +421,11 @@ int ofp_init_global(ofp_init_global_t *params)
 
 #ifdef SP
 	/* Start Netlink server process */
-	if (!odph_linux_pthread_create(&shm->nl_thread,
+	if (!ofp_linux_pthread_create(&shm->nl_thread,
 				  &cpumask,
 				  START_NL_SERVER,
-				  NULL
-#if ODP_VERSION >= 106
-				 , ODP_THREAD_CONTROL
-#endif
-				  )) {
-
+				  NULL,
+				  ODP_THREAD_CONTROL)) {
 
 		OFP_ERR("Failed to start Netlink thread.");
 		return -1;

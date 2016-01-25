@@ -54,8 +54,12 @@ static void test_tls_errno(void)
 	barrier = &barrier__;
 	odp_barrier_init(barrier, 2);
 
-	CU_ASSERT(1 == odph_linux_pthread_create(
-			  &threads, &cpumask, other_thread, (void *)barrier));
+	CU_ASSERT(1 == ofp_linux_pthread_create(
+			&threads,
+			&cpumask,
+			other_thread,
+			(void *)barrier,
+			ODP_THREAD_CONTROL));
 
 	/* Initialize this thread's ofp_errno. */
 	ofp_errno = 0;

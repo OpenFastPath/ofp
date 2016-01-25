@@ -1717,14 +1717,11 @@ int ofp_start_cli_thread(int core_id, char *conf_file)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
-	if (odph_linux_pthread_create(&ofp_global_cfg->cli_thread,
+	if (ofp_linux_pthread_create(&ofp_global_cfg->cli_thread,
 			&cpumask,
 			cli_server,
-			conf_file
-#if ODP_VERSION >= 106
-			, ODP_THREAD_CONTROL
-#endif
-			) == 0) {
+			conf_file,
+			ODP_THREAD_CONTROL) == 0) {
 		OFP_ERR("Failed to start CLI thread.");
 		ofp_global_cfg->cli_thread_is_running = 0;
 		return -1;

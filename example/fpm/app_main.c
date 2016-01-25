@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 
 #include "ofp.h"
+#include "ofp_odp_compat.h"
 
 #define MAX_WORKERS		32
 
@@ -188,10 +189,12 @@ int main(int argc, char *argv[])
 	 * input arguments, the cpumask is used to control this.
 	 */
 	memset(thread_tbl, 0, sizeof(thread_tbl));
-	ret_val = odph_linux_pthread_create(thread_tbl,
+	ret_val = ofp_linux_pthread_create(thread_tbl,
 					    &cpumask,
 					    default_event_dispatcher,
-					    ofp_eth_vlan_processing);
+					    ofp_eth_vlan_processing,
+					    ODP_THREAD_CONTROL
+					  );
 	if (ret_val != num_workers) {
 		OFP_ERR("Error: Failed to create worker threads, " \
 			"expected %d, got %d\n",
@@ -444,9 +447,11 @@ static int start_performance(int core_id)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
-	return odph_linux_pthread_create(&cli_linux_pthread,
+	return ofp_linux_pthread_create(&cli_linux_pthread,
 					 &cpumask,
 					 perf_client,
-					 NULL);
+					 NULL,
+					 ODP_THREAD_WORKER
+					);
 
 }
