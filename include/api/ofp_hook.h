@@ -41,6 +41,14 @@ typedef enum ofp_return_code (*ofp_pkt_hook)(odp_packet_t pkt, void *arg);
 enum ofp_hook_id {
 	OFP_HOOK_LOCAL = 0,	/**< Registers a function to handle all packets
 					with processing at IP level */
+	OFP_HOOK_LOCAL_IPv4,	/**< Registers a function to handle all packets
+					with processing at IPv4 level */
+	OFP_HOOK_LOCAL_IPv6,	/**< Registers a function to handle all packets
+					with processing at IPv6 level */
+	OFP_HOOK_LOCAL_UDPv4,	/**< Registers a function to handle all packets
+					with processing at UDP IPv4 level */
+	OFP_HOOK_LOCAL_UDPv6,	/**< Registers a function to handle all packets
+					with processing at UDP IPv6 level */
 	OFP_HOOK_FWD_IPv4,	/**< Registers a function to handle all IPv4
 					packets	that require forwarding */
 	OFP_HOOK_FWD_IPv6,	/**< Registers a function to handle all IPv6

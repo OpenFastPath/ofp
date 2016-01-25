@@ -89,12 +89,16 @@ static uint8_t gre_frame[138] = {
 
 #define OFP_TEST_FAIL		0xFFFF
 #define OFP_TEST_LOCAL_HOOK	0xFF01
+#define OFP_TEST_LOCAL_IPv4_HOOK	0xFF02
+#define OFP_TEST_LOCAL_UDPv4_HOOK	0xFF03
 
 #define TEST_LOCAL_HOOK		0x8001
 #define TEST_FORWARD_HOOK	0x8002
 #define TEST_LOCAL_HOOK_GRE     0x8003
 #define TEST_LOCAL_HOOK_GRE_APP 0x8004
 #define TEST_GRE_HOOK		0x8005
+#define TEST_LOCAL_IPv4_HOOK		0x8006
+#define TEST_LOCAL_UDPv4_HOOK		0x8007
 /* global identifier for a testcase */
 static int my_test_val;
 /* save the packet that was sent as input to ofp_packet_input */
@@ -153,8 +157,34 @@ static enum ofp_return_code fastpath_local_hook(odp_packet_t pkt,
 		   after tunnel is not found to GRE hook */
 		my_test_val = TEST_GRE_HOOK;
 		return OFP_PKT_CONTINUE;
-	} else
+	} else if (my_test_val == TEST_LOCAL_IPv4_HOOK)
+		return OFP_PKT_CONTINUE;
+	else if (my_test_val == TEST_LOCAL_UDPv4_HOOK)
+		return OFP_PKT_CONTINUE;
+	else
 		return OFP_TEST_FAIL;
+}
+
+static enum ofp_return_code fastpath_local_IPv4_hook(odp_packet_t pkt,
+		void *arg)
+{
+	(void)pkt;
+	(void)arg;
+
+	if (my_test_val == TEST_LOCAL_IPv4_HOOK)
+		return OFP_TEST_LOCAL_IPv4_HOOK;
+	return OFP_PKT_CONTINUE;
+}
+
+static enum ofp_return_code fastpath_local_UDPv4_hook(odp_packet_t pkt,
+		void *arg)
+{
+	(void)pkt;
+	(void)arg;
+
+	if (my_test_val == TEST_LOCAL_UDPv4_HOOK)
+		return OFP_TEST_LOCAL_UDPv4_HOOK;
+	return OFP_PKT_CONTINUE;
 }
 
 static enum ofp_return_code fastpath_gre_hook(odp_packet_t pkt, void *nh)
@@ -238,6 +268,8 @@ init_suite(void)
 
 	memset(pkt_hook, 0, sizeof(pkt_hook));
 	pkt_hook[OFP_HOOK_LOCAL]    = fastpath_local_hook;
+	pkt_hook[OFP_HOOK_LOCAL_IPv4]    = fastpath_local_IPv4_hook;
+	pkt_hook[OFP_HOOK_LOCAL_UDPv4]    = fastpath_local_UDPv4_hook;
 	pkt_hook[OFP_HOOK_FWD_IPv4] = fastpath_ip4_forward_hook;
 	pkt_hook[OFP_HOOK_FWD_IPv6] = fastpath_ip6_forward_hook;
 	pkt_hook[OFP_HOOK_GRE]	    = fastpath_gre_hook;
@@ -364,6 +396,62 @@ test_ofp_packet_input_local_hook(void)
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
 	ifnet->ip_addr = 0;
 	CU_PASS("ofp_packet_input_local_hook");
+}
+
+static void
+test_ofp_packet_input_local_IPv4_hook(void)
+{
+	odp_packet_t pkt;
+	int res;
+
+	/* Call ofp_packet_input with a pkt with destination ip
+	 * that matches the local ip on ifnet.
+	 * The packet is terminated in local IPv4 hook */
+	my_test_val = TEST_LOCAL_IPv4_HOOK;
+	ifnet->ip_addr = dst_ipaddr;
+	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame),
+				  dst_ipaddr, 0)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	res = ofp_packet_input(pkt, interface_queue[port],
+		ofp_eth_vlan_processing);
+	CU_ASSERT_EQUAL(res, OFP_TEST_LOCAL_IPv4_HOOK);
+#ifdef SP
+	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->spq_def), ODP_EVENT_INVALID);
+#endif /* SP */
+	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
+	ifnet->ip_addr = 0;
+	CU_PASS("ofp_packet_input_local_IPv4_hook");
+}
+
+static void
+test_ofp_packet_input_local_UDPv4_hook(void)
+{
+	odp_packet_t pkt;
+	int res;
+
+	/* Call ofp_packet_input with a pkt with destination ip
+	 * that matches the local ip on ifnet.
+	 * The packet is terminated in local UDPv4 hook */
+	my_test_val = TEST_LOCAL_UDPv4_HOOK;
+	ifnet->ip_addr = dst_ipaddr;
+	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame),
+				  dst_ipaddr, 0)) {
+		CU_FAIL("Fail to create packet");
+		return;
+	}
+
+	res = ofp_packet_input(pkt, interface_queue[port],
+		ofp_eth_vlan_processing);
+	CU_ASSERT_EQUAL(res, OFP_TEST_LOCAL_UDPv4_HOOK);
+#ifdef SP
+	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->spq_def), ODP_EVENT_INVALID);
+#endif /* SP */
+	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
+	ifnet->ip_addr = 0;
+	CU_PASS("ofp_packet_input_local_UDPv4_hook");
 }
 
 #ifdef SP
@@ -683,6 +771,16 @@ main(void)
 
 	if (NULL == CU_ADD_TEST(ptr_suite,
 				test_ofp_packet_input_local_hook)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_ofp_packet_input_local_IPv4_hook)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_ofp_packet_input_local_UDPv4_hook)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}

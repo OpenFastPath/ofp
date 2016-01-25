@@ -265,6 +265,10 @@ ofp_udp_input(odp_packet_t m, int off)
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
+	OFP_HOOK(OFP_HOOK_LOCAL_UDPv4, m, NULL, &res);
+	if (res != OFP_PKT_CONTINUE)
+		return res;
+
 	/* Offer to VXLAN handler. */
 	res = ofp_vxlan_input(m);
 	if (res != OFP_PKT_CONTINUE)

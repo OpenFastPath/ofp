@@ -336,6 +336,12 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 			return res;
 		}
 
+		OFP_HOOK(OFP_HOOK_LOCAL_IPv4, pkt, NULL, &res);
+		if (res != OFP_PKT_CONTINUE) {
+			OFP_DBG("OFP_HOOK_LOCAL_IPv4 returned %d", res);
+			return res;
+		}
+
 		return ipv4_transport_classifier(pkt, ip->ip_p);
 	}
 
@@ -408,6 +414,12 @@ enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
 		OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
 		if (res != OFP_PKT_CONTINUE) {
 			OFP_DBG("OFP_HOOK_LOCAL returned %d", res);
+			return res;
+		}
+
+		OFP_HOOK(OFP_HOOK_LOCAL_IPv6, pkt, NULL, &res);
+		if (res != OFP_PKT_CONTINUE) {
+			OFP_DBG("OFP_HOOK_LOCAL_IPv6 returned %d", res);
 			return res;
 		}
 

@@ -211,6 +211,10 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
+	OFP_HOOK(OFP_HOOK_LOCAL_UDPv6, pkt, NULL, &res);
+	if (res != OFP_PKT_CONTINUE)
+		return res;
+
 	ifp = odp_packet_user_ptr(pkt);
 	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(pkt, NULL);
 	if (odp_packet_len(pkt) < off + sizeof(struct ofp_udphdr))
