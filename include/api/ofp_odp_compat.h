@@ -25,6 +25,31 @@ typedef uint64_t odp_time_t;
 #define odp_init_local(x) odp_init_local()
 #define ODP_THREAD_WORKER 0
 #define ODP_THREAD_CONTROL 1
-#endif
+typedef int64_t odp_thread_type_t;
+#endif /* ODP_VERSION < 104 && ODP_VERSION > 101 */
+
+static inline int ofp_linux_pthread_create(odph_linux_pthread_t *thread_tbl,
+                             const odp_cpumask_t *mask_in,
+                             void *(*start_routine)(void *), void *arg,
+                             odp_thread_type_t thr_type)
+{
+       (void) thr_type;
+#if ODP_VERSION == 100
+       odph_linux_pthread_create(thread_tbl,
+                                 mask_in,
+                                 start_routine,
+                                 arg);
+       return 1;
+#else
+       return odph_linux_pthread_create(thread_tbl,
+                                 mask_in,
+                                 start_routine,
+                                 arg
+#if ODP_VERSION >= 106
+                                , thr_type
+ #endif
+                                );
+#endif /* ODP_VERSION == 100 */
+}
 
 #endif
