@@ -5,6 +5,9 @@
  * SPDX-License-Identifier:     BSD-3-Clause
  */
 
+#ifndef __OFPI_ODP_COMPAT__
+#define __OFPI_ODP_COMPAT__
+
 #if ODP_VERSION < 103
 #define ODP_PKTIN_MODE_RECV 0
 #define ODP_PKTIN_MODE_SCHED 1
@@ -44,3 +47,5 @@
 #if ODP_VERSION < 101
 #define odp_pmr_create(term, val1, val2, valsz) odp_pmr_create_range(term, val1, val2, valsz)
 #endif /* ODP_VERSION < 101 */
+
+#endif

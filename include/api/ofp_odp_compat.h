@@ -5,6 +5,9 @@
  * SPDX-License-Identifier:     BSD-3-Clause
  */
 
+#ifndef __OFP_ODP_COMPAT__
+#define __OFP_ODP_COMPAT__
+
 #if ODP_VERSION == 102
 #include "linux.h"
 #else
@@ -21,4 +24,6 @@ typedef uint64_t odp_time_t;
 #define odp_cpumask_default_worker(cpumask, num_workers) odp_cpumask_count(cpumask)
 #define ODP_THREAD_WORKER
 #define ODP_THREAD_CONTROL
+#endif
+
 #endif
