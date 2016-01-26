@@ -4,6 +4,8 @@ SUBDIRS = src example test
 
 include_HEADERS = \
 		$(top_srcdir)/include/api/ofp.h \
+		$(top_srcdir)/include/api/ofp_config.h \
+		$(top_srcdir)/include/api/ofp_odp_compat.h \
 		$(top_srcdir)/include/api/ofp_init.h \
 		$(top_srcdir)/include/api/ofp_pkt_processing.h \
 		$(top_srcdir)/include/api/ofp_cli.h \
