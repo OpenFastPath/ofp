@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 
 #include "ofp.h"
+#include "ofp_odp_compat.h"
 
 #define MAX_WORKERS		32
 #define TEST_PORT 54321
@@ -360,7 +361,7 @@ static odp_cos_t build_cos_w_queue(const char *name)
 	odp_queue_t queue_cos;
 	odp_queue_param_t qparam;
 
-	cos = odp_cos_create(name);
+	cos = odp_cls_cos_create(name, &qparam);
 	if (cos == ODP_COS_INVALID) {
 		OFP_ERR("Failed to create COS");
 		return ODP_COS_INVALID;
@@ -397,8 +398,9 @@ static odp_cos_t build_cos_w_queue(const char *name)
 static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos)
 {
 	odp_cos_t cos;
+	odp_queue_param_t qparam;
 
-	cos = odp_cos_create(name);
+	cos = odp_cls_cos_create(name, &qparam);
 	if (cos == ODP_COS_INVALID) {
 		OFP_ERR("Failed to create COS");
 		return ODP_COS_INVALID;

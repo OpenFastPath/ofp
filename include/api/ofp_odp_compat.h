@@ -14,6 +14,10 @@
 #include "odp/helper/linux.h"
 #endif /* odp_version == 102 */
 
+#if ODP_VERSION < 106
+#define odp_cls_cos_create(name, qparam) odp_cos_create(name)
+#endif /* ODP_VERSION < 106 */
+
 #if ODP_VERSION < 105
 typedef uint64_t odp_time_t;
 #endif /* ODP_VERSION < 105 */
