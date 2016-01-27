@@ -287,8 +287,10 @@ void ofp_start_webserver_thread(int core_id)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
-	odph_linux_pthread_create(&test_linux_pthread,
+	ofp_linux_pthread_create(&test_linux_pthread,
 				  &cpumask,
 				  webserver,
-				  NULL);
+				  NULL,
+				  ODP_THREAD_WORKER
+				);
 }

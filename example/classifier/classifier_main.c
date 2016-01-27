@@ -114,10 +114,12 @@ int main(int argc, char *argv[])
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	/* Start dataplane dispatcher worker threads */
-	odph_linux_pthread_create(thread_tbl,
+	ofp_linux_pthread_create(thread_tbl,
 				  &cpumask,
 				  default_event_dispatcher,
-				  ofp_udp4_processing);
+				  ofp_udp4_processing,
+				  ODP_THREAD_CONTROL
+				);
 
 	app_processing();
 
