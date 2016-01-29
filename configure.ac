@@ -136,7 +136,8 @@ PKG_CHECK_MODULES([ODP], [libodp >= 1.6], [ODP_VERSION=106],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.3], [ODP_VERSION=103],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.2], [ODP_VERSION=102],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.1], [ODP_VERSION=101],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100]
+    [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100],
+    [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])]
     )])])])])])])
 
 # prepending lib to the files to link
