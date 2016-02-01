@@ -111,13 +111,11 @@ int main(int argc, char *argv[])
 	 * calls may be made. Local inits are made here for shared memory,
 	 * threads, pktio and scheduler.
 	 */
-#if ODP_VERSION < 106
 	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
 		OFP_ERR("Error: ODP local init failed.\n");
 		odp_term_global();
 		return EXIT_FAILURE;
 	}
-#endif
 
 	/*
 	 * Get the number of cores available to ODP, one run-to-completion thread
