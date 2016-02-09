@@ -24,6 +24,7 @@
 #include "ofpi_in_var.h"
 #include "ofpi_log.h"
 #include "ofpi_netlink.h"
+#include "ofpi_igmp_var.h"
 
 #define SHM_NAME_PORTS "OfpPortconfShMem"
 #define SHM_NAME_PORT_LOCKS "OfpPortconfLocksShMem"
@@ -916,6 +917,12 @@ struct ofp_ifnet *ofp_get_create_ifnet(int port, uint16_t vlan)
 			memcpy(data->link_local,
 				shm->ofp_ifnet_data[port].link_local, 16);
 #endif /* INET6 */
+			/* Multicast related */
+			OFP_TAILQ_INIT(&data->if_multiaddrs);
+			data->if_flags |= OFP_IFF_MULTICAST;
+			data->if_afdata[OFP_AF_INET] = &data->ii_inet;
+			struct ofp_in_ifinfo *ii = &data->ii_inet;
+			ii->ii_igmp = ofp_igmp_domifattach(data);
 			vlan_ifnet_insert(
 				shm->ofp_ifnet_data[port].vlan_structs, data);
 		}
