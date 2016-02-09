@@ -58,7 +58,7 @@ Build environment preparation:
 This project is currently verified on a generic 32/64bit x86 Linux machine.
 
 The following packages are mandatory for accessing and building ODP and OFP:
-    git aclocal libtool automake build-essential
+    git aclocal libtool automake build-essential pkg-config
 
 The following packages are optional:
     libssl-dev doxygen asciidoc valgrind libcunit1 libcunit1-doc libcunit1-dev
