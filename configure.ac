@@ -137,8 +137,7 @@ PKG_CHECK_MODULES([ODP], [libodp >= 1.6], [ODP_VERSION=106],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.2], [ODP_VERSION=102],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.1], [ODP_VERSION=101],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100],
-    [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])]
-    )])])])])])])
+    check_odp)])])])])])])
 
 # prepending lib to the files to link
 if [[ "${ODP_VERSION}" -gt 101 ]]; then
@@ -147,10 +146,12 @@ else
 LIBS="-lodp $LIBS"
 fi
 
-AC_CHECK_LIB(odp, odp_packet_alloc, [],
-    [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
-AC_CHECK_HEADERS([odp.h], [],
-    [AC_MSG_FAILURE(["Can't find ODP headers"])])
+function check_odp {
+	AC_CHECK_LIB(odp, odp_packet_alloc, [],
+	    [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
+	AC_CHECK_HEADERS([odp.h], [],
+	    [AC_MSG_FAILURE(["Can't find ODP headers"])])
+}
 
 ##########################################################################
 # Restore old saved variables
