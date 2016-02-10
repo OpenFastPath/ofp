@@ -153,6 +153,7 @@ int ofp_init_pre_global(const char *pool_name_unused,
 	}
 
 	HANDLE_ERROR(ofp_socket_init_global(ofp_packet_pool));
+	HANDLE_ERROR(ofp_tcp_var_init_global());
 	HANDLE_ERROR(ofp_inet_init());
 
 	return 0;
@@ -219,6 +220,7 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_arp_lookup_shared_memory());
 	HANDLE_ERROR(ofp_vxlan_lookup_shared_memory());
 	HANDLE_ERROR(ofp_arp_init_local());
+	HANDLE_ERROR(ofp_tcp_var_lookup_shared_memory());
 
 	return 0;
 }
@@ -334,6 +336,9 @@ int ofp_term_post_global(const char *pool_name)
 
 	/* Cleanup sockets */
 	CHECK_ERROR(ofp_socket_term_global(), rc);
+
+	/* Cleanup of TCP content */
+	CHECK_ERROR(ofp_tcp_var_term_global(), rc);
 
 	/* Cleanup vxlan */
 	CHECK_ERROR(ofp_vxlan_term_global(), rc);

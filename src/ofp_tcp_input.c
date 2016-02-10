@@ -80,6 +80,8 @@
 
 #define log(a, f...) OFP_INFO(f)
 
+#define SHM_NAME_TCP_VAR "OfpTcpVarShMem"
+
 const int ofp_tcprexmtthresh = 3;
 
 VNET_DEFINE(struct ofp_tcpstat, ofp_tcpstat);
@@ -169,10 +171,11 @@ OFP_SYSCTL_INT(_net_inet_tcp, OFP_OID_AUTO, passive_trace, OFP_CTLFLAG_RW,
 	   &ofp_tcp_passive_trace, 0,
 	   "Enable temporary passive debug traces");
 
-VNET_DEFINE(struct inpcbhead, ofp_tcb);
-#define	tcb6	ofp_tcb  /* for KAME src sync over BSD*'s */
+/*
+ * Data per core
+ */
+__thread struct ofp_tcp_var_mem *shm_tcp;
 
-VNET_DEFINE(struct inpcbinfo, ofp_tcbinfo);
 const char *ofp_tcbinfo_locked_by_file = NULL;
 int  ofp_tcbinfo_locked_by_line;
 
@@ -3619,4 +3622,55 @@ tcp_newreno_partial_ack(struct tcpcb *tp, struct ofp_tcphdr *th)
 	else
 		tp->snd_cwnd = 0;
 	tp->snd_cwnd += tp->t_maxseg;
+}
+
+static int ofp_tcp_var_alloc_shared_memory(void)
+{
+	shm_tcp = ofp_shared_memory_alloc(SHM_NAME_TCP_VAR, sizeof(*shm_tcp));
+	if (shm_tcp == NULL) {
+		OFP_ERR("ofp_shared_memory_alloc failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int ofp_tcp_var_free_shared_memory(void)
+{
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_TCP_VAR) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+	shm_tcp = NULL;
+
+	return rc;
+}
+
+int ofp_tcp_var_lookup_shared_memory(void)
+{
+	shm_tcp = ofp_shared_memory_lookup(SHM_NAME_TCP_VAR);
+	if (shm_tcp == NULL) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+int ofp_tcp_var_init_global(void)
+{
+	HANDLE_ERROR(ofp_tcp_var_alloc_shared_memory());
+
+	return 0;
+}
+
+int ofp_tcp_var_term_global(void)
+{
+	int rc = 0;
+
+	CHECK_ERROR(ofp_tcp_var_free_shared_memory(), rc);
+
+	return rc;
 }

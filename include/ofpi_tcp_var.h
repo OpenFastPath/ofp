@@ -39,6 +39,7 @@
 #include "ofpi_tcp.h"
 #include "ofpi_vnet.h"
 
+#include "ofpi_in_pcb.h"
 /*
  * Kernel variables for tcp.
  */
@@ -589,8 +590,6 @@ struct	xtcpcb {
 SYSCTL_DECL(_net_inet_tcp);
 SYSCTL_DECL(_net_inet_tcp_sack);
 
-VNET_DECLARE(struct inpcbhead, ofp_tcb);		/* queue of active tcpcb's */
-VNET_DECLARE(struct inpcbinfo, ofp_tcbinfo);
 VNET_DECLARE(struct ofp_tcpstat, ofp_tcpstat);		/* tcp statistics */
 extern	int ofp_tcp_log_in_vain;
 VNET_DECLARE(int, ofp_tcp_mssdflt);	/* XXX */
@@ -602,8 +601,16 @@ VNET_DECLARE(int, ofp_ss_fltsz);
 VNET_DECLARE(int, ofp_ss_fltsz_local);
 VNET_DECLARE(int, ofp_tcp_do_rfc3465);
 VNET_DECLARE(int, ofp_tcp_abc_l_var);
-#define	V_tcb			VNET(ofp_tcb)
-#define	V_tcbinfo		VNET(ofp_tcbinfo)
+/*
+ * Shared data format
+ */
+struct ofp_tcp_var_mem {
+	struct inpcbhead ofp_tcb;		/* queue of active tcpcb's */
+	struct inpcbinfo ofp_tcbinfo;
+};
+extern __thread struct ofp_tcp_var_mem *shm_tcp;
+#define	V_tcb			VNET(shm_tcp->ofp_tcb)
+#define	V_tcbinfo		VNET(shm_tcp->ofp_tcbinfo)
 #define	V_tcpstat		VNET(ofp_tcpstat)
 #define	V_tcp_mssdflt		VNET(ofp_tcp_mssdflt)
 #define	V_tcp_minmss		VNET(ofp_tcp_minmss)
@@ -716,4 +723,7 @@ u_long	 tcp_seq_subtract(uint64_t, uint64_t );
 
 void	ofp_cc_cong_signal(struct tcpcb *tp, struct ofp_tcphdr *th, uint32_t type);
 
+int ofp_tcp_var_lookup_shared_memory(void);
+int ofp_tcp_var_init_global(void);
+int ofp_tcp_var_term_global(void);
 #endif /* _NETINET_TCP_VAR_H_ */
