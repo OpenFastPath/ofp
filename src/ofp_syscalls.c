@@ -316,6 +316,7 @@ ofp_select(int nfds, ofp_fd_set *_readfds, ofp_fd_set *writefds,
 	struct selinfo *sel;
 	int ret = 0;
 	struct ofp_fdset *readfds = OFP_GET_FD_SET(_readfds);
+	uint32_t period_usec = 0;
 
 	(void)nfds;
 	(void)writefds;
@@ -327,8 +328,15 @@ ofp_select(int nfds, ofp_fd_set *_readfds, ofp_fd_set *writefds,
 			so->so_rcv.sb_flags |= SB_SEL;
 	}
 
-	ofp_msleep((void *)readfds, NULL, 0, "select",
-		     timeout->tv_sec*1000000 + timeout->tv_usec);
+	if (timeout)
+		period_usec = timeout->tv_sec * US_PER_SEC + timeout->tv_usec;
+
+	/* Call ofp_msleep if one of two cases:
+	 * timeout == NULL -> infinite timeout, no timer started in ofp_msleep
+	 * timeout_val > 0 -> sleep some time value > 0
+         */
+	if (!timeout || period_usec)
+		ofp_msleep((void *)readfds, NULL, 0, "select", period_usec);
 
 	OFP_LIST_FOREACH(sel, readfds, si_list) {
 		struct socket *so = ofp_get_sock_by_fd(sel->si_socket);
