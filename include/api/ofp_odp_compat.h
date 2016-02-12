@@ -63,4 +63,19 @@ static inline int ofp_linux_pthread_create(odph_linux_pthread_t *thread_tbl,
 	odp_pmr_create_range(term, val1, val2, valsz)
 #endif /* ODP_VERSION < 101 */
 
+static inline odp_queue_t ofp_queue_create(const char *name, odp_queue_type_t type,
+			     odp_queue_param_t *param)
+{
+	if (NULL == param && type != ODP_QUEUE_TYPE_PLAIN)
+		OFP_ERR("Creating queue of type different from PLAIN with no parameters.");
+
+#if ODP_VERSION < 107
+	return odp_queue_create(name, type, param);
+#else
+	if (NULL != param)
+		param->type = type;
+	return odp_queue_create(name, param);
+#endif /* ODP_VERSION < 107 */
+}
+
 #endif

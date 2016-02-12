@@ -372,7 +372,7 @@ static odp_cos_t build_cos_w_queue(const char *name)
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
-	queue_cos = odp_queue_create(name,
+	queue_cos = ofp_queue_create(name,
 				ODP_QUEUE_TYPE_SCHED,
 				&qparam);
 	if (queue_cos == ODP_QUEUE_INVALID) {

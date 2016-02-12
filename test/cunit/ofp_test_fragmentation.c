@@ -74,7 +74,7 @@ static void init_ifnet(void)
 	dev->pkt_pool = odp_pool_lookup("packet_pool");
 
 	sprintf(str, "out default queue:%d", port);
-	dev->outq_def = odp_queue_create(str,
+	dev->outq_def = ofp_queue_create(str,
 					 ODP_QUEUE_TYPE_POLL,
 					 NULL);
 	if (dev->outq_def == ODP_QUEUE_INVALID) {

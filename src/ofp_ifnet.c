@@ -49,11 +49,11 @@ int ofp_pktio_open(struct ofp_ifnet *ifnet, int pktin_mode)
 			 odp_pktio_to_u64(ifnet->pktio));
 		q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
 
-		ifnet->inq_def = odp_queue_create(q_name,
+		ifnet->inq_def = ofp_queue_create(q_name,
 						  ODP_QUEUE_TYPE_PKTIN,
 						  &qparam);
 		if (ifnet->inq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("odp_queue_create failed");
+			OFP_ERR("ofp_queue_create failed");
 			return -1;
 		}
 
@@ -100,11 +100,11 @@ int ofp_loopq_create(struct ofp_ifnet *ifnet)
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
-	ifnet->loopq_def = odp_queue_create(q_name,
+	ifnet->loopq_def = ofp_queue_create(q_name,
 					ODP_QUEUE_TYPE_SCHED,
 					&qparam);
 	if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
-		OFP_ERR("odp_queue_create failed");
+		OFP_ERR("ofp_queue_create failed");
 		return -1;
 	}
 
@@ -174,12 +174,12 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 	snprintf(q_name, sizeof(q_name), "%s_inq_def", ifnet->if_name);
 	q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
 
-	ifnet->spq_def = odp_queue_create(q_name,
+	ifnet->spq_def = ofp_queue_create(q_name,
 					ODP_QUEUE_TYPE_POLL,
 					&qparam);
 
 	if (ifnet->spq_def == ODP_QUEUE_INVALID) {
-		OFP_ERR("odp_queue_create failed");
+		OFP_ERR("ofp_queue_create failed");
 		return -1;
 	}
 

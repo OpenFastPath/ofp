@@ -371,11 +371,11 @@ int ofp_set_vxlan_interface_queue(void)
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
-	ifnet->loopq_def = odp_queue_create("vxlan_loopq",
+	ifnet->loopq_def = ofp_queue_create("vxlan_loopq",
 					    ODP_QUEUE_TYPE_SCHED,
 					    &qparam);
 	if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
-		OFP_ERR("odp_queue_create failed");
+		OFP_ERR("ofp_queue_create failed");
 		return -1;
 	}
 
