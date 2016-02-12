@@ -217,7 +217,7 @@ test_init_ifnet(void)
 
 	sprintf(str, "slow path stack port:%d", port);
 	ifnet->spq_def = ofp_queue_create(str,
-					ODP_QUEUE_TYPE_POLL,
+					ODP_QUEUE_TYPE_PLAIN,
 					NULL);
 	if (ifnet->spq_def == ODP_QUEUE_INVALID) {
 		fail_with_odp("Slow path queue create failed.\n");
@@ -227,7 +227,7 @@ test_init_ifnet(void)
 
 	sprintf(str, "out default queue:%d", port);
 	ifnet->outq_def = ofp_queue_create(str,
-					ODP_QUEUE_TYPE_POLL,
+					ODP_QUEUE_TYPE_PLAIN,
 					NULL);
 	if (ifnet->outq_def == ODP_QUEUE_INVALID) {
 		fail_with_odp("Out default queue create failed.\n");
@@ -236,7 +236,7 @@ test_init_ifnet(void)
 
 	sprintf(str, "interface queue:%d", port);
 	interface_queue[port] =
-			ofp_queue_create(str, ODP_QUEUE_TYPE_POLL, NULL);
+			ofp_queue_create(str, ODP_QUEUE_TYPE_PLAIN, NULL);
 	if (interface_queue[port] == ODP_QUEUE_INVALID) {
 		OFP_ERR("Poll queue create failed.\n");
 		return;

@@ -75,7 +75,7 @@ static void init_ifnet(void)
 
 	sprintf(str, "out default queue:%d", port);
 	dev->outq_def = ofp_queue_create(str,
-					 ODP_QUEUE_TYPE_POLL,
+					 ODP_QUEUE_TYPE_PLAIN,
 					 NULL);
 	if (dev->outq_def == ODP_QUEUE_INVALID) {
 		fail_with_odp("Out default queue create failed.\n");

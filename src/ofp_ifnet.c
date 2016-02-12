@@ -175,7 +175,7 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 	q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
 
 	ifnet->spq_def = ofp_queue_create(q_name,
-					ODP_QUEUE_TYPE_POLL,
+					ODP_QUEUE_TYPE_PLAIN,
 					&qparam);
 
 	if (ifnet->spq_def == ODP_QUEUE_INVALID) {
