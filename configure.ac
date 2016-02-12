@@ -130,14 +130,15 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
-PKG_CHECK_MODULES([ODP], [libodp >= 1.6], [ODP_VERSION=106],
+PKG_CHECK_MODULES([ODP], [libodp >= 1.7], [ODP_VERSION=107],
+    [PKG_CHECK_MODULES([ODP], [libodp >= 1.6], [ODP_VERSION=106],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.5], [ODP_VERSION=105],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.4], [ODP_VERSION=104],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.3], [ODP_VERSION=103],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.2], [ODP_VERSION=102],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.1], [ODP_VERSION=101],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100],
-    check_odp)])])])])])])
+    check_odp)])])])])])])])
 
 # prepending lib to the files to link
 if [[ "${ODP_VERSION}" -gt 101 ]]; then
