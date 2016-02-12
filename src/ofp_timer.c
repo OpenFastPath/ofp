@@ -174,7 +174,7 @@ int ofp_timer_init_global(int resolution_us,
 	 */
 	memset(&param, 0, sizeof(param));
 	param.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
-	param.sched.sync  = ODP_SCHED_SYNC_NONE;
+	param.sched.sync  = ODP_SCHED_SYNC_PARALLEL;
 	param.sched.group = ODP_SCHED_GROUP_ALL;
 
 	shm->queue = ofp_queue_create("TimerQueue", ODP_QUEUE_TYPE_SCHED,
