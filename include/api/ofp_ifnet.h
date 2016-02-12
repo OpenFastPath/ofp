@@ -17,7 +17,7 @@
  *
  * @param if_name Interface name to open
  * @param pktin_mode Specify packet access mode for this interface using
- *        ODP_PKTIN_MODE_RECV for polling or ODP_PKTIN_MODE_SCHED for scheduler
+ *        ODP_PKTIN_MODE_DIRECT for polling or ODP_PKTIN_MODE_SCHED for scheduler
  *
  * @retval 0 on success
  * @retval -1 on failure

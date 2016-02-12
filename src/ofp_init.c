@@ -181,7 +181,7 @@ int ofp_init_global(ofp_init_global_t *params)
 
 	for (i = 0; i < params->if_count; ++i)
 		HANDLE_ERROR(ofp_ifnet_create(params->if_names[i],
-			params->burst_recv_mode ? ODP_PKTIN_MODE_RECV :
+			params->burst_recv_mode ? ODP_PKTIN_MODE_DIRECT :
 						ODP_PKTIN_MODE_SCHED));
 
 #ifdef SP
