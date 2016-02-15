@@ -279,7 +279,7 @@ static void print_info(char *progname, appl_args_t *appl_args)
 		   "Core count:      %i\n"
 		   "\n",
 		   odp_version_api_str(), odp_cpu_model_str(),
-		   odp_sys_cpu_hz(), odp_sys_cache_line_size(),
+		   odp_cpu_hz(), odp_sys_cache_line_size(),
 		   odp_cpu_count());
 
 	printf("Running ODP appl: \"%s\"\n"
