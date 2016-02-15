@@ -21,6 +21,9 @@ int ofp_mac_set(struct ofp_ifnet *ifnet);
 int ofp_mtu_set(struct ofp_ifnet *ifnet);
 /* IGMP protocol used for multicasting. */
 void ofp_igmp_attach(struct ofp_ifnet *ifnet);
+
+#ifdef SP
 /* Create VIF local input queue */
 int ofp_sp_inq_create(struct ofp_ifnet *ifnet);
+#endif /*SP*/
 #endif

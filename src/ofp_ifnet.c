@@ -159,6 +159,7 @@ void ofp_igmp_attach(struct ofp_ifnet *ifnet)
 	ii->ii_igmp = ofp_igmp_domifattach(ifnet);
 }
 
+#ifdef SP
 /* Create VIF local input queue */
 int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 {
@@ -184,6 +185,7 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 
 	return 0;
 }
+#endif /*SP*/
 
 int ofp_ifnet_create(char *if_name, int recv_mode)
 {
