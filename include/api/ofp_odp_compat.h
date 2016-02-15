@@ -71,6 +71,7 @@ static inline int ofp_linux_pthread_create(odph_linux_pthread_t *thread_tbl,
 #define ODP_QUEUE_TYPE_PLAIN ODP_QUEUE_TYPE_POLL
 #define ODP_PKTIN_MODE_DIRECT ODP_PKTIN_MODE_RECV
 #define ODP_SCHED_SYNC_PARALLEL ODP_SCHED_SYNC_NONE
+#define odp_cpu_model_str() odp_sys_cpu_model_str()
 #endif /* ODP_VERSION < 107 */
 
 static inline odp_queue_t ofp_queue_create(const char *name, odp_queue_type_t type,
