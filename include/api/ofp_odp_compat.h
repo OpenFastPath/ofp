@@ -34,6 +34,10 @@ typedef uint64_t odp_time_t;
 typedef int64_t odp_thread_type_t;
 #endif /* ODP_VERSION < 104 && ODP_VERSION > 101 */
 
+#if ODP_VERSION < 103
+#define odp_queue_param_init(param) memset(param, 0, sizeof(odp_queue_param_t))
+#endif /* ODP_VERSION < 103 */
+
 static inline int ofp_linux_pthread_create(odph_linux_pthread_t *thread_tbl,
                              const odp_cpumask_t *mask_in,
                              void *(*start_routine)(void *), void *arg,

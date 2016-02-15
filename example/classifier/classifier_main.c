@@ -367,7 +367,7 @@ static odp_cos_t build_cos_w_queue(const char *name)
 		return ODP_COS_INVALID;
 	}
 
-	memset(&qparam, 0, sizeof(odp_queue_param_t));
+	odp_queue_param_init(&qparam);
 	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;

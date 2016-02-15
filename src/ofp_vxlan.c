@@ -366,7 +366,7 @@ int ofp_set_vxlan_interface_queue(void)
 	struct ofp_ifnet *ifnet = ofp_get_ifnet(VXLAN_PORTS, 0);
 
 	/* VXLAN interface queue */
-	memset(&qparam, 0, sizeof(odp_queue_param_t));
+	odp_queue_param_init(&qparam);
 	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;

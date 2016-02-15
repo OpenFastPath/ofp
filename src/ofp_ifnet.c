@@ -41,7 +41,7 @@ int ofp_pktio_open(struct ofp_ifnet *ifnet, int pktin_mode)
 		odp_queue_param_t qparam;
 		char q_name[ODP_QUEUE_NAME_LEN];
 
-		memset(&qparam, 0, sizeof(odp_queue_param_t));
+		odp_queue_param_init(&qparam);
 		qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 		qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 		qparam.sched.group = ODP_SCHED_GROUP_ALL;
@@ -95,7 +95,7 @@ int ofp_loopq_create(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
 
-	memset(&qparam, 0, sizeof(odp_queue_param_t));
+	odp_queue_param_init(&qparam);
 	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
@@ -166,7 +166,7 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 	odp_queue_param_t qparam;
 	char q_name[ODP_QUEUE_NAME_LEN];
 
-	memset(&qparam, 0, sizeof(odp_queue_param_t));
+	odp_queue_param_init(&qparam);
 	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
