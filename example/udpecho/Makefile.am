@@ -9,3 +9,5 @@ udpecho_LDFLAGS = $(AM_LDFLAGS) -static
 udpecho_CFLAGS = $(AM_CFLAGS)
 
 dist_udpecho_SOURCES = app_main.c udp_server.c
+
+noinst_HEADERS = ${srcdir}/udp_server.h

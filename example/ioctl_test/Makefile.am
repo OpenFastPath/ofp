@@ -9,3 +9,5 @@ ioctl_test_LDFLAGS = $(AM_LDFLAGS) -static
 ioctl_test_CFLAGS = $(AM_CFLAGS)
 
 dist_ioctl_test_SOURCES = app_main.c ioctl_test.c
+
+noinst_HEADERS = ${srcdir}/ioctl_test.h

@@ -19,6 +19,20 @@ socket_select.c \
 socket_sigevent.c \
 socket_main.c
 
+noinst_HEADERS = \
+		${srcdir}/socket_bind.h \
+		${srcdir}/socket_send_recv_udp.h \
+		${srcdir}/socket_connect_accept_tcp.h \
+		${srcdir}/socket_send_sendto_udp.h \
+		${srcdir}/socket_connect_udp.h \
+		${srcdir}/socket_shutdown.h \
+		${srcdir}/socket_create_close.h \
+		${srcdir}/socket_sigevent.h \
+		${srcdir}/socket_listen_tcp.h \
+		${srcdir}/socket_util.h \
+		${srcdir}/socket_select.h \
+		${srcdir}/suite_framework.h \
+		${srcdir}/socket_send_recv_tcp.h
 if OFP_IPv6
 socket_CFLAGS +=  -DINET6
 endif
