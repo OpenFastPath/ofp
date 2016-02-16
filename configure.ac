@@ -1,6 +1,6 @@
 AC_PREREQ([2.69])
 AC_INIT([OpenFastPath],
-	[1.0],
+	m4_esyscmd(./scripts/git_hash.sh .),
 	[sorin.vultureanu at enea.com],
 	[OpenFastPath],
 	[http://www.enea.com])
@@ -39,6 +39,13 @@ AC_TYPE_UINT16_T
 AC_CHECK_SIZEOF([int *])
 
 AX_TLS
+
+##########################################################################
+# Set correct platform library version
+##########################################################################
+AGE=0
+LIBOFP_VERSION=$(echo $(sed -n 's|.git.*$||p' .scmversion).$AGE|awk -F . '{printf("%d:%d:%d\n", $1,$2,$3)}')
+AC_SUBST(LIBOFP_VERSION)
 
 ##########################################################################
 # Check for pthreads availability
@@ -338,6 +345,8 @@ AC_OUTPUT
 AC_MSG_RESULT([
 	$PACKAGE $VERSION
 	========
+
+	Library version:	${LIBOFP_VERSION}
 
 	prefix:			${prefix}
 	sysconfdir:		${sysconfdir}
