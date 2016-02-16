@@ -4,7 +4,7 @@ AC_INIT([OpenFastPath],
 	[sorin.vultureanu at enea.com],
 	[OpenFastPath],
 	[http://www.enea.com])
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
 AC_CONFIG_SRCDIR([include/config.h.in])
 AM_CONFIG_HEADER([include/config.h])
 
