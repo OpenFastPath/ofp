@@ -44,6 +44,7 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_avl.h \
 		  $(top_srcdir)/include/ofpi_callout.h \
 		  $(top_srcdir)/include/ofpi_cli.h \
+		  $(top_srcdir)/include/ofpi_config.h \
 		  $(top_srcdir)/include/ofpi_debug.h \
 		  $(top_srcdir)/include/ofpi_domain.h \
 		  $(top_srcdir)/include/ofpi_errno.h \
@@ -53,15 +54,21 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_vnet.h \
 		  $(top_srcdir)/include/ofpi_icmp6.h \
 		  $(top_srcdir)/include/ofpi_icmp.h \
+		  $(top_srcdir)/include/ofpi_igmp.h \
+		  $(top_srcdir)/include/ofpi_igmp_var.h \
 		  $(top_srcdir)/include/ofpi_if_arp.h \
 		  $(top_srcdir)/include/ofpi_if_gre.h \
 		  $(top_srcdir)/include/ofpi_if_vlan.h \
+		  $(top_srcdir)/include/ofpi_if_vxlan.h \
+		  $(top_srcdir)/include/ofpi_ifnet.h \
 		  $(top_srcdir)/include/ofpi_inet.h \
 		  $(top_srcdir)/include/ofpi_in6.h \
 		  $(top_srcdir)/include/ofpi_in6_pcb.h \
 		  $(top_srcdir)/include/ofpi_init.h \
 		  $(top_srcdir)/include/ofpi_in.h \
 		  $(top_srcdir)/include/ofpi_in_pcb.h \
+		  $(top_srcdir)/include/ofpi_in_var.h \
+		  $(top_srcdir)/include/ofpi_ioctl.h \
 		  $(top_srcdir)/include/ofpi_ip6.h \
 		  $(top_srcdir)/include/ofpi_ip6_var.h \
 		  $(top_srcdir)/include/ofpi_ip6protosw.h \
@@ -69,9 +76,11 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_ip_var.h \
 		  $(top_srcdir)/include/ofpi_log.h \
 		  $(top_srcdir)/include/ofpi_md5.h \
+		  $(top_srcdir)/include/ofpi_odp_compat.h \
 		  $(top_srcdir)/include/ofpi_portconf.h \
 		  $(top_srcdir)/include/ofpi_protosw.h \
 		  $(top_srcdir)/include/ofpi_queue.h \
+		  $(top_srcdir)/include/ofpi_reass.h \
 		  $(top_srcdir)/include/ofpi_route.h \
 		  $(top_srcdir)/include/ofpi_rt_lookup.h \
 		  $(top_srcdir)/include/ofpi_sockbuf.h \
@@ -80,6 +89,7 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_sockopt.h \
 		  $(top_srcdir)/include/ofpi_sockstate.h \
 		  $(top_srcdir)/include/ofpi_stat.h \
+		  $(top_srcdir)/include/ofpi_sysctl.h \
 		  $(top_srcdir)/include/ofpi_systm.h \
 		  $(top_srcdir)/include/ofpi_tcp_fsm.h \
 		  $(top_srcdir)/include/ofpi_tcp.h \
@@ -88,11 +98,14 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_tcp_syncache.h \
 		  $(top_srcdir)/include/ofpi_tcp_timer.h \
 		  $(top_srcdir)/include/ofpi_tcp_var.h \
+		  $(top_srcdir)/include/ofpi_tcp6_var.h \
 		  $(top_srcdir)/include/ofpi_gre.h \
 		  $(top_srcdir)/include/ofpi_timer.h \
+		  $(top_srcdir)/include/ofpi_tree.h \
 		  $(top_srcdir)/include/ofpi_udp.h \
 		  $(top_srcdir)/include/ofpi_udp_var.h \
 		  $(top_srcdir)/include/ofpi_udp6_var.h \
+		  $(top_srcdir)/include/ofpi_vxlan.h \
 		  $(top_srcdir)/include/ofpi_hook.h \
 		  $(top_srcdir)/include/ofpi_util.h
 
