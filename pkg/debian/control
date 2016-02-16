@@ -1,0 +1,42 @@
+Source: openfastpath
+Priority: optional
+Maintainer: Anders Roxell <anders.roxell@linaro.org>
+Build-Depends: debhelper (>= 9), autotools-dev, libodp107-dev, doxygen,
+    ghostscript, texlive-latex-recommended
+Standards-Version: 3.9.6
+Section: libs
+Homepage: http://www.openfastpath.org/
+Vcs-Git: https://github.com/OpenFastPath/ofp.git
+Vcs-Browser: https://github.com/OpenFastPath/ofp/commits
+
+Package: ofp-bin
+Section: libdevel
+Architecture: any
+Multi-Arch: allowed
+Depends: libofp (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
+Description: Example binaries for OpenFastPath
+ These are the executable examples.
+
+Package: libofp-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: libofp (= ${binary:Version}), ${misc:Depends}
+Description: Debug symbols for OpenFastPath
+ This is the OpenFastPath library with debug turned on.
+
+Package: libofp-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: libofp (= ${binary:Version}), ${misc:Depends}, libssl-dev
+Description: Development files for OpenFastPath
+ These are the source file for the OpenFastPath.
+
+Package: libofp
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Library for OpenFastPath
+ This is the OpenFastPath library.
