@@ -9,3 +9,5 @@ sysctl_LDFLAGS = $(AM_LDFLAGS) -static
 sysctl_CFLAGS = $(AM_CFLAGS)
 
 dist_sysctl_SOURCES = app_main.c sysctl.c
+
+noinst_HEADERS = ${srcdir}/sysctl.h

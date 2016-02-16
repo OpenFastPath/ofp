@@ -9,3 +9,5 @@ mcast_LDFLAGS = $(AM_LDFLAGS) -static
 mcast_CFLAGS = $(AM_CFLAGS)
 
 dist_mcast_SOURCES = app_main.c mcast.c
+
+noinst_HEADERS = ${srcdir}/mcast.h

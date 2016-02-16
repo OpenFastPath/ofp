@@ -9,3 +9,5 @@ webserver2_LDFLAGS = $(AM_LDFLAGS) -static
 webserver2_CFLAGS = $(AM_CFLAGS)
 
 dist_webserver2_SOURCES = app_main.c httpd2.c
+
+noinst_HEADERS = ${srcdir}/httpd.h
