@@ -110,3 +110,4 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_util.h \
 		  $(top_srcdir)/include/ofpi_tcp_shm.h
 
+EXTRA_DIST = .scmversion

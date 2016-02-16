@@ -27,6 +27,9 @@
 *.x86_64
 *.hex
 
+# ignore scmversion file
+.scmversion
+
 # ignore byproducts of autotools (bootstrap,configure)
 *.log
 *.patch
