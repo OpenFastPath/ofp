@@ -103,6 +103,7 @@ AC_CONFIG_FILES([
 	example/sysctl/Makefile
 	example/multicast/Makefile
 	example/udp_fwd_socket/Makefile
+	pkgconfig/libofp.pc
 	test/Makefile
 	test/cunit/Makefile
 	])
