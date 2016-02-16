@@ -31,6 +31,7 @@ include_HEADERS = \
 		$(top_srcdir)/include/api/ofp_ip6.h \
 		$(top_srcdir)/include/api/ofp_icmp.h \
 		$(top_srcdir)/include/api/ofp_icmp6.h \
+		$(top_srcdir)/include/api/ofp_ifnet.h \
 		$(top_srcdir)/include/api/ofp_if_vlan.h \
 		$(top_srcdir)/include/api/ofp_udp.h \
 		$(top_srcdir)/include/api/ofp_ip_var.h \
