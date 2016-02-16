@@ -9,7 +9,7 @@
 #define __OFPI_ODP_COMPAT__
 
 #if ODP_VERSION < 103
-#define ODP_PKTIN_MODE_DIRECT 0
+#define ODP_PKTIN_MODE_RECV 0
 #define ODP_PKTIN_MODE_SCHED 1
 #define odp_pktio_start(x) 0
 #define odp_pktio_stop(x) 0
