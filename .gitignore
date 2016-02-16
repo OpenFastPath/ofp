@@ -36,6 +36,7 @@
 *.in
 *.m4
 *.guess
+*.pc
 *.status
 *.sub
 autom4te.cache/
