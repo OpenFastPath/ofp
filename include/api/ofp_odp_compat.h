@@ -8,6 +8,8 @@
 #ifndef __OFP_ODP_COMPAT__
 #define __OFP_ODP_COMPAT__
 
+#include "ofp_log.h"
+
 #if ODP_VERSION == 102
 #include "linux.h"
 #else
