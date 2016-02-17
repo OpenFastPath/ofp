@@ -221,6 +221,9 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_vxlan_lookup_shared_memory());
 	HANDLE_ERROR(ofp_arp_init_local());
 	HANDLE_ERROR(ofp_tcp_var_lookup_shared_memory());
+#ifdef OFP_SEND_PKT_BURST
+	HANDLE_ERROR(ofp_send_pkt_burst_out_init_local());
+#endif /*OFP_SEND_PKT_BURST*/
 
 	return 0;
 }
@@ -395,7 +398,13 @@ int ofp_term_post_global(const char *pool_name)
 
 int ofp_term_local(void)
 {
-	return 0;
+	int rc = 0;
+
+#ifdef OFP_SEND_PKT_BURST
+	CHECK_ERROR(ofp_send_pkt_burst_out_term_local(), rc);
+#endif /*OFP_SEND_PKT_BURST*/
+
+	return rc;
 }
 
 static void schedule_shutdown(void)

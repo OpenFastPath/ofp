@@ -13,6 +13,7 @@ AM_CFLAGS +=  -DINET
 
 __LIB__libofp_la_SOURCES = \
 ofp_pkt_processing.c \
+ofp_pkt_send_burst.c \
 ofp_avl.c \
 ofp_log.c \
 ofp_debug.c \

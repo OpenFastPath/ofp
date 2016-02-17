@@ -38,4 +38,7 @@ enum ofp_return_code ipv4_transport_classifier(odp_packet_t pkt,
 enum ofp_return_code ipv6_transport_classifier(odp_packet_t pkt,
 			uint8_t ip6_nxt);
 
+int ofp_send_pkt_burst_out_init_local(void);
+int ofp_send_pkt_burst_out_term_local(void);
+
 #endif /* _OFPI_APP_H */

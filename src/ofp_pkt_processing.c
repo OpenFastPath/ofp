@@ -463,36 +463,6 @@ enum ofp_return_code ofp_gre_processing(odp_packet_t pkt)
 	return ofp_inetsw[ofp_ip_protox_gre].pr_input(pkt, ip->ip_hl << 2);
 }
 
-enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
-	odp_packet_t pkt)
-{
-	uint32_t pkts_sent;
-#if 1
-	static __thread odp_packet_t pkt_tbl[OFP_PKT_TX_BURST_SIZE];
-	static __thread uint32_t count = 0;
-	uint32_t i;
-
-	if (count == OFP_PKT_TX_BURST_SIZE) {
-		pkts_sent = odp_pktio_send(ofp_port_pktio_get(dev->port), pkt_tbl, count);
-		for (i = pkts_sent; i < count; i++)
-			odp_packet_free(pkt_tbl[i]);
-		count = 0;
-	}
-
-	pkt_tbl[count++] = pkt;
-#else
-	pkts_sent = odp_pktio_send(ofp_port_pktio_get(dev->port), &pkt, 1);
-	if (pkts_sent == 0)
-		odp_packet_free(pkt);
-#endif
-
-	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
-
-	OFP_UPDATE_PACKET_STAT(tx_fp, 1);
-
-	return OFP_PKT_PROCESSED;
-}
-
 extern void print_ipv4(FILE *f, char *p);
 
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
