@@ -94,4 +94,34 @@ int ofp_term_global(void);
  */
 int ofp_term_local(void);
 
+
+/**
+ * Stop packet processing
+ *
+ * Stop processing threads
+ *
+ *
+ * @retval ofp_get_processing_state() which may be called get
+ *         the processing state
+ *
+ *
+ * @see
+ */
+void ofp_stop_processing(void);
+
+/**
+ * Get address of processing state variable
+ *
+ * All processing loops should stop when
+ * processing state turns 0
+ *
+ * @retval non NULL on success
+ * @retval NULL on failure
+ *
+ * @see ofp_stop_processing() which may be called to stop the
+ *      processing.
+ */
+
+odp_bool_t *ofp_get_processing_state(void);
+
 #endif /* __OFP_INIT_H__ */

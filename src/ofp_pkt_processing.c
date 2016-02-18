@@ -63,6 +63,7 @@ void *default_event_dispatcher(void *arg)
 	int event_idx = 0;
 	int event_cnt = 0;
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
+	odp_bool_t *is_running = NULL;
 
 #if ODP_VERSION < 106
 	if (odp_init_local(ODP_THREAD_WORKER)) {
@@ -76,8 +77,15 @@ void *default_event_dispatcher(void *arg)
 		return NULL;
 	}
 
+	is_running = ofp_get_processing_state();
+	if (is_running == NULL) {
+		OFP_ERR("ofp_get_processing_state failed");
+		ofp_term_local();
+		return NULL;
+	}
+
 	/* PER CORE DISPATCHER */
-	while (1) {
+	while (*is_running) {
 		event_cnt = odp_schedule_multi(&in_queue, ODP_SCHED_WAIT,
 					 events, OFP_PKT_SCHED_MULTI_EVENT_SIZE);
 		for (event_idx = 0; event_idx < event_cnt; event_idx++) {
@@ -121,7 +129,9 @@ void *default_event_dispatcher(void *arg)
 		}
 	}
 
-	/* Never reached */
+	if (ofp_term_local())
+		OFP_ERR("ofp_term_local failed");
+
 	return NULL;
 }
 

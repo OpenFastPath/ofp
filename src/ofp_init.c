@@ -88,9 +88,16 @@ struct ofp_global_config_mem *ofp_get_global_config(void)
 	return shm;
 }
 
-static void ofp_stop(void)
+void ofp_stop_processing(void)
 {
 	shm->is_running = 0;
+}
+
+odp_bool_t *ofp_get_processing_state(void)
+{
+	if (ofp_global_config_lookup_shared_memory() == -1)
+		return NULL;
+	return &shm->is_running;
 }
 
 int ofp_init_pre_global(const char *pool_name_unused,
@@ -234,7 +241,7 @@ int ofp_term_global(void)
 	uint16_t i;
 	struct ofp_ifnet *ifnet;
 
-	ofp_stop();
+	ofp_stop_processing();
 
 	/* Terminate CLI thread*/
 	CHECK_ERROR(ofp_stop_cli_thread(), rc);
