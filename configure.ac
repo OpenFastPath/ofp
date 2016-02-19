@@ -1,8 +1,8 @@
 AC_PREREQ([2.69])
-AC_INIT([OpenFastPath],
+AC_INIT([openfastpath],
 	m4_esyscmd(./scripts/git_hash.sh .),
 	[sorin.vultureanu at enea.com],
-	[OpenFastPath],
+	[openfastpath],
 	[http://www.enea.com])
 AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
 AC_CONFIG_SRCDIR([include/config.h.in])
