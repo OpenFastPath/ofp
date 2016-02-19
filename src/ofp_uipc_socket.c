@@ -125,6 +125,7 @@
 #include "ofpi_ip6protosw.h"
 #include "ofpi_sockstate.h"
 #include "ofpi_tcp_var.h"
+#include "ofpi_tcp_shm.h"
 #include "ofpi_tcp_timer.h"
 #include "ofpi_callout.h"
 #include "ofpi_log.h"

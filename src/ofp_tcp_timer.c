@@ -49,6 +49,7 @@
 #include "ofpi_tcp_fsm.h"
 #include "ofpi_tcp_timer.h"
 #include "ofpi_tcp_var.h"
+#include "ofpi_tcp_shm.h"
 #include "ofpi_tcp.h"
 #ifdef TCPDEBUG
 #include <netinet/tcp_debug.h>

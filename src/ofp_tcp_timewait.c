@@ -48,6 +48,7 @@
 #include "ofpi_tcp_seq.h"
 #include "ofpi_tcp_timer.h"
 #include "ofpi_tcp_var.h"
+#include "ofpi_tcp_shm.h"
 #ifdef INET6
 #include "ofpi_ip6.h"
 #include "ofpi_ip6_var.h"

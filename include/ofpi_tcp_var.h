@@ -39,7 +39,6 @@
 #include "ofpi_tcp.h"
 #include "ofpi_vnet.h"
 
-#include "ofpi_in_pcb.h"
 /*
  * Kernel variables for tcp.
  */
@@ -601,16 +600,6 @@ VNET_DECLARE(int, ofp_ss_fltsz);
 VNET_DECLARE(int, ofp_ss_fltsz_local);
 VNET_DECLARE(int, ofp_tcp_do_rfc3465);
 VNET_DECLARE(int, ofp_tcp_abc_l_var);
-/*
- * Shared data format
- */
-struct ofp_tcp_var_mem {
-	struct inpcbhead ofp_tcb;		/* queue of active tcpcb's */
-	struct inpcbinfo ofp_tcbinfo;
-};
-extern __thread struct ofp_tcp_var_mem *shm_tcp;
-#define	V_tcb			VNET(shm_tcp->ofp_tcb)
-#define	V_tcbinfo		VNET(shm_tcp->ofp_tcbinfo)
 #define	V_tcpstat		VNET(ofp_tcpstat)
 #define	V_tcp_mssdflt		VNET(ofp_tcp_mssdflt)
 #define	V_tcp_minmss		VNET(ofp_tcp_minmss)

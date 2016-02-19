@@ -72,6 +72,7 @@
 #include "ofpi_tcp_seq.h"
 #include "ofpi_tcp_timer.h"
 #include "ofpi_tcp_var.h"
+#include "ofpi_tcp_shm.h"
 #include "ofpi_tcp6_var.h"
 #include "ofpi_tcp.h"
 #include "ofpi_tcp_syncache.h"

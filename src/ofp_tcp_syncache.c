@@ -58,10 +58,12 @@
 #include "ofpi_tcp_seq.h"
 #include "ofpi_tcp_timer.h"
 #include "ofpi_tcp_var.h"
+#include "ofpi_tcp_shm.h"
 #include "ofpi_tcp_syncache.h"
 #ifdef INET6
 #include "ofpi_tcp6_var.h"
 #endif
+#include "ofpi_tcp_offload.h"
 #include "ofpi_pkt_processing.h"
 #include "ofpi_md5.h"
 
@@ -115,7 +117,6 @@ static struct syncache
 #define SYNCACHE_MAXREXMTS		3
 
 /* Arbitrary values */
-#define TCP_SYNCACHE_HASHSIZE		512
 #define TCP_SYNCACHE_BUCKETLIMIT	30
 
 static VNET_DEFINE(struct tcp_syncache, tcp_syncache);
@@ -208,8 +209,7 @@ ofp_syncache_init(void)
 	    V_tcp_syncache.hashsize * V_tcp_syncache.bucket_limit;
 
 	/* Allocate the hash table. */
-	V_tcp_syncache.hashbase = malloc(V_tcp_syncache.hashsize *
-	    sizeof(struct syncache_head));
+	V_tcp_syncache.hashbase = shm_tcp->syncache;
 
 	/* Initialize the hash buckets. */
 	for (i = 0; i < (int)V_tcp_syncache.hashsize; i++) {

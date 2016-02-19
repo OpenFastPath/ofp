@@ -50,13 +50,11 @@
 #include "ofpi_icmp.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_socketvar.h"
-//#include "ofpi_socket.h"
-
-//#include "ofp_packet.h"
 
 #include "ofpi_in_pcb.h"
 #include "ofpi_tcp.h"
 #include "ofpi_tcp_var.h"
+#include "ofpi_tcp_shm.h"
 #include "ofpi_socketvar.h"
 #include "ofpi_ip_var.h"
 #include "ofpi_sockbuf.h"

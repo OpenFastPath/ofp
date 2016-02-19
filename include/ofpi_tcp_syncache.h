@@ -36,10 +36,6 @@
 #ifndef _NETINET_TCP_SYNCACHE_H_
 #define _NETINET_TCP_SYNCACHE_H_
 
-#ifndef TCP_OFFLOAD_DISABLE
-#define TCP_OFFLOAD_DISABLE
-#endif
-
 struct toeopt;
 
 void	 ofp_syncache_init(void);
