@@ -90,6 +90,9 @@ static void *app_dispatcher_thread(void *arg)
 
 			ofp_packet_input(pkt, in_queue,
 					   ofp_eth_vlan_processing);
+#ifdef OFP_SEND_PKT_BURST
+			ofp_send_pending_pkt_burst();
+#endif /*OFP_SEND_PKT_BURST*/
 			continue;
 		}
 

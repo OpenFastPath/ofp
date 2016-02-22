@@ -127,6 +127,9 @@ void *default_event_dispatcher(void *arg)
 			}
 
 		}
+#ifdef OFP_SEND_PKT_BURST
+		ofp_send_pending_pkt_burst();
+#endif /*OFP_SEND_PKT_BURST*/
 	}
 
 	if (ofp_term_local())
