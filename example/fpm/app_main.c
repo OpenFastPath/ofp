@@ -11,6 +11,7 @@
 
 #include "ofp.h"
 #include "ofp_odp_compat.h"
+#include "linux_sigaction.h"
 
 #define MAX_WORKERS		32
 
@@ -64,6 +65,21 @@ static enum ofp_return_code fastpath_local_hook(odp_packet_t pkt, void *arg)
 }
 
 /**
+ * Signal handler function
+ *
+ * @param signum int
+ * @return void
+ *
+ */
+static void ofp_sig_func_stop(int signum)
+{
+	printf("Signal handler (signum = %d) ... exiting.\n", signum);
+
+	ofp_stop_processing();
+}
+
+
+/**
  * main() Application entry point
  *
  * This is the main function of the FPM application, it's a minimalistic
@@ -88,7 +104,12 @@ int main(int argc, char *argv[])
 
 	/* Parse and store the application arguments */
 	if (parse_args(argc, argv, &params) != EXIT_SUCCESS)
-	  return EXIT_FAILURE;
+		return EXIT_FAILURE;
+
+	if (ofp_sigactions_set(ofp_sig_func_stop)) {
+		printf("Error: failed to set signal actions.\n");
+		return EXIT_FAILURE;
+	}
 
 	/* Print both system and application information */
 	print_info(NO_PATH(argv[0]), &params);
@@ -100,8 +121,7 @@ int main(int argc, char *argv[])
 	 * and classification.
 	 */
 	if (odp_init_global(NULL, NULL)) {
-		OFP_ERR("Error: ODP global init failed.\n");
-		odp_term_global();
+		printf("Error: ODP global init failed.\n");
 		return EXIT_FAILURE;
 	}
 
@@ -112,7 +132,7 @@ int main(int argc, char *argv[])
 	 * threads, pktio and scheduler.
 	 */
 	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
-		OFP_ERR("Error: ODP local init failed.\n");
+		printf("Error: ODP local init failed.\n");
 		odp_term_global();
 		return EXIT_FAILURE;
 	}
@@ -148,8 +168,9 @@ int main(int argc, char *argv[])
 	 */
 	num_workers = odp_cpumask_default_worker(&cpumask, num_workers);
 	if (odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr)) < 0) {
-		OFP_ERR("Error: Too small buffer provided to " \
+		printf("Error: Too small buffer provided to "
 			"odp_cpumask_to_str\n");
+		odp_term_local();
 		odp_term_global();
 		return EXIT_FAILURE;
 	}
@@ -171,6 +192,18 @@ int main(int argc, char *argv[])
 	 * addition will fast path interface configuration.
 	 */
 	if (ofp_init_global(&app_init_params) != 0) {
+		printf("Error: OFP global init failed.\n");
+		ofp_term_global();
+		odp_term_local();
+		odp_term_global();
+		return EXIT_FAILURE;
+	}
+
+	if (ofp_init_local() != 0) {
+		printf("Error: OFP local init failed.\n");
+		ofp_term_local();
+		ofp_term_global();
+		odp_term_local();
 		odp_term_global();
 		return EXIT_FAILURE;
 	}
@@ -194,9 +227,14 @@ int main(int argc, char *argv[])
 					    ODP_THREAD_CONTROL
 					  );
 	if (ret_val != num_workers) {
-		OFP_ERR("Error: Failed to create worker threads, " \
-			"expected %d, got %d\n",
+		OFP_ERR("Error: Failed to create worker threads, "
+			"expected %d, got %d",
 			num_workers, ret_val);
+		ofp_stop_processing();
+		odph_linux_pthread_join(thread_tbl, num_workers);
+		ofp_term_local();
+		ofp_term_global();
+		odp_term_local();
 		odp_term_global();
 		return EXIT_FAILURE;
 	}
@@ -207,7 +245,17 @@ int main(int argc, char *argv[])
 	 * the management core, i.e. not competing for cpu cycles with the
 	 * worker threads
 	 */
-	ofp_start_cli_thread(app_init_params.linux_core_id, params.conf_file);
+	if (ofp_start_cli_thread(app_init_params.linux_core_id,
+		params.conf_file) < 0) {
+		OFP_ERR("Error: Failed to init CLI thread");
+		ofp_stop_processing();
+		odph_linux_pthread_join(thread_tbl, num_workers);
+		ofp_term_local();
+		ofp_term_global();
+		odp_term_local();
+		odp_term_global();
+		return EXIT_FAILURE;
+	}
 
 	/*
 	 * If we choose to check performance, a performance monitoring client
@@ -217,7 +265,12 @@ int main(int argc, char *argv[])
 	 */
 	if (params.perf_stat) {
 		if (start_performance(app_init_params.linux_core_id) <= 0) {
-			OFP_ERR("Error: Failed to init performance monitor\n");
+			OFP_ERR("Error: Failed to init performance monitor");
+			ofp_stop_processing();
+			odph_linux_pthread_join(thread_tbl, num_workers);
+			ofp_term_local();
+			ofp_term_global();
+			odp_term_local();
 			odp_term_global();
 			return EXIT_FAILURE;
 		}
@@ -229,8 +282,17 @@ int main(int argc, char *argv[])
 	 */
 	odph_linux_pthread_join(thread_tbl, num_workers);
 
-	if (odp_term_global() != 0)
-		return EXIT_FAILURE;
+	if (ofp_term_local() < 0)
+		printf("Error: ofp_term_local failed\n");
+
+	if (ofp_term_global() < 0)
+		printf("Error: ofp_term_global failed\n");
+
+	if (odp_term_local() < 0)
+		printf("Error: odp_term_local failed\n");
+
+	if (odp_term_global() < 0)
+		printf("Error: odp_term_global failed\n");
 
 	printf("FPM End Main()\n");
 
@@ -320,7 +382,6 @@ static int parse_args(int argc, char *argv[], appl_args_t *appl_args)
 		case 'h':
 			usage(argv[0]);
 			return EXIT_FAILURE;
-			break;
 
 		case 'p':
 			appl_args->perf_stat = 1;
