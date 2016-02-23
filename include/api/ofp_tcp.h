@@ -39,7 +39,7 @@
 #ifndef _OFP_TCP_H_
 #define _OFP_TCP_H_
 
-#include <odp/byteorder.h>
+#include <odp.h>
 #include "ofp_ip_var.h"
 
 typedef	uint32_t tcp_seq;

@@ -18,8 +18,7 @@
 
 #include "ofp_log.h"
 
-#include "odp/barrier.h"
-#include "odp/init.h"
+#include "odp.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

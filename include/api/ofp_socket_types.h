@@ -8,7 +8,7 @@
 #ifndef __OFP_SOCKET_TYPES_H__
 #define __OFP_SOCKET_TYPES_H__
 
-#include "odp/std_types.h"
+#include "odp.h"
 
 typedef uint8_t	__ofp_sa_family_t;
 typedef uint32_t	__ofp_socklen_t;

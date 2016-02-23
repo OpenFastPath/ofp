@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-#include "odp/rwlock.h"
+#include "odp.h"
 #include "api/ofp_route_arp.h"
 #include "ofpi_portconf.h"
 

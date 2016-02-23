@@ -8,12 +8,7 @@
 #ifndef _OFPI_SYSTM_H_
 #define _OFPI_SYSTM_H_
 
-#include "odp/std_types.h"
-#include "odp/packet.h"
-#include "odp/spinlock.h"
-#include "odp/rwlock.h"
-#include "odp/thread.h"
-#include "odp/cpu.h"
+#include "odp.h"
 #include "ofpi_config.h"
 #include "ofpi_socket.h"
 

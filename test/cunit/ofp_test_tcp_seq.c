@@ -8,8 +8,7 @@
 #include <unistd.h>
 #include <CUnit/Basic.h>
 
-#include "odp/plat/event_types.h"
-#include "odp/plat/timer_types.h"
+#include "odp.h"
 
 #include "ofp_init.h"
 #include "ofp_odp_compat.h"

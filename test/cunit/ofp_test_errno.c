@@ -13,8 +13,7 @@
 #include <CUnit/Basic.h>
 #endif
 
-#include "odp/init.h"
-#include "odp/barrier.h"
+#include "odp.h"
 
 #include "ofp_odp_compat.h"
 #include "ofp_errno.h"

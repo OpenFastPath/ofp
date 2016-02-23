@@ -40,7 +40,7 @@
 #ifndef _OFP_IP_H_
 #define _OFP_IP_H_
 
-#include <odp/byteorder.h>
+#include <odp.h>
 
 /*
  * Definitions for internet protocol version 4.

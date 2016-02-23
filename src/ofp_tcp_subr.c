@@ -37,8 +37,7 @@
 #include "ofpi_pkt_processing.h"
 #include "ofpi_errno.h"
 
-#include "odp/spinlock.h"
-#include "odp/time.h"
+#include "odp.h"
 
 #include "ofpi_sysctl.h"
 #include "ofpi_socketvar.h"

@@ -36,7 +36,6 @@
 #define _SYS_SOCKBUF_H_
 
 #include "odp.h"
-#include "odp/rwlock.h"
 #include "ofpi_systm.h"
 #include "ofpi_util.h"
 

@@ -67,7 +67,7 @@
 #ifndef _OFP_ICMP6_H_
 #define _OFP_ICMP6_H_
 
-#include <odp/byteorder.h>
+#include <odp.h>
 
 #define OFP_ICMPV6_PLD_MAXLEN	1232	/* IPV6_MMTU - sizeof(struct ip6_hdr)
 					   - sizeof(struct icmp6_hdr) */

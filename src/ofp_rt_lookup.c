@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include "ofpi_util.h"
 #include "ofpi.h"
-#include "odp/rwlock.h"
+#include "odp.h"
 #include "ofpi_rt_lookup.h"
 #include "ofpi_log.h"
 
