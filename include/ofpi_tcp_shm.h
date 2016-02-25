@@ -18,8 +18,14 @@
 struct ofp_tcp_var_mem {
 	VNET_DEFINE(struct inpcbhead, ofp_tcb);/* queue of active tcpcb's */
 	VNET_DEFINE(struct inpcbinfo, ofp_tcbinfo);
+
+/* Target size of TCP PCB hash tables. Must be a power of two.*/
+#define TCBHASHSIZE			512
+	struct inpcbhead	ofp_hashtbl[TCBHASHSIZE];
+	struct inpcbporthead	ofp_porthashtbl[TCBHASHSIZE];
+
 #define TCP_SYNCACHE_HASHSIZE		512
-	struct syncache_head syncache[TCP_SYNCACHE_HASHSIZE];
+	struct syncache_head	syncache[TCP_SYNCACHE_HASHSIZE];
 };
 extern __thread struct ofp_tcp_var_mem *shm_tcp;
 

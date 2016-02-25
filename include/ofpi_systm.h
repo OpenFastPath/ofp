@@ -66,6 +66,7 @@ typedef void (*uma_fini)(void *mem, int size);
 
 #define	HASH_NOWAIT	0x00000001
 #define	HASH_WAITOK	0x00000002
+void    ofp_tcp_hashinit(long count, uint64_t *hashmask, void *hashtbl);
 void	*ofp_hashinit(int count, void *type, uint64_t *hashmask);
 void    *ofp_hashinit_flags(int elements, void *type, uint64_t *hashmask, int flags);
 void	*ofp_phashinit(int count, void *type, uint64_t *nentries);

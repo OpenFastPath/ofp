@@ -41,6 +41,25 @@
 #include "ofpi_socket.h"
 #include "ofpi_systm.h"
 #include "ofpi_util.h"
+#include "ofpi_tcp_shm.h"
+
+/*
+ * Initialize tcb hash tables.
+ */
+void
+ofp_tcp_hashinit(long hashsize, uint64_t *hashmask,
+	void *tcp_hashtbl)
+{
+	OFP_LIST_HEAD(generic, generic) *hashtbl = tcp_hashtbl;
+	int i;
+
+	if (hashtbl != NULL) {
+		for (i = 0; i < hashsize; i++)
+			OFP_LIST_INIT(&hashtbl[i]);
+		*hashmask = hashsize - 1;
+	}
+	return;
+}
 
 /*
  * General routine to allocate a hash table with control of memory flags.

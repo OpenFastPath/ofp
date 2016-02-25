@@ -178,17 +178,6 @@ static char *	tcp_log_addr(struct in_conninfo *inc, struct ofp_tcphdr *th,
 		    void *ip4hdr, const void *ip6hdr);
 
 /*
- * Target size of TCP PCB hash tables. Must be a power of two.
- *
- * Note that this can be overridden by the kernel environment
- * variable net.inet.tcp.tcbhashsize
- */
-#ifndef TCBHASHSIZE
-#define TCBHASHSIZE	512
-#endif
-
-
-/*
  * Wrapper around transport structs that contain same-named congestion
  * control variables. Allows algos to be shared amongst multiple CC aware
  * transprots.

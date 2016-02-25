@@ -46,6 +46,7 @@
 #include "ofpi_protosw.h"
 #include "ofpi_socketvar.h"
 #include "ofpi_tcp_var.h"
+#include "ofpi_tcp_shm.h"
 #include "ofpi_systm.h"
 #include "ofpi_route.h"
 #include "ofpi_ip6_var.h"
@@ -119,10 +120,21 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
 	pcbinfo->ipi_listhead = listhead;
 	OFP_LIST_INIT(pcbinfo->ipi_listhead);
 	pcbinfo->ipi_count = 0;
-	pcbinfo->ipi_hashbase = ofp_hashinit(hash_nelements, 0,
-	    &pcbinfo->ipi_hashmask);
-	pcbinfo->ipi_porthashbase = ofp_hashinit(porthash_nelements, 0,
-	    &pcbinfo->ipi_porthashmask);
+
+	if (strcmp(name, "tcp") == 0) {
+		pcbinfo->ipi_hashbase = shm_tcp->ofp_hashtbl;
+		ofp_tcp_hashinit(hash_nelements, &pcbinfo->ipi_hashmask,
+			pcbinfo->ipi_hashbase);
+
+		pcbinfo->ipi_porthashbase = shm_tcp->ofp_porthashtbl;
+		ofp_tcp_hashinit(porthash_nelements, &pcbinfo->ipi_hashmask,
+                        pcbinfo->ipi_porthashbase);
+	} else {
+		pcbinfo->ipi_hashbase = ofp_hashinit(hash_nelements, 0,
+		    &pcbinfo->ipi_hashmask);
+		pcbinfo->ipi_porthashbase = ofp_hashinit(porthash_nelements, 0,
+		    &pcbinfo->ipi_porthashmask);
+	}
 
 	pcbinfo->ipi_zone = uma_zcreate(
 		inpcbzone_name, OFP_NUM_SOCKETS_MAX, sizeof(struct inpcb),
