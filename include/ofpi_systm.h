@@ -138,12 +138,16 @@ static inline void tcp_hc_update(struct in_conninfo *c, struct hc_metrics_lite *
 
 
 struct ofp_rec_rwlock {
+#if ODP_VERSION >= 106
+	odp_spinlock_recursive_t splock_rec;
+#else
 	odp_rwlock_t	lock;
 	odp_spinlock_t	splock;
 	int		cnt;
 	int		owner;
 	const char	*file;
 	int		line;
+#endif
 };
 
 static inline void ofp_rec_init(struct ofp_rec_rwlock *lock,
@@ -151,8 +155,12 @@ static inline void ofp_rec_init(struct ofp_rec_rwlock *lock,
 {
 	(void)file;
 	(void)line;
+#if ODP_VERSION >= 106
+	odp_spinlock_recursive_init(&lock->splock_rec);
+#else
 	odp_spinlock_init(&lock->splock);
 	odp_rwlock_init(&lock->lock);
+#endif
 }
 
 #define OFP_LOG_Z(a...) do {} while (0)
@@ -160,6 +168,12 @@ static inline void ofp_rec_init(struct ofp_rec_rwlock *lock,
 static inline void ofp_rec_wlock(struct ofp_rec_rwlock *lock,
 				   const char *file, int line)
 {
+#if ODP_VERSION >= 106
+	(void)file;
+	(void)line;
+	odp_spinlock_recursive_lock(&lock->splock_rec);
+	return;
+#else
 	odp_spinlock_lock(&lock->splock);
 
 	if ((int32_t)(lock->lock.cnt.v) < 0) {
@@ -180,6 +194,7 @@ static inline void ofp_rec_wlock(struct ofp_rec_rwlock *lock,
 	lock->cnt++;
 	lock->file = file;
 	lock->line = line;
+#endif
 }
 
 static inline void ofp_rec_wunlock(struct ofp_rec_rwlock *lock,
@@ -187,13 +202,17 @@ static inline void ofp_rec_wunlock(struct ofp_rec_rwlock *lock,
 {
 	(void)file;
 	(void)line;
-
+#if ODP_VERSION >= 106
+	odp_spinlock_recursive_unlock(&lock->splock_rec);
+	return;
+#else
 	if (--lock->cnt == 0) {
 		lock->owner = -1;
 		odp_rwlock_write_unlock(&lock->lock);
 	} else
 		OFP_LOG_Z("lock=%p still locked, cnt=%d\n",
 			    lock, lock->cnt);
+#endif
 }
 
 static inline void ofp_rec_rlock(struct ofp_rec_rwlock *lock,
@@ -201,7 +220,13 @@ static inline void ofp_rec_rlock(struct ofp_rec_rwlock *lock,
 {
 	(void)file;
 	(void)line;
+
+#if ODP_VERSION >= 106
+	odp_spinlock_recursive_lock(&lock->splock_rec);
+	return;
+#else
 	odp_rwlock_read_lock(&lock->lock);
+#endif
 }
 
 static inline void ofp_rec_runlock(struct ofp_rec_rwlock *lock,
@@ -209,12 +234,23 @@ static inline void ofp_rec_runlock(struct ofp_rec_rwlock *lock,
 {
 	(void)file;
 	(void)line;
+#if ODP_VERSION >= 106
+	odp_spinlock_recursive_unlock(&lock->splock_rec);
+	return;
+#else
 	odp_rwlock_read_unlock(&lock->lock);
+#endif
 }
 
 static inline int ofp_rec_try_wlock(struct ofp_rec_rwlock *lock,
 				      const char *file, int line)
 {
+#if ODP_VERSION >= 106
+	(void)file;
+	(void)line;
+
+	return odp_spinlock_recursive_trylock(&lock->splock_rec);
+#else
 	odp_spinlock_lock(&lock->splock);
 
 	if ((int32_t)(lock->lock.cnt.v) < 0) {
@@ -234,6 +270,7 @@ static inline int ofp_rec_try_wlock(struct ofp_rec_rwlock *lock,
 	lock->file = file;
 	lock->line = line;
 	return 1;
+#endif
 }
 
 
