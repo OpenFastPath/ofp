@@ -130,6 +130,13 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
+function check_odp {
+	 AC_CHECK_LIB(odp, odp_packet_alloc, [],
+	     [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
+	 AC_CHECK_HEADERS([odp.h], [],
+	     [AC_MSG_FAILURE(["Can't find ODP headers"])])
+}
+
 PKG_CHECK_MODULES([ODP], [libodp >= 1.7], [ODP_VERSION=107],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.6], [ODP_VERSION=106],
     [PKG_CHECK_MODULES([ODP], [libodp >= 1.5], [ODP_VERSION=105],
@@ -146,13 +153,6 @@ LIBS="-lodp -lodphelper $LIBS"
 else
 LIBS="-lodp $LIBS"
 fi
-
-function check_odp {
-	AC_CHECK_LIB(odp, odp_packet_alloc, [],
-	    [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
-	AC_CHECK_HEADERS([odp.h], [],
-	    [AC_MSG_FAILURE(["Can't find ODP headers"])])
-}
 
 ##########################################################################
 # Restore old saved variables
