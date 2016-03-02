@@ -18,6 +18,7 @@
 struct ofp_tcp_var_mem {
 	VNET_DEFINE(struct inpcbhead, ofp_tcb);/* queue of active tcpcb's */
 	VNET_DEFINE(struct inpcbinfo, ofp_tcbinfo);
+	VNET_DEFINE(OFP_TAILQ_HEAD(, tcptw), twq_2msl);
 
 /* Target size of TCP PCB hash tables. Must be a power of two.*/
 #define TCBHASHSIZE			512
