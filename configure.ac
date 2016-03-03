@@ -2,7 +2,7 @@ AC_PREREQ([2.69])
 AC_INIT([OpenFastPath],
 	[1.0],
 	[sorin.vultureanu at enea.com],
-	[OpenFastPath],
+	[openfastpath],
 	[http://www.enea.com])
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_SRCDIR([include/config.h.in])
