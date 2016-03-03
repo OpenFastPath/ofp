@@ -302,7 +302,6 @@ ofp_accept(int sockfd, struct ofp_sockaddr *addr, ofp_socklen_t *addrlen)
 		if (*addrlen > sa->sa_len)
 			*addrlen = sa->sa_len;
 		memcpy(addr, sa, *addrlen);
-		sa = NULL;
 	}
 
 	free(sa);
