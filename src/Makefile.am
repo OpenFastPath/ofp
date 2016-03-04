@@ -6,6 +6,13 @@ VPATH = $(srcdir) $(builddir)
 
 lib_LTLIBRARIES = $(LIB)/libofp.la
 
+.PHONY: pkgconfig/libofp.pc
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = $(top_builddir)/pkgconfig/libofp.pc
+
+AM_LDFLAGS += -version-number '$(LIBOFP_VERSION)'
+
 AM_CFLAGS += -DODP_VERSION=$(ODP_VERSION)
 AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api

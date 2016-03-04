@@ -27,12 +27,16 @@
 *.x86_64
 *.hex
 
+# ignore scmversion file
+.scmversion
+
 # ignore byproducts of autotools (bootstrap,configure)
 *.log
 *.patch
 *.in
 *.m4
 *.guess
+*.pc
 *.status
 *.sub
 autom4te.cache/

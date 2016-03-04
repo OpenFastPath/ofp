@@ -109,3 +109,4 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_hook.h \
 		  $(top_srcdir)/include/ofpi_util.h
 
+EXTRA_DIST = .scmversion
