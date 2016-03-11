@@ -6,3 +6,5 @@ fpm_CFLAGS = $(AM_CFLAGS)
 
 dist_fpm_SOURCES = app_main.c \
 	 ../common/linux_sigaction.c
+
+noinst_HEADERS = ../common/linux_sigaction.h
