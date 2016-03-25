@@ -29,6 +29,7 @@ extern "C" {
 #include "ofp_timer.h"
 #include "ofp_hook.h"
 #include "ofp_route_arp.h"
+#include "ofp_ifnet.h"
 #include "ofp_portconf.h"
 #include "ofp_debug.h"
 #include "ofp_stat.h"
