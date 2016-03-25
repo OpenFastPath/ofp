@@ -23,6 +23,7 @@ extern "C" {
 #include "ofp_config.h"
 #include "ofp_types.h"
 #include "ofp_init.h"
+#include "ofp_ifnet.h"
 #include "ofp_pkt_processing.h"
 #include "ofp_cli.h"
 #include "ofp_log.h"
