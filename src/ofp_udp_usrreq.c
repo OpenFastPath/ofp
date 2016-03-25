@@ -1109,9 +1109,8 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 		ipflags |= IP_SENDONES;
 
 	/*
-	 * Set up checksum and output datagram.
+	 * Set up UDP checksum.
 	 */
-	ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, sizeof(*ip));
 	udp->uh_sum = ofp_in4_cksum(m);
 #if 0
 	if (ofp_udp_cksum) {
