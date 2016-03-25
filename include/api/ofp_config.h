@@ -72,12 +72,15 @@
  * For each fastpath interface a PKTIO in opened by OFP.*/
 #define OFP_FP_INTERFACE_MAX 8
 
-/**Value of burst size used in default_event_dispatcher.*/
-#define OFP_EVENT_BURST_SIZE 16
-/**Maximum number of packets received when scheduling with schedule_multi.
- * Value in default_event_dispatcher().*/
-#define OFP_PKT_SCHED_MULTI_EVENT_SIZE 16
-/**Number of packets sent at once in send_pkt_burst_out() */
+/**Maximum number of packets received at once in direct mode in
+ * example applications - default value.*/
+#define OFP_PKT_RX_BURST_SIZE 16
+
+/**Maximum number of events received at once in scheduling mode
+ * in default_event_dispatcher().*/
+#define OFP_EVT_RX_BURST_SIZE 16
+
+/**Number of packets sent at once in burst mode (>= 1)   */
 #define OFP_PKT_TX_BURST_SIZE 16
 
 #ifdef MTRIE

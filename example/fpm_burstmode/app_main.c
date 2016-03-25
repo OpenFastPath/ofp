@@ -50,7 +50,7 @@ static enum ofp_return_code fastpath_local_hook(odp_packet_t pkt, void *arg)
 	return OFP_PKT_CONTINUE;
 }
 
-#define OFP_PKT_BURST_SIZE 16
+#define PKT_BURST_SIZE OFP_PKT_RX_BURST_SIZE
 
 struct pktio_thr_arg {
 	int port;
@@ -60,7 +60,7 @@ struct pktio_thr_arg {
 static void *pkt_io_recv(void *arg)
 {
 	odp_pktio_t pktio;
-	odp_packet_t pkt, pkt_tbl[OFP_PKT_BURST_SIZE];
+	odp_packet_t pkt, pkt_tbl[PKT_BURST_SIZE];
 	int pkt_idx, pkt_cnt;
 	struct pktio_thr_arg *thr_args;
 	ofp_pkt_processing_func pkt_func;
@@ -83,7 +83,7 @@ static void *pkt_io_recv(void *arg)
 		  thr_args->port, odp_pktio_to_u64(pktio));
 
 	while (1) {
-		pkt_cnt = odp_pktio_recv(pktio, pkt_tbl, OFP_PKT_BURST_SIZE);
+		pkt_cnt = odp_pktio_recv(pktio, pkt_tbl, PKT_BURST_SIZE);
 
 		for (pkt_idx = 0; pkt_idx < pkt_cnt; pkt_idx++) {
 			pkt = pkt_tbl[pkt_idx];
@@ -130,8 +130,7 @@ static void *event_dispatcher(void *arg)
 			continue;
 		}
 
-		OFP_ERR("Event_dispatcher: "
-			  "Error, unexpected event type: %u\n",
+		OFP_ERR("Error: unexpected event type: %u\n",
 			  odp_event_type(ev));
 
 		odp_buffer_free(odp_buffer_from_event(ev));
