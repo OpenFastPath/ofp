@@ -132,7 +132,6 @@
 
 #define SHM_NAME_SOCKET "OfpSocketShMem"
 
-#define OFP_SOCK_NUM_OFFSET 100
 #define OFP_NUM_SOCKET_POOLS 32
 
 /*

@@ -65,8 +65,12 @@
 /** Packet pool user area size. */
 #define SHM_PKT_POOL_USER_AREA_SIZE	16
 
+/**Socket handle values returned are in the interval:
+ * [OFP_SOCK_NUM_OFFSET, OFP_SOCK_NUM_OFFSET + OFP_NUM_SOCKETS_MAX] */
 /**Maximum number of sockets. */
 #define OFP_NUM_SOCKETS_MAX 1024
+/**First socket number value. */
+#define OFP_SOCK_NUM_OFFSET 1024
 
 /**Maximum number of fastpath interfaces used.
  * For each fastpath interface a PKTIO in opened by OFP.*/
