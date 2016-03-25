@@ -503,7 +503,7 @@ ofp_tcp_twrespond(struct tcptw *tw, int flags)
 			ip->ip_off |= OFP_IP_DF;
 
 		ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
-		ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, sizeof(*ip));
+		ip->ip_sum = 0;
 		th->th_sum = 0;
 		/* th->th_sum = ofp_in4_cksum(m); output calculates csum */
 
