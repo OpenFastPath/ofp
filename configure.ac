@@ -157,9 +157,9 @@ PKG_CHECK_MODULES([ODP], [libodp >= 1.7], [ODP_VERSION=107],
 
 # prepending lib to the files to link
 if [[ "${ODP_VERSION}" -gt 101 ]]; then
-LIBS="-lodp -lodphelper $LIBS"
+LIBS="-lodp -lodphelper $LIBS -ldl"
 else
-LIBS="-lodp $LIBS"
+LIBS="-lodp $LIBS -ldl"
 fi
 
 ##########################################################################
