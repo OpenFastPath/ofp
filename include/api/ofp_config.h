@@ -121,4 +121,15 @@
 /**Maximum number of saved packets waiting for an ARP reply. */
 #define ARP_WAITING_PKTS_SIZE 2048
 
+/**Enable IPv4 UDP checksum validation mechanism on input
+ * packets. If enabled, validation is performed on input
+ * packets. */
+/*#define OFP_IPv4_UDP_CSUM_VALIDATE*/
+
+/**Enable IPv4 UDP checksum computation mechanism for outgoing
+ * packets. If enabled, computation is performed based on
+ * sysctl() option net.inet.udp.checksum (default: compute
+ * checksum). */
+#define OFP_IPv4_UDP_CSUM_COMPUTE
+
 #endif

@@ -353,8 +353,16 @@ ofp_udp_input(odp_packet_t m, int off)
 	/*
 	 * Checksum extended UDP header and data.
 	 */
+
 	if (uh->uh_sum) {
-#if 0
+#ifdef OFP_IPv4_UDP_CSUM_VALIDATE
+#if 1
+		uint16_t uh_sum;
+
+		uh_sum = ofp_in4_cksum(m);
+		if (uh_sum)
+			goto badunlocked;
+#else
 		uint16_t uh_sum;
 
 		if (odp_packet_csum_flags(m) & CSUM_DATA_VALID) {
@@ -380,6 +388,7 @@ ofp_udp_input(odp_packet_t m, int off)
 			return(0);
 		}
 #endif
+#endif /*OFP_IPv4_UDP_CSUM_VALIDATE*/
 	} else {
 		UDPSTAT_INC(udps_nosum);
 	}
@@ -1111,9 +1120,14 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 	/*
 	 * Set up UDP checksum.
 	 */
-	udp->uh_sum = ofp_in4_cksum(m);
-#if 0
+#ifdef OFP_IPv4_UDP_CSUM_COMPUTE
 	if (ofp_udp_cksum) {
+#if 1
+		udp->uh_sum = 0;
+		udp->uh_sum = ofp_in4_cksum(m);
+		if (udp->uh_sum == 0)
+			udp->uh_sum = 0xffff;
+#else
 		if (inp->inp_flags & INP_ONESBCAST)
 			faddr.s_addr = OFP_INADDR_BROADCAST;
 		ui->ui_sum = in_pseudo(ui->ui_src.s_addr, faddr.s_addr,
@@ -1121,9 +1135,13 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 
 		odp_packet_csum_flags(m) = CSUM_UDP;
 		odp_packet_set_csum_data(m, offsetof(struct ofp_udphdr, uh_sum));
-	} else
 #endif
-	UDPSTAT_INC(udps_opackets);
+	} else
+#endif /*OFP_IPv4_UDP_CSUM_COMPUTE*/
+	{
+		udp->uh_sum = 0;
+		UDPSTAT_INC(udps_opackets);
+	}
 
 	if (unlock_udbinfo == UH_WLOCKED)
 		INP_HASH_WUNLOCK(&ofp_udbinfo);
