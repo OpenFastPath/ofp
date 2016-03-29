@@ -813,6 +813,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 			ofp_in_leavegroup(data->ii_inet.ii_allhosts, NULL);
 		}
 
+		free(data->ii_inet.ii_igmp);
 		vlan_ifnet_delete(
 			shm->ofp_ifnet_data[port].vlan_structs,
 			&key,

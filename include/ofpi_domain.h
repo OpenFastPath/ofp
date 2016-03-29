@@ -77,4 +77,5 @@ struct domain {
 };
 
 void domain_init(void *arg);
+void domain_uninit(void *arg);
 #endif /* !_SYS_DOMAIN_H_ */

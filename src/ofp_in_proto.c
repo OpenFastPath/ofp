@@ -58,6 +58,8 @@ struct protosw ofp_inetsw[] = {
 		.pr_init =		ofp_ip_init,
 #ifdef VIMAGE
 		.pr_destroy =		ofp_ip_destroy,
+#else
+		.pr_destroy =		NULL,
 #endif
 		.pr_input =		ofp_ip_input,
 		.pr_ctlinput =		NULL,
@@ -73,6 +75,7 @@ struct protosw ofp_inetsw[] = {
 		.pr_ctlinput =		ofp_udp_ctlinput,
 		.pr_ctloutput =		ofp_udp_ctloutput,
 		.pr_init =		ofp_udp_init,
+		.pr_destroy =           ofp_udp_destroy,
 		.pr_usrreqs =		&ofp_udp_usrreqs
 	},
 	{
@@ -84,6 +87,7 @@ struct protosw ofp_inetsw[] = {
 		.pr_ctlinput =		ofp_tcp_ctlinput,
 		.pr_ctloutput =		ofp_tcp_ctloutput,
 		.pr_init =		ofp_tcp_init,
+		.pr_destroy =           NULL,
 		.pr_slowtimo =		ofp_tcp_slowtimo,
 		.pr_drain =		ofp_tcp_drain,
 		.pr_usrreqs =		&ofp_tcp_usrreqs
@@ -133,6 +137,7 @@ struct protosw ofp_inetsw[] = {
 		.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 		.pr_input =		ofp_gre_input,
 		.pr_init =		NULL,
+		.pr_destroy =		NULL,
 		.pr_ctlinput =		NULL,
 		.pr_ctloutput =		NULL/*rip_ctloutput*/,
 		.pr_usrreqs =		&nousrreqs
@@ -143,10 +148,11 @@ struct protosw ofp_inetsw[] = {
 		.pr_protocol =		OFP_IPPROTO_ICMP,
 		.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 		.pr_input =		ofp_icmp_input,
-		.pr_init =              NULL,
+		.pr_init =		NULL,
+		.pr_destroy =		NULL,
 		.pr_ctlinput =		NULL,
 		.pr_ctloutput =		NULL/*rip_ctloutput*/,
-		.pr_usrreqs =           &nousrreqs
+		.pr_usrreqs =		&nousrreqs
 	},
 	{
 		.pr_type =		OFP_SOCK_RAW,
@@ -154,7 +160,8 @@ struct protosw ofp_inetsw[] = {
 		.pr_protocol =		OFP_IPPROTO_IGMP,
 		.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 		.pr_input =		ofp_igmp_input,
-		.pr_init =              ofp_igmp_init,
+		.pr_init =		ofp_igmp_init,
+		.pr_destroy =		NULL,
 		.pr_ctloutput =		NULL /*rip_ctloutput*/,
 		.pr_fasttimo =		NULL /*igmp_fasttimo*/,
 		.pr_slowtimo =		NULL /*ofp_igmp_slowtimo*/,

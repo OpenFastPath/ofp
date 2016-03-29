@@ -407,8 +407,12 @@ int ofp_socket_term_global(void)
 					inp->inp_socket);
 		}
 
-		uma_zfree(V_tcbinfo.ipi_zone, inp);
+		uma_zfree(ofp_udbinfo.ipi_zone, inp);
 	}
+
+#ifdef INET
+	domain_uninit(&ofp_inetdomain);
+#endif
 
 	for (i = 0; i < shm->num_pools; i++)
 		if (shm->pools[i] != ODP_POOL_INVALID) {

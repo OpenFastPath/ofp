@@ -146,6 +146,12 @@ ofp_udp_init(void)
 			IPI_HASHFIELDS_2TUPLE);
 }
 
+void
+ofp_udp_destroy(void)
+{
+	ofp_in_pcbinfo_destroy(&ofp_udbinfo);
+}
+
 /*
  * Subroutine of ofp_udp_input(), which appends the provided mbuf chain to the
  * passed pcb/socket.  The caller must provide a sockaddr_in via udp_in that

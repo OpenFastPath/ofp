@@ -72,7 +72,7 @@ init_suite(void)
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.type        = ODP_POOL_PACKET;
+	pool_params.type	= ODP_POOL_PACKET;
 
 	(void) ofp_init_pre_global("packet_pool", &pool_params, pkt_hook, &pool,
 				   ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT);
@@ -90,6 +90,11 @@ init_suite(void)
 static int
 clean_suite(void)
 {
+	ofp_arp_term_local();
+	ofp_term_local();
+	ofp_term_global();
+	odp_term_local();
+	odp_term_global();
 	return 0;
 }
 
@@ -128,7 +133,7 @@ static void assert_dev(struct ofp_ifnet *dev, int port, uint16_t vlan,
  */
 
 static void
-test_sinlge_port_basic(void)
+test_single_port_basic(void)
 {
 	int port = 0;
 	uint16_t vlan = 0;
@@ -148,7 +153,6 @@ test_sinlge_port_basic(void)
 		   link_local);
 	nh = ofp_get_next_hop(vrf, ifaddr, NULL);
 	assert_next_hop(nh, 0, port, vlan);
-
 
 	res = ofp_config_interface_down(port, vlan);
 	CU_ASSERT_PTR_NULL_FATAL(res);
@@ -259,41 +263,75 @@ test_gre_port(void)
 	CU_ASSERT_PTR_NULL_FATAL(dev);
 }
 
+#define mtx_lock(mtx)
+#define mtx_unlock(mtx)
+
+static void test_queue(void)
+{
+	struct ofp_ifqueue ifq;
+	struct ifq_entry e;
+
+	ifq.ifq_tail = NULL;
+	ifq.ifq_len = 0;
+	e.next = NULL;
+
+	odp_packet_t m = odp_packet_alloc(ofp_packet_pool, 0);
+
+	IF_ENQUEUE(&ifq, m) while (0);
+	CU_ASSERT_PTR_NOT_NULL(ifq.ifq_head);
+	CU_ASSERT_PTR_EQUAL(ifq.ifq_head, ifq.ifq_tail);
+	CU_ASSERT_PTR_NULL(ifq.ifq_tail->next);
+	CU_ASSERT_EQUAL(ifq.ifq_len, 1);
+
+	ifq.ifq_head = ifq.ifq_tail = &e;
+
+	IF_ENQUEUE(&ifq, m) while (0);
+	CU_ASSERT_PTR_NOT_NULL(ifq.ifq_head);
+	CU_ASSERT_PTR_NOT_NULL(ifq.ifq_tail);
+	CU_ASSERT_PTR_NOT_EQUAL(ifq.ifq_head, ifq.ifq_tail);
+	CU_ASSERT_PTR_EQUAL(ifq.ifq_head->next, ifq.ifq_tail);
+	CU_ASSERT_PTR_NULL(ifq.ifq_tail->next);
+	CU_ASSERT_EQUAL(ifq.ifq_len, 2);
+
+	odp_packet_free(m);
+}
+
+#undef mtx_lock
+#undef mtx_unlock
+
+static char *const_cast(const char *str)
+{
+	return (char *)(uintptr_t)str;
+}
+
 /*
  * Main
  */
 int
 main(void)
 {
-	CU_pSuite ptr_suite = NULL;
+	CU_TestInfo tests[] = {
+		{ const_cast("Test single port"), test_single_port_basic },
+		{ const_cast("Test two vlan ports"), test_two_ports_vlan },
+		{ const_cast("Test gre port"), test_gre_port },
+		{ const_cast("Test queue"), test_queue },
+		CU_TEST_INFO_NULL,
+	};
+
+	CU_SuiteInfo suites[] = {
+		{ const_cast("ofp port config"), init_suite, clean_suite, tests },
+		CU_SUITE_INFO_NULL,
+	};
+
 	int nr_of_failed_tests = 0;
 	int nr_of_failed_suites = 0;
 
 	/* Initialize the CUnit test registry */
-	if (CUE_SUCCESS != CU_initialize_registry())
+	if (CU_initialize_registry() != CUE_SUCCESS)
 		return CU_get_error();
 
 	/* add a suite to the registry */
-	ptr_suite = CU_add_suite("ofp port config", init_suite, clean_suite);
-	if (NULL == ptr_suite) {
-		CU_cleanup_registry();
-		return CU_get_error();
-	}
-
-	if (NULL == CU_ADD_TEST(ptr_suite,
-				test_sinlge_port_basic)) {
-		CU_cleanup_registry();
-		return CU_get_error();
-	}
-
-	if (NULL == CU_ADD_TEST(ptr_suite,
-				test_two_ports_vlan)) {
-		CU_cleanup_registry();
-		return CU_get_error();
-	}
-
-	if (NULL == CU_ADD_TEST(ptr_suite,
-				test_gre_port)) {
+	if (CU_register_suites(suites) != CUE_SUCCESS) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
