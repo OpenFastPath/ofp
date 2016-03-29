@@ -590,6 +590,12 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 	else
 #endif
 	{
+		ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
+		ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
+
+		nth->th_sum = 0;
+		nth->th_sum = ofp_in4_cksum(m);
+
 		/* HJo FIX
 		odp_packet_csum_flags(m) = CSUM_TCP;
 		nth->th_sum = in_pseudo(ip->ip_src.s_addr, ip->ip_dst.s_addr,
@@ -605,13 +611,7 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 		(void) ofp_ip6_output(m, NULL);
 	else
 #endif
-	{
-		ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
-		ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
-		nth->th_sum = 0;
-		/* nth->th_sum = ofp_in4_cksum(m); output calculates csum */
-		(void) ofp_ip_output(m, NULL);// HJo , NULL, ipflags, NULL, inp);
-	}
+		(void) ofp_ip_output(m, NULL);/* HJo, NULL, ipflags, NULL, inp*/
 }
 
 /*

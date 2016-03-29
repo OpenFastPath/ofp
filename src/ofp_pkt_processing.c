@@ -1054,16 +1054,6 @@ static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
 		return OFP_PKT_DROP;
 	}
 
-	if (odata->ip->ip_p == OFP_IPPROTO_TCP) {
-		/* Checksum calculation is done here. We don't know if
-		   the hardware does this or is it our job. Either way,
-		   there is only one place to modify. */
-		struct ofp_tcphdr *th = (struct ofp_tcphdr *)
-			((uint8_t *)odata->ip + (odata->ip->ip_hl<<2));
-		th->th_sum = 0;
-		th->th_sum = ofp_in4_cksum(pkt);
-	}
-
 	if (!odata->nh) {
 		odata->nh = ofp_get_next_hop(odata->vrf, odata->ip->ip_dst.s_addr, &flags);
 		if (!odata->nh)
