@@ -661,26 +661,22 @@ ofp_tcp_input(odp_packet_t m, int off0)
 		*/
 
 		ip = (struct ofp_ip *)odp_packet_data(m);
-		/*
-		 * Convert fields to host representation.
-		 */
-		ip->ip_len = odp_be_to_cpu_16(ip->ip_len);
-		ip->ip_off = odp_be_to_cpu_16(ip->ip_off);
-		/* HJo: see bsd ip_input() */
-		ip->ip_len -= ip->ip_hl << 2;
-
 		th = (struct ofp_tcphdr *)((char *)ip + off0);
-		tlen = ip->ip_len;
-#if 0 /* HJo: no csum check */
+
+#ifdef OFP_IPv4_TCP_CSUM_VALIDATE
+#if 1
+		th->th_sum = ofp_in4_cksum(m);
+#else /* HJo: no csum check */
 		if (odp_packet_csum_flags(m) & CSUM_DATA_VALID) {
 			if (odp_packet_csum_flags(m) & CSUM_PSEUDO_HDR)
 				th->th_sum = odp_packet_csum_data(m);
 			else
 				th->th_sum = in_pseudo(ip->ip_src.s_addr,
-						ip->ip_dst.s_addr,
-						odp_cpu_to_be_32(odp_packet_csum_data(m) +
-							ip->ip_len +
-							OFP_IPPROTO_TCP));
+					ip->ip_dst.s_addr,
+					odp_cpu_to_be_32(
+						odp_packet_csum_data(m) +
+						ip->ip_len +
+						OFP_IPPROTO_TCP));
 			th->th_sum ^= 0xffff;
 		} else {
 			/*
@@ -689,11 +685,22 @@ ofp_tcp_input(odp_packet_t m, int off0)
 			len = sizeof (struct ofp_ip) + tlen;
 			th->th_sum = in_cksum(m, len);
 		}
+#endif /* HJo */
 		if (th->th_sum) {
 			TCPSTAT_INC(tcps_rcvbadsum);
 			goto drop;
 		}
-#endif // HJo
+#endif /* OFP_IPv4_TCP_CSUM_VALIDATE */
+		/*
+		 * Convert fields to host representation.
+		 */
+		ip->ip_len = odp_be_to_cpu_16(ip->ip_len);
+		ip->ip_off = odp_be_to_cpu_16(ip->ip_off);
+		/* HJo: see bsd ip_input() */
+		ip->ip_len -= ip->ip_hl << 2;
+
+		tlen = ip->ip_len;
+
 		/* Re-initialization for later version check */
 		ip->ip_v = OFP_IPVERSION;
 	}

@@ -136,4 +136,9 @@
  * checksum). */
 #define OFP_IPv4_UDP_CSUM_COMPUTE
 
+/**Enable IPv4 TCP checksum validation mechanism on input
+ * packets. If enabled, validation is performed on input
+ * packets. */
+/*#define OFP_IPv4_TCP_CSUM_VALIDATE*/
+
 #endif
