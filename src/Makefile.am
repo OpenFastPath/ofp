@@ -74,8 +74,7 @@ ofp_in.c \
 ofp_sysctl.c \
 ofp_igmp.c \
 ofp_in_mcast.c \
-ofp_vxlan.c \
-ofp_libnetworkinterpose.c
+ofp_vxlan.c
 
 if OFP_USE_LIBCK
 AM_CFLAGS +=  -DOFP_USE_LIBCK
@@ -94,6 +93,9 @@ __LIB__libofp_la_SOURCES += \
 ofp_netlink.c \
 ofp_quagga.c \
 ofp_tunthread.c
+else
+__LIB__libofp_la_SOURCES += \
+ofp_libnetworkinterpose.c
 endif
 
 if OFP_IPv6
