@@ -168,10 +168,13 @@ int ofp_init_pre_global(const char *pool_name_unused,
 
 odp_pool_t ofp_packet_pool;
 odp_cpumask_t cpumask;
+int ofp_init_global_called = 0;
 
 int ofp_init_global(ofp_init_global_t *params)
 {
 	int i;
+
+	ofp_init_global_called = 1;
 
 	HANDLE_ERROR(ofp_init_pre_global(NULL, NULL,
 					 params->pkt_hook, NULL,

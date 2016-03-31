@@ -97,6 +97,8 @@ static void ofp_ifconfig(void)
 	return;
 }
 
+extern int ofp_init_global_called;
+
 static int ofp_lib_start(void)
 {
 	ofp_init_global_t app_init_params;
@@ -105,6 +107,9 @@ static int ofp_lib_start(void)
 	int ret_val, num_workers = 1;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
+
+	if (ofp_init_global_called)
+		return EXIT_FAILURE;
 
 	/*
 	 * Before any ODP API functions can be called, we must first init the ODP
