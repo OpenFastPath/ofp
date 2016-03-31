@@ -348,9 +348,11 @@ int close(int sockfd)
 {
 	int close_value;
 
-	if (sockfd < OFP_SOCK_NUM_OFFSET)
+	if (sockfd < OFP_SOCK_NUM_OFFSET) {
+		if (libc_close == NULL)
+			ofp_libc_init();
 		close_value = (*libc_close)(sockfd);
-	else
+	} else
 		close_value = ofp_close(sockfd);
 
 	OFP_DBG("Socket '%d' closed returns:'%d'",
@@ -383,9 +385,12 @@ ssize_t read(int sockfd, void *buf, size_t len)
 {
 	ssize_t read_value;
 
-	if (sockfd < OFP_SOCK_NUM_OFFSET)
+	if (sockfd < OFP_SOCK_NUM_OFFSET) {
+		if (libc_read == NULL)
+			ofp_libc_init();
+
 		read_value = (*libc_read)(sockfd, buf, len);
-	else
+	} else
 		read_value = ofp_recv(sockfd, buf, len, 0);
 
 	OFP_DBG("Read called on socket '%d'", sockfd);
@@ -412,9 +417,12 @@ ssize_t write(int sockfd, void *buf, size_t len)
 {
 	ssize_t write_value;
 
-	if (sockfd < OFP_SOCK_NUM_OFFSET)
+	if (sockfd < OFP_SOCK_NUM_OFFSET) {
+		if (libc_write == NULL)
+			ofp_libc_init();
+
 		write_value = (*libc_write)(sockfd, buf, len);
-	else
+	} else
 		write_value = ofp_send(sockfd, buf, len, 0);
 
 	OFP_DBG("Write called on socket '%d'", sockfd);
