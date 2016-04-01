@@ -242,6 +242,22 @@ int ofp_uma_pool_create(const char *name, int nitems, int size)
 	return zone;
 }
 
+int ofp_uma_pool_destroy(int zone)
+{
+	int ret = 0;
+
+	if (zone > OFP_NUM_SOCKET_POOLS || zone < 0)
+		return -1;
+	if (shm->pools[zone] == ODP_POOL_INVALID)
+		return -1;
+
+	ret = odp_pool_destroy(shm->pools[zone]);
+
+	shm->pools[zone] = ODP_POOL_INVALID;
+
+	return ret;
+}
+
 void *ofp_uma_pool_alloc(int zone)
 {
 	odp_buffer_t buffer;

@@ -375,6 +375,7 @@ ofp_tcp_destroy(void)
 
 		uma_zfree(V_tcbinfo.ipi_zone, inp);
 	}
+	uma_zdestroy(V_tcbinfo.ipi_zone);
 }
 
 void

@@ -164,6 +164,7 @@ ofp_udp_destroy(void)
 	}
 
 	ofp_in_pcbinfo_destroy(&ofp_udbinfo);
+	uma_zdestroy(ofp_udbinfo.ipi_zone);
 }
 
 /*

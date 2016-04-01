@@ -430,7 +430,8 @@ void ofp_accept_unlock(void);
 #define uma_zcreate(name, nitems, size, ctor, dtor, uminit, fini, align, flags) \
 	ofp_uma_pool_create(name, nitems, size)
 
-#define uma_zdestroy(zone)
+#define uma_zdestroy(zone) \
+	ofp_uma_pool_destroy(zone)
 
 #define uma_zalloc(zone, flags) \
 	ofp_uma_pool_alloc(zone)
@@ -441,6 +442,7 @@ void ofp_accept_unlock(void);
 #define uma_zone_set_max(zone, nitems)
 
 int ofp_uma_pool_create(const char *name, int nitems, int size);
+int ofp_uma_pool_destroy(int zone);
 void *ofp_uma_pool_alloc(int zone);
 void ofp_uma_pool_free(void *item);
 

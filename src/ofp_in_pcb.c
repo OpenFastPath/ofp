@@ -155,7 +155,6 @@ ofp_in_pcbinfo_destroy(struct inpcbinfo *pcbinfo)
 	ofp_hashdestroy(pcbinfo->ipi_hashbase, 0, pcbinfo->ipi_hashmask);
 	ofp_hashdestroy(pcbinfo->ipi_porthashbase, 0,
 		    pcbinfo->ipi_porthashmask);
-	uma_zdestroy(pcbinfo->ipi_zone);
 	/* INP_HASH_LOCK_DESTROY(pcbinfo);
 	   INP_INFO_LOCK_DESTROY(pcbinfo);*/
 }
