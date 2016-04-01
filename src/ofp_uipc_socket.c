@@ -355,16 +355,8 @@ int ofp_socket_init_global(odp_pool_t pool)
 int ofp_socket_term_global(void)
 {
 	int i;
-	struct inpcb *inp, *inp_temp;
-	struct tcptw *tw;
-	struct tcpcb *tp;
 	struct sleeper *p, *next;
 	int rc = 0;
-
-	if (ofp_tcp_slow_timer != ODP_TIMER_INVALID) {
-		CHECK_ERROR(ofp_timer_cancel(ofp_tcp_slow_timer), rc);
-		ofp_tcp_slow_timer = ODP_TIMER_INVALID;
-	}
 
 	p = shm->sleep_list;
 	while (p) {
@@ -376,39 +368,6 @@ int ofp_socket_term_global(void)
 		p->go = 1;
 		p = next;
 
-	}
-
-	OFP_LIST_FOREACH_SAFE(inp, V_tcbinfo.ipi_listhead, inp_list, inp_temp) {
-
-		if (inp->inp_flags & INP_TIMEWAIT) {
-			tw = intotw(inp);
-			if (tw)
-				uma_zfree(V_tcptw_zone, tw);
-		} else if (!(inp->inp_flags & INP_DROPPED)) {
-			tp = intotcpcb(inp);
-			if (tp)
-				ofp_tcp_discardcb(tp);
-		}
-		if (inp->inp_socket) {
-			ofp_sbdestroy(&inp->inp_socket->so_snd,
-					inp->inp_socket);
-			ofp_sbdestroy(&inp->inp_socket->so_rcv,
-					inp->inp_socket);
-		}
-
-		uma_zfree(V_tcbinfo.ipi_zone, inp);
-	}
-
-	OFP_LIST_FOREACH_SAFE(inp, ofp_udbinfo.ipi_listhead, inp_list,
-			inp_temp) {
-		if (inp->inp_socket) {
-			ofp_sbdestroy(&inp->inp_socket->so_snd,
-					inp->inp_socket);
-			ofp_sbdestroy(&inp->inp_socket->so_rcv,
-					inp->inp_socket);
-		}
-
-		uma_zfree(ofp_udbinfo.ipi_zone, inp);
 	}
 
 	ofp_inet_term();

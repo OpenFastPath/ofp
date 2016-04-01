@@ -346,6 +346,35 @@ ofp_tcp_init(void)
 void
 ofp_tcp_destroy(void)
 {
+	struct inpcb *inp, *inp_temp;
+	struct tcptw *tw;
+	struct tcpcb *tp;
+
+	if (ofp_tcp_slow_timer != ODP_TIMER_INVALID) {
+		ofp_timer_cancel(ofp_tcp_slow_timer);
+		ofp_tcp_slow_timer = ODP_TIMER_INVALID;
+	}
+
+	OFP_LIST_FOREACH_SAFE(inp, V_tcbinfo.ipi_listhead, inp_list, inp_temp) {
+
+		if (inp->inp_flags & INP_TIMEWAIT) {
+			tw = intotw(inp);
+			if (tw)
+				uma_zfree(V_tcptw_zone, tw);
+		} else if (!(inp->inp_flags & INP_DROPPED)) {
+			tp = intotcpcb(inp);
+			if (tp)
+				ofp_tcp_discardcb(tp);
+		}
+		if (inp->inp_socket) {
+			ofp_sbdestroy(&inp->inp_socket->so_snd,
+					inp->inp_socket);
+			ofp_sbdestroy(&inp->inp_socket->so_rcv,
+					inp->inp_socket);
+		}
+
+		uma_zfree(V_tcbinfo.ipi_zone, inp);
+	}
 }
 
 void

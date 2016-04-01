@@ -149,6 +149,20 @@ ofp_udp_init(void)
 void
 ofp_udp_destroy(void)
 {
+	struct inpcb *inp, *inp_temp;
+
+	OFP_LIST_FOREACH_SAFE(inp, ofp_udbinfo.ipi_listhead, inp_list,
+			inp_temp) {
+		if (inp->inp_socket) {
+			ofp_sbdestroy(&inp->inp_socket->so_snd,
+					inp->inp_socket);
+			ofp_sbdestroy(&inp->inp_socket->so_rcv,
+					inp->inp_socket);
+		}
+
+		uma_zfree(ofp_udbinfo.ipi_zone, inp);
+	}
+
 	ofp_in_pcbinfo_destroy(&ofp_udbinfo);
 }
 
