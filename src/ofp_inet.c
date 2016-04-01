@@ -29,7 +29,13 @@ int ofp_inet_init(void)
 
 int ofp_inet_term(void)
 {
-	ofp_igmp_uninit(NULL);
+#ifdef INET
+	domain_uninit(&ofp_inetdomain);
+#endif /* INET */
+
+#ifdef INET6
+	domain_uninit(&ofp_inet6domain);
+#endif /* INET6 */
 
 	return 0;
 }

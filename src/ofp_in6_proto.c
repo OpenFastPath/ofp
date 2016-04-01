@@ -98,6 +98,8 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_init =		ofp_ip6_init,
 #ifdef VIMAGE
 	.pr_destroy =		ofp_ip6_destroy,
+#else
+	.pr_destroy =		NULL,
 #endif
 	.pr_input =		ofp_ip6_input,
 	.pr_ctlinput =		NULL,
@@ -114,8 +116,10 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_ctloutput =		NULL, /*ip6_ctloutput,*/
 #ifndef INET	/* Do not call initialization twice. */
 	.pr_init =		ofp_udp_init,
+	.pr_destroy =		ofp_udp_destroy,
 #else
 	.pr_init =		NULL,
+	.pr_destroy =		NULL,
 #endif
 	.pr_usrreqs =		&ofp_udp6_usrreqs,
 },
@@ -130,9 +134,11 @@ struct ip6protosw ofp_inet6sw[] = {
 #ifndef INET	/* don't call initialization and timeout routines twice */
 	.pr_init =		ofp_tcp_init,
 	.pr_slowtimo =		ofp_tcp_slowtimo,
+	.pr_destroy =		NULL,
 #else
 	.pr_init =		NULL,
 	.pr_slowtimo =		NULL,
+	.pr_destroy =		NULL,
 #endif
 	.pr_drain =		ofp_tcp_drain,
 	.pr_usrreqs =		&ofp_tcp6_usrreqs,
@@ -181,6 +187,7 @@ struct ip6protosw ofp_inet6sw[] = {
 #else
 	.pr_init =		NULL,
 #endif
+	.pr_destroy =		NULL,
 	.pr_usrreqs =		&rip6_usrreqs
 },
 #endif
@@ -189,6 +196,7 @@ struct ip6protosw ofp_inet6sw[] = {
 	.pr_domain =		&ofp_inet6domain,
 	.pr_protocol =		OFP_IPPROTO_ICMPV6,
 	.pr_init =		NULL,
+	.pr_destroy =		NULL,
 	.pr_flags =		PR_ATOMIC|PR_ADDR|PR_LASTHDR,
 	.pr_input =		ofp_icmp6_input,
 	.pr_output =		NULL/*rip6_output*/,

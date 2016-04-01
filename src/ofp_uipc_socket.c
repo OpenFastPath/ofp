@@ -109,6 +109,7 @@
 
 #include "ofpi_errno.h"
 #include "ofpi_timer.h"
+#include "ofpi_inet.h"
 #include "ofpi_in.h"
 #include "ofpi_ip.h"
 #include "ofpi_ip6.h"
@@ -410,9 +411,7 @@ int ofp_socket_term_global(void)
 		uma_zfree(ofp_udbinfo.ipi_zone, inp);
 	}
 
-#ifdef INET
-	domain_uninit(&ofp_inetdomain);
-#endif
+	ofp_inet_term();
 
 	for (i = 0; i < shm->num_pools; i++)
 		if (shm->pools[i] != ODP_POOL_INVALID) {

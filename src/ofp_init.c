@@ -342,10 +342,7 @@ int ofp_term_post_global(const char *pool_name)
 	odp_pool_t pool;
 	int rc = 0;
 
-	if (ofp_inet_term()) {
-		OFP_ERR("Failed to cleanup inet/inet6 domains.\n");
-		rc = -1;
-	}
+	ofp_igmp_uninit(NULL);
 
 	/* Cleanup sockets */
 	CHECK_ERROR(ofp_socket_term_global(), rc);
