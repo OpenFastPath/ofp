@@ -33,10 +33,14 @@ int ofp_pktio_open(struct ofp_ifnet *ifnet, int pktin_mode)
 		return -1;
 	}
 
-	/*
-	 * Create and set the default INPUT queue associated with the 'pktio'
-	 * resource
-	 */
+	return 0;
+}
+/*
+ * Create and set the default INPUT queue associated with the 'pktio'
+ * resource
+ */
+static int ofp_pktio_inq_def_set(struct ofp_ifnet *ifnet, int pktin_mode)
+{
 	if (pktin_mode == ODP_PKTIN_MODE_SCHED) {
 		odp_queue_param_t qparam;
 		char q_name[ODP_QUEUE_NAME_LEN];
@@ -67,7 +71,7 @@ int ofp_pktio_open(struct ofp_ifnet *ifnet, int pktin_mode)
 	return 0;
 }
 
-int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
+static int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
 {
 	ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
 	if (ifnet->outq_def == ODP_QUEUE_INVALID) {
@@ -206,7 +210,7 @@ int ofp_ifnet_create(char *if_name, int recv_mode)
 	ifnet->pkt_pool = ofp_packet_pool;
 
 	HANDLE_ERROR(ofp_pktio_open(ifnet, recv_mode));
-
+	HANDLE_ERROR(ofp_pktio_inq_def_set(ifnet, recv_mode));
 	HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
 	HANDLE_ERROR(ofp_loopq_create(ifnet));
 
