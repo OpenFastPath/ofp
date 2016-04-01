@@ -134,7 +134,7 @@ struct ip6protosw ofp_inet6sw[] = {
 #ifndef INET	/* don't call initialization and timeout routines twice */
 	.pr_init =		ofp_tcp_init,
 	.pr_slowtimo =		ofp_tcp_slowtimo,
-	.pr_destroy =		NULL,
+	.pr_destroy =		ofp_tcp_destroy,
 #else
 	.pr_init =		NULL,
 	.pr_slowtimo =		NULL,

@@ -344,6 +344,11 @@ ofp_tcp_init(void)
 }
 
 void
+ofp_tcp_destroy(void)
+{
+}
+
+void
 ofp_tcp_fini(void *xtp)
 {
 	(void)xtp;
