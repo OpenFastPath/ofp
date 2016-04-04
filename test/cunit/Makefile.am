@@ -42,7 +42,8 @@ bin_PROGRAMS = \
 	ofp_test_in_cksum \
 	ofp_test_init \
 	ofp_test_in_var \
-	ofp_test_tcp_seq
+	ofp_test_tcp_seq \
+	ofp_test_rt_lookup
 
 TESTS = ${bin_PROGRAMS}
 

@@ -149,25 +149,25 @@ static inline void ofp_rt_reset_bit(uint8_t *p, int bit)
 
 static __inline struct ofp_nh6_entry *ofp_rtl_search6(struct ofp_rtl6_tree *tree, uint8_t *addr)
 {
-		struct ofp_rtl6_node *node;
-		struct ofp_rtl6_node *match_table[129];
+	struct ofp_rtl6_node *node;
+	struct ofp_rtl6_node *match_table[129];
 	uint32_t             bit = 0;
-		int                  matches;
+	int                  matches;
 
 	matches = 0;
-		node = tree->root;
-		while (node) {
+	node = tree->root;
+	while (node) {
 		if (node->flags & OFP_RTL_FLAGS_VALID_DATA) {
 			match_table[matches++] = node;
 		}
 
-				if (ofp_rt_bit_set(addr, bit)) {
-						node = node->right;
-				} else {
-						node = node->left;
-				}
-		bit++;
+		if (ofp_rt_bit_set(addr, bit)) {
+			node = node->right;
+		} else {
+			node = node->left;
 		}
+		bit++;
+	}
 	if (!matches)
 		return NULL;
 
