@@ -18,6 +18,8 @@
  * @param if_name Interface name to open
  * @param pktio_param Specify packet access mode for this
  *        interface
+ * @param pktin_param Specify packet input queue parameters for
+ *        this interface
  *
  * @retval 0 on success
  * @retval -1 on failure
@@ -25,4 +27,5 @@
  * @see ofp_init_global() can init interfaces.
  * @see ofp_init_local() which is required per thread before use.
  */
-int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param);
+int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
+	odp_pktin_queue_param_t *pktin_param);

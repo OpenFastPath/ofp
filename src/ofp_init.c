@@ -199,7 +199,7 @@ int ofp_init_global(ofp_init_global_t *params)
 
 	for (i = 0; i < params->if_count; ++i)
 		HANDLE_ERROR(ofp_ifnet_create(params->if_names[i],
-			&pktio_param));
+			&pktio_param, NULL));
 
 #ifdef SP
 	/* Start Netlink server process */

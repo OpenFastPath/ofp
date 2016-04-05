@@ -88,7 +88,7 @@ static void ofp_ifconfig(void)
 			OFP_DBG("Interface: %s\tAddress: %x\n",
 				ifa->ifa_name, sa->sin_addr.s_addr);
 
-			ofp_ifnet_create(ifa->ifa_name , NULL);
+			ofp_ifnet_create(ifa->ifa_name, NULL, NULL);
 			ofp_config_interface_up_v4(port++, 0, 0,
 				 sa->sin_addr.s_addr, 24);
 		}
