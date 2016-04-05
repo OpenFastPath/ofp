@@ -31,6 +31,24 @@ int ofp_pktio_open(struct ofp_ifnet *ifnet, odp_pktio_param_t *pktio_param)
 
 	return 0;
 }
+#if ODP_VERSION >= 107
+static int ofp_pktin_queue_config(struct ofp_ifnet *ifnet,
+	odp_pktin_queue_param_t *pktin_param)
+{
+	if (OFP_PKTIN_QUEUE_MAX < pktin_param->num_queues) {
+		OFP_ERR("Number of input queues too big. Max: %d",
+			OFP_PKTIN_QUEUE_MAX);
+		return -1;
+	}
+
+	if (odp_pktin_queue_config(ifnet->pktio, pktin_param) < 0) {
+		OFP_ERR("Failed to create input queues.");
+		return -1;
+	}
+
+	return 0;
+}
+#endif /*ODP_VERSION >= 107*/
 /*
  * Create and set the default INPUT queue associated with the 'pktio'
  * resource
