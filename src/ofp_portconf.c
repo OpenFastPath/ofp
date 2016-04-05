@@ -1333,7 +1333,9 @@ int ofp_portconf_init_global(void)
 		shm->ofp_ifnet_data[i].if_state = OFP_IFT_STATE_FREE;
 		shm->ofp_ifnet_data[i].pktio = ODP_PKTIO_INVALID;
 		shm->ofp_ifnet_data[i].outq_def = ODP_QUEUE_INVALID;
+#if ODP_VERSION < 107
 		shm->ofp_ifnet_data[i].inq_def = ODP_QUEUE_INVALID;
+#endif /* ODP_VERSION < 107 */
 		shm->ofp_ifnet_data[i].loopq_def = ODP_QUEUE_INVALID;
 #ifdef SP
 		shm->ofp_ifnet_data[i].spq_def = ODP_QUEUE_INVALID;

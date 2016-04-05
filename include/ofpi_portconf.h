@@ -165,7 +165,11 @@ struct ofp_ifnet {
 	char		if_name[OFP_IFNAMSIZ];
 	odp_pktio_t	pktio;
 	odp_queue_t	outq_def;
+
+#if ODP_VERSION < 107
 	odp_queue_t	inq_def;
+#endif /*ODP_VERSION < 107*/
+
 	odp_queue_t	loopq_def;
 	odp_pool_t	pkt_pool;
 #ifdef SP

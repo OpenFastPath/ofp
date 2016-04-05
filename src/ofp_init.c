@@ -314,6 +314,26 @@ int ofp_term_global(void)
 		ifnet->outq_def = ODP_QUEUE_INVALID;
 
 		if (ifnet->pktio != ODP_PKTIO_INVALID) {
+#if ODP_VERSION < 107
+			if (ifnet->inq_def != ODP_QUEUE_INVALID) {
+				cleanup_pkt_queue(ifnet->inq_def);
+				if (odp_queue_destroy(ifnet->inq_def) < 0) {
+					OFP_ERR("Failed to destroy default "
+						"input queue for %s",
+						ifnet->if_name);
+					rc = -1;
+				}
+				ifnet->inq_def = ODP_QUEUE_INVALID;
+			}
+#else
+			odp_queue_t in_queue[OFP_PKTIN_QUEUE_MAX];
+			int num_in_queue, idx;
+
+			num_in_queue = odp_pktin_event_queue(ifnet->pktio,
+					in_queue, OFP_PKTIN_QUEUE_MAX);
+			for (idx = 0; idx < num_in_queue; idx++)
+				cleanup_pkt_queue(in_queue[idx]);
+#endif
 			if (odp_pktio_close(ifnet->pktio) < 0) {
 				OFP_ERR("Failed to destroy pktio for %s",
 					ifnet->if_name);
@@ -322,15 +342,6 @@ int ofp_term_global(void)
 			ifnet->pktio = ODP_PKTIO_INVALID;
 		}
 
-		if (ifnet->inq_def != ODP_QUEUE_INVALID) {
-			cleanup_pkt_queue(ifnet->inq_def);
-			if (odp_queue_destroy(ifnet->inq_def) < 0) {
-				OFP_ERR("Failed to destroy default input "
-					"queue for %s", ifnet->if_name);
-				rc = -1;
-			}
-			ifnet->inq_def = ODP_QUEUE_INVALID;
-		}
 	}
 
 	CHECK_ERROR(ofp_clean_vxlan_interface_queue(), rc);
@@ -465,6 +476,7 @@ static void cleanup_pkt_queue(odp_queue_t pkt_queue)
 		evt = odp_queue_deq(pkt_queue);
 		if (evt == ODP_EVENT_INVALID)
 			break;
-		odp_packet_free(odp_packet_from_event(evt));
+		if (odp_event_type(evt) == ODP_EVENT_PACKET)
+			odp_packet_free(odp_packet_from_event(evt));
 	}
 }
