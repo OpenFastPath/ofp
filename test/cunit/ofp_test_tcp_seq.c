@@ -57,9 +57,11 @@ int main(void)
 	};
 
 	CU_SuiteInfo suites[] = {
-		{ const_cast("ofpi tcp seq"), NULL, NULL, tests },
+		CU_SUITE_INFO_NULL,
 		CU_SUITE_INFO_NULL,
 	};
+	suites[0].pName = const_cast("ofpi tcp seq");
+	suites[0].pTests = tests;
 
 	if (CU_initialize_registry() != CUE_SUCCESS)
 		return CU_get_error();

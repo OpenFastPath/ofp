@@ -319,9 +319,13 @@ main(void)
 	};
 
 	CU_SuiteInfo suites[] = {
-		{ const_cast("ofp port config"), init_suite, clean_suite, tests },
+		CU_SUITE_INFO_NULL,
 		CU_SUITE_INFO_NULL,
 	};
+	suites[0].pName = const_cast("ofp port config");
+	suites[0].pInitFunc = init_suite;
+	suites[0].pCleanupFunc = clean_suite;
+	suites[0].pTests = tests;
 
 	int nr_of_failed_tests = 0;
 	int nr_of_failed_suites = 0;

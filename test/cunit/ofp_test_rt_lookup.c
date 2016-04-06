@@ -147,9 +147,11 @@ int main(void)
 	};
 
 	CU_SuiteInfo suites[] = {
-		{ const_cast("ofp rt lookup"), NULL, NULL, tests },
+		CU_SUITE_INFO_NULL,
 		CU_SUITE_INFO_NULL,
 	};
+	suites[0].pName = const_cast("ofp rt lookup");
+	suites[0].pTests = tests;
 
 	if (CU_register_suites(suites) != CUE_SUCCESS) {
 		CU_cleanup_registry();
