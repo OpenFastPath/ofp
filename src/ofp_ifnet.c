@@ -14,18 +14,14 @@
 #include "ofp_log.h"
 
 /* Open a packet IO instance for this ifnet device for the pktin_mode. */
-int ofp_pktio_open(struct ofp_ifnet *ifnet, int pktin_mode)
+int ofp_pktio_open(struct ofp_ifnet *ifnet, odp_pktio_param_t *pktio_param)
 {
 #if ODP_VERSION >= 103
-	odp_pktio_param_t pktio_param;
-
-	memset(&pktio_param, 0, sizeof(pktio_param));
-	pktio_param.in_mode = pktin_mode;
-
-	ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool, &pktio_param);
+	ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool,
+			pktio_param);
 #else
-	/* Open a packet IO instance for this device */
 	ifnet->pktio = odp_pktio_open(ifnet->if_name, ifnet->pkt_pool);
+	(void)pktio_param;
 #endif
 
 	if (ifnet->pktio == ODP_PKTIO_INVALID) {
@@ -195,6 +191,7 @@ int ofp_ifnet_create(char *if_name, int recv_mode)
 {
 	int port = ofp_free_port_alloc();
 	struct ofp_ifnet *ifnet = ofp_get_ifnet((uint16_t)port, 0);
+	odp_pktio_param_t pktio_param;
 
 	if (ifnet == NULL) {
 		OFP_ERR("Got ifnet NULL");
@@ -209,7 +206,10 @@ int ofp_ifnet_create(char *if_name, int recv_mode)
 	ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
 	ifnet->pkt_pool = ofp_packet_pool;
 
-	HANDLE_ERROR(ofp_pktio_open(ifnet, recv_mode));
+	memset(&pktio_param, 0, sizeof(pktio_param));
+	pktio_param.in_mode = recv_mode;
+
+	HANDLE_ERROR(ofp_pktio_open(ifnet, &pktio_param));
 	HANDLE_ERROR(ofp_pktio_inq_def_set(ifnet, recv_mode));
 	HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
 	HANDLE_ERROR(ofp_loopq_create(ifnet));

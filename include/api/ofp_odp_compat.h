@@ -92,4 +92,11 @@ static inline odp_queue_t ofp_queue_create(const char *name, odp_queue_type_t ty
 #endif /* ODP_VERSION < 107 */
 }
 
+#if ODP_VERSION < 103
+typedef struct odp_pktio_param_t {
+	/** Packet input mode */
+	int in_mode;
+} odp_pktio_param_t;
+#endif /* ODP_VERSION < 103 */
+
 #endif

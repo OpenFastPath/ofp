@@ -10,8 +10,8 @@
 #include "api/ofp_ifnet.h"
 #include "ofpi_portconf.h"
 
-/* Open a packet IO instance for this ifnet device for the pktin_mode. */
-int ofp_pktio_open(struct ofp_ifnet *ifnet, int pktin_mode);
+/* Open a packet IO instance for this ifnet device. */
+int ofp_pktio_open(struct ofp_ifnet *ifnet, odp_pktio_param_t *pktio_param);
 /* Create loop queue */
 int ofp_loopq_create(struct ofp_ifnet *ifnet);
 /* Set ifnet interface MAC address */
