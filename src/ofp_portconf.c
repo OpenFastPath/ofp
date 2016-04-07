@@ -1183,8 +1183,20 @@ struct ofp_ifnet *ofp_get_ifnet_by_tunnel(uint32_t tun_loc,
 
 struct ofp_ifnet *ofp_get_ifnet_pktio(odp_pktio_t pktio)
 {
+#if ODP_VERSION < 107
 	return (struct ofp_ifnet *)ofp_queue_context(
 			odp_pktio_outq_getdef(pktio));
+#else
+	int i;
+
+	for (i = 0; i < NUM_PORTS; i++) {
+		if (shm->ofp_ifnet_data[i].if_state == OFP_IFT_STATE_USED &&
+			shm->ofp_ifnet_data[i].pktio == pktio)
+				return &shm->ofp_ifnet_data[i];
+	}
+
+	return NULL;
+#endif
 }
 
 odp_queue_t ofp_pktio_spq_get(odp_pktio_t pktio)

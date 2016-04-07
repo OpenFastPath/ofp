@@ -1400,8 +1400,7 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 		pktio = odp_packet_input(pkt);
 		if (odp_likely(pktio != ODP_PKTIO_INVALID)) {
 			/* pkt received from eth interface */
-			ifnet = (struct ofp_ifnet *)ofp_queue_context(
-			        odp_pktio_outq_getdef(pktio));
+			ifnet = ofp_get_ifnet_pktio(pktio);
 		} else {
 			/* loopback and cunit error */
 			odp_packet_free(pkt);
