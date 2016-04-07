@@ -392,13 +392,11 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 
 	depth = 0;
 	node = tree->root;
+
 	while (depth < masklen && node) {
 		last = node;
-		if (ofp_rt_bit_set(addr, bit)) {
-			node = node->right;
-		} else {
-			node = node->left;
-		}
+		node = ofp_rt_traverse_tree(node, addr, bit);
+
 		depth++;
 		bit++;
 	}

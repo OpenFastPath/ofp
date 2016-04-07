@@ -116,6 +116,20 @@ static void test_search_returns_latest_match(void)
 	CU_ASSERT_PTR_EQUAL(ofp_rtl_search6(&tree, &addr), &left.data);
 }
 
+static void test_traverse_tree(void)
+{
+	struct ofp_rtl6_node root;
+	struct ofp_rtl6_node left;
+	struct ofp_rtl6_node right;
+	uint8_t addr = set_nth_from_left(1);
+
+	root.left = &left;
+	root.right = &right;
+
+	CU_ASSERT_PTR_EQUAL(ofp_rt_traverse_tree(&root, &addr, 0), &left);
+	CU_ASSERT_PTR_EQUAL(ofp_rt_traverse_tree(&root, &addr, 1), &right);
+}
+
 static char *const_cast(const char *str)
 {
 	return (char *)(uintptr_t)str;
@@ -142,7 +156,9 @@ int main(void)
 		{ const_cast("Search with missing root"),
 		  test_search_with_missing_root },
 		{ const_cast("Search returns latest match"),
-		    test_search_returns_latest_match },
+		  test_search_returns_latest_match },
+		{ const_cast("Traverse tree"),
+		  test_traverse_tree },
 		CU_TEST_INFO_NULL,
 	};
 
