@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+#include "ofp_odp_compat.h"
 #include "ofp_config.h"
 #include "ofp_types.h"
 #include "ofp_init.h"
@@ -51,7 +52,6 @@ extern "C" {
 #include "ofp_udp.h"
 #include "ofp_ip_var.h"
 #include "ofp_tcp.h"
-#include "ofp_odp_compat.h"
 
 #ifdef __cplusplus
 }

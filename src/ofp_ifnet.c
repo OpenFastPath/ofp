@@ -187,11 +187,11 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 }
 #endif /*SP*/
 
-int ofp_ifnet_create(char *if_name, int recv_mode)
+int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param)
 {
 	int port = ofp_free_port_alloc();
 	struct ofp_ifnet *ifnet = ofp_get_ifnet((uint16_t)port, 0);
-	odp_pktio_param_t pktio_param;
+	odp_pktio_param_t pktio_param_local;
 
 	if (ifnet == NULL) {
 		OFP_ERR("Got ifnet NULL");
@@ -206,11 +206,17 @@ int ofp_ifnet_create(char *if_name, int recv_mode)
 	ifnet->if_name[OFP_IFNAMSIZ-1] = 0;
 	ifnet->pkt_pool = ofp_packet_pool;
 
-	memset(&pktio_param, 0, sizeof(pktio_param));
-	pktio_param.in_mode = recv_mode;
+	if (!pktio_param) {
+		pktio_param = &pktio_param_local;
+		odp_pktio_param_init(&pktio_param_local);
+		pktio_param_local.in_mode = ODP_PKTIN_MODE_SCHED;
+#if ODP_VERSION >= 107
+		pktio_param_local.out_mode = ODP_PKTOUT_MODE_DIRECT;
+#endif /* ODP_VERSION >= 107 */
+	}
 
-	HANDLE_ERROR(ofp_pktio_open(ifnet, &pktio_param));
-	HANDLE_ERROR(ofp_pktio_inq_def_set(ifnet, recv_mode));
+	HANDLE_ERROR(ofp_pktio_open(ifnet, pktio_param));
+	HANDLE_ERROR(ofp_pktio_inq_def_set(ifnet, pktio_param->in_mode));
 	HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
 	HANDLE_ERROR(ofp_loopq_create(ifnet));
 

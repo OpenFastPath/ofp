@@ -16,8 +16,8 @@
  * and open one by one using this functionality.
  *
  * @param if_name Interface name to open
- * @param pktin_mode Specify packet access mode for this interface using
- *        ODP_PKTIN_MODE_DIRECT for polling or ODP_PKTIN_MODE_SCHED for scheduler
+ * @param pktio_param Specify packet access mode for this
+ *        interface
  *
  * @retval 0 on success
  * @retval -1 on failure
@@ -25,4 +25,4 @@
  * @see ofp_init_global() can init interfaces.
  * @see ofp_init_local() which is required per thread before use.
  */
-int ofp_ifnet_create(char *if_name, int pktin_mode);
+int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param);

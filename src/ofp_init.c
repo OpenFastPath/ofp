@@ -173,6 +173,7 @@ int ofp_init_global_called = 0;
 int ofp_init_global(ofp_init_global_t *params)
 {
 	int i;
+	odp_pktio_param_t pktio_param;
 
 	ofp_init_global_called = 1;
 
@@ -189,11 +190,16 @@ int ofp_init_global(ofp_init_global_t *params)
 	HANDLE_ERROR(ofp_set_vxlan_interface_queue());
 
 	/* Create interfaces */
+	odp_pktio_param_init(&pktio_param);
+	pktio_param.in_mode = params->burst_recv_mode ? ODP_PKTIN_MODE_DIRECT :
+						ODP_PKTIN_MODE_SCHED;
+#if ODP_VERSION >= 107
+	pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
+#endif /* ODP_VERSION >= 107 */
 
 	for (i = 0; i < params->if_count; ++i)
 		HANDLE_ERROR(ofp_ifnet_create(params->if_names[i],
-			params->burst_recv_mode ? ODP_PKTIN_MODE_DIRECT :
-						ODP_PKTIN_MODE_SCHED));
+			&pktio_param));
 
 #ifdef SP
 	/* Start Netlink server process */

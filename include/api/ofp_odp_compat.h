@@ -99,4 +99,11 @@ typedef struct odp_pktio_param_t {
 } odp_pktio_param_t;
 #endif /* ODP_VERSION < 103 */
 
+#if ODP_VERSION < 104
+static inline void odp_pktio_param_init(odp_pktio_param_t *param)
+{
+	memset(param, 0, sizeof(odp_pktio_param_t));
+}
+#endif /* ODP_VERSION < 104 */
+
 #endif
