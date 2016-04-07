@@ -111,6 +111,7 @@ AC_CONFIG_FILES([
 	example/ofp_netwrap_proc/Makefile
 	example/ofp_netwrap_crt/Makefile
 	pkgconfig/libofp.pc
+	scripts/Makefile
 	test/Makefile
 	test/cunit/Makefile
 	])
