@@ -5,7 +5,7 @@ includedir=@includedir@
 
 Name: libofp
 Description: The OpenFastPath TCP/IP stack
-Version: @VERSION@
+Version: @PKGCONFIG_VERSION@
 Libs: -L${libdir} -lofp
 Libs.private:
 Cflags: -I${includedir}
