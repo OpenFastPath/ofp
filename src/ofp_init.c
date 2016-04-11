@@ -282,9 +282,9 @@ int ofp_term_global(void)
 
 		CHECK_ERROR(odp_pktio_stop(ifnet->pktio), rc);
 #ifdef SP
-		close(ifnet->fd);
 		odph_linux_pthread_join(ifnet->rx_tbl, 1);
 		odph_linux_pthread_join(ifnet->tx_tbl, 1);
+		close(ifnet->fd);
 		ifnet->fd = -1;
 #endif /*SP*/
 

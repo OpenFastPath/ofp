@@ -254,11 +254,18 @@ void *sp_rx_thread(void *ifnet_void)
 
 void *sp_tx_thread(void *ifnet_void)
 {
-	int len;
+	int len, r;
 	odp_packet_t pkt;
 	uint8_t *buf_pnt;
 	struct ofp_ifnet *ifnet = (struct ofp_ifnet *)ifnet_void;
 	struct ofp_global_config_mem *ofp_global_cfg;
+	struct timeval timeout;
+	fd_set read_fd;
+
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
+
+	FD_ZERO(&read_fd);
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
@@ -288,6 +295,14 @@ void *sp_tx_thread(void *ifnet_void)
 
 		/* Blocking read */
 drop_pkg:
+		FD_SET(ifnet->fd, &read_fd);
+		r = select(ifnet->fd + 1, &read_fd, NULL, NULL, &timeout);
+		if (!ofp_global_cfg->is_running) {
+			odp_packet_free(pkt);
+			break;
+		}
+		if (r <= 0)
+			goto drop_pkg;
 		len = read(ifnet->fd, buf_pnt, odp_packet_len(pkt));
 		if (len <= 0) {
 			OFP_ERR("read failed");
