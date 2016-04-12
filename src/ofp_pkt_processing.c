@@ -289,6 +289,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	struct ofp_ip *ip;
 	struct ofp_nh_entry *nh;
 	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
+	uint32_t is_ours;
 
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
@@ -328,9 +329,17 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		ofp_print_ip_addr(dev->ip_addr),
 		ofp_print_ip_addr(ip->ip_dst.s_addr));
 
-	if (dev->ip_addr == ip->ip_dst.s_addr ||
-	    OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr))
-	    /*|| app_is_ip_local?*/) {
+	is_ours = dev->ip_addr == ip->ip_dst.s_addr ||
+		OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr));
+
+	if (!is_ours) {
+		/* This may be for some other local interface. */
+		nh = ofp_get_next_hop(dev->vrf, ip->ip_dst.s_addr, &flags);
+		if (nh)
+			is_ours = nh->flags & OFP_RTF_LOCAL;
+	}
+
+	if (is_ours) {
 		if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
 			OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
 
@@ -358,13 +367,12 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		return ipv4_transport_classifier(pkt, ip->ip_p);
 	}
 
-	OFP_HOOK(OFP_HOOK_FWD_IPv4, pkt, NULL, &res);
+	OFP_HOOK(OFP_HOOK_FWD_IPv4, pkt, nh, &res);
 	if (res != OFP_PKT_CONTINUE) {
 		OFP_DBG("OFP_HOOK_FWD_IPv4 returned %d", res);
 		return res;
 	}
 
-	nh = ofp_get_next_hop(dev->vrf, ip->ip_dst.s_addr, &flags);
 	if (nh == NULL) {
 		OFP_DBG("nh is NULL, vrf=%d dest=%x", dev->vrf, ip->ip_dst.s_addr);
 		return OFP_PKT_CONTINUE;
@@ -512,6 +520,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 	struct ofp_ifnet *outdev = dev;
 	uint16_t vlan = dev->vlan;
 	uint8_t inner_from_mac[OFP_ETHER_ADDR_LEN];
+	uint32_t is_ours;
 
 	arp = (struct ofp_arphdr *)odp_packet_l3_ptr(pkt, NULL);
 
@@ -542,8 +551,16 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 		} /* switch */
 	}
 
+	is_ours = dev->ip_addr && dev->ip_addr == (ofp_in_addr_t)(arp->ip_dst);
+	if (!is_ours) {
+		/* This may be for some other local interface. */
+		uint32_t flags;
+		struct ofp_nh_entry *nh;
+		nh = ofp_get_next_hop(dev->vrf, arp->ip_dst, &flags);
+		is_ours = nh->flags & OFP_RTF_LOCAL;
+	}
 	/* on our interface an ARP request */
-	if ((dev->ip_addr) && dev->ip_addr == (ofp_in_addr_t)(arp->ip_dst) &&
+	if (is_ours &&
 	    odp_be_to_cpu_16(arp->op) == OFP_ARPOP_REQUEST) {
 		struct ofp_arphdr tmp;
 		struct ofp_ether_header tmp_eth;
