@@ -637,9 +637,6 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 	data->physvlan = physvlan;
 	data->pkt_pool = ofp_packet_pool;
 
-	/* Add interface to the if_addr v4 queue */
-	ofp_ifaddr_elem_add(data);
-
 	shm->ofp_ifnet_data[VXLAN_PORTS].pkt_pool = ofp_packet_pool;
 	ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, vni, VXLAN_PORTS,
 			     data->ip_addr, 32, 0, OFP_RTF_LOCAL);
@@ -801,6 +798,10 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 			(void *)&data))
 			return "Unknown interface";
 
+		/* Remove interface from the if_addr v4 queue */
+		ofp_ifaddr_elem_del(data);
+		/* Remove interface from the if_addr v6 queue */
+		ofp_ifaddr6_elem_del(data);
 #ifdef SP
 		vrf = data->vrf;
 #endif /*SP*/
@@ -864,6 +865,10 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 	} else {
 		data = ofp_get_ifnet(port, vlan);
 
+		/* Remove interface from the if_addr v4 queue */
+		ofp_ifaddr_elem_del(data);
+		/* Remove interface from the if_addr v6 queue */
+		ofp_ifaddr6_elem_del(data);
 #ifdef SP
 		vrf = data->vrf;
 #endif /*SP*/
@@ -883,8 +888,6 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 			ret = exec_sys_call_depending_on_vrf(cmd, vrf);
 #endif /* SP */
 			data->ip_addr = 0;
-			/* Remove interface from the if_addr v4 queue */
-			ofp_ifaddr_elem_del(data);
 		}
 #ifdef INET6
 		if (ofp_ip6_is_set(data->ip6_addr)) {
@@ -901,9 +904,6 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 			ret = exec_sys_call_depending_on_vrf(cmd, vrf);
 #endif /*SP*/
 			memset(data->ip6_addr, 0, 16);
-
-			/* Remove interface from the if_addr v4 queue */
-			ofp_ifaddr6_elem_del(data);
 		}
 #endif /* INET6 */
 	}
@@ -957,6 +957,10 @@ struct ofp_ifnet *ofp_get_create_ifnet(int port, uint16_t vlan)
 			memcpy(data->link_local,
 				shm->ofp_ifnet_data[port].link_local, 16);
 #endif /* INET6 */
+			/* Add interface to the if_addr v4 queue */
+			ofp_ifaddr_elem_add(data);
+			/* Add interface to the if_addr v6 queue */
+			ofp_ifaddr6_elem_add(data);
 			/* Multicast related */
 			OFP_TAILQ_INIT(&data->if_multiaddrs);
 			data->if_flags |= OFP_IFF_MULTICAST;
