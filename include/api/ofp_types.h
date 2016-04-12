@@ -18,6 +18,7 @@ enum ofp_return_code {
 };
 
 struct ofp_nh_entry {
+	uint32_t flags;
 	uint32_t gw;
 	uint16_t port;
 	uint16_t vlan;
@@ -27,6 +28,7 @@ struct pkt6_entry;
 OFP_SLIST_HEAD(pkt6_list, pkt6_entry);
 
 struct ofp_nh6_entry {
+	uint32_t flags;
 	uint8_t  gw[16];
 	uint16_t port;
 	uint16_t vlan;

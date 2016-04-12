@@ -441,7 +441,7 @@ test_packet_output_ipv6_to_gre(void)
 
 	ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, 100 /*vlan*/, GRE_PORTS,
 			      ip6->ip6_dst.__u6_addr.__u6_addr8, 64 /*masklen*/,
-			      0 /*gw*/);
+			      0 /*gw*/, OFP_RTF_NET /* flags */);
 
 	res = ofp_ip6_output(pkt, NULL);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);

@@ -388,7 +388,7 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 #endif /* SP */
 
 		ofp_config_interface_down(data->port, data->vlan);
-		data = ofp_get_ifnet(port, vlan);
+		data = ofp_get_create_ifnet(port, vlan);
 	}
 
 	if (vlan) {
@@ -413,14 +413,19 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 #endif /* SP */
 		} else {
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
-					     data->ip_addr, data->masklen, 0 /*gw*/);
+					     data->ip_addr, 32, 0, 0);
+			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
+					     data->ip_addr, data->masklen, 0, 0);
 		}
 		data->vrf = vrf;
 		data->ip_addr = addr;
 		data->masklen = masklen;
 		data->bcast_addr = addr | ~mask;
 		ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, vlan, port,
-				     data->ip_addr, data->masklen, 0 /*gw*/);
+				     data->ip_addr, 32, 0,
+				     OFP_RTF_LOCAL);
+		ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, vlan, port,
+				     data->ip_addr & mask, data->masklen, 0, OFP_RTF_NET);
 #ifdef SP
 		if (vrf == 0)
 			data->sp_status = OFP_SP_UP;
@@ -435,8 +440,11 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 	} else {
 		if (data->ip_addr) {
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, 0 /*vlan*/,
+					     port, data->ip_addr, 32,
+					     0, 0);
+			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, 0 /*vlan*/,
 					     port, data->ip_addr, data->masklen,
-					     0 /*gw*/);
+					     0, 0);
 		}
 
 		data->vrf = vrf;
@@ -451,7 +459,9 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 #endif /* INET6 */
 
 		ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, 0 /*vlan*/, port,
-				     data->ip_addr, data->masklen, 0 /*gw*/);
+				     data->ip_addr, 32, 0, OFP_RTF_LOCAL);
+		ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, 0 /*vlan*/, port,
+				     data->ip_addr & mask, data->masklen, 0, OFP_RTF_NET);
 #ifdef SP
 		if (vrf == 0)
 			data->sp_status = OFP_SP_UP;
@@ -506,7 +516,7 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 		data->if_type = OFP_IFT_GRE;
 	} else {
 		ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, greid, port,
-				     data->ip_p2p, data->masklen, 0 /*gw*/);
+				     data->ip_p2p, data->masklen, 0, 0);
 #ifdef SP
 		snprintf(cmd, sizeof(cmd),
 			 "ip addr del dev %s %s peer %s",
@@ -526,7 +536,8 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 	data->if_mtu = dev_root->if_mtu - sizeof(struct ofp_greip);
 
 	ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, greid, port,
-			     data->ip_p2p, data->masklen, 0 /*gw*/);
+			     data->ip_p2p, data->masklen, 0,
+			     OFP_RTF_HOST);
 
 #ifdef SP
 	if (vrf == 0)
@@ -590,6 +601,7 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 	int ret = 0, new = 0;
 #endif /* SP */
 	struct ofp_ifnet *data, *dev_root;
+	uint32_t mask;
 
 #ifdef SP
 	(void)ret;
@@ -597,6 +609,8 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 #endif /*SP*/
 	(void)vrf; /* vrf is copied from the root device */
 
+	mask = ~0;
+	mask = odp_cpu_to_be_32(mask << (32 - mlen));
 	dev_root = ofp_get_ifnet(physport, physvlan);
 	if (dev_root == NULL)
 		return "No physical device configured.";
@@ -628,7 +642,9 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 
 	shm->ofp_ifnet_data[VXLAN_PORTS].pkt_pool = ofp_packet_pool;
 	ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, vni, VXLAN_PORTS,
-			     data->ip_addr, data->masklen, 0 /*gw*/);
+			     data->ip_addr, 32, 0, OFP_RTF_LOCAL);
+	ofp_set_route_params(OFP_ROUTE_ADD, data->vrf, vni, VXLAN_PORTS,
+			     data->ip_addr & mask, data->masklen, 0, OFP_RTF_NET);
 
 	/* Join root device to multicast group. */
 	ofp_join_device_to_multicat_group(dev_root, data, group);
@@ -694,14 +710,18 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 			if (ofp_ip6_is_set(data->ip6_addr)) {
 				ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, vlan,
 						      port, data->ip6_addr,
-						      data->ip6_prefix, gw6);
+						      data->ip6_prefix, gw6, 0);
 			}
 		}
 
 		memcpy(data->ip6_addr, addr, 16);
 		data->ip6_prefix = masklen;
 		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, vlan, port,
-				      data->ip6_addr, data->ip6_prefix, gw6);
+				      data->ip6_addr, data->ip6_prefix, gw6,
+				      OFP_RTF_NET);
+		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, vlan, port,
+				      data->ip6_addr, 128, gw6,
+				      OFP_RTF_LOCAL);
 #ifdef SP
 		if (data->vrf == 0)
 			data->sp_status = OFP_SP_UP;
@@ -718,7 +738,7 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 		if (ofp_ip6_is_set(data->ip6_addr)) {
 			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/,
 					      port, data->ip6_addr, data->ip6_prefix,
-					      gw6);
+					      gw6, 0);
 		}
 		memcpy(data->ip6_addr, addr, 16);
 		data->ip6_prefix = masklen;
@@ -729,7 +749,11 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 		ofp_ifaddr6_elem_add(data);
 
 		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, 0 /*vlan*/, port,
-				      data->ip6_addr, data->ip6_prefix, gw6);
+				      data->ip6_addr, 128, gw6,
+				      OFP_RTF_LOCAL);
+		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, 0 /*vlan*/, port,
+				      data->ip6_addr, data->ip6_prefix, gw6,
+				      OFP_RTF_NET);
 #ifdef SP
 		if (data->vrf == 0)
 			data->sp_status = OFP_SP_UP;
@@ -781,9 +805,15 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		vrf = data->vrf;
 #endif /*SP*/
 		if (data->ip_addr) {
+			uint32_t a = (data->port == GRE_PORTS) ?
+				data->ip_p2p : data->ip_addr;
+			a = odp_cpu_to_be_32(odp_be_to_cpu_32(a) & ((~0) << (32-data->masklen)));
+
+			if (data->port != GRE_PORTS)
+				ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
+						     data->ip_addr, 32, 0, 0);
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
-					     (data->port == GRE_PORTS) ? data->ip_p2p : data->ip_addr,
-					     data->masklen, 0 /*gw*/);
+					     a, data->masklen, 0, 0);
 #ifdef SP
 			snprintf(cmd, sizeof(cmd),
 				 "ifconfig %s 0.0.0.0",
@@ -794,7 +824,11 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 #ifdef INET6
 		if (ofp_ip6_is_set(data->ip6_addr)) {
 			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, vlan, port,
-					      data->ip6_addr, data->ip6_prefix, gw6);
+					      data->ip6_addr, data->ip6_prefix,
+					      gw6, 0);
+			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, vlan, port,
+					      data->ip6_addr, 128,
+					      gw6, 0);
 #ifdef SP
 			snprintf(cmd, sizeof(cmd),
 				 "ifconfig %s inet6 del %s/%d",
@@ -834,8 +868,13 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		vrf = data->vrf;
 #endif /*SP*/
 		if (data->ip_addr) {
+			uint32_t a = odp_cpu_to_be_32(
+				odp_be_to_cpu_32(data->ip_addr) &
+				((~0) << (32 - data->masklen)));
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, 0 /*vlan*/, port,
-					     data->ip_addr, data->masklen, 0 /*gw*/);
+					     data->ip_addr, 32, 0, 0);
+			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, 0 /*vlan*/, port,
+					     a, data->masklen, 0, 0);
 #ifdef SP
 			snprintf(cmd, sizeof(cmd),
 				 "ifconfig %s 0.0.0.0",
@@ -851,7 +890,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		if (ofp_ip6_is_set(data->ip6_addr)) {
 			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/,
 					      port, data->ip6_addr, data->ip6_prefix,
-					      gw6);
+					      gw6, 0);
 #ifdef SP
 			snprintf(cmd, sizeof(cmd),
 				 "ifconfig %s inet6 del %s/%d",

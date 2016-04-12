@@ -1339,7 +1339,8 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 					      dev_out->vlan, dev_out->port,
 					      ip6->ip6_dst.ofp_s6_addr,
 					      128 /*masklen*/,
-					      ofp_in6addr_any.ofp_s6_addr);
+					      ofp_in6addr_any.ofp_s6_addr,
+					      OFP_RTF_HOST);
 
 			if (ofp_nd6_ns_output(dev_out, nh->gw,
 				ip6->ip6_dst.ofp_s6_addr) == OFP_PKT_DROP) {

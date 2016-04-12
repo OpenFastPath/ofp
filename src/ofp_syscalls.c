@@ -677,7 +677,9 @@ int ofp_ioctl(int sockfd, int request, ...)
 
 		ofp_set_route_params((request == (int) OFP_SIOCADDRT) ? OFP_ROUTE_ADD : OFP_ROUTE_DEL,
 				     rt->rt_vrf, vlan, port,
-				     dst, mlen, gw);
+				     dst, mlen, gw,
+				     (request == (int) OFP_SIOCADDRT) ?
+				     (gw ? OFP_RTF_GATEWAY : OFP_RTF_NET) : 0);
 	} else {
 		ofp_errno = ofp_soo_ioctl(so, request, data, NULL, NULL);
 	}

@@ -47,7 +47,7 @@ void f_route_add(struct cli_conn *conn, const char *s)
 	}
 
 	ofp_set_route_params(OFP_ROUTE_ADD, 0 /*vrf*/, vlan, port,
-			     destaddr, mlen, gwaddr);
+			     destaddr, mlen, gwaddr, OFP_RTF_GATEWAY);
 
 	sendcrlf(conn);
 }
@@ -75,7 +75,7 @@ void f_route_add_vrf(struct cli_conn *conn, const char *s)
 	}
 
 	ofp_set_route_params(OFP_ROUTE_ADD, vrf, vlan, port, destaddr,
-			     mlen, gwaddr);
+			     mlen, gwaddr, OFP_RTF_GATEWAY);
 
 	sendcrlf(conn);
 }
@@ -162,7 +162,7 @@ void f_route_add_v6(struct cli_conn *conn, const char *s)
 	}
 
 	ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, vlan, port, dst6,
-			      mlen, gw6);
+			      mlen, gw6, OFP_RTF_GATEWAY);
 
 	sendcrlf(conn);
 }
@@ -181,7 +181,7 @@ void f_route_del(struct cli_conn *conn, const char *s)
 	destaddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
 
 	ofp_set_route_params(OFP_ROUTE_DEL, 0 /*vrf*/, 0 /*vlan*/, 0 /*port*/,
-			     destaddr, mlen, 0 /*gw*/);
+			     destaddr, mlen, 0 /*gw*/, 0 /*flags*/);
 
 	sendcrlf(conn);
 }
@@ -199,7 +199,7 @@ void f_route_del_vrf(struct cli_conn *conn, const char *s)
 	destaddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
 
 	ofp_set_route_params(OFP_ROUTE_DEL, vrf, 0 /*vlan*/, 0 /*port*/,
-			     destaddr, mlen, 0 /*gw*/);
+			     destaddr, mlen, 0 /*gw*/, 0 /*flags*/);
 
 	sendcrlf(conn);
 }
@@ -250,7 +250,7 @@ void f_route_del_v6(struct cli_conn *conn, const char *s)
 	mlen = atoi(tk);
 
 	ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/, 0 /*port*/,
-			      dst6, mlen, gw6);
+			      dst6, mlen, gw6, 0);
 
 	sendcrlf(conn);
 }

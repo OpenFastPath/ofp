@@ -356,7 +356,8 @@ test_ofp_add_route(uint32_t port, uint32_t vrf, uint32_t vlan,
 	CU_ASSERT_EQUAL(rt_dst_len, 4);
 	if (rt_dst_len == 4) {
 		ofp_set_route_params(OFP_ROUTE_ADD, vrf, vlan, port,
-				     destination, mask_len, gw);
+				     destination, mask_len, gw,
+				     gw ? OFP_RTF_GATEWAY : OFP_RTF_NET);
 	}
 
 
@@ -476,7 +477,7 @@ test_ofp_packet_input_to_sp(void)
 
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
-	CU_ASSERT_NOT_EQUAL(ev = odp_queue_deq(ifnet->spq_def),
+	CU_ASSERT_NOT_EQUAL_FATAL(ev = odp_queue_deq(ifnet->spq_def),
 			    ODP_EVENT_INVALID);
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->spq_def), ODP_EVENT_INVALID);
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
@@ -495,6 +496,12 @@ test_ofp_packet_input_send_arp(void)
 	odp_packet_t pkt;
 	odp_event_t ev;
 	int res;
+
+	/*
+	 * Remove route to local ip address
+	 */
+	ofp_set_route_params(OFP_ROUTE_DEL, 0, 0, 0,
+			     dst_ipaddr, 32, 0, 0);
 
 	/* Call ofp_packet_input using a pkt with destination ip
 	 * that does NOT match the local ip on ifnet and a route is found.
@@ -516,7 +523,7 @@ test_ofp_packet_input_send_arp(void)
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 	odp_packet_free(pkt);
 
-	CU_ASSERT_NOT_EQUAL(ev = odp_queue_deq(ifnet->outq_def),
+	CU_ASSERT_NOT_EQUAL_FATAL(ev = odp_queue_deq(ifnet->outq_def),
 			    ODP_EVENT_INVALID);
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
 #ifdef SP
@@ -524,7 +531,7 @@ test_ofp_packet_input_send_arp(void)
 #endif /* SP */
 
 	pkt = odp_packet_from_event(ev);
-	CU_ASSERT_NOT_EQUAL(pkt, ODP_PACKET_INVALID);
+	CU_ASSERT_NOT_EQUAL_FATAL(pkt, ODP_PACKET_INVALID);
 	CU_ASSERT_EQUAL(odp_packet_has_arp(pkt), 1);
 	CU_ASSERT_EQUAL(odp_packet_has_vlan(pkt), 0);
 	CU_ASSERT_EQUAL(odp_packet_len(pkt), sizeof(struct ofp_arphdr) +
@@ -564,7 +571,7 @@ test_ofp_packet_input_forwarding_to_output(void)
 	res = ofp_packet_input(pkt, interface_queue[port],
 		ofp_eth_vlan_processing);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
-	CU_ASSERT_NOT_EQUAL(ev = odp_queue_deq(ifnet->outq_def),
+	CU_ASSERT_NOT_EQUAL_FATAL(ev = odp_queue_deq(ifnet->outq_def),
 			    ODP_EVENT_INVALID);
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
 

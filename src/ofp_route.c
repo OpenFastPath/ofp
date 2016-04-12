@@ -194,6 +194,7 @@ static int add_route(struct ofp_route_msg *msg)
 	tmp.gw = msg->gw;
 	tmp.port = msg->port;
 	tmp.vlan = msg->vlan;
+	tmp.flags = msg->flags;
 
 	OFP_DBG("Adding route vrf=%d addr=%s/%d", msg->vrf,
 		   ofp_print_ip_addr(msg->dst), msg->masklen);
@@ -267,6 +268,7 @@ static int add_route6(struct ofp_route_msg *msg)
 	memcpy(tmp.gw, msg->gw6, 16);
 	tmp.port = msg->port;
 	tmp.vlan = msg->vlan;
+	tmp.flags = msg->flags;
 	OFP_SLIST_INIT(&tmp.pkt6_hold);
 
 	OFP_DBG("Adding ipv6 route vrf=%d addr=%s/%d gw=%s", msg->vrf,
@@ -337,14 +339,36 @@ int ofp_route_save_ipv6_pkt(odp_packet_t pkt,
 }
 #endif /* INET6 */
 
+static void send_flags(int fd, uint32_t flags)
+{
+	if (flags & OFP_RTF_NET)
+		ofp_sendf(fd, " net");
+	if (flags & OFP_RTF_GATEWAY)
+		ofp_sendf(fd, " gateway");
+	if (flags & OFP_RTF_HOST)
+		ofp_sendf(fd, " host");
+	if (flags & OFP_RTF_REJECT)
+		ofp_sendf(fd, " reject");
+	if (flags & OFP_RTF_BLACKHOLE)
+		ofp_sendf(fd, " blackhole");
+	if (flags & OFP_RTF_LOCAL)
+		ofp_sendf(fd, " local");
+	if (flags & OFP_RTF_BROADCAST)
+		ofp_sendf(fd, " bcast");
+	if (flags & OFP_RTF_MULTICAST)
+		ofp_sendf(fd, " mcast");
+}
+
 static void show_routes(int fd, uint32_t key, int level, struct ofp_nh_entry *data)
 {
 	char buf[24];
 	snprintf(buf, sizeof(buf), "%s/%d", ofp_print_ip_addr(odp_cpu_to_be_32(key)), level);
-	ofp_sendf(fd, "%-18s %-15s %s\r\n",
+	ofp_sendf(fd, "%-18s %-15s %s   ",
 		  buf,
 		  ofp_print_ip_addr(data->gw),
 		  ofp_port_vlan_to_ifnet_name(data->port, data->vlan));
+	send_flags(fd, data->flags);
+	ofp_sendf(fd, "\r\n");
 }
 
 #ifdef INET6
@@ -352,10 +376,12 @@ static void show_routes6(int fd, uint8_t *key, int level, struct ofp_nh6_entry *
 {
 	char buf[128];
 	snprintf(buf, sizeof(buf), "%s/%d", ofp_print_ip6_addr(key), level);
-	ofp_sendf(fd, "%-30s %-28s  %s\r\n",
+	ofp_sendf(fd, "%-30s %-28s  %s ",
 		  buf,
 		  ofp_print_ip6_addr(data->gw),
 		  ofp_port_vlan_to_ifnet_name(data->port, data->vlan));
+	send_flags(fd, data->flags);
+	ofp_sendf(fd, "\r\n");
 }
 #endif /* INET6 */
 
@@ -381,7 +407,7 @@ void ofp_show_routes(int fd, int what)
 		ofp_arp_show_table(fd); /* ofp_rtl_traverse(fd, &shm->default_routes, show_arp); */
 		break;
 	case OFP_SHOW_ROUTES:
-		ofp_sendf(fd, "Destination        Gateway         Iface\r\n");
+		ofp_sendf(fd, "Destination        Gateway         Iface  Flags\r\n");
 #ifdef MTRIE
 		ofp_rt_rule_print(fd, 0, show_routes);
 #else
@@ -432,6 +458,7 @@ struct ofp_nh_entry *ofp_get_next_hop(uint16_t vrf, uint32_t addr, uint32_t *fla
 static int add_local_interface(struct ofp_route_msg *msg)
 {
 	msg->masklen = 32;
+	msg->flags = OFP_RTF_LOCAL;
 	return add_route(msg);
 }
 

@@ -186,6 +186,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp, int vrf)
 					msg.dst = destination;
 					msg.masklen = rtp->rtm_dst_len;
 					msg.gw = gateway;
+					msg.flags = OFP_RTF_GATEWAY;
 					ofp_set_route_msg(&msg);
 				} else if (dst6) {
 					msg.type = OFP_ROUTE6_ADD;
@@ -195,6 +196,7 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp, int vrf)
 						memcpy(msg.gw6, gw6, gw_len);
 					else
 						memset(msg.gw6, 0, 16);
+					msg.flags = OFP_RTF_GATEWAY;
 					ofp_set_route_msg(&msg);
 				}
 			} else if (dst_len == 0) {
@@ -272,7 +274,7 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 			ofp_ifaddr_elem_add(dev);
 
 			ofp_set_route_params(OFP_ROUTE_ADD, dev->vrf, dev->vlan, VXLAN_PORTS,
-					     dev->ip_addr, dev->masklen, 0);
+					     dev->ip_addr, dev->masklen, 0, OFP_RTF_LOCAL);
 
 			ofp_leave_multicast_group(dev);
 			if (dev_root)
@@ -315,7 +317,7 @@ static int del_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 		ofp_set_route_params(
 			OFP_ROUTE_DEL, dev->vrf, dev->vlan,dev->port,
 			(dev->port == GRE_PORTS) ? dev->ip_p2p : dev->ip_addr,
-			dev->masklen, 0 /*gw*/);
+			dev->masklen, 0 /*gw*/, 0);
 		dev->ip_addr = 0;
 		if (dev->port == GRE_PORTS)
 			dev->ip_p2p = 0;
@@ -330,7 +332,7 @@ static int del_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 
 		ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, dev->vlan,
 				      dev->port, dev->ip6_addr, dev->ip6_prefix,
-				      gw6);
+				      gw6, 0);
 		memset(dev->ip6_addr, 0, 16);
 
 		if (dev->vlan == 0)

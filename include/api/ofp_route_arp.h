@@ -1,5 +1,5 @@
-/* Copyright (c) 2014, ENEA Software AB
- * Copyright (c) 2014, Nokia
+/* Copyright (c) 2016, ENEA Software AB
+ * Copyright (c) 2016, Nokia
  * All rights reserved.
  *
  * SPDX-License-Identifier:	BSD-3-Clause
@@ -17,14 +17,23 @@
 
 struct ofp_route_msg {
 	uint32_t type;
-#define OFP_ROUTE_ADD 1
-#define OFP_ROUTE_DEL 2
-#define OFP_MOBILE_ROUTE_ADD 3
-#define OFP_MOBILE_ROUTE_DEL 4
-#define OFP_LOCAL_INTERFACE_ADD 5
-#define OFP_LOCAL_INTERFACE_DEL 6
-#define OFP_ROUTE6_ADD 7
-#define OFP_ROUTE6_DEL 8
+#define OFP_ROUTE_ADD		1
+#define OFP_ROUTE_DEL		2
+#define OFP_MOBILE_ROUTE_ADD	3
+#define OFP_MOBILE_ROUTE_DEL	4
+#define OFP_LOCAL_INTERFACE_ADD	5
+#define OFP_LOCAL_INTERFACE_DEL	6
+#define OFP_ROUTE6_ADD		7
+#define OFP_ROUTE6_DEL		8
+	uint32_t flags;
+#define	OFP_RTF_NET		0x1	/* route usable */
+#define	OFP_RTF_GATEWAY		0x2	/* destination is a gateway */
+#define	OFP_RTF_HOST		0x4	/* host entry (lb, p2p)(net otherwise)*/
+#define	OFP_RTF_REJECT		0x8	/* host or net unreachable */
+#define	OFP_RTF_BLACKHOLE	0x1000	/* just discard pkts (during updates) */
+#define	OFP_RTF_LOCAL		0x200000/* route represents a local address */
+#define	OFP_RTF_BROADCAST	0x400000/* route represents a bcast address */
+#define	OFP_RTF_MULTICAST	0x800000/* route represents a mcast address */
 	uint32_t dst;
 	uint32_t masklen;
 	uint32_t gw;
@@ -40,7 +49,7 @@ int32_t ofp_set_route_msg(struct ofp_route_msg *msg);
 static inline int32_t ofp_set_route_params(uint32_t type, uint16_t vrf,
 					   uint16_t vlan, uint32_t port,
 					   uint32_t dst, uint32_t masklen,
-					   uint32_t gw)
+					   uint32_t gw, uint32_t flags)
 {
 	struct ofp_route_msg msg;
 
@@ -51,6 +60,7 @@ static inline int32_t ofp_set_route_params(uint32_t type, uint16_t vrf,
 	}
 #endif
 	msg.type    = type;
+	msg.flags   = flags;
 	msg.vrf     = vrf;
 	msg.vlan    = vlan;
 	msg.port    = port;
@@ -66,7 +76,8 @@ static inline int32_t ofp_set_route6_params(uint32_t type, uint16_t vrf,
 					    uint16_t vlan, uint32_t port,
 					    const uint8_t dst6[],
 					    uint32_t masklen,
-					    const uint8_t gw6[])
+					    const uint8_t gw6[],
+					    uint32_t flags)
 {
 	struct ofp_route_msg msg;
 
@@ -77,6 +88,7 @@ static inline int32_t ofp_set_route6_params(uint32_t type, uint16_t vrf,
 	}
 #endif
 	msg.type    = type;
+	msg.flags   = flags;
 	msg.vrf     = vrf;
 	msg.vlan    = vlan;
 	msg.port    = port;

@@ -129,7 +129,7 @@ main(void)
 	}
 
 #if OFP_TESTMODE_AUTO
-	CU_set_output_filename("CUnit-PKT-IN");
+	CU_set_output_filename("CUnit-INIT");
 	CU_automated_run_tests();
 #else
 	/* Run all tests using the CUnit Basic interface */

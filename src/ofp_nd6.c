@@ -36,7 +36,8 @@ void ofp_nd6_ns_input(odp_packet_t m, int off, int icmp6len)
 		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, ifp->vlan,
 				      ifp->port, ip6->ip6_src.ofp_s6_addr,
 				      128 /*masklen*/,
-				      ofp_in6addr_any.ofp_s6_addr);
+				      ofp_in6addr_any.ofp_s6_addr,
+				      OFP_RTF_HOST);
 
 		ofp_add_mac6(ifp,
 			&ip6->ip6_src.ofp_s6_addr[0],
@@ -164,7 +165,8 @@ void ofp_nd6_na_input(odp_packet_t m, int off, int icmp6len)
 		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, ifp->vlan,
 				      ifp->port, &icmp6->ofp_icmp6_data8[4],
 				      128 /*masklen*/,
-				      ofp_in6addr_any.ofp_s6_addr);
+				      ofp_in6addr_any.ofp_s6_addr,
+				      OFP_RTF_HOST);
 
 		ofp_add_mac6(ifp,
 			&icmp6->ofp_icmp6_data8[4],
