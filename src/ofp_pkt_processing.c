@@ -385,7 +385,15 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		return OFP_PKT_DROP;
 	}
 
+	/*
+	 * Decrement TTL and incrementally change the IP header checksum.
+	 */
 	ip->ip_ttl--;
+	uint16_t a = ~odp_cpu_to_be_16(1 << 8);
+	if (ip->ip_sum >= a)
+		ip->ip_sum -= a;
+	else
+		ip->ip_sum += odp_cpu_to_be_16(1 << 8);
 
 #ifdef OFP_SEND_ICMP_REDIRECT
 	/* 1. The interface on which the packet comes into the router is the
