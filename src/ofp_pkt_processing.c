@@ -565,7 +565,8 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 		uint32_t flags;
 		struct ofp_nh_entry *nh;
 		nh = ofp_get_next_hop(dev->vrf, arp->ip_dst, &flags);
-		is_ours = nh->flags & OFP_RTF_LOCAL;
+		if (nh)
+			is_ours = nh->flags & OFP_RTF_LOCAL;
 	}
 	/* on our interface an ARP request */
 	if (is_ours &&
