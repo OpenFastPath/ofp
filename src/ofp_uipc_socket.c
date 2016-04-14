@@ -1407,6 +1407,7 @@ ofp_soreceive_generic(struct socket *so, struct ofp_sockaddr **psa, struct uio *
 	struct protosw *pr = so->so_proto;
 	int moff, /* type = 0, last_m_flags,*/ hole_break = 0;
 	ofp_ssize_t orig_resid = uio->uio_resid;
+	uint32_t uio_off;
 
 	mp = mp0;
 	if (psa != NULL)
@@ -1667,6 +1668,7 @@ dontblock:
 	 */
 	moff = 0;
 	offset = 0;
+	uio_off = 0;
 	while (m != ODP_PACKET_INVALID && uio->uio_resid > 0 && error == 0) {
 		/*
 		 * If the type of mbuf has changed since the last mbuf
@@ -1708,7 +1710,8 @@ dontblock:
 			SOCKBUF_UNLOCK(&so->so_rcv);
 
 			if (!odp_packet_copydata_out(m, moff, len,
-						     uio->uio_iov->iov_base)) {
+						uio->uio_iov->iov_base + uio_off)) {
+				uio_off += len;
 				uio->uio_resid -= len;
 			}
 
