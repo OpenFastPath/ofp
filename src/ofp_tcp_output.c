@@ -184,6 +184,8 @@ ofp_tcp_output(struct tcpcb *tp)
 #endif
 	INP_WLOCK_ASSERT(tp->t_inpcb);
 
+	SOCKBUF_LOCK(&so->so_snd);
+
 	/*
 	 * Determine length of data that should be transmitted,
 	 * and flags that will be used.
@@ -285,7 +287,6 @@ after_sack_rexmit:
 	if (tp->t_flags & TF_NEEDSYN)
 		flags |= OFP_TH_SYN;
 
-	SOCKBUF_LOCK(&so->so_snd);
 	/*
 	 * If in persist timeout with window of 0, send 1 byte.
 	 * Otherwise, if window is small but nonzero
@@ -848,9 +849,7 @@ send:
 		 */
 		if (off + len == so->so_snd.sb_cc)
 			flags |= OFP_TH_PUSH;
-		SOCKBUF_UNLOCK(&so->so_snd);
 	} else {
-		SOCKBUF_UNLOCK(&so->so_snd);
 		if (tp->t_flags & TF_ACKNOW)
 			TCPSTAT_INC(tcps_sndacks);
 		else if (flags & (OFP_TH_SYN|OFP_TH_FIN|OFP_TH_RST))
@@ -881,7 +880,6 @@ send:
 #endif /*INET6*/
 			sizeof(struct ofp_ip));
 	}
-	SOCKBUF_UNLOCK_ASSERT(&so->so_snd);
 	odp_packet_user_ptr_set(m, NULL);
 
 #ifdef MAC
@@ -1187,6 +1185,7 @@ timer:
 		ipov->ih_len = save;
 	}
 #endif /* TCPDEBUG */
+	SOCKBUF_UNLOCK(&so->so_snd);
 
 	/*
 	 * Fill in IP length and desired time to live and
@@ -1345,8 +1344,10 @@ out:
 	if (sendalot && --maxburst)
 		goto again;
 #endif
-	if (sendalot)
+	if (sendalot) {
+		SOCKBUF_LOCK(&so->so_snd);
 		goto again;
+	}
 
 	return (0);
 }
