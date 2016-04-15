@@ -16,6 +16,7 @@
 #include "api/ofp_log.h"
 #include "api/ofp_utils.h"
 #include "ofpi_timer.h"
+#include "ofpi_shared_mem.h"
 
 #define L2_HEADER_NO_VLAN_SIZE 14
 
@@ -111,10 +112,6 @@ static inline odp_pool_t ofp_pool_create(const char *name,
 {
 	return odp_pool_create(name, params);
 }
-
-void *ofp_shared_memory_alloc(const char *name, uint64_t size);
-int ofp_shared_memory_free(const char *name);
-void *ofp_shared_memory_lookup(const char *name);
 
 void *rpl_malloc (size_t n);
 
