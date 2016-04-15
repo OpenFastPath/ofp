@@ -71,6 +71,7 @@
 		fprintf(stderr, fmt, ##__VA_ARGS__)
 
 enum ofp_log_level_s {
+	OFP_LOG_DISABLED = -1,
 	OFP_LOG_ERROR = 0,
 	OFP_LOG_WARNING,
 	OFP_LOG_INFO,

@@ -63,11 +63,15 @@ static void NODEFREE(struct ofp_rtl_node *node)
 
 static struct ofp_rtl_node *NODEALLOC(void)
 {
+	if (!shm)
+		return NULL;
+
 	struct ofp_rtl_node *rtl_node = shm->free_small;
+
 	if (rtl_node) {
 		shm->free_small = rtl_node->next;
-
 		shm->nodes_allocated++;
+
 		if (shm->nodes_allocated > shm->max_nodes_allocated)
 			shm->max_nodes_allocated = shm->nodes_allocated;
 
@@ -239,30 +243,60 @@ static inline void dec_use_reference(struct ofp_rtl_node *node)
 		NODEFREE(node);
 }
 
+static inline uint32_t to_network_prefix(uint32_t addr_be, uint32_t masklen)
+{
+	return (odp_be_to_cpu_32(addr_be)) & ((~0) << (32 - masklen));
+}
+
+static inline uint32_t
+shift_least_significant_bits(uint32_t addr, uint32_t masklen)
+{
+	return (addr >> (IPV4_LENGTH - masklen));
+}
+
+static inline uint32_t
+ip_range_helper(uint32_t addr, uint32_t masklen, uint32_t low, uint32_t high)
+{
+	return (addr << (IPV4_LENGTH - masklen + low)
+		     >> (low + IPV4_LENGTH - high));
+}
+
+static inline uint32_t
+ip_range_begin(uint32_t addr, uint32_t masklen, uint32_t low, uint32_t high)
+{
+	return ip_range_helper(shift_least_significant_bits(addr, masklen),
+			       masklen, low, high);
+}
+
+static inline uint32_t
+ip_range_end(uint32_t addr, uint32_t masklen, uint32_t low, uint32_t high)
+{
+	const uint32_t end = ip_range_helper(
+		shift_least_significant_bits(addr, masklen) + 1,
+		masklen, low, high);
+	return end ? end : 1U << (high - low);
+}
+
+static inline struct ofp_rtl_node *
+find_node(struct ofp_rtl_node *node, uint32_t addr, uint32_t low, uint32_t high)
+{
+	return &node[(addr << low) >> (low + IPV4_LENGTH - high)];
+}
 
 struct ofp_nh_entry *
 ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 			   uint32_t masklen, struct ofp_nh_entry *data)
 {
-	struct ofp_rtl_node *elem, *node = tree->root;
-	uint32_t addr = (odp_be_to_cpu_32(addr_be)) & ((~0)<<(32-masklen));
+	struct ofp_rtl_node *node = tree->root;
+	uint32_t addr = to_network_prefix(addr_be, masklen);
 	uint32_t low = 0, high = IPV4_FIRST_LEVEL;
 
 	for (; high <= IPV4_LENGTH; low = high, high += IPV4_LEVEL) {
 		inc_use_reference(node);
+
 		if (masklen <= high) {
-			uint32_t addr_be_right = addr >>
-						(IPV4_LENGTH - masklen);
-			uint32_t shift_left = IPV4_LENGTH - masklen + low;
-			uint32_t shift_right = low + IPV4_LENGTH - high;
-			uint32_t index =
-				addr_be_right << shift_left >> shift_right;
-
-			uint32_t index_end =
-				(addr_be_right + 1) << shift_left >> shift_right;
-
-			if (index_end == 0)
-				index_end = 1 << ( high - low );
+			uint32_t index = ip_range_begin(addr, masklen, low, high);
+			uint32_t index_end = ip_range_end(addr, masklen, low, high);
 
 			for (; index < index_end; index++) {
 				if (node[index].masklen <= masklen || node[index].masklen > high) {
@@ -272,20 +306,18 @@ ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 			}
 			break;
 		}
-		elem = &node[(addr << low) >> (low + IPV4_LENGTH - high)];
 
-		if (elem->next == NULL)
-			elem->next = NODEALLOC();
+		node = find_node(node, addr, low, high);
 
-		if (elem->next == NULL) {
+		if (node->next == NULL && !(node->next = NODEALLOC())) {
 			OFP_ERR("NODEALLOC failed!");
 			return data;
 		}
 
-		if (elem->masklen == 0)
-			elem->masklen = masklen;
+		if (node->masklen == 0)
+			node->masklen = masklen;
 
-		node = elem->next;
+		node = node->next;
 	}
 
 	return NULL;
@@ -295,7 +327,7 @@ struct ofp_nh_entry *
 ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 {
 	struct ofp_rtl_node *elem, *node = tree->root;
-	uint32_t addr = (odp_be_to_cpu_32(addr_be)) & ((~0)<<(32-masklen));
+	uint32_t addr = to_network_prefix(addr_be, masklen);
 	struct ofp_nh_entry *data;
 	uint32_t low = 0, high = IPV4_FIRST_LEVEL;
 	int32_t reserved = ofp_rt_rule_search(tree->vrf, addr_be, masklen);
@@ -309,15 +341,8 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 	for (; high <= IPV4_LENGTH ; low = high, high += IPV4_LEVEL) {
 		dec_use_reference(node);
 		if (masklen <= high) {
-			uint32_t addr_be_right = addr >>
-						(IPV4_LENGTH - masklen);
-			uint32_t shift_left = IPV4_LENGTH - masklen + low;
-			uint32_t shift_right = low + IPV4_LENGTH - high;
-			uint32_t index =
-				addr_be_right << shift_left >> shift_right;
-
-			uint32_t index_end =
-				(addr_be_right + 1) << shift_left >> shift_right;
+			uint32_t index = ip_range_begin(addr, masklen, low, high);
+			uint32_t index_end = ip_range_end(addr, masklen, low, high);
 
 			for (; index < index_end; index++) {
 				if (node[index].masklen == masklen &&
@@ -334,7 +359,7 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 			break;
 		}
 
-		elem = &node[(addr << low) >> (low + IPV4_LENGTH - high)];
+		elem = find_node(node, addr, low, high);
 
 		if (elem->masklen != 0 /*&& elem->next != NULL*/) {
 			node = elem->next;
@@ -365,10 +390,10 @@ struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, uint32_t addr_be)
 	struct ofp_nh_entry *nh = NULL;
 	struct ofp_rtl_node *elem, *node = tree->root;
 	uint32_t addr = odp_be_to_cpu_32(addr_be);
-        uint32_t low = 0, high = IPV4_FIRST_LEVEL;
+	uint32_t low = 0, high = IPV4_FIRST_LEVEL;
 
 	for (; high <= IPV4_LENGTH ; low = high, high += IPV4_LEVEL) {
-		elem = &node[(addr << low) >> (low + IPV4_LENGTH - high)];
+		elem = find_node(node, addr, low, high);
 
 		if (elem->masklen == 0)
 			return nh;
@@ -388,8 +413,8 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 {
 	struct ofp_rtl6_node  *node;
 	struct ofp_rtl6_node  *last = NULL;
-	uint32_t              depth;
-	uint32_t              bit = 0;
+	uint32_t	      depth;
+	uint32_t	      bit = 0;
 
 	depth = 0;
 	node = tree->root;
@@ -477,9 +502,9 @@ ofp_rtl_remove6(struct ofp_rtl6_tree *tree, uint8_t *addr, uint32_t masklen)
 {
 	struct ofp_rtl6_node  *node;
 	struct ofp_rtl6_node **stack = shm->global_stack6;
-	uint32_t               depth;
-	void                  *data;
-	int                    bit = 0;
+	uint32_t	       depth;
+	void		  *data;
+	int		    bit = 0;
 
 	depth = 0;
 	node = tree->root;
@@ -583,9 +608,16 @@ void ofp_print_rt_stat(int fd)
 			  shm->nodes_allocated6, shm->max_nodes_allocated6, NUM_NODES_6);
 }
 
+void *(*shm_allocator)(const char *name, uint64_t size) = ofp_shared_memory_alloc;
+
+void ofp_rt_set_allocator(void *(*allocator)(const char *name, uint64_t size))
+{
+	shm_allocator = allocator ? allocator : ofp_shared_memory_alloc;
+}
+
 static int ofp_rt_lookup_alloc_shared_memory(void)
 {
-	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
+	shm = shm_allocator(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;

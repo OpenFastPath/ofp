@@ -170,4 +170,6 @@ int ofp_rt_lookup_lookup_shared_memory(void);
 int ofp_rt_lookup_init_global(void);
 int ofp_rt_lookup_term_global(void);
 
+void ofp_rt_set_allocator(void *(*allocator)(const char *name, uint64_t size));
+
 #endif /* _OFPI_RT_LOOKUP_H */
