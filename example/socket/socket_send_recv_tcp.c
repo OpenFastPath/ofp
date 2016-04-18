@@ -10,16 +10,17 @@
 #include "socket_util.h"
 
 #define TCP_CYCLES 20
-static const char *tcp_buf = "1234567890 2345678901 3456789012 4567890123 5678901234 6789012345 7890123456 socket_test";
+static const char *tcp_buf = "1234567890 2345678901 3456789012 4567890123 5678901234 6789012345 7890123456 socket_test\0";
 
-int send_tcp4_local_ip(int fd)
+static int _send_tcp4(int fd, uint32_t s_addr, uint32_t cycles)
 {
 	struct ofp_sockaddr_in addr = {0};
+	uint32_t cycle = 0;
 
 	addr.sin_len = sizeof(struct ofp_sockaddr_in);
 	addr.sin_family = OFP_AF_INET;
 	addr.sin_port = odp_cpu_to_be_16(TEST_PORT + 1);
-	addr.sin_addr.s_addr = IP4(192, 168, 100, 1);
+	addr.sin_addr.s_addr = s_addr;
 
 	if (ofp_connect(fd, (struct ofp_sockaddr *)&addr,
 			sizeof(addr)) == -1) {
@@ -29,39 +30,29 @@ int send_tcp4_local_ip(int fd)
 
 	sleep(1); /* ToFix: connect is not blocking*/
 
-	if (ofp_send(fd, tcp_buf, strlen(tcp_buf) + 1, 0) == -1) {
-		OFP_ERR("Faild to send (errno = %d)\n", ofp_errno);
-		return -1;
-	}
+	for (; cycle < cycles; cycle++)
+		if (ofp_send(fd, tcp_buf, strlen(tcp_buf) + 1, 0) == -1) {
+			OFP_ERR("Faild to send (errno = %d)\n", ofp_errno);
+			return -1;
+		}
 
 	OFP_INFO("SUCCESS.\n");
 	return 0;
 }
 
+int send_tcp4_local_ip(int fd)
+{
+	return _send_tcp4(fd, IP4(192, 168, 100, 1), 1);
+}
+
+int send_multi_tcp4_any(int fd)
+{
+	return _send_tcp4(fd, OFP_INADDR_ANY, TCP_CYCLES);
+}
+
 int send_tcp4_any(int fd)
 {
-	struct ofp_sockaddr_in addr = {0};
-
-	addr.sin_len = sizeof(struct ofp_sockaddr_in);
-	addr.sin_family = OFP_AF_INET;
-	addr.sin_port = odp_cpu_to_be_16(TEST_PORT + 1);
-	addr.sin_addr.s_addr = OFP_INADDR_ANY;
-
-	if (ofp_connect(fd, (struct ofp_sockaddr *)&addr,
-			sizeof(addr)) == -1) {
-		OFP_ERR("Faild to connect (errno = %d)\n", ofp_errno);
-		return -1;
-	}
-
-	sleep(1); /* ToFix: connect is not blocking*/
-
-	if (ofp_send(fd, tcp_buf, strlen(tcp_buf) + 1, 0) == -1) {
-		OFP_ERR("Faild to send (errno = %d)\n", ofp_errno);
-		return -1;
-	}
-
-	OFP_INFO("SUCCESS.\n");
-	return 0;
+	return _send_tcp4(fd, OFP_INADDR_ANY, 1);
 }
 
 #ifdef INET6
@@ -118,11 +109,15 @@ int send_tcp6_any(int fd)
 }
 #endif /*INET6*/
 
-int receive_tcp(int fd)
+static int _receive_tcp(int fd, uint32_t cycles)
 {
 	char buf[1024];
-	int len = sizeof(buf);
+	size_t recv_size;
+	int len;
 	int fd_accepted = -1;
+	uint32_t cycle = 0;
+
+	recv_size = (cycles == 1) ? sizeof(buf) : strlen(tcp_buf) + 1;
 
 	fd_accepted = ofp_accept(fd, NULL, NULL);
 
@@ -132,24 +127,28 @@ int receive_tcp(int fd)
 		return -1;
 	}
 
-	len = ofp_recv(fd_accepted, buf, sizeof(buf), 0);
-	if (len == -1) {
-		OFP_ERR("FAILED to recv (errno = %d)\n",
-			ofp_errno);
-		ofp_close(fd_accepted);		return -1;
-		return -1;
-	}
-	buf[len] = 0;
-	OFP_INFO("Data was received.\n");
+	for (; cycle < cycles; cycle++) {
+		memset(buf, 0, recv_size);
+		len = ofp_recv(fd_accepted, buf, recv_size, 0);
+		if (len == -1) {
+			OFP_ERR("FAILED to recv (errno = %d)\n",
+				ofp_errno);
+			ofp_close(fd_accepted);
+			return -1;
+		}
+		buf[len] = 0;
 
-	if ((size_t)len != strlen(tcp_buf) + 1) {
-		OFP_ERR("FAILED : length received is wrong:[%d]\n", len);
-		return -1;
-	}
+		if ((size_t)len != strlen(tcp_buf) + 1) {
+			OFP_ERR("FAILED : length received is wrong:[%d]\n", len);
+			ofp_close(fd_accepted);
+			return -1;
+		}
 
-	if (strcmp(buf, tcp_buf) != 0) {
-		OFP_ERR("FAILED : data received is malformed:[%s]\n", buf);
-		return -1;
+		if (strcmp(buf, tcp_buf) != 0) {
+			OFP_ERR("FAILED : data received is malformed:[%s]\n", buf);
+			ofp_close(fd_accepted);
+			return -1;
+		}
 	}
 
 	if (ofp_close(fd_accepted) == -1) {
@@ -162,3 +161,13 @@ int receive_tcp(int fd)
 	return 0;
 }
 
+
+int receive_tcp(int fd)
+{
+	return _receive_tcp(fd, 1);
+}
+
+int receive_multi_tcp(int fd)
+{
+	return _receive_tcp(fd, TCP_CYCLES);
+}
