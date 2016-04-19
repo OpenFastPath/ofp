@@ -148,8 +148,6 @@ struct ofp_socket_mem {
 	odp_rwlock_t ofp_accept_mtx;
 	int somaxconn;
 	odp_pool_t pool;
-	odp_pool_t pools[OFP_NUM_SOCKET_POOLS];
-	int num_pools;
 
 	struct sleeper {
 		struct sleeper *next;
@@ -200,93 +198,6 @@ void f_sockets(struct cli_conn *conn, const char *s)
 }
 #endif
 
-
-struct uma_pool_metadata {
-	union {
-		odp_buffer_t buffer_handle;
-		uint64_t u64;
-	};
-	uint8_t data[0];
-};
-BUILD_ASSERT(sizeof(struct uma_pool_metadata) == 8);
-
-int ofp_uma_pool_create(const char *name, int nitems, int size)
-{
-	odp_pool_param_t pool_params;
-	odp_pool_t pool;
-	uma_zone_t zone;
-
-	pool_params.buf.size  = size + sizeof(struct uma_pool_metadata);
-	pool_params.buf.align = 0;
-	pool_params.buf.num   = nitems;
-	pool_params.type      = ODP_POOL_BUFFER;
-
-	OFP_INFO("Creating pool '%s', nitems=%d size=%d total=%d",
-		 name, pool_params.buf.num, pool_params.buf.size,
-		 pool_params.buf.num * pool_params.buf.size);
-
-	if (shm->num_pools >= OFP_NUM_SOCKET_POOLS) {
-		OFP_ERR("Exceeded max number (%d) of pools",
-			OFP_NUM_SOCKET_POOLS);
-		return -1;
-	}
-	pool = ofp_pool_create(name, &pool_params);
-	if (pool == ODP_POOL_INVALID) {
-		OFP_ERR("odp_pool_create failed");
-		return -1;
-	}
-
-	zone = shm->num_pools++;
-	shm->pools[zone] = pool;
-
-	return zone;
-}
-
-int ofp_uma_pool_destroy(int zone)
-{
-	int ret = 0;
-
-	if (zone > OFP_NUM_SOCKET_POOLS || zone < 0)
-		return -1;
-	if (shm->pools[zone] == ODP_POOL_INVALID)
-		return -1;
-
-	ret = odp_pool_destroy(shm->pools[zone]);
-
-	shm->pools[zone] = ODP_POOL_INVALID;
-
-	return ret;
-}
-
-void *ofp_uma_pool_alloc(int zone)
-{
-	odp_buffer_t buffer;
-	struct uma_pool_metadata *meta;
-
-	if (zone < 0 || zone >= shm->num_pools) {
-		OFP_ERR("Wrong zone %d!", zone);
-		return NULL;
-	}
-
-	buffer = odp_buffer_alloc(shm->pools[zone]);
-	if (buffer == ODP_BUFFER_INVALID) {
-		OFP_ERR("odp_buffer_alloc failed");
-		return NULL;
-	}
-
-	meta = (struct uma_pool_metadata *) odp_buffer_addr(buffer);
-	meta->buffer_handle = buffer;
-
-	return (void *) &meta->data;
-}
-
-void ofp_uma_pool_free(void *data)
-{
-	struct uma_pool_metadata *meta = (struct uma_pool_metadata *)
-		((uint8_t *) data - sizeof(struct uma_pool_metadata));
-
-	odp_buffer_free(meta->buffer_handle);
-}
 
 odp_packet_t ofp_packet_alloc(uint32_t len)
 {
@@ -349,8 +260,6 @@ int ofp_socket_init_global(odp_pool_t pool)
 
 	memset(shm, 0, sizeof(*shm));
 	shm->pool = ODP_POOL_INVALID;
-	for (i = 0; i < OFP_NUM_SOCKET_POOLS; i++)
-		shm->pools[i] = ODP_POOL_INVALID;
 
 	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
 		shm->socket_list[i].next = (i == OFP_NUM_SOCKETS_MAX - 1) ?
@@ -370,7 +279,6 @@ int ofp_socket_init_global(odp_pool_t pool)
 
 int ofp_socket_term_global(void)
 {
-	int i;
 	struct sleeper *p, *next;
 	int rc = 0;
 
@@ -387,12 +295,6 @@ int ofp_socket_term_global(void)
 	}
 
 	ofp_inet_term();
-
-	for (i = 0; i < shm->num_pools; i++)
-		if (shm->pools[i] != ODP_POOL_INVALID) {
-			CHECK_ERROR(odp_pool_destroy(shm->pools[i]), rc);
-			shm->pools[i] = ODP_POOL_INVALID;
-		}
 
 	CHECK_ERROR(ofp_socket_free_shared_memory(), rc);
 

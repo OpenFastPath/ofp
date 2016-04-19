@@ -40,8 +40,6 @@
 
 #define OFP_LOG_X(a...) do {} while (0)
 
-typedef int uma_zone_t;
-
 #include "ofpi_util.h"
 #include "odp.h"
 #include "ofpi_log.h"
@@ -51,6 +49,7 @@ typedef int uma_zone_t;
 #include "ofpi_portconf.h"
 #include "ofpi_udp_var.h"
 #include "ofpi_systm.h"
+#include "ofpi_uma.h"
 
 typedef	int64_t *	qaddr_t;
 

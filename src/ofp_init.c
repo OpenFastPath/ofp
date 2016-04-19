@@ -38,6 +38,7 @@
 #include "ofpi_inet.h"
 #include "ofpi_igmp_var.h"
 #include "ofpi_vxlan.h"
+#include "ofpi_uma.h"
 #include "ofpi_odp_compat.h"
 
 #include "ofpi_log.h"
@@ -110,6 +111,8 @@ int ofp_init_pre_global(const char *pool_name_unused,
 	(void)pool_unused;
 
 	/* Init shared memories */
+	HANDLE_ERROR(ofp_uma_init_global());
+
 	HANDLE_ERROR(ofp_global_config_alloc_shared_memory());
 	memset(shm, 0, sizeof(*shm));
 	shm->is_running = 1;
@@ -223,6 +226,7 @@ int ofp_init_global(ofp_init_global_t *params)
 int ofp_init_local(void)
 {
 	/* Lookup shared memories */
+	HANDLE_ERROR(ofp_uma_lookup_shared_memory());
 	HANDLE_ERROR(ofp_global_config_lookup_shared_memory());
 	HANDLE_ERROR(ofp_portconf_lookup_shared_memory());
 	HANDLE_ERROR(ofp_route_lookup_shared_memory());
@@ -420,6 +424,8 @@ int ofp_term_post_global(const char *pool_name)
 
 	CHECK_ERROR(ofp_global_config_free_shared_memory(), rc);
 	CHECK_ERROR(ofp_unregister_sysctls(), rc);
+
+	CHECK_ERROR(ofp_uma_term_global(), rc);
 
 	return rc;
 }

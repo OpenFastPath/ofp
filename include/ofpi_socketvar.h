@@ -39,6 +39,7 @@
 #include "ofpi_queue.h"			/* for TAILQ macros */
 #include "ofpi_sockbuf.h"
 #include "ofpi_in_pcb.h"
+#include "ofpi_uma.h"
 
 struct vnet;
 struct in_l2info;
@@ -415,36 +416,6 @@ odp_packet_t ofp_packet_alloc(uint32_t len);
 odp_rwlock_t *ofp_accept_mtx(void);
 void ofp_accept_lock(void);
 void ofp_accept_unlock(void);
-
-/*
- * Universal Memory allocator via ODP pools
- *
- * uma zones are implemented as ODP pools, which means static allocation.
- *
- * uma_zcreate() takes an additional parameter 'nitems' to specify the
- * max number of objects. uma_zone_set_max() does nothing.
- *
- * Currently, all pools are free'd during the 'socket' module's termination
- * code. So, uma_zdestroy() does nothing.
- */
-#define uma_zcreate(name, nitems, size, ctor, dtor, uminit, fini, align, flags) \
-	ofp_uma_pool_create(name, nitems, size)
-
-#define uma_zdestroy(zone) \
-	ofp_uma_pool_destroy(zone)
-
-#define uma_zalloc(zone, flags) \
-	ofp_uma_pool_alloc(zone)
-
-#define uma_zfree(zone, item) \
-	ofp_uma_pool_free(item)
-
-#define uma_zone_set_max(zone, nitems)
-
-int ofp_uma_pool_create(const char *name, int nitems, int size);
-int ofp_uma_pool_destroy(int zone);
-void *ofp_uma_pool_alloc(int zone);
-void ofp_uma_pool_free(void *item);
 
 /* Emulation for BSD wakeup mechanism */
 int ofp_msleep(void *channel, odp_rwlock_t *mtx, int priority, const char *wmesg,
