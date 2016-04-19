@@ -415,13 +415,13 @@ int ofp_clean_vxlan_interface_queue(void)
  * Arp request's source mac address is saved to be used as a key
  * in MAC address to IP address hash table.
  */
-void ofp_vxlan_update_devices(struct ofp_arphdr *arp, uint16_t *vlan,
+void ofp_vxlan_update_devices(odp_packet_t pkt, struct ofp_arphdr *arp, uint16_t *vlan,
 			      struct ofp_ifnet **dev, struct ofp_ifnet **outdev,
 			      uint8_t *save_space)
 {
 	/* Find the vxlan device this message is destined to. */
-	struct ofp_ifnet *vxdev =
-		ofp_ifaddr_elem_get((uint8_t *)&arp->ip_dst);
+	struct vxlan_user_data *saved = odp_packet_user_area(pkt);
+	struct ofp_ifnet *vxdev = ofp_get_ifnet(VXLAN_PORTS, saved->vni);
 
 	/* Sanity check. */
 	if (vxdev && vxdev->port == VXLAN_PORTS) {

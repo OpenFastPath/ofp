@@ -552,7 +552,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 			/* Never happens. */
 			break;
 		case VXLAN_PORTS: {
-			ofp_vxlan_update_devices(arp, &vlan, &dev, &outdev,
+			ofp_vxlan_update_devices(pkt, arp, &vlan, &dev, &outdev,
 						 inner_from_mac);
 			break;
 		}
