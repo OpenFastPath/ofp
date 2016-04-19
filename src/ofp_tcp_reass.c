@@ -70,6 +70,7 @@
 #include "ofpi_tcp_timer.h"
 #include "ofpi_tcp_seq.h"
 #include "ofpi_protosw.h"
+#include "ofpi_tcp_shm.h"
 
 #define SYSCTL_VNET_INT(_a...) OFP_SYSCTL_INT(_a)
 #define SYSCTL_VNET_PROC(_a...) OFP_SYSCTL_PROC(_a)
@@ -101,8 +102,6 @@ SYSCTL_VNET_INT(_net_inet_tcp_reass, OFP_OID_AUTO, overflows,
     &VNET_NAME(tcp_reass_overflows), 0,
     "Global number of TCP Segment Reassembly Queue Overflows");
 
-static VNET_DEFINE(uma_zone_t, tcp_reass_zone);
-#define	V_tcp_reass_zone		VNET(tcp_reass_zone)
 
 /* Derived from libuinet sys/kern/subr_param.c and
  * sys/kern/kern_mbuf.c */

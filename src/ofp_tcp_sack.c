@@ -110,11 +110,9 @@
 #include "ofpi_tcp_timer.h"
 #include "ofpi_tcp_seq.h"
 #include "ofpi_protosw.h"
+#include "ofpi_tcp_shm.h"
 
 #define	SYSCTL_VNET_INT OFP_SYSCTL_INT
-
-VNET_DECLARE(uma_zone_t, ofp_sack_hole_zone);
-#define	V_sack_hole_zone		VNET(ofp_sack_hole_zone)
 
 OFP_SYSCTL_NODE(_net_inet_tcp, OFP_OID_AUTO, sack, OFP_CTLFLAG_RW, 0, "TCP SACK");
 VNET_DEFINE(int, ofp_tcp_do_sack) = 1;

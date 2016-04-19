@@ -66,6 +66,7 @@
 #include "ofpi_tcp_offload.h"
 #include "ofpi_pkt_processing.h"
 #include "ofpi_md5.h"
+#include "ofpi_tcp_shm.h"
 
 extern int ofp_max_linkhdr;
 
@@ -189,7 +190,7 @@ syncache_free(struct syncache *sc)
 	if (sc->sc_cred)
 		crfree(sc->sc_cred);
 	*/
-	uma_zfree(V_tcp_syncache.zone, sc);
+	uma_zfree(V_tcp_syncache_zone, sc);
 }
 
 void
@@ -223,10 +224,10 @@ ofp_syncache_init(void)
 	}
 
 	/* Create the syncache entry zone. */
-	V_tcp_syncache.zone = uma_zcreate(
+	V_tcp_syncache_zone = uma_zcreate(
 		"syncache", V_tcp_syncache.cache_limit, sizeof(struct syncache),
 		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
-	uma_zone_set_max(V_tcp_syncache.zone, V_tcp_syncache.cache_limit);
+	uma_zone_set_max(V_tcp_syncache_zone, V_tcp_syncache.cache_limit);
 }
 
 /*
@@ -1005,7 +1006,7 @@ _syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphdr *th,
 		goto done;
 	}
 
-	sc = uma_zalloc(V_tcp_syncache.zone, M_NOWAIT | M_ZERO);
+	sc = uma_zalloc(V_tcp_syncache_zone, M_NOWAIT | M_ZERO);
 	if (sc == NULL) {
 		/*
 		 * The zone allocator couldn't provide more entries.
@@ -1014,7 +1015,7 @@ _syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphdr *th,
 		 */
 		if ((sc = OFP_TAILQ_LAST(&sch->sch_bucket, sch_head)) != NULL)
 			syncache_drop(sc, sch);
-		sc = uma_zalloc(V_tcp_syncache.zone, M_NOWAIT | M_ZERO);
+		sc = uma_zalloc(V_tcp_syncache_zone, M_NOWAIT | M_ZERO);
 		if (sc == NULL) {
 			if (V_tcp_syncookies) {
 				bzero(&scs, sizeof(scs));

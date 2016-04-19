@@ -167,8 +167,6 @@ static int	tcp_soreceive_stream = 0;
 OFP_SYSCTL_INT(_net_inet_tcp, OFP_OID_AUTO, soreceive_stream, OFP_CTLFLAG_RDTUN,
     &tcp_soreceive_stream, 0, "Using soreceive_stream for TCP sockets");
 
-VNET_DEFINE(uma_zone_t, ofp_sack_hole_zone);
-#define	V_sack_hole_zone		VNET(ofp_sack_hole_zone)
 #define OFP_SACK_HOLE_ZONE_NITEMS 65536  /* derived from ofp_tcp_sack_globalmaxholes */
 
 VNET_DEFINE(struct hhook_head *, ofp_tcp_hhh[HHOOK_TCP_LAST+1]);
@@ -217,9 +215,6 @@ struct tcpcb_mem {
 	struct	cc_var		ccv;
 	struct	osd		osd;
 };
-
-static VNET_DEFINE(uma_zone_t, tcpcb_zone);
-#define	V_tcpcb_zone			VNET(tcpcb_zone)
 
 static odp_spinlock_t isn_mtx;
 
@@ -375,6 +370,11 @@ ofp_tcp_destroy(void)
 
 		uma_zfree(V_tcbinfo.ipi_zone, inp);
 	}
+	uma_zdestroy(V_sack_hole_zone);
+	uma_zdestroy(V_tcp_reass_zone);
+	uma_zdestroy(V_tcp_syncache_zone);
+	uma_zdestroy(V_tcptw_zone);
+	uma_zdestroy(V_tcpcb_zone);
 	uma_zdestroy(V_tcbinfo.ipi_zone);
 }
 

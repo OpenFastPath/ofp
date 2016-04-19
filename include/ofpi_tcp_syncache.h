@@ -118,7 +118,6 @@ struct syncache_head {
 
 struct tcp_syncache {
 	struct	syncache_head *hashbase;
-	uma_zone_t	zone;
 	uint32_t	hashsize;
 	uint32_t	hashmask;
 	uint32_t	bucket_limit;

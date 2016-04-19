@@ -27,8 +27,20 @@ struct ofp_tcp_var_mem {
 
 #define TCP_SYNCACHE_HASHSIZE		512
 	struct syncache_head	syncache[TCP_SYNCACHE_HASHSIZE];
+
+	VNET_DEFINE(uma_zone_t, tcp_reass_zone);
+	VNET_DEFINE(uma_zone_t, tcp_syncache_zone);
+	VNET_DEFINE(uma_zone_t, tcpcb_zone);
+	VNET_DEFINE(uma_zone_t, tcptw_zone);
+	VNET_DEFINE(uma_zone_t, ofp_sack_hole_zone);
 };
 extern __thread struct ofp_tcp_var_mem *shm_tcp;
 
 #define	V_tcb			VNET(shm_tcp->ofp_tcb)
 #define	V_tcbinfo		VNET(shm_tcp->ofp_tcbinfo)
+#define	V_tcp_reass_zone	VNET(shm_tcp->tcp_reass_zone)
+#define	V_tcpcb_zone		VNET(shm_tcp->tcpcb_zone)
+#define	V_tcptw_zone		VNET(shm_tcp->tcptw_zone)
+#define	V_twq_2msl		VNET(shm_tcp->twq_2msl)
+#define	V_tcp_syncache_zone	VNET(shm_tcp->tcp_syncache_zone)
+#define	V_sack_hole_zone	VNET(shm_tcp->ofp_sack_hole_zone)
