@@ -35,11 +35,17 @@
 int
 ofp_socket(int domain, int type, int protocol)
 {
+	return ofp_socket_vrf(domain, type, protocol, 0);
+}
+
+int
+ofp_socket_vrf(int domain, int type, int protocol, int vrf)
+{
 	struct socket  *so;
 	int		error;
 	struct thread   td;
 
-	td.td_proc.p_fibnum = 0;
+	td.td_proc.p_fibnum = vrf;
 	td.td_ucred = NULL;
 	error = ofp_socreate(domain, &so, type, protocol, &td);
 	if (error) {
@@ -87,7 +93,7 @@ ofp_bind(int sockfd, const struct ofp_sockaddr *addr, ofp_socklen_t addrlen)
 
 	memcpy(&nonconstaddr, addr, addrlen);
 
-	td.td_proc.p_fibnum = 0;
+	td.td_proc.p_fibnum = so->so_fibnum;
 	td.td_ucred = NULL;
 	ofp_errno = ofp_sobind(so, (struct ofp_sockaddr *)&nonconstaddr,
 		&td);
@@ -113,7 +119,7 @@ ofp_connect(int sockfd, const struct ofp_sockaddr *addr, ofp_socklen_t addrlen)
 
 	memcpy(&nonconstaddr, addr, addrlen);
 
-	td.td_proc.p_fibnum = 0;
+	td.td_proc.p_fibnum = so->so_fibnum;
 	td.td_ucred = NULL;
 	ofp_errno = ofp_soconnect(so, (struct ofp_sockaddr *)&nonconstaddr, &td);
 	return ofp_errno ? -1 : 0;
@@ -144,7 +150,7 @@ ofp_sendto(int sockfd, const void *buf, size_t len, int flags,
 	iovec.iov_base = (void *)(uintptr_t)buf;
 	iovec.iov_len = len;
 
-	td.td_proc.p_fibnum = 0;
+	td.td_proc.p_fibnum = so->so_fibnum;
 	td.td_ucred = NULL;
 
 	ofp_errno = ofp_sosend(so,
@@ -206,7 +212,7 @@ ofp_listen(int sockfd, int backlog)
 		return -1;
 	}
 
-	td.td_proc.p_fibnum = 0;
+	td.td_proc.p_fibnum = so->so_fibnum;
 	td.td_ucred = NULL;
 
 	ofp_errno = ofp_solisten(so, backlog, &td);
@@ -471,7 +477,7 @@ ofp_udp_pkt_sendto(int sockfd, odp_packet_t pkt,
 		return -1;
 	}
 
-	td.td_proc.p_fibnum = 0;
+	td.td_proc.p_fibnum = so->so_fibnum;
 	td.td_ucred = NULL;
 
 	ofp_errno = (*so->so_proto->pr_usrreqs->pru_send)

@@ -1462,14 +1462,15 @@ void ofp_ifaddr_elem_del(struct ofp_ifnet *ifnet)
 	OFP_IFNET_UNLOCK_WRITE(ifaddr_list);
 }
 
-struct ofp_ifnet *ofp_ifaddr_elem_get(uint8_t *addr)
+struct ofp_ifnet *ofp_ifaddr_elem_get(int vrf, uint8_t *addr)
 {
 	struct ofp_ifnet *ifa;
 
 	OFP_IFNET_LOCK_WRITE(ifaddr_list);
 
 	OFP_TAILQ_FOREACH(ifa, ofp_get_ifaddrhead(), ia_link) {
-		if (ifa->ip_addr == *(uint32_t *)addr)
+		if (ifa->ip_addr == *(uint32_t *)addr &&
+		    ifa->vrf == vrf)
 			break;
 	}
 

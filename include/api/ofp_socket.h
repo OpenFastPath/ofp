@@ -447,6 +447,7 @@ int	ofp_select(int nfds, ofp_fd_set *readfds, ofp_fd_set *writefds,
 		ofp_fd_set *exceptfds, struct ofp_timeval *timeout);
 
 int	ofp_socket(int, int, int);
+int	ofp_socket_vrf(int, int, int, int);
 int	ofp_accept(int, struct ofp_sockaddr *, ofp_socklen_t *);
 int	ofp_bind(int, const struct ofp_sockaddr *, ofp_socklen_t);
 int	ofp_connect(int, const struct ofp_sockaddr *, ofp_socklen_t);

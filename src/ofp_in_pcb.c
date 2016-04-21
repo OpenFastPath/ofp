@@ -542,6 +542,7 @@ ofp_in_pcbbind_setup(struct inpcb *inp, struct ofp_sockaddr *nam,
 			 */
 			if ((inp->inp_flags & INP_BINDANY) == 0 &&
 				ofp_ifaddr_elem_get(
+				inp->inp_inc.inc_fibnum,
 				(uint8_t *)&(sin->sin_addr.s_addr)) == NULL)
 				return (OFP_EADDRNOTAVAIL);
 		}

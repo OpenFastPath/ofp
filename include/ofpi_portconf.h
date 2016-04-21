@@ -321,7 +321,7 @@ static inline void _IF_ENQUEUE(struct ofp_ifqueue *ifq, odp_packet_t m)
 struct ofp_in_ifaddrhead *ofp_get_ifaddrhead(void);
 void ofp_ifaddr_elem_add(struct ofp_ifnet *ifnet);
 void ofp_ifaddr_elem_del(struct ofp_ifnet *ifnet);
-struct ofp_ifnet *ofp_ifaddr_elem_get(uint8_t *addr);
+struct ofp_ifnet *ofp_ifaddr_elem_get(int vrf, uint8_t *addr);
 
 #ifdef INET6
 struct ofp_in_ifaddrhead *ofp_get_ifaddr6head(void);
