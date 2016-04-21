@@ -4,6 +4,7 @@
  *
  * SPDX-License-Identifier:     BSD-3-Clause
  */
+
 #ifndef OFP_TESTMODE_AUTO
 #define OFP_TESTMODE_AUTO 1
 #endif
@@ -18,22 +19,41 @@
 #include <CUnit/Basic.h>
 #endif
 
+void *shm;
+static void *allocator(const char *name, uint64_t size);
+static int setup(void)
+{
+	ofp_rt_set_allocator(allocator);
+	ofp_rt_lookup_init_global();
+	return 0;
+}
+
+static int teardown(void)
+{
+	free(shm);
+	ofp_rt_set_allocator(NULL);
+	return 0;
+}
+
+static enum ofp_log_level_s disable_logging(void);
+static void restore_logging(enum ofp_log_level_s log_level);
+static int only_ref_count_changed(struct ofp_rtl_node *node, uint8_t masklen);
 static void test_insert_returns_data_when_allocation_fails(void)
 {
 	struct ofp_rtl_node root = { 0 };
 	struct ofp_rtl_tree tree = { 0, &root };
 	const uint32_t masklen = IPV4_FIRST_LEVEL + 1;
 	struct ofp_nh_entry data;
-	enum ofp_log_level_s log_level = ofp_loglevel;
-
-	ofp_loglevel = OFP_LOG_DISABLED;
+	const enum ofp_log_level_s log_level = disable_logging();
 
 	CU_ASSERT_PTR_EQUAL(ofp_rtl_insert(&tree, 0, masklen, &data), &data);
-	CU_ASSERT_EQUAL(root.ref, 1);
+	CU_ASSERT_TRUE(only_ref_count_changed(&root, masklen));
 
-	ofp_loglevel = log_level;
+	restore_logging(log_level);
 }
 
+static int only_ref_count_not_changed(struct ofp_rtl_node *node,
+				      uint8_t masklen, uint16_t port);
 static void test_insert_does_nothing_when_current_mask_is_bigger(void)
 {
 	struct ofp_rtl_node root[] = { { 0 }, { 0 } };
@@ -45,15 +65,13 @@ static void test_insert_does_nothing_when_current_mask_is_bigger(void)
 	data.port = 1234;
 
 	CU_ASSERT_PTR_NULL(ofp_rtl_insert(&tree, 0, masklen, &data));
-	CU_ASSERT_EQUAL(root[0].ref, 1);
-	CU_ASSERT_EQUAL(root[0].data[0].port, 0);
-	CU_ASSERT_EQUAL(root[0].masklen, IPV4_FIRST_LEVEL);
-
-	CU_ASSERT_EQUAL(root[1].ref, 0);
-	CU_ASSERT_EQUAL(root[1].data[0].port, data.port);
-	CU_ASSERT_EQUAL(root[1].masklen, masklen);
+	CU_ASSERT_TRUE(only_ref_count_changed(&root[0], masklen));
+	CU_ASSERT_TRUE(only_ref_count_not_changed(&root[1], masklen, data.port));
 }
 
+static int ref_count_mask_changed(struct ofp_rtl_node *node, uint8_t masklen);
+static int ref_count_mask_data_changed(struct ofp_rtl_node *node,
+				       uint8_t masklen, uint16_t port);
 static void test_insert_with_second_level_mask_updates_unset_mask(void)
 {
 	struct ofp_rtl_node node = { 0 };
@@ -68,17 +86,10 @@ static void test_insert_with_second_level_mask_updates_unset_mask(void)
 
 	CU_ASSERT_PTR_NULL(ofp_rtl_insert(&tree, 0, masklen, &data));
 	CU_ASSERT_PTR_EQUAL(root.next, &node);
-	CU_ASSERT_EQUAL(root.ref, 1);
-	CU_ASSERT_EQUAL(root.data[0].port, 0);
-	CU_ASSERT_EQUAL(root.masklen, masklen);
-
-	CU_ASSERT_EQUAL(node.ref, 1);
-	CU_ASSERT_EQUAL(node.data[0].port, data.port);
-	CU_ASSERT_EQUAL(node.masklen, masklen);
+	CU_ASSERT_TRUE(ref_count_mask_changed(&root, masklen));
+	CU_ASSERT_TRUE(ref_count_mask_data_changed(&node, masklen, data.port));
 }
 
-void *shm;
-static void *allocator(const char *name, uint64_t size);
 static void test_insert_with_second_level_mask_allocates_new_nodes(void)
 {
 	struct ofp_rtl_node root = { 0 };
@@ -88,19 +99,69 @@ static void test_insert_with_second_level_mask_allocates_new_nodes(void)
 
 	root.masklen = 1;
 
-	ofp_rt_set_allocator(allocator);
-	ofp_rt_lookup_init_global();
+	setup();
 
 	CU_ASSERT_PTR_NULL(ofp_rtl_insert(&tree, 0, masklen, &data));
 	CU_ASSERT_PTR_NOT_NULL_FATAL(root.next);
-	CU_ASSERT_EQUAL(root.next->ref, 1);
-	CU_ASSERT_EQUAL(root.masklen, 1);
+	CU_ASSERT_TRUE(only_ref_count_changed(&root, masklen));
 
 	CU_ASSERT_EQUAL(root.next[0].masklen, masklen);
 	CU_ASSERT_EQUAL(root.next[1].masklen, 0);
 
-	free(shm);
-	ofp_rt_set_allocator(NULL);
+	teardown();
+}
+
+static void test_print_nothing_when_no_rules_added(void)
+{
+	setup();
+	ofp_rt_rule_print(0, 0, NULL);
+	teardown();
+}
+
+static void add_rules(void);
+static void add_rule(uint16_t vrf, uint32_t masklen, uint16_t port);
+static const char *print_rule(uint16_t vrf);
+static void test_adding_rule_updates_existing(void)
+{
+	setup();
+
+	add_rules();
+	add_rule(1, 1, 2);
+
+	CU_ASSERT_STRING_EQUAL("[1,1,2][1,2,1]", print_rule(1));
+
+	teardown();
+}
+
+static void remove_rule(uint16_t vrf, uint32_t masklen);
+static void test_adding_rule_uses_first_unused_slot(void)
+{
+	setup();
+
+	add_rules();
+	remove_rule(2, 1);
+	add_rule(1, 3, 2);
+
+	CU_ASSERT_STRING_EQUAL("[1,1,1][1,3,2][1,2,1]", print_rule(1));
+
+	teardown();
+}
+
+static void test_removing_unset_rule_does_nothing(void)
+{
+	const enum ofp_log_level_s log_level = disable_logging();
+
+	setup();
+
+	add_rules();
+	remove_rule(2, 2);
+
+	CU_ASSERT_STRING_EQUAL("[0,0,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,1,1][1,2,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,1,1]", print_rule(2));
+
+	teardown();
+	restore_logging(log_level);
 }
 
 static char *const_cast(const char *str)
@@ -122,6 +183,14 @@ int main(void)
 		  test_insert_with_second_level_mask_updates_unset_mask },
 		{ const_cast("Insert with second level mask allocates new nodes"),
 		  test_insert_with_second_level_mask_allocates_new_nodes },
+		{ const_cast("Print nothing when no rules added"),
+		  test_print_nothing_when_no_rules_added },
+		{ const_cast("When adding rule existing is updated"),
+		  test_adding_rule_updates_existing },
+		{ const_cast("When adding rule first unused slot is used"),
+		  test_adding_rule_uses_first_unused_slot },
+		{ const_cast("Removing unset rule does nothing"),
+		  test_removing_unset_rule_does_nothing },
 		CU_TEST_INFO_NULL,
 	};
 
@@ -160,4 +229,85 @@ void *allocator(const char *name, uint64_t size)
 	(void)name;
 	shm = malloc(size);
 	return shm;
+}
+
+enum ofp_log_level_s disable_logging(void)
+{
+	const enum ofp_log_level_s previous = ofp_loglevel;
+
+	ofp_loglevel = OFP_LOG_DISABLED;
+	return previous;
+}
+
+void restore_logging(enum ofp_log_level_s log_level)
+{
+	ofp_loglevel = log_level;
+}
+
+int only_ref_count_changed(struct ofp_rtl_node *node, uint8_t masklen)
+{
+	return (node->ref == 1 &&
+		node->masklen != masklen &&
+		node->data[0].port == 0);
+}
+
+int only_ref_count_not_changed(struct ofp_rtl_node *node,
+			       uint8_t masklen, uint16_t port)
+{
+	return (node->ref == 0 &&
+		node->masklen == masklen &&
+		node->data[0].port == port);
+}
+
+int ref_count_mask_changed(struct ofp_rtl_node *node, uint8_t masklen)
+{
+	return ref_count_mask_data_changed(node, masklen, 0);
+}
+
+int ref_count_mask_data_changed(struct ofp_rtl_node *node,
+				uint8_t masklen, uint16_t port)
+{
+	return (node->ref == 1 &&
+		node->masklen == masklen &&
+		node->data[0].port == port);
+}
+
+void add_rules(void)
+{
+	add_rule(0, 0, 0);
+	add_rule(1, 1, 1);
+	add_rule(2, 1, 1);
+	add_rule(1, 2, 1);
+}
+
+void add_rule(uint16_t vrf, uint32_t masklen, uint16_t port)
+{
+	struct ofp_nh_entry data = { 0 };
+
+	data.port = port;
+	ofp_rt_rule_add(vrf, 0, masklen, &data);
+}
+
+char print_buffer[256];
+int print_index;
+static void rule_printer(int fd, uint32_t key, int level,
+			 struct ofp_nh_entry *data)
+{
+	(void)key;
+	print_index += snprintf(&print_buffer[print_index],
+				sizeof(print_buffer) - print_index,
+				"[%d,%d,%u]", fd, level, data->port);
+}
+
+const char *print_rule(uint16_t vrf)
+{
+	print_index = 0;
+	ofp_rt_rule_print(vrf, vrf, rule_printer);
+	print_buffer[print_index] = '\0';
+	return print_buffer;
+}
+
+void remove_rule(uint16_t vrf, uint32_t masklen)
+{
+	ofp_rt_rule_remove(vrf, 0, masklen);
 }

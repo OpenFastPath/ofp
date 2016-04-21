@@ -145,13 +145,26 @@ int ofp_rtl6_init(struct ofp_rtl6_tree *tree)
 }
 
 
-static int16_t ofp_rt_rule_search(uint16_t vrf, uint32_t addr, uint32_t masklen) {
+static int16_t ofp_rt_rule_search(uint16_t vrf, uint32_t addr, uint32_t masklen)
+{
 	uint32_t index;
+
 	for (index = 0; index < ROUTE_LIST_SIZE; index++)
 		if (shm->rules[index].used &&
-				shm->rules[index].vrf == vrf &&
-				shm->rules[index].addr == addr &&
-				shm->rules[index].masklen == masklen)
+		    shm->rules[index].vrf == vrf &&
+		    shm->rules[index].addr == addr &&
+		    shm->rules[index].masklen == masklen)
+			return index;
+
+	return -1;
+}
+
+static int32_t find_first_unused_rule(void)
+{
+	uint32_t index;
+
+	for (index = 0; index < ROUTE_LIST_SIZE; ++index)
+		if (shm->rules[index].used == 0)
 			return index;
 
 	return -1;
@@ -159,17 +172,10 @@ static int16_t ofp_rt_rule_search(uint16_t vrf, uint32_t addr, uint32_t masklen)
 
 void ofp_rt_rule_add(uint16_t vrf, uint32_t addr, uint32_t masklen, struct ofp_nh_entry *data)
 {
-	uint32_t index;
-	int32_t reserved = -1;
-	if ((reserved = ofp_rt_rule_search(vrf, addr, masklen)) == -1) {
-		for (index = 0; index < ROUTE_LIST_SIZE; index++)
-			if (shm->rules[index].used == 0) {
-				reserved = index;
-				break;
-			}
-	}
+	int32_t reserved;
 
-	if (reserved == -1) {
+	if ((reserved = ofp_rt_rule_search(vrf, addr, masklen)) == -1 &&
+	    (reserved = find_first_unused_rule()) == -1) {
 		OFP_ERR("ofp_rt_rule_search failed");
 		return;
 	}
@@ -193,11 +199,11 @@ void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr, uint32_t masklen)
 	shm->rules[reserved].used = 0;
 }
 
-
 void ofp_rt_rule_print(int fd, uint16_t vrf,
 		       void (*func)(int fd, uint32_t key, int level, struct ofp_nh_entry *data))
 {
 	uint32_t index;
+
 	for (index = 0; index < ROUTE_LIST_SIZE; index++)
 		if (shm->rules[index].used && shm->rules[index].vrf == vrf)
 			func(fd, odp_be_to_cpu_32(shm->rules[index].addr),
