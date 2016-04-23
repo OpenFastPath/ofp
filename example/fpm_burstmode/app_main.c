@@ -160,9 +160,6 @@ int main(int argc, char *argv[])
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &params);
 
-	/* Print both system and application information */
-	print_info(NO_PATH(argv[0]), &params);
-
 	if (odp_init_global(NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
@@ -171,6 +168,9 @@ int main(int argc, char *argv[])
 		OFP_ERR("Error: ODP local init failed.\n");
 		exit(EXIT_FAILURE);
 	}
+
+	/* Print both system and application information */
+	print_info(NO_PATH(argv[0]), &params);
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	memset(pktio_thr_args, 0, sizeof(pktio_thr_args));

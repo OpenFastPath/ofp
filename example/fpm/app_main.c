@@ -111,9 +111,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	/* Print both system and application information */
-	print_info(NO_PATH(argv[0]), &params);
-
 	/*
 	 * Before any ODP API functions can be called, we must first init the ODP
 	 * globals, e.g. availale accelerators or software implementations for
@@ -136,6 +133,9 @@ int main(int argc, char *argv[])
 		odp_term_global();
 		return EXIT_FAILURE;
 	}
+
+	/* Print both system and application information */
+	print_info(NO_PATH(argv[0]), &params);
 
 	/*
 	 * Get the number of cores available to ODP, one run-to-completion thread
