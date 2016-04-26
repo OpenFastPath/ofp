@@ -7,7 +7,7 @@
 #ifndef _OFPI_CONFIG_H_
 #define _OFPI_CONFIG_H_
 
-#include "ofp_config.h"
+#include "api/ofp_config.h"
 
 #define ARP_SANITY_CHECK 1
 
