@@ -327,11 +327,13 @@ ofp_select(int nfds, ofp_fd_set *_readfds, ofp_fd_set *writefds,
 	(void)writefds;
 	(void)exceptfds;
 
+	/*
 	OFP_LIST_FOREACH(sel, readfds, si_list) {
 		struct socket *so = ofp_get_sock_by_fd(sel->si_socket);
 		if (so)
 			so->so_rcv.sb_flags |= SB_SEL;
 	}
+	*/
 
 	if (timeout)
 		period_usec = timeout->tv_sec * US_PER_SEC + timeout->tv_usec;
@@ -348,7 +350,7 @@ ofp_select(int nfds, ofp_fd_set *_readfds, ofp_fd_set *writefds,
 		if (!so)
 			continue;
 
-		so->so_rcv.sb_flags &= ~SB_SEL;
+		/*so->so_rcv.sb_flags &= ~SB_SEL;*/
 
 		if (so->so_options & OFP_SO_ACCEPTCONN) {
 			/* accepting socket */
@@ -381,23 +383,18 @@ OFP_FD_CLR(int fd, ofp_fd_set *_set)
 int
 OFP_FD_ISSET(int fd, ofp_fd_set *_set)
 {
-	struct selinfo *sel;
-	struct ofp_fdset *set = OFP_GET_FD_SET(_set);
+	(void) _set;
 
-	OFP_LIST_FOREACH(sel, set, si_list) {
-		if (sel->si_socket == fd) {
-			struct socket *so = ofp_get_sock_by_fd(fd);
-			if (!so)
-				return 0;
+	struct socket *so = ofp_get_sock_by_fd(fd);
+	if (!so)
+		return 0;
 
-			if (so->so_options & OFP_SO_ACCEPTCONN) {
-				/* accepting socket */
-				return !(OFP_TAILQ_EMPTY(&so->so_comp));
-			} else {
-				/* listening socket */
-				return (so->so_rcv.sb_cc > 0);
-			}
-		}
+	if (so->so_options & OFP_SO_ACCEPTCONN) {
+		/* accepting socket */
+		return !(OFP_TAILQ_EMPTY(&so->so_comp));
+	} else {
+		/* listening socket */
+		return (so->so_rcv.sb_cc > 0);
 	}
 	return 0;
 }
