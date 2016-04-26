@@ -233,7 +233,10 @@ test_init_ifnet(void)
 		fail_with_odp("Out default queue create failed.\n");
 		return;
 	}
-
+#if ODP_VERSION >= 107
+	ifnet->out_queue_num = 1;
+	ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
+#endif /* ODP_VERSION > 107*/
 	sprintf(str, "interface queue:%d", port);
 	interface_queue[port] =
 			ofp_queue_create(str, ODP_QUEUE_TYPE_PLAIN, NULL);

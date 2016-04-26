@@ -131,6 +131,10 @@ static void init_ifnet(void)
 		fail_with_odp("Out default queue create failed.\n");
 		return;
 	}
+#if ODP_VERSION >= 107
+	dev->out_queue_num = 1;
+	dev->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
+#endif /* ODP_VERSION > 107*/
 
 	/* port 0 vlan 1 */
 	ofp_config_interface_up_v4(port, vlan + 1, vrf, dev_ip + 1, 24);

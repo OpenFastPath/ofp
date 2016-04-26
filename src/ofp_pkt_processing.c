@@ -499,8 +499,8 @@ enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 {
 	OFP_DBG("Sent packet out %s", dev->if_name);
 
-	if (odp_queue_enq(ofp_get_ifnet(dev->port, 0)->outq_def,
-			odp_packet_to_event(pkt))) {
+	if (ofp_send_pkt_multi(ofp_get_ifnet(dev->port, 0), &pkt, 1,
+			odp_cpu_id()) != 1) {
 		OFP_DBG("odp_queue_enq failed");
 		return OFP_PKT_DROP;
 	}

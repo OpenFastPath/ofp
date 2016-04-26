@@ -323,8 +323,8 @@ drop_pkg:
 			OFP_UPDATE_PACKET_STAT(tx_sp, 1);
 
 			/* Enqueue the packet to fastpath device */
-			if (odp_queue_enq(ifnet->outq_def,
-					odp_packet_to_event(pkt)) < 0) {
+			if (ofp_send_pkt_multi(ifnet, &pkt, 1,
+					odp_cpu_id()) != 1) {
 				odp_packet_free(pkt);
 				OFP_ERR("odp_queue_enq failed");
 				continue;

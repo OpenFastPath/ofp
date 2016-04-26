@@ -20,14 +20,14 @@ static __thread struct burst_send {
 
 
 static inline enum ofp_return_code
-send_table(uint16_t port, odp_packet_t *pkt_tbl, uint32_t *pkt_tbl_cnt)
+send_table(struct ofp_ifnet *ifnet, odp_packet_t *pkt_tbl,
+		uint32_t *pkt_tbl_cnt)
 {
 	int pkts_sent;
 	enum ofp_return_code ret = OFP_PKT_PROCESSED;
 
-	pkts_sent = odp_pktio_send(ofp_port_pktio_get(port),
-			pkt_tbl,
-			*pkt_tbl_cnt);
+	pkts_sent = ofp_send_pkt_multi(ifnet, pkt_tbl, *pkt_tbl_cnt,
+			odp_cpu_id());
 
 	if (pkts_sent < 0)
 		pkts_sent = 0;
@@ -60,13 +60,10 @@ enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
 
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
 
-	if ((*pkt_tbl_cnt) == OFP_PKT_TX_BURST_SIZE) {
-		enum ofp_return_code ret = send_table(dev->port,
+	if ((*pkt_tbl_cnt) == OFP_PKT_TX_BURST_SIZE)
+		return send_table(ofp_get_ifnet(dev->port, 0),
 				pkt_tbl,
 				pkt_tbl_cnt);
-		if (ret != OFP_PKT_PROCESSED)
-			return ret;
-	}
 
 	return OFP_PKT_PROCESSED;
 }
@@ -87,7 +84,8 @@ enum ofp_return_code ofp_send_pending_pkt_burst(void)
 
 		pkt_tbl = (odp_packet_t *)send_pkt_tbl[i].pkt_tbl;
 
-		ret_send = send_table(i, pkt_tbl, pkt_tbl_cnt);
+		ret_send = send_table(ofp_get_ifnet(i, 0), pkt_tbl,
+			pkt_tbl_cnt);
 		if (ret_send != OFP_PKT_PROCESSED)
 			ret = ret_send;
 	}

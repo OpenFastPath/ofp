@@ -41,4 +41,39 @@ enum ofp_return_code ipv6_transport_classifier(odp_packet_t pkt,
 int ofp_send_pkt_burst_out_init_local(void);
 int ofp_send_pkt_burst_out_term_local(void);
 
+
+static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
+			odp_packet_t *pkt_tbl, uint32_t pkt_tbl_cnt,
+			int core_id)
+{
+#if ODP_VERSION < 107
+	uint32_t i;
+	odp_event_t ev_tbl[OFP_PKT_TX_BURST_SIZE];
+
+	(void)core_id;
+	for (i = 0; i < pkt_tbl_cnt; i++)
+		ev_tbl[i] = odp_packet_to_event(pkt_tbl[i]);
+
+	return odp_queue_enq_multi(ifnet->outq_def, ev_tbl, pkt_tbl_cnt);
+#else
+	int out_idx;
+
+	out_idx = core_id % ifnet->out_queue_num;
+
+	if (ifnet->out_queue_type == OFP_OUT_QUEUE_TYPE_PKTOUT) {
+		return odp_pktio_send_queue(ifnet->out_queue_pktout[out_idx],
+			pkt_tbl, pkt_tbl_cnt);
+	} else {
+		uint32_t i;
+		odp_event_t ev_tbl[OFP_PKT_TX_BURST_SIZE];
+
+		for (i = 0; i < pkt_tbl_cnt; i++)
+			ev_tbl[i] = odp_packet_to_event(pkt_tbl[i]);
+
+		return odp_queue_enq_multi(ifnet->out_queue_queue[out_idx],
+			ev_tbl, pkt_tbl_cnt);
+	}
+#endif /*ODP_VERSION < 107*/
+}
+
 #endif /* _OFPI_APP_H */
