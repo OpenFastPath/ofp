@@ -262,7 +262,8 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 #endif /*SP*/
 
 int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
-	odp_pktin_queue_param_t *pktin_param)
+	odp_pktin_queue_param_t *pktin_param,
+	odp_pktout_queue_param_t *pktout_param)
 {
 	int port = ofp_free_port_alloc();
 	struct ofp_ifnet *ifnet = ofp_get_ifnet((uint16_t)port, 0);
@@ -270,7 +271,6 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 #if ODP_VERSION >= 107
 	odp_pktin_queue_param_t pktin_param_local;
 	odp_pktout_queue_param_t pktout_param_local;
-	odp_pktout_queue_param_t *pktout_param;
 #endif /* ODP_VERSION >= 107 */
 
 	if (ifnet == NULL) {
@@ -310,10 +310,19 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 	HANDLE_ERROR(ofp_pktin_queue_config(ifnet, pktin_param));
 #endif
 
-	ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
+#if ODP_VERSION == 107
+	if (pktout_param)
+		ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_PKTOUT;
+	else
+		ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
+#endif /* ODP_VERSION = 107 */
+
 #if ODP_VERSION >= 107
-	pktout_param = &pktout_param_local;
-	ofp_pktout_queue_param_init(pktout_param);
+	if (!pktout_param) {
+		pktout_param = &pktout_param_local;
+		ofp_pktout_queue_param_init(pktout_param);
+	}
+
 	HANDLE_ERROR(ofp_pktout_queue_config(ifnet, pktout_param));
 #endif /*ODP_VERSION >= 107*/
 
@@ -337,19 +346,6 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 	ofp_mac_to_link_local(ifnet->mac, ifnet->link_local);
 #endif /* INET6 */
 
-	/* Start VIF slowpath receiver thread */
-	ofp_linux_pthread_create(ifnet->rx_tbl,
-				 &cpumask,
-				 sp_rx_thread,
-				 ifnet,
-				 ODP_THREAD_CONTROL);
-
-	/* Start VIF slowpath transmitter thread */
-	ofp_linux_pthread_create(ifnet->tx_tbl,
-				 &cpumask,
-				 sp_tx_thread,
-				 ifnet,
-				 ODP_THREAD_CONTROL);
 #endif /* SP */
 	/* Start packet receiver or transmitter */
 	if (odp_pktio_start(ifnet->pktio) != 0) {
@@ -358,8 +354,10 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 	}
 
 #if ODP_VERSION < 107
+	ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
 	ifnet->out_queue_num = 1;
 	HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
+	(void)pktout_param;
 #else
 	if (ifnet->out_queue_type == OFP_OUT_QUEUE_TYPE_PKTOUT) {
 		ifnet->out_queue_num = pktout_param->num_queues;
@@ -379,6 +377,22 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 		}
 	}
 #endif /* ODP_VERSION < 107 */
+
+#ifdef SP
+		/* Start VIF slowpath receiver thread */
+	ofp_linux_pthread_create(ifnet->rx_tbl,
+				 &cpumask,
+				 sp_rx_thread,
+				 ifnet,
+				 ODP_THREAD_CONTROL);
+
+	/* Start VIF slowpath transmitter thread */
+	ofp_linux_pthread_create(ifnet->tx_tbl,
+				 &cpumask,
+				 sp_tx_thread,
+				 ifnet,
+				 ODP_THREAD_CONTROL);
+#endif /* SP */
 
 	return 0;
 }
