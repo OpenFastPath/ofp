@@ -17,7 +17,7 @@ popd
 rm -Rf ./odp-dpdk/
 git clone https://git.linaro.org/lng/odp-dpdk.git
 pushd odp-dpdk
-git checkout fdc4c0b40f0b4c856524e86d38a7ffefbb8cd8e5
+git checkout 8556e01cd7c5e8f9399260c677175a5872b59da8
 popd
 
 # Clone/build DPDK
