@@ -164,7 +164,17 @@ struct ofp_ifnet {
 
 	char		if_name[OFP_IFNAMSIZ];
 	odp_pktio_t	pktio;
+
+	unsigned	out_queue_num;
+#define OFP_OUT_QUEUE_TYPE_PKTOUT 0
+#define OFP_OUT_QUEUE_TYPE_QUEUE 1
+	uint8_t		out_queue_type;
+#if ODP_VERSION < 107
 	odp_queue_t	outq_def;
+#else
+	odp_pktout_queue_t out_queue_pktout[OFP_PKTOUT_QUEUE_MAX];
+	odp_queue_t out_queue_queue[OFP_PKTOUT_QUEUE_MAX];
+#endif /*ODP_VERSION < 107*/
 
 #if ODP_VERSION < 107
 	odp_queue_t	inq_def;

@@ -247,7 +247,7 @@ int ofp_init_local(void)
 int ofp_term_global(void)
 {
 	int rc = 0;
-	uint16_t i;
+	uint16_t i, j;
 	struct ofp_ifnet *ifnet;
 
 	ofp_stop_processing();
@@ -311,7 +311,13 @@ int ofp_term_global(void)
 			ifnet->spq_def = ODP_QUEUE_INVALID;
 		}
 #endif /*SP*/
+#if ODP_VERSION < 107
 		ifnet->outq_def = ODP_QUEUE_INVALID;
+		(void)j;
+#else
+		for (j = 0; j < OFP_PKTOUT_QUEUE_MAX; j++)
+			ifnet->out_queue_queue[j] = ODP_QUEUE_INVALID;
+#endif /* ODP_VERSION < 107 */
 
 		if (ifnet->pktio != ODP_PKTIO_INVALID) {
 #if ODP_VERSION < 107

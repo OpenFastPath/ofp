@@ -110,4 +110,8 @@ static inline void odp_pktio_param_init(odp_pktio_param_t *param)
 #define odp_pktin_queue_param_t void
 #endif /* ODP_VERSION < 107 */
 
+#if ODP_VERSION >= 107
+#define outq_def out_queue_queue[0]
+#endif /* ODP_VERSION >= 107 */
+
 #endif

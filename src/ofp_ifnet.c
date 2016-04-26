@@ -115,6 +115,14 @@ static int ofp_pktio_inq_def_set(struct ofp_ifnet *ifnet, int pktin_mode)
 #endif /*ODP_VERSION >= 107*/
 
 #if ODP_VERSION >= 107
+static void ofp_pktout_queue_param_init(odp_pktout_queue_param_t *param)
+{
+	odp_pktout_queue_param_init(param);
+
+	param->op_mode = ODP_PKTIO_OP_MT;
+	param->num_queues = 1;
+}
+
 static int ofp_pktout_queue_config(struct ofp_ifnet *ifnet,
 	odp_pktout_queue_param_t *pktout_param)
 {
@@ -131,8 +139,7 @@ static int ofp_pktout_queue_config(struct ofp_ifnet *ifnet,
 
 	return 0;
 }
-#endif /*ODP_VERSION >= 107*/
-
+#else
 static int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
 {
 	ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
@@ -149,6 +156,7 @@ static int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
 
 	return 0;
 }
+#endif /*ODP_VERSION >= 107*/
 
 /* Create loop queue */
 int ofp_loopq_create(struct ofp_ifnet *ifnet)
@@ -261,6 +269,8 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 	odp_pktio_param_t pktio_param_local;
 #if ODP_VERSION >= 107
 	odp_pktin_queue_param_t pktin_param_local;
+	odp_pktout_queue_param_t pktout_param_local;
+	odp_pktout_queue_param_t *pktout_param;
 #endif /* ODP_VERSION >= 107 */
 
 	if (ifnet == NULL) {
@@ -286,6 +296,7 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 	}
 
 	HANDLE_ERROR(ofp_pktio_open(ifnet, pktio_param));
+
 #if ODP_VERSION < 107
 	HANDLE_ERROR(ofp_pktio_inq_def_set(ifnet, pktio_param->in_mode));
 	(void)pktin_param;
@@ -298,7 +309,14 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 
 	HANDLE_ERROR(ofp_pktin_queue_config(ifnet, pktin_param));
 #endif
-	HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
+
+	ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
+#if ODP_VERSION >= 107
+	pktout_param = &pktout_param_local;
+	ofp_pktout_queue_param_init(pktout_param);
+	HANDLE_ERROR(ofp_pktout_queue_config(ifnet, pktout_param));
+#endif /*ODP_VERSION >= 107*/
+
 	HANDLE_ERROR(ofp_loopq_create(ifnet));
 
 	HANDLE_ERROR(ofp_mac_set(ifnet));
@@ -338,6 +356,29 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 		OFP_ERR("Failed to start pktio.");
 		return -1;
 	}
+
+#if ODP_VERSION < 107
+	ifnet->out_queue_num = 1;
+	HANDLE_ERROR(ofp_pktio_outq_def_set(ifnet));
+#else
+	if (ifnet->out_queue_type == OFP_OUT_QUEUE_TYPE_PKTOUT) {
+		ifnet->out_queue_num = pktout_param->num_queues;
+		if (odp_pktout_queue(ifnet->pktio,
+			ifnet->out_queue_pktout,
+			pktout_param->num_queues) <
+				(int)pktout_param->num_queues) {
+			OFP_ERR("Failed to get output queues.");
+			return -1;
+		}
+	} else {
+		ifnet->out_queue_num = 1;
+		ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
+		if (ifnet->outq_def == ODP_QUEUE_INVALID) {
+			OFP_ERR("odp_pktio_outq_getdef failed");
+			return -1;
+		}
+	}
+#endif /* ODP_VERSION < 107 */
 
 	return 0;
 }

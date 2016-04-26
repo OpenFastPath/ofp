@@ -1324,7 +1324,7 @@ int ofp_portconf_lookup_shared_memory(void)
 
 int ofp_portconf_init_global(void)
 {
-	int i;
+	int i, j;
 
 	HANDLE_ERROR(ofp_portconf_alloc_shared_memory());
 
@@ -1332,7 +1332,14 @@ int ofp_portconf_init_global(void)
 	for (i = 0; i < NUM_PORTS; i++) {
 		shm->ofp_ifnet_data[i].if_state = OFP_IFT_STATE_FREE;
 		shm->ofp_ifnet_data[i].pktio = ODP_PKTIO_INVALID;
+#if ODP_VERSION < 107
 		shm->ofp_ifnet_data[i].outq_def = ODP_QUEUE_INVALID;
+		(void)j;
+#else
+		for (j = 0; j < OFP_PKTOUT_QUEUE_MAX; j++)
+			shm->ofp_ifnet_data[i].out_queue_queue[j] =
+				ODP_QUEUE_INVALID;
+#endif /* ODP_VERSION < 107 */
 #if ODP_VERSION < 107
 		shm->ofp_ifnet_data[i].inq_def = ODP_QUEUE_INVALID;
 #endif /* ODP_VERSION < 107 */
