@@ -114,6 +114,25 @@ static int ofp_pktio_inq_def_set(struct ofp_ifnet *ifnet, int pktin_mode)
 }
 #endif /*ODP_VERSION >= 107*/
 
+#if ODP_VERSION >= 107
+static int ofp_pktout_queue_config(struct ofp_ifnet *ifnet,
+	odp_pktout_queue_param_t *pktout_param)
+{
+	if (OFP_PKTOUT_QUEUE_MAX < pktout_param->num_queues) {
+		OFP_ERR("Number of output queues too big. Max: %d",
+			OFP_PKTOUT_QUEUE_MAX);
+		return -1;
+	}
+
+	if (odp_pktout_queue_config(ifnet->pktio, pktout_param) < 0) {
+		OFP_ERR("Failed to create output queues.");
+		return -1;
+	}
+
+	return 0;
+}
+#endif /*ODP_VERSION >= 107*/
+
 static int ofp_pktio_outq_def_set(struct ofp_ifnet *ifnet)
 {
 	ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);

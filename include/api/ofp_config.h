@@ -80,6 +80,10 @@
    * OFP interface*/
 #define OFP_PKTIN_QUEUE_MAX 64
 
+/**Maximum number of output queues that can be configured for an
+ * OFP interface*/
+#define OFP_PKTOUT_QUEUE_MAX 64
+
 /**Maximum number of packets received at once in direct mode in
  * example applications - default value.*/
 #define OFP_PKT_RX_BURST_SIZE 16
