@@ -365,6 +365,9 @@ test_packet_output_gre(void)
 	res = ofp_ip_output(pkt, NULL);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
+	res = ofp_send_pending_pkt();
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
 	ev = odp_queue_deq(dev->outq_def);
 	CU_ASSERT_NOT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
 
@@ -415,6 +418,9 @@ test_packet_output_gre_no_nexthop(void)
 	res = ofp_ip_output(pkt, NULL);
 	CU_ASSERT_EQUAL(res, OFP_PKT_DROP);
 
+	res = ofp_send_pending_pkt();
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
 	ev = odp_queue_deq(dev->outq_def);
 	CU_ASSERT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
 }
@@ -448,6 +454,9 @@ test_packet_output_ipv6_to_gre(void)
 			      0 /*gw*/, OFP_RTF_NET /* flags */);
 
 	res = ofp_ip6_output(pkt, NULL);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	res = ofp_send_pending_pkt();
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	ev = odp_queue_deq(dev->outq_def);

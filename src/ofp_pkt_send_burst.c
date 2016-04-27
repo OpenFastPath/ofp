@@ -50,7 +50,7 @@ send_table(struct ofp_ifnet *ifnet, odp_packet_t *pkt_tbl,
 	return ret;
 }
 
-enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
+enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 	odp_packet_t pkt)
 {
 	uint32_t *pkt_tbl_cnt = &send_pkt_tbl[dev->port].pkt_tbl_cnt;
@@ -68,8 +68,10 @@ enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
 	return OFP_PKT_PROCESSED;
 }
 
-enum ofp_return_code ofp_send_pending_pkt_burst(void)
+
+enum ofp_return_code ofp_send_pending_pkt(void)
 {
+#if OFP_PKT_TX_BURST_SIZE > 1
 	uint32_t i;
 	uint32_t *pkt_tbl_cnt;
 	odp_packet_t *pkt_tbl;
@@ -91,9 +93,12 @@ enum ofp_return_code ofp_send_pending_pkt_burst(void)
 	}
 
 	return ret;
+#else
+	return OFP_PKT_PROCESSED;
+#endif /* OFP_PKT_TX_BURST_SIZE > 1 */
 }
 
-int ofp_send_pkt_burst_out_init_local(void)
+int ofp_send_pkt_out_init_local(void)
 {
 	uint32_t i, j;
 
@@ -106,7 +111,7 @@ int ofp_send_pkt_burst_out_init_local(void)
 	return 0;
 }
 
-int ofp_send_pkt_burst_out_term_local(void)
+int ofp_send_pkt_out_term_local(void)
 {
 	uint32_t i, j;
 

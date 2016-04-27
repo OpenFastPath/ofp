@@ -228,6 +228,8 @@ static void test_packet_size_is_less_then_mtu(void)
 
 	res = ofp_ip_output(pkt_orig, &nexthop);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+	res = ofp_send_pending_pkt();
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	ev = odp_queue_deq(dev->outq_def);
 	CU_ASSERT_NOT_EQUAL_FATAL(ev, ODP_EVENT_INVALID);
@@ -292,6 +294,9 @@ static void test_packet_to_two_fragments(void)
 	}
 
 	res = ofp_ip_output(pkt_orig, &nexthop);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	res = ofp_send_pending_pkt();
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	/* ASSERT 1st fragment */
@@ -376,6 +381,9 @@ static void test_packet_to_many_fragments(void)
 	}
 
 	res = ofp_ip_output(pkt_orig, &nexthop);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	res = ofp_send_pending_pkt();
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	/* ASSERT 1st fragment */
@@ -524,6 +532,9 @@ static void test_fragment_fragmented_to_two(void)
 	}
 
 	res = ofp_ip_output(pkt_orig, &nexthop);
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	res = ofp_send_pending_pkt();
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	/* ASSERT 1st fragment */

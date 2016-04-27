@@ -83,9 +83,7 @@ static void *pkt_io_recv(void *arg)
 			ofp_packet_input(pkt, ODP_QUEUE_INVALID, pkt_func);
 		}
 
-#ifdef OFP_SEND_PKT_BURST
-		ofp_send_pending_pkt_burst();
-#endif /*OFP_SEND_PKT_BURST*/
+		ofp_send_pending_pkt();
 	}
 
 	/* Never reached */

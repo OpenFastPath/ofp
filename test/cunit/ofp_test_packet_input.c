@@ -524,6 +524,9 @@ test_ofp_packet_input_send_arp(void)
 	res = ofp_packet_input(pkt, interface_queue[port],
 		ofp_eth_vlan_processing);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	res = ofp_send_pending_pkt();
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 	odp_packet_free(pkt);
 
 	CU_ASSERT_NOT_EQUAL_FATAL(ev = odp_queue_deq(ifnet->outq_def),
@@ -574,6 +577,10 @@ test_ofp_packet_input_forwarding_to_output(void)
 	res = ofp_packet_input(pkt, interface_queue[port],
 		ofp_eth_vlan_processing);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	res = ofp_send_pending_pkt();
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
 	CU_ASSERT_NOT_EQUAL_FATAL(ev = odp_queue_deq(ifnet->outq_def),
 			    ODP_EVENT_INVALID);
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
@@ -649,6 +656,9 @@ test_ofp_packet_input_gre_processed_inner_pkt_forwarded(void)
 	res = ofp_packet_input(pkt, interface_queue[port],
 				 ofp_eth_vlan_processing);
 
+	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
+
+	res = ofp_send_pending_pkt();
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	CU_ASSERT_NOT_EQUAL_FATAL(ev = odp_queue_deq(ifnet->outq_def),

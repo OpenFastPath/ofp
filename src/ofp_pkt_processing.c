@@ -127,9 +127,7 @@ void *default_event_dispatcher(void *arg)
 			}
 
 		}
-#ifdef OFP_SEND_PKT_BURST
-		ofp_send_pending_pkt_burst();
-#endif /*OFP_SEND_PKT_BURST*/
+		ofp_send_pending_pkt();
 	}
 
 	if (ofp_term_local())
@@ -492,26 +490,6 @@ enum ofp_return_code ofp_gre_processing(odp_packet_t pkt)
 	return ofp_inetsw[ofp_ip_protox_gre].pr_input(pkt, ip->ip_hl << 2);
 }
 
-extern void print_ipv4(FILE *f, char *p);
-
-enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
-	odp_packet_t pkt)
-{
-	OFP_DBG("Sent packet out %s", dev->if_name);
-
-	if (ofp_send_pkt_multi(ofp_get_ifnet(dev->port, 0), &pkt, 1,
-			odp_cpu_id()) != 1) {
-		OFP_DBG("odp_queue_enq failed");
-		return OFP_PKT_DROP;
-	}
-
-	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
-
-	OFP_UPDATE_PACKET_STAT(tx_fp, 1);
-
-	return OFP_PKT_PROCESSED;
-}
-
 enum ofp_return_code send_pkt_loop(struct ofp_ifnet *dev,
 	odp_packet_t pkt)
 {
@@ -706,6 +684,7 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 	struct ofp_ether_header *eth, eth_tmp;
 	struct ofp_ether_vlan_header *eth_vlan, eth_vlan_tmp;
 	uint32_t pkt_len, eth_hdr_len;
+	enum ofp_return_code rc;
 
 	if (dev->port == GRE_PORTS) {
 		OFP_ERR("Send frame on GRE port");
@@ -769,7 +748,11 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 		return OFP_PKT_DROP;
 	}
 
-	return send_pkt_out(dev, pkt);
+	rc = send_pkt_out(dev, pkt);
+	if (rc != OFP_PKT_PROCESSED)
+		return rc;
+
+	return ofp_send_pending_pkt();
 }
 
 static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
@@ -1059,11 +1042,7 @@ static enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
 	if (odata->is_local_address) {
 		return send_pkt_loop(odata->dev_out, pkt);
 	} else {
-#ifdef OFP_SEND_PKT_BURST
-		return send_pkt_burst_out(odata->dev_out, pkt);
-#else
 		return send_pkt_out(odata->dev_out, pkt);
-#endif
 	}
 }
 
@@ -1402,11 +1381,7 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 	if (is_local_address) {
 		return send_pkt_loop(dev_out, pkt);
 	} else {
-#ifdef OFP_SEND_PKT_BURST
-		return send_pkt_burst_out(dev_out, pkt);
-#else
 		return send_pkt_out(dev_out, pkt);
-#endif
 	}
 }
 #endif /* INET6 */

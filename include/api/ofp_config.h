@@ -20,10 +20,6 @@
 /**Enable PERFORMANCE measurements mode. Some validations are skipped.*/
 /* #define OFP_PERFORMANCE */
 
-/**Enable burst send of packets.*/
-#ifdef OFP_PERFORMANCE
-/* #define OFP_SEND_PKT_BURST */
-#endif
 
 /**Enable static socket configuration mode.
  * It is meant to be used with application where the socket
@@ -92,8 +88,8 @@
  * in default_event_dispatcher().*/
 #define OFP_EVT_RX_BURST_SIZE 16
 
-/**Number of packets sent at once in burst mode (>= 1)   */
-#define OFP_PKT_TX_BURST_SIZE 16
+/**Number of packets sent at once (>= 1)   */
+#define OFP_PKT_TX_BURST_SIZE 1
 
 #ifdef MTRIE
 /**Controls memory size for IPv4 MTRIE 16/8/8 data structure.

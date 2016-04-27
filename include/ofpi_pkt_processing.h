@@ -26,8 +26,6 @@ struct ip_out {
 	uint8_t is_local_address;
 };
 
-enum ofp_return_code send_pkt_burst_out(struct ofp_ifnet *dev,
-			odp_packet_t pkt);
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 			odp_packet_t pkt);
 enum ofp_return_code send_pkt_loop(struct ofp_ifnet *dev,
@@ -38,8 +36,8 @@ enum ofp_return_code ipv4_transport_classifier(odp_packet_t pkt,
 enum ofp_return_code ipv6_transport_classifier(odp_packet_t pkt,
 			uint8_t ip6_nxt);
 
-int ofp_send_pkt_burst_out_init_local(void);
-int ofp_send_pkt_burst_out_term_local(void);
+int ofp_send_pkt_out_init_local(void);
+int ofp_send_pkt_out_term_local(void);
 
 
 static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,

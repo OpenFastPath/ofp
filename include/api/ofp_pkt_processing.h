@@ -11,6 +11,7 @@
 #include <odp.h>
 #include "ofp_types.h"
 #include "ofp_init.h"
+#include "ofp_config.h"
 
 typedef enum ofp_return_code (*ofp_pkt_processing_func)(odp_packet_t pkt);
 
@@ -30,7 +31,7 @@ enum ofp_return_code ofp_udp4_processing(odp_packet_t pkt);
 enum ofp_return_code ofp_tcp4_processing(odp_packet_t pkt);
 
 enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt);
-enum ofp_return_code ofp_send_pending_pkt_burst(void);
+enum ofp_return_code ofp_send_pending_pkt(void);
 
 enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	struct ofp_nh_entry *nh_param);
