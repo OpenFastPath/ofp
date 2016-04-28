@@ -243,8 +243,6 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 			   unsigned char *laddr, int vrf)
 {
 	if (if_entry->ifa_family == AF_INET)	{
-		OFP_DBG("ADD ADDR addr=%x bcast=%x laddr=%x vrf=%d",
-			*((uint32_t *)addr), *((uint32_t *)bcast), *((uint32_t *)laddr), vrf);
 		if (dev->port == GRE_PORTS) {
 			dev->ip_p2p = *((uint32_t *)addr);
 			dev->ip_addr = *((uint32_t *)laddr);
