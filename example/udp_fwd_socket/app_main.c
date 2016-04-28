@@ -137,14 +137,17 @@ int main(int argc, char *argv[])
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &params);
 
-	/* Print both system and application information */
-	print_info(NO_PATH(argv[0]), &params);
-
 	if (odp_init_global(NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	odp_init_local(ODP_THREAD_CONTROL);
+	if (odp_init_local(ODP_THREAD_CONTROL)) {
+		OFP_ERR("Error: ODP local init failed.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	/* Print both system and application information */
+	print_info(NO_PATH(argv[0]), &params);
 
 	memset(&app_init_params, 0, sizeof(app_init_params));
 	app_init_params.linux_core_id = 0;
