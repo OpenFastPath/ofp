@@ -21,11 +21,11 @@ struct ofp_tcp_var_mem {
 	VNET_DEFINE(OFP_TAILQ_HEAD(, tcptw), twq_2msl);
 
 /* Target size of TCP PCB hash tables. Must be a power of two.*/
-#define TCBHASHSIZE			512
+#define TCBHASHSIZE			1024
 	struct inpcbhead	ofp_hashtbl[TCBHASHSIZE];
 	struct inpcbporthead	ofp_porthashtbl[TCBHASHSIZE];
 
-#define TCP_SYNCACHE_HASHSIZE		512
+#define TCP_SYNCACHE_HASHSIZE		1024
 	struct syncache_head	syncache[TCP_SYNCACHE_HASHSIZE];
 
 	VNET_DEFINE(uma_zone_t, tcp_reass_zone);

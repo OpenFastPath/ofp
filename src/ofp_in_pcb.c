@@ -1363,7 +1363,7 @@ in_pcblookup_hash_locked(struct inpcbinfo *pcbinfo, struct ofp_in_addr faddr,
 	OFP_LIST_FOREACH(inp, head, inp_hash) {
 #ifdef INET6
 		/* XXX inp locking */
-		if ((inp->inp_vflag & INP_IPV4) == 0)
+		if (odp_unlikely((inp->inp_vflag & INP_IPV4) == 0))
 			continue;
 #endif
 		if (inp->inp_faddr.s_addr == faddr.s_addr &&
