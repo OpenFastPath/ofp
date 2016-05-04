@@ -211,21 +211,38 @@ void ofp_rt_rule_print(int fd, uint16_t vrf,
 			     &shm->rules[index].data[0]);
 }
 
-int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t masklen, uint8_t low) {
+static inline uint32_t
+shift_least_significant_bits(uint32_t addr, uint32_t masklen)
+{
+	return (addr >> (IPV4_LENGTH - masklen));
+}
+
+static inline int
+equal_most_significant_bits(uint32_t addr_lhs, uint32_t addr_rhs, uint32_t masklen)
+{
+	return shift_least_significant_bits(addr_lhs, masklen) ==
+	       shift_least_significant_bits(addr_rhs, masklen);
+}
+
+int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t masklen, uint8_t low)
+{
 	uint32_t index;
 	uint8_t low_int = low + 1;
 	int32_t reserved = -1;
+	struct ofp_rt_rule *rule;
+
 	for (index = 0; index < ROUTE_LIST_SIZE; index++) {
-		if (shm->rules[index].vrf == vrf &&
-			shm->rules[index].masklen >= low_int &&
-			masklen >= shm->rules[index].masklen &&
-			shm->rules[index].addr >> (IPV4_LENGTH - shm->rules[index].masklen) ==
-			addr >> (IPV4_LENGTH - shm->rules[index].masklen))
+		rule = &shm->rules[index];
+
+		if (rule->vrf == vrf &&
+		    rule->masklen >= low_int &&
+		    rule->masklen <= masklen &&
+		    equal_most_significant_bits(rule->addr, addr, masklen))
 		{
 		/* search route rule with prefix_len in the same interval,
-		 * largest prefix_len that is smaller or equal than what we removed,
-		 * same route ipv4 address prefix */
-			low_int = shm->rules[index].masklen;
+		 * largest prefix_len that is smaller or equal than what we
+		 * removed, same route ipv4 address prefix */
+			low_int = rule->masklen;
 			reserved = index;
 		}
 	}
@@ -252,12 +269,6 @@ static inline void dec_use_reference(struct ofp_rtl_node *node)
 static inline uint32_t to_network_prefix(uint32_t addr_be, uint32_t masklen)
 {
 	return (odp_be_to_cpu_32(addr_be)) & ((~0) << (32 - masklen));
-}
-
-static inline uint32_t
-shift_least_significant_bits(uint32_t addr, uint32_t masklen)
-{
-	return (addr >> (IPV4_LENGTH - masklen));
 }
 
 static inline uint32_t
@@ -329,31 +340,40 @@ ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 	return NULL;
 }
 
-struct ofp_nh_entry *
-ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
+static inline struct ofp_nh_entry *
+find_data(uint16_t vrf, uint32_t addr_be, uint32_t masklen)
 {
-	struct ofp_rtl_node *elem, *node = tree->root;
-	uint32_t addr = to_network_prefix(addr_be, masklen);
-	struct ofp_nh_entry *data;
-	uint32_t low = 0, high = IPV4_FIRST_LEVEL;
-	int32_t reserved = ofp_rt_rule_search(tree->vrf, addr_be, masklen);
-	int32_t insert = -1;
+	int32_t reserved = ofp_rt_rule_search(vrf, addr_be, masklen);
 
 	if (reserved == -1)
 		return NULL;
 
-	data = &shm->rules[reserved].data[0];
+	return &shm->rules[reserved].data[0];
+}
+
+struct ofp_nh_entry *
+ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
+{
+	struct ofp_rtl_node *elem, *node = tree->root;
+	const uint32_t addr = to_network_prefix(addr_be, masklen);
+	struct ofp_nh_entry *data = find_data(tree->vrf, addr_be, masklen);
+	uint32_t low = 0, high = IPV4_FIRST_LEVEL;
+	int32_t insert = -1;
+
+	if (!data)
+		return NULL;
 
 	for (; high <= IPV4_LENGTH ; low = high, high += IPV4_LEVEL) {
 		dec_use_reference(node);
+
 		if (masklen <= high) {
 			uint32_t index = ip_range_begin(addr, masklen, low, high);
 			uint32_t index_end = ip_range_end(addr, masklen, low, high);
 
 			for (; index < index_end; index++) {
 				if (node[index].masklen == masklen &&
-					!memcmp(&node[index].data, data,
-						sizeof(struct ofp_nh_entry))) {
+				    !memcmp(&node[index].data, data,
+					    sizeof(struct ofp_nh_entry))) {
 					if (node[index].next == NULL)
 						node[index].masklen = 0;
 					else
@@ -367,17 +387,17 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 
 		elem = find_node(node, addr, low, high);
 
-		if (elem->masklen != 0 /*&& elem->next != NULL*/) {
-			node = elem->next;
-			if (get_use_reference(node) == 1 && elem->masklen > high) {
-			/* next level will be freed so we update prefix_len to 0,
-			 * if there is no leaf stored on the current elem */
-				elem->masklen = 0;
-				elem->next = NULL;
-			}
-		} else
+		if (elem->masklen == 0)
 			return NULL;
 
+		node = elem->next;
+
+		if (get_use_reference(node) == 1 && elem->masklen > high) {
+			/* next level will be freed so we update prefix_len to 0,
+			 * if there is no leaf stored on the current elem */
+			elem->masklen = 0;
+			elem->next = NULL;
+		}
 	}
 	odp_mb_release();
 
