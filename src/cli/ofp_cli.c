@@ -1707,7 +1707,6 @@ int ofp_start_cli_thread(int core_id, char *conf_file)
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
 		OFP_ERR("Error: Failed to retrieve global configuration.");
-		ofp_global_cfg->cli_thread_is_running = 0;
 		return -1;
 	}
 	if (ofp_global_cfg->cli_thread_is_running) {
@@ -1738,7 +1737,6 @@ int ofp_stop_cli_thread(void)
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
 		OFP_ERR("Error: Failed to retrieve global configuration.");
-		ofp_global_cfg->cli_thread_is_running = 0;
 		return -1;
 	}
 
