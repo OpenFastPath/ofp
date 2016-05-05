@@ -115,9 +115,9 @@ static int handle_ipv4v6_route(struct nlmsghdr *nlp, int vrf)
 #ifdef NETLINK_DEBUG
 		OFP_DBG(" -- rta_type=%d data=%p len=%ld\n",
 			rtap->rta_type, RTA_DATA(rtap), RTA_PAYLOAD(rtap));
-		ofp_print_hex(OFP_LOG_DBG, RTA_DATA(rtap),
+		ofp_print_hex(OFP_LOG_DEBUG, RTA_DATA(rtap),
 			RTA_PAYLOAD(rtap));
-		OFP_LOG_NO_CTX(OFP_LOG_DBG, "\n");
+		OFP_LOG_NO_CTX(OFP_LOG_DEBUG, "\n");
 #endif
 		switch (rtap->rta_type) {
 			/* destination IPv4 address */
@@ -377,9 +377,9 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 #ifdef NETLINK_DEBUG
 		OFP_DBG(" -- rta_type=%d data=%p len=%ld\n", rtap->rta_type,
 			RTA_DATA(rtap), RTA_PAYLOAD(rtap));
-		ofp_print_hex(OFP_LOG_DBG,
+		ofp_print_hex(OFP_LOG_DEBUG,
 			RTA_DATA(rtap), RTA_PAYLOAD(rtap));
-		OFP_LOG_NO_CTX(OFP_LOG_DBG, "\n");
+		OFP_LOG_NO_CTX(OFP_LOG_DEBUG, "\n");
 #endif
 		switch (rtap->rta_type) {
 		case IFA_LABEL:
@@ -625,9 +625,9 @@ static void _parse_ifla_link_info(struct rtattr *rt, int rl,
 #ifdef NETLINK_DEBUG
 		OFP_DBG(" -- rta_type=%d data=%p len=%ld\n", rtap->rta_type,
 			  RTA_DATA(rtap), RTA_PAYLOAD(rtap));
-		ofp_print_hex(OFP_LOG_DBG, RTA_DATA(rtap),
+		ofp_print_hex(OFP_LOG_DEBUG, RTA_DATA(rtap),
 				RTA_PAYLOAD(rtap));
-		OFP_LOG_NO_CTX(OFP_LOG_DBG, "\n");
+		OFP_LOG_NO_CTX(OFP_LOG_DEBUG, "\n");
 #endif
 		if (gre) {
 			switch (rtap->rta_type) {
@@ -702,9 +702,9 @@ static int handle_ifinfo(struct nlmsghdr *nlh, int vrf)
 #ifdef NETLINK_DEBUG
 		OFP_DBG(" -- rta_type=%d data=%p len=%ld\n", rtap->rta_type,
 			  RTA_DATA(rtap), RTA_PAYLOAD(rtap));
-		ofp_print_hex(OFP_LOG_DBG, RTA_DATA(rtap),
+		ofp_print_hex(OFP_LOG_DEBUG, RTA_DATA(rtap),
 				RTA_PAYLOAD(rtap));
-		OFP_LOG_NO_CTX(OFP_LOG_DBG, "\n");
+		OFP_LOG_NO_CTX(OFP_LOG_DEBUG, "\n");
 #endif
 		switch (rtap->rta_type) {
 		case IFLA_MTU:
