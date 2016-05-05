@@ -55,6 +55,42 @@ int send_tcp4_any(int fd)
 	return _send_tcp4(fd, OFP_INADDR_ANY, 1);
 }
 
+/* Send two tcp buffers with a timeout between. */
+int send_tcp4_msg_waitall(int fd)
+{
+	struct ofp_sockaddr_in addr = {0};
+
+	addr.sin_len = sizeof(struct ofp_sockaddr_in);
+	addr.sin_family = OFP_AF_INET;
+	addr.sin_port = odp_cpu_to_be_16(TEST_PORT + 1);
+	addr.sin_addr.s_addr = OFP_INADDR_ANY;
+
+	if (ofp_connect(fd, (struct ofp_sockaddr *)&addr,
+			sizeof(addr)) == -1) {
+		OFP_ERR("Faild to connect (errno = %d)\n", ofp_errno);
+		return -1;
+	}
+
+	sleep(1); /* ToFix: connect is not blocking*/
+
+	if (ofp_send(fd, tcp_buf, strlen(tcp_buf), 0) == -1) {
+		OFP_ERR("Faild to send (errno = %d)\n", ofp_errno);
+		return -1;
+	}
+
+	sleep(1);
+
+	if (ofp_send(fd, tcp_buf, strlen(tcp_buf), 0) == -1) {
+		OFP_ERR("Faild to send (errno = %d)\n", ofp_errno);
+		return -1;
+	}
+
+
+	OFP_INFO("SUCCESS.\n");
+	return 0;
+}
+
+
 #ifdef INET6
 int send_tcp6_local_ip(int fd)
 {
@@ -139,13 +175,15 @@ static int _receive_tcp(int fd, uint32_t cycles)
 		buf[len] = 0;
 
 		if ((size_t)len != strlen(tcp_buf) + 1) {
-			OFP_ERR("FAILED : length received is wrong:[%d]\n", len);
+			OFP_ERR("FAILED : length received is wrong:[%d]\n",
+				len);
 			ofp_close(fd_accepted);
 			return -1;
 		}
 
 		if (strcmp(buf, tcp_buf) != 0) {
-			OFP_ERR("FAILED : data received is malformed:[%s]\n", buf);
+			OFP_ERR("FAILED : data received is malformed:[%s]\n",
+				buf);
 			ofp_close(fd_accepted);
 			return -1;
 		}
@@ -170,4 +208,77 @@ int receive_tcp(int fd)
 int receive_multi_tcp(int fd)
 {
 	return _receive_tcp(fd, TCP_CYCLES);
+}
+
+/* verify OFP_MSG_WAITALL works for ofp_recv. */
+int receive_tcp4_msg_waitall(int fd)
+{
+	char buf[1024];
+	size_t recv_size;
+	int len, len2;
+	int fd_accepted = -1;
+
+	recv_size = strlen(tcp_buf);
+
+	fd_accepted = ofp_accept(fd, NULL, NULL);
+
+	if (fd_accepted == -1) {
+		OFP_ERR("FAILED to accept connection (errno = %d)\n",
+			ofp_errno);
+		return -1;
+	}
+
+	memset(buf, 0, sizeof(buf));
+#define SOME_DATA_LEN 5
+	/* receive more than a tcp buffer but less than two. */
+	len = ofp_recv(fd_accepted, buf, 2 * recv_size - SOME_DATA_LEN,
+			OFP_MSG_WAITALL);
+	if (len == -1) {
+		OFP_ERR("FAILED to recv (errno = %d)\n",
+			ofp_errno);
+		ofp_close(fd_accepted);
+		return -1;
+	}
+
+#define EXTRA_FREE_SPACE 128
+	/* receive what remains from the second tcp buffer. */
+	len2 = ofp_recv(fd_accepted, buf + 2 * recv_size - SOME_DATA_LEN,
+			SOME_DATA_LEN + EXTRA_FREE_SPACE, 0);
+	if (len2 == -1) {
+		OFP_ERR("FAILED to recv (errno = %d)\n",
+			ofp_errno);
+		ofp_close(fd_accepted);
+		return -1;
+	}
+
+	/* Total length should be ok. */
+	if ((size_t)len + len2 != strlen(tcp_buf) * 2) {
+		OFP_ERR("FAILED : length received is wrong:[%d]\n", len + len2);
+		ofp_close(fd_accepted);
+		return -1;
+	}
+
+	/* First tcp buffer data is received. */
+	if (strncmp(buf, tcp_buf, strlen(tcp_buf)) != 0) {
+		OFP_ERR("FAILED : data received is malformed:[%s]\n", buf);
+		ofp_close(fd_accepted);
+		return -1;
+	}
+
+	/* Second tcp buffer data is received. */
+	if (strcmp(buf +  strlen(tcp_buf), tcp_buf) != 0) {
+		OFP_ERR("FAILED : data received is malformed:[%s]\n", buf
+			+ strlen(tcp_buf));
+		ofp_close(fd_accepted);
+		return -1;
+	}
+
+	if (ofp_close(fd_accepted) == -1) {
+		OFP_ERR("FAILED to close accepted socket (errno = %d)\n",
+			ofp_errno);
+		return -1;
+	}
+
+	OFP_INFO("SUCCESS.\n");
+	return 0;
 }

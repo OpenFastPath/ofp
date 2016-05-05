@@ -1709,8 +1709,9 @@ dontblock:
 			SBLASTMBUFCHK(&so->so_rcv);
 			SOCKBUF_UNLOCK(&so->so_rcv);
 
-			if (!odp_packet_copydata_out(m, moff, len,
-						uio->uio_iov->iov_base + uio_off)) {
+			if (!odp_packet_copydata_out(m, moff, len, (void*)
+					((uintptr_t)uio->uio_iov->iov_base +
+						 uio_off))) {
 				uio_off += len;
 				uio->uio_resid -= len;
 			}
@@ -1856,7 +1857,7 @@ dontblock:
 					goto release;
 				}
 			}
-			m = ofp_sockbuf_remove_first(&so->so_rcv);
+			m = ofp_sockbuf_get_first(&so->so_rcv);
 		}
 	}
 

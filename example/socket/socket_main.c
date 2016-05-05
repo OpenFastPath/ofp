@@ -397,6 +397,20 @@ int main(int argc, char *argv[])
 	end_suite();
 	OFP_INFO("Test ended.\n");
 
+	OFP_INFO("\n\nSuite: IPv4 TCP socket any IP: multi send + recv.\n\n");
+	if (!init_suite(init_tcp_bind_listen_any))
+		run_suite(send_multi_tcp4_any, receive_multi_tcp);
+	end_suite();
+	OFP_INFO("Test ended.\n");
+
+	OFP_INFO("\n\nSuite: IPv4 TCP socket any IP: 2 * send \
+			+ recv(OFP_MSG_WAITALL).\n\n");
+	if (!init_suite(init_tcp_bind_listen_any))
+		run_suite(send_tcp4_msg_waitall, receive_tcp4_msg_waitall);
+	end_suite();
+	OFP_INFO("Test ended.\n");
+
+
 #ifdef INET6
 	OFP_INFO("\n\nSuite: IPv6 TCP socket local IP: send + recv.\n\n");
 	if (!init_suite(init_tcp6_bind_listen_local_ip))

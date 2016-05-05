@@ -11,6 +11,7 @@
 int send_tcp4_local_ip(int fd);
 int send_tcp4_any(int fd);
 int send_multi_tcp4_any(int fd);
+int send_tcp4_msg_waitall(int fd);
 
 #ifdef INET6
 int send_tcp6_local_ip(int fd);
@@ -19,6 +20,7 @@ int send_tcp6_any(int fd);
 
 int receive_tcp(int fd);
 int receive_multi_tcp(int fd);
+int receive_tcp4_msg_waitall(int fd);
 
 #endif /* __SOCKET_SEND_RECV_TCP_H__ */
 
