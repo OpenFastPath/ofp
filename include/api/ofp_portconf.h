@@ -29,6 +29,10 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 					  int vni, uint32_t group,
 					  int port, int vlan);
+const char *ofp_config_interface_up_local(uint16_t id, uint16_t vrf,
+					  uint32_t addr, int masklen);
+const char *ofp_config_interface_up_local_v6(uint16_t id,
+					     uint8_t *addr, int masklen);
 const char *ofp_config_interface_down(int port, uint16_t vlan);
 
 /* Interfaces: SHOW */

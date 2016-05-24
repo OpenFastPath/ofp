@@ -299,6 +299,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	if (odp_unlikely(!PHYS_PORT(dev->port))) {
 		switch (dev->port) {
 		case GRE_PORTS:
+		case LOCAL_PORTS:
 			/* Doesn't happen. */
 			break;
 		case VXLAN_PORTS: {

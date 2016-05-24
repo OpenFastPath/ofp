@@ -266,7 +266,7 @@ int ofp_term_global(void)
 #endif /* SP */
 
 	/* Cleanup interfaces: queues and pktios*/
-	for (i = 0; i < VXLAN_PORTS; i++) {
+	for (i = 0; PHYS_PORT(i); i++) {
 		ifnet = ofp_get_ifnet((uint16_t)i, 0);
 		if (!ifnet) {
 			OFP_ERR("Failed to locate interface for port %d", i);

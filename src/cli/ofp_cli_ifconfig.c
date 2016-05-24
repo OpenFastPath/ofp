@@ -38,7 +38,7 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 
 	ofp_sendf(conn->fd, "Create interface:\r\n"
 		"  ifconfig [-A inet4] DEV IP4NET\r\n"
-		"    DEV: ethernet interface name\r\n"
+		"    DEV: ethernet interface name or local interface(lo0, lo1,...)\r\n"
 		"    IP4NET: network address in a.b.c.d/e format\r\n"
 		"  Example:\r\n"
 		"    ifconfig %s0 192.168.200.1/24\r\n\r\n",
@@ -46,7 +46,7 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 
 	ofp_sendf(conn->fd, "Create interface on virtual route table:\r\n"
 		"  ifconfig [-A inet4] DEV IP4NET vrf VRF\r\n"
-		"    DEV: ethernet interface name\r\n"
+		"    DEV: ethernet interface name or local interface(lo0, lo1,...)\r\n"
 		"    IP4NET: network address in a.b.c.d/e format\r\n"
 		"    VRF: number\r\n"
 		"  Example:\r\n"
@@ -80,11 +80,11 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 		"    DEV_PHYS: interface name of the physical device\r\n"
 		"    IP4NET: network address in a.b.c.d/e format\r\n"
 		"  Example:\r\n"
-		"    ifconfig vxlan %s42 group 239.1.1.1 dev fp0 10.10.10.1/24\r\n",
+		"    ifconfig vxlan %s42 group 239.1.1.1 dev fp0 10.10.10.1/24\r\n"
 		"    (vni = 42)\r\n\r\n",
 		OFP_VXLAN_IFNAME_PREFIX);
 #ifdef INET6
-	ofp_sendf(conn->fd, "Create IPv6 interface:\r\n"
+	ofp_sendf(conn->fd, "Create IPv6 interface or add IPv6 address to local interface:\r\n"
 		"  ifconfig -A inet6 DEV IP6NET\r\n"
 		"    DEV: ethernet interface name\r\n"
 		"    IP6NET: network address in a:b:c:d:e:f:g:h/n or"
@@ -126,8 +126,12 @@ void f_ifconfig(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	err = ofp_config_interface_up_v4(port, vlan, vrf,
-		addr, m);
+	if (PHYS_PORT(port))
+		err = ofp_config_interface_up_v4(port, vlan, vrf,
+						 addr, m);
+	else
+		err = ofp_config_interface_up_local(vlan, vrf,
+						    addr, m);
 	if (err != NULL)
 		ofp_sendf(conn->fd, err);
 	sendcrlf(conn);
@@ -263,7 +267,10 @@ void f_ifconfig_v6(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	err = ofp_config_interface_up_v6(port, vlan, addr6, prefix);
+	if (port == LOCAL_PORTS)
+		err = ofp_config_interface_up_local_v6(vlan, addr6, prefix);
+	else
+		err = ofp_config_interface_up_v6(port, vlan, addr6, prefix);
 	if (err != NULL)
 		ofp_sendf(conn->fd, err);
 	sendcrlf(conn);

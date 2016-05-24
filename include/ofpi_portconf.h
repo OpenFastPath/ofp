@@ -20,7 +20,7 @@
 #include "ofpi_queue.h"
 #include "ofpi_odp_compat.h"
 
-#define NUM_PORTS (OFP_FP_INTERFACE_MAX + 2)
+#define NUM_PORTS (OFP_FP_INTERFACE_MAX + 3)
 
 /* GRE ports are the last port assigned in the port vector.
  * Ports start from 0, and the last value is NUM_PORTS - 1.
@@ -31,10 +31,12 @@
  * Ports start from 0, and the last value is NUM_PORTS - 1.
  */
 #define VXLAN_PORTS (NUM_PORTS - 2)
-#define PHYS_PORT(_port) (_port < VXLAN_PORTS)
+#define LOCAL_PORTS (NUM_PORTS - 3)
+#define PHYS_PORT(_port) (_port < OFP_FP_INTERFACE_MAX)
 #define OFP_IFNAME_PREFIX "fp"
 #define OFP_GRE_IFNAME_PREFIX "gre"
 #define OFP_VXLAN_IFNAME_PREFIX "vxlan"
+#define OFP_LOCAL_IFNAME_PREFIX "lo"
 
 OFP_TAILQ_HEAD(ofp_ifmultihead, ofp_ifmultiaddr);
 
