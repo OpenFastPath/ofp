@@ -219,9 +219,16 @@ void ofp_accept_unlock(void)
 	odp_rwlock_write_unlock(&shm->ofp_accept_mtx);
 }
 
+static void *(*shm_allocator)(const char *name, uint64_t size) = ofp_shared_memory_alloc;
+
+void ofp_socket_set_allocator(void *(*allocator)(const char *name, uint64_t size))
+{
+        shm_allocator = allocator ? allocator : ofp_shared_memory_alloc;
+}
+
 static int ofp_socket_alloc_shared_memory(void)
 {
-	shm = ofp_shared_memory_alloc(SHM_NAME_SOCKET, sizeof(*shm));
+	shm = shm_allocator(SHM_NAME_SOCKET, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;

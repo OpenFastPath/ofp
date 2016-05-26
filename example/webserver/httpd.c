@@ -131,9 +131,18 @@ static int analyze_http(char *http, int s) {
 	return 0;
 }
 
+static void monitor_connections(ofp_fd_set *fd_set)
+{
+	int i;
+
+	for (i = 0; i < NUM_CONNECTIONS; ++i)
+	        if (connections[i].fd)
+	                OFP_FD_SET(connections[i].fd, fd_set);
+}
+
 static void *webserver(void *arg)
 {
-	int serv_fd, tmp_fd;
+	int serv_fd, tmp_fd, nfds;
 	unsigned int alen;
 	struct ofp_sockaddr_in my_addr, caller;
 	ofp_fd_set read_fd;
@@ -174,7 +183,7 @@ static void *webserver(void *arg)
 
 	ofp_listen(serv_fd, 10);
 	OFP_FD_ZERO(&read_fd);
-	OFP_FD_SET(serv_fd, &read_fd);
+	nfds = serv_fd;
 
 	for ( ; ; )
 	{
@@ -185,7 +194,9 @@ static void *webserver(void *arg)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 200000;
 
-		r = ofp_select(32, &read_fd, NULL, NULL, &timeout);
+		OFP_FD_SET(serv_fd, &read_fd);
+		monitor_connections(&read_fd);
+		r = ofp_select(nfds + 1, &read_fd, NULL, NULL, &timeout);
 		if (r <= 0)
 			continue;
 
@@ -231,7 +242,8 @@ static void *webserver(void *arg)
 				connections[i].addr = caller.sin_addr.s_addr;
 				connections[i].closed = FALSE;
 
-				OFP_FD_SET(tmp_fd, &read_fd);
+				if (tmp_fd > nfds)
+				        nfds = tmp_fd;
 			}
 		}
 

@@ -634,7 +634,7 @@ void ofp_print_rt_stat(int fd)
 			  shm->nodes_allocated6, shm->max_nodes_allocated6, NUM_NODES_6);
 }
 
-void *(*shm_allocator)(const char *name, uint64_t size) = ofp_shared_memory_alloc;
+static void *(*shm_allocator)(const char *name, uint64_t size) = ofp_shared_memory_alloc;
 
 void ofp_rt_set_allocator(void *(*allocator)(const char *name, uint64_t size))
 {

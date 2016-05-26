@@ -31,6 +31,7 @@
 #include "ofpi_ioctl.h"
 #include "ofpi_route.h"
 #include "api/ofp_types.h"
+#include "ofpi_syscalls.h"
 
 int
 ofp_socket(int domain, int type, int protocol)
@@ -315,111 +316,121 @@ ofp_accept(int sockfd, struct ofp_sockaddr *addr, ofp_socklen_t *addrlen)
 }
 
 int
-ofp_select(int nfds, ofp_fd_set *_readfds, ofp_fd_set *writefds,
-	     ofp_fd_set *exceptfds, struct ofp_timeval *timeout)
+ofp_select(int nfds, ofp_fd_set *readfds, ofp_fd_set *writefds,
+	   ofp_fd_set *exceptfds, struct ofp_timeval *timeout)
 {
-	struct selinfo *sel;
-	int ret = 0;
-	struct ofp_fdset *readfds = OFP_GET_FD_SET(_readfds);
-	uint32_t period_usec = 0;
-
-	(void)nfds;
-	(void)writefds;
-	(void)exceptfds;
-
-	/*
-	OFP_LIST_FOREACH(sel, readfds, si_list) {
-		struct socket *so = ofp_get_sock_by_fd(sel->si_socket);
-		if (so)
-			so->so_rcv.sb_flags |= SB_SEL;
-	}
-	*/
-
-	if (timeout)
-		period_usec = timeout->tv_sec * US_PER_SEC + timeout->tv_usec;
-
-	/* Call ofp_msleep if one of two cases:
-	 * timeout == NULL -> infinite timeout, no timer started in ofp_msleep
-	 * timeout_val > 0 -> sleep some time value > 0
-         */
-	if (!timeout || period_usec)
-		ofp_msleep((void *)readfds, NULL, 0, "select", period_usec);
-
-	OFP_LIST_FOREACH(sel, readfds, si_list) {
-		struct socket *so = ofp_get_sock_by_fd(sel->si_socket);
-		if (!so)
-			continue;
-
-		/*so->so_rcv.sb_flags &= ~SB_SEL;*/
-
-		if (so->so_options & OFP_SO_ACCEPTCONN) {
-			/* accepting socket */
-			if (!(OFP_TAILQ_EMPTY(&so->so_comp)))
-				ret++;
-		} else {
-			/* listening socket */
-			if (so->so_rcv.sb_cc > 0)
-				ret++;
-		}
-	}
-
-	return ret;
+	return _ofp_select(nfds, readfds, writefds, exceptfds, timeout, ofp_msleep);
 }
 
-void
-OFP_FD_CLR(int fd, ofp_fd_set *_set)
+static inline uint32_t
+to_usec(struct ofp_timeval *timeout)
 {
-	struct selinfo *sel;
-	struct ofp_fdset *set = OFP_GET_FD_SET(_set);
-
-	OFP_LIST_FOREACH(sel, set, si_list) {
-		if (sel->si_socket == fd) {
-			OFP_LIST_REMOVE(sel, si_list);
-			return;
-		}
-	}
+	return timeout ? timeout->tv_sec * US_PER_SEC + timeout->tv_usec : 0;
 }
 
-int
-OFP_FD_ISSET(int fd, ofp_fd_set *_set)
+static inline int
+is_accepting_socket(struct socket *so)
 {
-	(void) _set;
+	return (so->so_options & OFP_SO_ACCEPTCONN);
+}
 
+static inline int
+is_accepting_socket_readable(struct socket *so)
+{
+	return !(OFP_TAILQ_EMPTY(&so->so_comp));
+}
+
+static inline int
+is_listening_socket_readable(struct socket *so)
+{
+	return (so->so_rcv.sb_cc > 0);
+}
+
+static int
+is_readable(int fd)
+{
 	struct socket *so = ofp_get_sock_by_fd(fd);
-	if (!so)
-		return 0;
 
-	if (so->so_options & OFP_SO_ACCEPTCONN) {
-		/* accepting socket */
-		return !(OFP_TAILQ_EMPTY(&so->so_comp));
-	} else {
-		/* listening socket */
-		return (so->so_rcv.sb_cc > 0);
-	}
+	if (is_accepting_socket(so))
+		return is_accepting_socket_readable(so);
+
+	return is_listening_socket_readable(so);
+}
+
+static int
+set_ready_fd(int fd, ofp_fd_set *fd_set, int(*is_ready)(int fd))
+{
+	if (OFP_FD_ISSET(fd, fd_set) && is_ready(fd))
+		return 1;
+
+	OFP_FD_CLR(fd, fd_set);
 	return 0;
 }
 
-void
-OFP_FD_SET(int fd, ofp_fd_set *_set)
+static int
+set_ready_fds(int nfds, ofp_fd_set *fd_set, int (*is_ready)(int fd))
 {
-	struct selinfo *sel;
-	struct ofp_fdset *set = OFP_GET_FD_SET(_set);
-	struct socket *so = ofp_get_sock_by_fd(fd);
-	if (!so)
-		return;
+	int fd;
+	int ready = 0;
 
-	sel = &so->so_rcv.sb_sel;
-	sel->si_socket = fd;
-	sel->si_wakeup_channel = set;
-	OFP_LIST_INSERT_HEAD(set, sel, si_list);
+	for (fd = OFP_SOCK_NUM_OFFSET; fd < nfds && fd_set; ++fd )
+		ready += set_ready_fd(fd, fd_set, is_ready);
+
+	return ready;
+}
+
+static int
+none_of_ready(int nfds, ofp_fd_set *fd_set, int (*is_ready)(int fd))
+{
+	int fd;
+
+	for (fd = OFP_SOCK_NUM_OFFSET; fd < nfds && fd_set; ++fd)
+		if (OFP_FD_ISSET(fd, fd_set) && is_ready(fd))
+			return 0;
+
+	return 1;
+}
+
+int
+_ofp_select(int nfds, ofp_fd_set *readfds, ofp_fd_set *writefds,
+	    ofp_fd_set *exceptfds, struct ofp_timeval *timeout,
+	    int (*sleeper)(void *channel, odp_rwlock_t *mtx, int priority,
+			   const char *wmesg, uint32_t timeout))
+{
+	(void)writefds;
+	(void)exceptfds;
+
+	if (none_of_ready(nfds, readfds, is_readable))
+		sleeper(NULL, NULL, 0, "select", to_usec(timeout));
+
+	return set_ready_fds(nfds, readfds, is_readable);
 }
 
 void
-OFP_FD_ZERO(ofp_fd_set *_set)
+OFP_FD_CLR(int fd, ofp_fd_set *set)
 {
-	struct ofp_fdset *set = OFP_GET_FD_SET(_set);
+	if (set)
+		set->fd_set_buf[fd - OFP_SOCK_NUM_OFFSET] = 0;
+}
 
-	OFP_LIST_INIT(set);
+int
+OFP_FD_ISSET(int fd, ofp_fd_set *set)
+{
+	return set ? set->fd_set_buf[fd - OFP_SOCK_NUM_OFFSET] : 0;
+}
+
+void
+OFP_FD_SET(int fd, ofp_fd_set *set)
+{
+	if (set)
+		set->fd_set_buf[fd - OFP_SOCK_NUM_OFFSET] = 1;
+}
+
+void
+OFP_FD_ZERO(ofp_fd_set *set)
+{
+	if (set)
+		memset(set->fd_set_buf, 0, sizeof(set->fd_set_buf));
 }
 
 void *ofp_udp_packet_parse(odp_packet_t pkt, int *length,

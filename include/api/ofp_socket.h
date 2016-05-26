@@ -37,6 +37,7 @@
 
 #include "odp.h"
 #include "ofp_socket_types.h"
+#include "ofp_config.h"
 
 /*
  * Definitions related to sockets: types, address families, options.
@@ -430,12 +431,8 @@ struct ofp_timeval {
 	uint32_t tv_usec;    /* microseconds */
 };
 
-struct selinfo;
-struct ofp_fdset;
-#define OFP_FD_SET_MEM_SIZE sizeof(void*)
-
 typedef struct {
-	uint8_t fd_set_buf[OFP_FD_SET_MEM_SIZE];
+	uint8_t fd_set_buf[OFP_NUM_SOCKETS_MAX];
 } ofp_fd_set;
 
 void OFP_FD_CLR(int fd, ofp_fd_set *set);
