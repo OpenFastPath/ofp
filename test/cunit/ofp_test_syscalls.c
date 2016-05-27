@@ -123,6 +123,22 @@ static void test_select_as_portable_sleep(void)
 	CU_ASSERT_EQUAL(sleeper_timeout, 1 * US_PER_SEC + 1)
 }
 
+static void test_select_returns_immediately(void)
+{
+#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
+	setup_with_shm();
+#endif
+
+	struct ofp_timeval timeout = { 0, 0 };
+
+	CU_ASSERT_EQUAL(_ofp_select(0, NULL, NULL, NULL, &timeout, sleeper_spy), 0);
+	CU_ASSERT_FALSE(sleeper_called);
+
+#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
+	teardown_with_shm();
+#endif
+}
+
 static int select_readfds(int nfds, ofp_fd_set *readfds);
 static void test_select_times_out(void)
 {
@@ -284,6 +300,8 @@ int main(void)
 	CU_TestInfo select[] = {
 		{ const_cast("Select as portable way to sleep"),
 		  test_select_as_portable_sleep },
+		{ const_cast("Select will return immediately with zero timeout"),
+		  test_select_returns_immediately },
 		{ const_cast("Fd set is cleared when select times out"),
 		  test_select_times_out },
 		{ const_cast("Select leaves the fd in set when accepting socket is readable"),

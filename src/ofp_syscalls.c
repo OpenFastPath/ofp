@@ -373,7 +373,7 @@ set_ready_fds(int nfds, ofp_fd_set *fd_set, int (*is_ready)(int fd))
 	int fd;
 	int ready = 0;
 
-	for (fd = OFP_SOCK_NUM_OFFSET; fd < nfds && fd_set; ++fd )
+	for (fd = OFP_SOCK_NUM_OFFSET; fd < nfds && fd_set; ++fd)
 		ready += set_ready_fd(fd, fd_set, is_ready);
 
 	return ready;
@@ -391,6 +391,12 @@ none_of_ready(int nfds, ofp_fd_set *fd_set, int (*is_ready)(int fd))
 	return 1;
 }
 
+static inline int
+is_blocking(struct ofp_timeval *timeout)
+{
+	return (timeout == NULL || to_usec(timeout) > 0);
+}
+
 int
 _ofp_select(int nfds, ofp_fd_set *readfds, ofp_fd_set *writefds,
 	    ofp_fd_set *exceptfds, struct ofp_timeval *timeout,
@@ -400,7 +406,7 @@ _ofp_select(int nfds, ofp_fd_set *readfds, ofp_fd_set *writefds,
 	(void)writefds;
 	(void)exceptfds;
 
-	if (none_of_ready(nfds, readfds, is_readable))
+	if (is_blocking(timeout) && none_of_ready(nfds, readfds, is_readable))
 		sleeper(NULL, NULL, 0, "select", to_usec(timeout));
 
 	return set_ready_fds(nfds, readfds, is_readable);
