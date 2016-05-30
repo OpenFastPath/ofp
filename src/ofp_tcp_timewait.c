@@ -74,6 +74,9 @@ static void	tcp_tw_2msl_stop(struct tcptw *);
 static int
 tcptw_auto_size(void)
 {
+#ifdef OFP_TCP_MAX_CONNECTION_RATE
+	return OFP_NUM_PCB_TCP_MAX;
+#else
 	int halfrange;
 
 	/*
@@ -86,6 +89,7 @@ tcptw_auto_size(void)
 		halfrange = (V_ipport_firstauto - V_ipport_lastauto) / 2;
 	/* Protect against goofy port ranges smaller than 32. */
 	return (imin(imax(halfrange, 32), OFP_NUM_PCB_TCP_MAX / 5));
+#endif /* OFP_TCP_MAX_CONNECTION_RATE*/
 }
 
 static int
