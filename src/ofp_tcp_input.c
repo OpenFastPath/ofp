@@ -2912,9 +2912,6 @@ dodata:							/* XXX */
 	 * Return any desired output.
 	 */
 	if (needoutput || (tp->t_flags & TF_ACKNOW)) {
-		/* HJo: FIX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxxx*/
-		tp->t_flags |= TF_ACKNOW;
-		/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 		if (no_unlock) {
 			//OFP_INFO("no_unlock set; but calling ofp_tcp_output?");
 		}
