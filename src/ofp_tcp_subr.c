@@ -285,7 +285,7 @@ ofp_tcp_init(void)
 	 * These have to be type stable for the benefit of the timers.
 	 */
 	V_tcpcb_zone = uma_zcreate(
-		"tcpcb", OFP_NUM_SOCKETS_MAX, sizeof(struct tcpcb_mem),
+		"tcpcb", OFP_NUM_PCB_TCP_MAX, sizeof(struct tcpcb_mem),
 		NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
 	uma_zone_set_max(V_tcpcb_zone, maxsockets);
 

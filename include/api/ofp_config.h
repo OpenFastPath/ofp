@@ -68,6 +68,9 @@
 /**First socket number value. */
 #define OFP_SOCK_NUM_OFFSET 1024
 
+/**Maximum number of TCP PCBs. */
+#define OFP_NUM_PCB_TCP_MAX 2048
+
 /**Maximum number of fastpath interfaces used.
  * For each fastpath interface a PKTIO in opened by OFP.*/
 #define OFP_FP_INTERFACE_MAX 8

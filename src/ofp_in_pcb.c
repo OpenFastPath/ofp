@@ -107,6 +107,8 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
     const char *inpcbzone_name, uma_init inpcbzone_init, uma_fini inpcbzone_fini,
     uint32_t inpcbzone_flags, uint32_t hashfields)
 {
+	int pcb_size = OFP_NUM_SOCKETS_MAX;
+
 	/* make compiler happy */
 	(void)name;
 	(void)inpcbzone_name;
@@ -129,6 +131,7 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
 		pcbinfo->ipi_porthashbase = shm_tcp->ofp_porthashtbl;
 		ofp_tcp_hashinit(porthash_nelements, &pcbinfo->ipi_hashmask,
                         pcbinfo->ipi_porthashbase);
+		pcb_size = OFP_NUM_PCB_TCP_MAX;
 	} else {
 		pcbinfo->ipi_hashbase = ofp_hashinit(hash_nelements, 0,
 		    &pcbinfo->ipi_hashmask);
@@ -137,7 +140,7 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
 	}
 
 	pcbinfo->ipi_zone = uma_zcreate(
-		inpcbzone_name, OFP_NUM_SOCKETS_MAX, sizeof(struct inpcb),
+		inpcbzone_name, pcb_size, sizeof(struct inpcb),
 		NULL, NULL, inpcbzone_init, inpcbzone_fini, UMA_ALIGN_PTR,
 		inpcbzone_flags);
 	uma_zone_set_max(pcbinfo->ipi_zone, maxsockets);
