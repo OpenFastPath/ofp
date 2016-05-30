@@ -15,6 +15,13 @@
  *
  */
 
+/* OFP Configuration flavors */
+
+#define OFP_CONFIG_DEFAULT 0
+#define OFP_CONFIG_WEBSERVER 1
+
+#define OFP_CONFIG OFP_CONFIG_DEFAULT
+
 /* Enable features */
 
 /**Enable PERFORMANCE measurements mode. Some validations are skipped.*/
@@ -55,7 +62,12 @@
 /* Configure values */
 
 /** Packet pool size. */
-#define SHM_PKT_POOL_SIZE		(512*2048)
+#if OFP_CONFIG == OFP_CONFIG_WEBSERVER
+# define SHM_PKT_POOL_SIZE		(512*2048*16)
+#else /*OFP_CONFIG_DEFAULT*/
+# define SHM_PKT_POOL_SIZE		(512*2048)
+#endif /* OFP_CONFIG */
+
 /** Packet pool buffer size. */
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
 /** Packet pool user area size. */
@@ -63,13 +75,25 @@
 
 /**Socket handle values returned are in the interval:
  * [OFP_SOCK_NUM_OFFSET, OFP_SOCK_NUM_OFFSET + OFP_NUM_SOCKETS_MAX] */
+#if OFP_CONFIG == OFP_CONFIG_WEBSERVER
 /**Maximum number of sockets. */
-#define OFP_NUM_SOCKETS_MAX 1024
+# define OFP_NUM_SOCKETS_MAX 60000
 /**First socket number value. */
-#define OFP_SOCK_NUM_OFFSET 1024
+# define OFP_SOCK_NUM_OFFSET 1024
 
 /**Maximum number of TCP PCBs. */
-#define OFP_NUM_PCB_TCP_MAX 2048
+# define OFP_NUM_PCB_TCP_MAX 60000
+
+# define OFP_TCP_MAX_CONNECTION_RATE
+#else /*OFP_CONFIG_DEFAULT*/
+/**Maximum number of sockets. */
+# define OFP_NUM_SOCKETS_MAX 1024
+/**First socket number value. */
+# define OFP_SOCK_NUM_OFFSET 1024
+
+/**Maximum number of TCP PCBs. */
+# define OFP_NUM_PCB_TCP_MAX 2048
+#endif /* OFP_CONFIG*/
 
 /**Maximum number of fastpath interfaces used.
  * For each fastpath interface a PKTIO in opened by OFP.*/
