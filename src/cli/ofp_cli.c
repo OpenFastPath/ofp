@@ -1573,6 +1573,7 @@ static void *cli_server(void *arg)
 	fd_set read_fd, fds;
 	char *config_file_name;
 	struct ofp_global_config_mem *ofp_global_cfg = NULL;
+	int select_nfds;
 
 	close_cli = 0;
 
@@ -1632,14 +1633,18 @@ static void *cli_server(void *arg)
 		int r;
 
 		fds = read_fd;
+		select_nfds = cli_serv_fd + 1;
 
-		if (cli_tmp_fd > 0)
+		if (cli_tmp_fd > 0) {
 			FD_SET(cli_tmp_fd, &fds);
+			if (cli_tmp_fd > select_nfds - 1)
+				select_nfds = cli_tmp_fd + 1;
+		}
 
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 
-		r = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
+		r = select(select_nfds, &fds, NULL, NULL, &timeout);
 
 		if (close_cli) {
 			if (cli_tmp_fd > 0)
