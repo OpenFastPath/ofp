@@ -95,7 +95,7 @@ enum ofp_return_code ofp_nd6_ns_output(struct ofp_ifnet *dev,
 	iter += sizeof(*ip6hdr);
 
 	ip6hdr->ofp_ip6_flow = 0;
-	ip6hdr->ofp_ip6_vfc = 0x60;
+	ip6hdr->ofp_ip6_vfc = OFP_IPV6_VERSION;
 	ip6hdr->ofp_ip6_plen = odp_cpu_to_be_16(32);
 		/*sizeof(*icmp) + sizeof taddr + 8*/
 
