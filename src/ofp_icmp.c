@@ -287,7 +287,7 @@ stdreply:	icmpelen = max(8, min(V_icmp_quotelen, ip_in->ip_len - ip_hlen));
 	icp->icmp_code = code;
 
 	ip->ip_len = odp_cpu_to_be_16(icmp_len);
-	ip->ip_v = 4;
+	ip->ip_v = OFP_IPVERSION;
 	ip->ip_hl = 5;
 	ip->ip_p = OFP_IPPROTO_ICMP;
 	ip->ip_tos = 0;

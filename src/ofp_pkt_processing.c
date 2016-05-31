@@ -314,7 +314,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	}
 
 #ifndef OFP_PERFORMANCE
-	if (odp_unlikely(ip->ip_v != 4))
+	if (odp_unlikely(ip->ip_v != OFP_IPVERSION))
 		return OFP_PKT_DROP;
 	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
@@ -894,7 +894,7 @@ static enum ofp_return_code ofp_output_ipv4_to_gre(
 	greip->gi_ptype = odp_cpu_to_be_16(OFP_GREPROTO_IP);
 
 	greip->gi_i.ip_hl = 5;
-	greip->gi_i.ip_v = 4;
+	greip->gi_i.ip_v = OFP_IPVERSION;
 	greip->gi_i.ip_tos = ip->ip_tos;
 	greip->gi_i.ip_len =
 		odp_cpu_to_be_16(odp_be_to_cpu_16(ip->ip_len) +
@@ -1229,7 +1229,7 @@ static enum ofp_return_code ofp_output_ipv6_to_gre(
 	greip->gi_ptype = odp_cpu_to_be_16(OFP_ETHERTYPE_IPV6);
 
 	greip->gi_i.ip_hl = 5;
-	greip->gi_i.ip_v = 4;
+	greip->gi_i.ip_v = OFP_IPVERSION;
 	greip->gi_i.ip_tos = 0;
 	greip->gi_i.ip_len = odp_cpu_to_be_16(
 		odp_be_to_cpu_16(ip6->ofp_ip6_plen) +

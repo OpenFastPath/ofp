@@ -1106,7 +1106,7 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 	static uint16_t id = 0;
 
 	ip->ip_hl = 5;
-	ip->ip_v = 4;
+	ip->ip_v = OFP_IPVERSION;
 	ip->ip_tos = tos;
 	ip->ip_len = odp_cpu_to_be_16(len + sizeof(struct ofp_ip) +
 				      sizeof(struct ofp_udphdr));

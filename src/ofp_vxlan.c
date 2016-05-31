@@ -265,7 +265,7 @@ int ofp_vxlan_prepend_hdr(odp_packet_t pkt, struct ofp_ifnet *vxdev,
 	ip_udp_vxlan->udp.uh_sum = 0;
 
 	ip_udp_vxlan->ip.ip_hl = 5;
-	ip_udp_vxlan->ip.ip_v = 4;
+	ip_udp_vxlan->ip.ip_v = OFP_IPVERSION;
 	ip_udp_vxlan->ip.ip_tos = 0;
 	ip_udp_vxlan->ip.ip_len = odp_cpu_to_be_16(
 		size + sizeof(struct ofp_vxlan_udp_ip));
