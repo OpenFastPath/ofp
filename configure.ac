@@ -104,6 +104,7 @@ AC_CONFIG_FILES([
 	example/multicast/Makefile
 	example/udp_fwd_socket/Makefile
 	example/ofp_netwrap_proc/Makefile
+	example/ofp_netwrap_crt/Makefile
 	pkgconfig/libofp.pc
 	test/Makefile
 	test/cunit/Makefile
