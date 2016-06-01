@@ -60,3 +60,33 @@ Management Information Base (MIB) is a hierarchical database that
 describes an application. Object Identifiers (OID) can be used to
 read and write variables. Sysctl example demonstrates how to create
 new nodes and variables and how to read and write them.
+
+ofp_netwrap_proc
+ofp_netwrap_crt
+-------------------------------------------------------------------------------
+The two libraries exemplifies how to run native Linux application on top of
+OFP. Implementation is based on LD_PRELOAD.
+ofp_netwrap_proc - implements ODP/OFP configuration and startup of processing
+threads
+ofp_netwrap_crt - implements symbols overloading (using dlsym()) and arguments
+conversion between native calls and OFP calls. Current implementation
+overloads the following symbols: socket(), close(), shutdown(), bind(), accept(),
+accept4(), listen(), connect(), read(), write(), recv(), send(), getsockopt(),
+setsockopt(), writev(), sendfile64(), select(), ioctl() and fork().
+
+A script is provided in order to make utilization of this feature friendlier.
+
+# ./scripts/ofp_netwrap.sh  YOUR_NATIVE_APPLICATION
+
+Script's default configuration (see OFP_NETWRAP_ENV environment variable):
+ - Interface eth1 is used and 192.168.100.1 is configured.
+ - All cores (except for core 0) are used.
+ - Configuration file ./scripts/ofp_netwrap.conf is used for additional settings
+
+Restrictions:
+ - Application needs to run as supper user
+ - Slow path support needs to be disabled (use --enable-sp=no in configuration line)
+ - Specific socket configuration needs to be activated in include/api/ofp_config.h:
+set OFP_CONFIG to OFP_CONFIG_NETWRAP_WEBSERVER
+e.g.
+#define OFP_CONFIG OFP_CONFIG_NETWRAP_WEBSERVER
