@@ -13,4 +13,6 @@ void *ofp_shared_memory_alloc(const char *name, uint64_t size);
 int ofp_shared_memory_free(const char *name);
 void *ofp_shared_memory_lookup(const char *name);
 
+void ofp_set_custom_allocator(void *(*allocator)(const char *name, uint64_t size));
+
 #endif /*__OFP_SHARED_MEM_H__*/

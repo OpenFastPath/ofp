@@ -12,6 +12,7 @@
 #include "ofpi_rt_lookup.h"
 #include <arpa/inet.h>
 #include <stdint.h>
+#include "ofpi_shared_mem.h"
 
 #if OFP_TESTMODE_AUTO
 #include <CUnit/Automated.h>
@@ -73,14 +74,14 @@ static void *allocator(const char *name, uint64_t size);
 static void setup_with_shm(void)
 {
 	setup();
-	ofp_rt_set_allocator(allocator);
+	ofp_set_custom_allocator(allocator);
 	ofp_rt_lookup_init_global();
 }
 
 static void teardown_with_shm(void)
 {
 	free(shm);
-	ofp_rt_set_allocator(NULL);
+	ofp_set_custom_allocator(NULL);
 }
 
 static struct ofp_nh_entry *insert_route(uint32_t masklen);

@@ -13,6 +13,7 @@
 #include "ofpi_syscalls.h"
 #include "ofpi_socketvar.h"
 #include "ofpi_protosw.h"
+#include "ofpi_shared_mem.h"
 
 #if OFP_TESTMODE_AUTO
 #include <CUnit/Automated.h>
@@ -64,7 +65,7 @@ static int cleanup(void)
 static void *allocator(const char *name, uint64_t size);
 static void setup_with_shm(void)
 {
-	ofp_socket_set_allocator(allocator);
+	ofp_set_custom_allocator(allocator);
 	ofp_socket_init_global(ofp_packet_pool);
 	sleeper_called = 0;
 	sleeper_timeout = 0;
@@ -73,7 +74,7 @@ static void setup_with_shm(void)
 static void teardown_with_shm(void)
 {
 	free(shm);
-	ofp_socket_set_allocator(NULL);
+	ofp_set_custom_allocator(NULL);
 }
 
 static void test_null_fd_set(void)

@@ -15,6 +15,5 @@
 int ofp_socket_lookup_shared_memory(void);
 int ofp_socket_init_global(odp_pool_t);
 int ofp_socket_term_global(void);
-void ofp_socket_set_allocator(void *(*allocator)(const char *name, uint64_t size));
 
 #endif /* __OFPI_SOCKET_H__ */

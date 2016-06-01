@@ -7,7 +7,7 @@
 
 #include "ofpi_shared_mem.h"
 
-void *ofp_shared_memory_alloc(const char *name, uint64_t size)
+static void *allocate_shared_memory(const char *name, uint64_t size)
 {
 	odp_shm_t shm_h;
 	void *shm;
@@ -24,6 +24,14 @@ void *ofp_shared_memory_alloc(const char *name, uint64_t size)
 	}
 
 	return shm;
+}
+
+static void *(*shared_memory_allocator)(const char *name, uint64_t size) =
+	allocate_shared_memory;
+
+void *ofp_shared_memory_alloc(const char *name, uint64_t size)
+{
+	return shared_memory_allocator(name, size);
 }
 
 int ofp_shared_memory_free(const char *name)
@@ -54,4 +62,9 @@ void *ofp_shared_memory_lookup(const char *name)
 	}
 
 	return shm;
+}
+
+void ofp_set_custom_allocator(void *(*allocator)(const char *name, uint64_t size))
+{
+	shared_memory_allocator = allocator ? allocator : allocate_shared_memory;
 }

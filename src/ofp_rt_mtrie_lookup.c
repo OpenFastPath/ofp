@@ -634,16 +634,9 @@ void ofp_print_rt_stat(int fd)
 			  shm->nodes_allocated6, shm->max_nodes_allocated6, NUM_NODES_6);
 }
 
-static void *(*shm_allocator)(const char *name, uint64_t size) = ofp_shared_memory_alloc;
-
-void ofp_rt_set_allocator(void *(*allocator)(const char *name, uint64_t size))
-{
-	shm_allocator = allocator ? allocator : ofp_shared_memory_alloc;
-}
-
 static int ofp_rt_lookup_alloc_shared_memory(void)
 {
-	shm = shm_allocator(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
+	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
