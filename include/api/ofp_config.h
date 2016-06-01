@@ -19,6 +19,7 @@
 
 #define OFP_CONFIG_DEFAULT 0
 #define OFP_CONFIG_WEBSERVER 1
+#define OFP_CONFIG_NETWRAP_WEBSERVER 2
 
 #define OFP_CONFIG OFP_CONFIG_DEFAULT
 
@@ -62,7 +63,8 @@
 /* Configure values */
 
 /** Packet pool size. */
-#if OFP_CONFIG == OFP_CONFIG_WEBSERVER
+#if OFP_CONFIG == OFP_CONFIG_WEBSERVER || \
+	OFP_CONFIG == OFP_CONFIG_NETWRAP_WEBSERVER
 # define SHM_PKT_POOL_SIZE		(512*2048*16)
 #else /*OFP_CONFIG_DEFAULT*/
 # define SHM_PKT_POOL_SIZE		(512*2048)
@@ -85,6 +87,16 @@
 # define OFP_NUM_PCB_TCP_MAX 60000
 
 # define OFP_TCP_MAX_CONNECTION_RATE
+
+#elif OFP_CONFIG == OFP_CONFIG_NETWRAP_WEBSERVER
+/**Maximum number of sockets. */
+# define OFP_NUM_SOCKETS_MAX 1000
+/**First socket number value. */
+# define OFP_SOCK_NUM_OFFSET 20
+/**Maximum number of TCP PCBs. */
+# define OFP_NUM_PCB_TCP_MAX 65534
+# define OFP_TCP_MAX_CONNECTION_RATE
+
 #else /*OFP_CONFIG_DEFAULT*/
 /**Maximum number of sockets. */
 # define OFP_NUM_SOCKETS_MAX 1024
