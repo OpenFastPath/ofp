@@ -95,9 +95,6 @@ __LIB__libofp_la_SOURCES += \
 ofp_netlink.c \
 ofp_quagga.c \
 ofp_tunthread.c
-else
-__LIB__libofp_la_SOURCES += \
-ofp_libnetworkinterpose.c
 endif
 
 if OFP_IPv6
