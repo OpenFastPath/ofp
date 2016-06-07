@@ -33,28 +33,32 @@ int init_suite(init_function init_func)
 		return 0;
 }
 
-void run_suite(run_function run_func1, run_function run_func2)
+void run_suite(odp_instance_t instance,
+	run_function run_func1, run_function run_func2)
 {
 	odph_linux_pthread_t sock_pthread1;
 	odph_linux_pthread_t sock_pthread2;
 	odp_cpumask_t sock_cpumask;
+	odph_linux_thr_params_t thr_params;
 
 	odp_cpumask_zero(&sock_cpumask);
 	odp_cpumask_set(&sock_cpumask, core_id);
 
+	thr_params.start = suite_thread1;
+	thr_params.arg = run_func1;
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.instance = instance;
 	odph_linux_pthread_create(&sock_pthread1,
 			&sock_cpumask,
-			suite_thread1,
-			run_func1,
-			ODP_THREAD_WORKER
-		      );
+			&thr_params);
 
+	thr_params.start = suite_thread2;
+	thr_params.arg = run_func2;
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.instance = instance;
 	odph_linux_pthread_create(&sock_pthread2,
 			&sock_cpumask,
-			suite_thread2,
-			run_func2,
-			ODP_THREAD_WORKER
-		      );
+			&thr_params);
 
 	odph_linux_pthread_join(&sock_pthread1, 1);
 	odph_linux_pthread_join(&sock_pthread2, 1);
@@ -81,10 +85,6 @@ static void *suite_thread1(void *arg)
 {
 	run_function run_func = (run_function)arg;
 
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
-		OFP_ERR("Error: ODP local init failed.\n");
-		return NULL;
-	}
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;
@@ -99,10 +99,6 @@ static void *suite_thread2(void *arg)
 {
 	run_function run_func = (run_function)arg;
 
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
-		OFP_ERR("Error: ODP local init failed.\n");
-		return NULL;
-	}
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;

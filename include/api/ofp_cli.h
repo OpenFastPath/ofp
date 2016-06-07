@@ -8,9 +8,12 @@
 #ifndef __OFP_CLI_H__
 #define __OFP_CLI_H__
 
+#include "odp.h"
+
 /** CLI Start thread
  */
-int ofp_start_cli_thread(int core_id, char *conf_file);
+int ofp_start_cli_thread(odp_instance_t instance, int core_id,
+	char *conf_file);
 int ofp_stop_cli_thread(void);
 
 #endif /* __OFP_CLI_H__ */

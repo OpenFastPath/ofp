@@ -9,6 +9,8 @@
 #ifndef _SYSCTL_H_
 #define _SYSCTL_H_
 
-void ofp_start_sysctl_thread(int core_id);
+#include "odp.h"
+
+void ofp_start_sysctl_thread(odp_instance_t instance, int core_id);
 
 #endif

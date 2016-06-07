@@ -88,10 +88,6 @@ static void *udpecho(void *arg)
 
 	OFP_INFO("UDP server thread started");
 
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
-		OFP_ERR("Error: ODP local init failed.\n");
-		return NULL;
-	}
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;
@@ -140,18 +136,21 @@ static void *udpecho(void *arg)
 	return NULL;
 }
 
-void ofp_start_udpserver_thread(int core_id)
+void ofp_start_udpserver_thread(odp_instance_t instance, int core_id)
 {
 	odph_linux_pthread_t test_linux_pthread;
 	odp_cpumask_t cpumask;
+	odph_linux_thr_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
+	thr_params.start = udpecho;
+	thr_params.arg = NULL;
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.instance = instance;
 	odph_linux_pthread_create(&test_linux_pthread,
 				  &cpumask,
-				  udpecho,
-				  NULL,
-				  ODP_THREAD_WORKER
+				  &thr_params
 				);
 }

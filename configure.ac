@@ -119,7 +119,7 @@ if test "x${want_lto}" == xyes; then
 fi
 
 ##########################################################################
-# adding the ODP library (e.g. with static name 'libodp.a')
+# adding the ODP library (e.g. with static name 'libodp-linux.a')
 ##########################################################################
 
 # introduce the optional configure parameter for a non-standard install prefix of XXX
@@ -140,20 +140,20 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
-ODP_VERSION_SUPPORTED="1.8.0.0.git6.g73392bf"
+ODP_VERSION_SUPPORTED="1.9.0.0"
 function check_odp {
-	 AC_CHECK_LIB(odp, odp_packet_alloc, [],
+	 AC_CHECK_LIB(odp-linux, odp_packet_alloc, [],
 	     [AC_MSG_FAILURE(["This package needs OpenDataPlane (libodp.a) installed"])])
 	 AC_CHECK_HEADERS([odp.h], [],
 	     [AC_MSG_FAILURE(["Can't find ODP headers"])])
 	 AC_MSG_FAILURE(["Invalid ODP version. ODP $ODP_VERSION_SUPPORTED is required."])
 }
 
-PKG_CHECK_MODULES([ODP], [libodp = $ODP_VERSION_SUPPORTED], [],
+PKG_CHECK_MODULES([ODP], [libodp-linux = $ODP_VERSION_SUPPORTED], [],
 	check_odp)
 
 # prepending lib to the files to link
-LIBS="-lodp -lodphelper $LIBS -ldl"
+LIBS="-lodp-linux -lodphelper-linux $LIBS -ldl"
 
 ##########################################################################
 # Restore old saved variables

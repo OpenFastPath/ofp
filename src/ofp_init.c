@@ -170,10 +170,13 @@ odp_pool_t ofp_packet_pool;
 odp_cpumask_t cpumask;
 int ofp_init_global_called = 0;
 
-int ofp_init_global(ofp_init_global_t *params)
+int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
 {
 	int i;
 	odp_pktio_param_t pktio_param;
+#ifdef SP
+	odph_linux_thr_params_t thr_params;
+#endif /* SP */
 
 	ofp_init_global_called = 1;
 
@@ -196,16 +199,18 @@ int ofp_init_global(ofp_init_global_t *params)
 	pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
 
 	for (i = 0; i < params->if_count; ++i)
-		HANDLE_ERROR(ofp_ifnet_create(params->if_names[i],
+		HANDLE_ERROR(ofp_ifnet_create(instance, params->if_names[i],
 			&pktio_param, NULL, NULL));
 
 #ifdef SP
 	/* Start Netlink server process */
+	thr_params.start = START_NL_SERVER;
+	thr_params.arg = NULL;
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.instance = instance;
 	if (!odph_linux_pthread_create(&shm->nl_thread,
 				  &cpumask,
-				  START_NL_SERVER,
-				  NULL,
-				  ODP_THREAD_CONTROL)) {
+				  &thr_params)) {
 
 		OFP_ERR("Failed to start Netlink thread.");
 		return -1;

@@ -21,10 +21,12 @@
 
 #include <unistd.h>
 
+odp_instance_t instance;
+
 static int init_suite(void)
 {
 	/* Must be called to create threads via ODP. */
-	if (odp_init_global(NULL, NULL) < 0) {
+	if (odp_init_global(&instance, NULL, NULL) < 0) {
 		CU_FAIL("Error: odp_init_global failed");
 		return -1;
 	}
@@ -47,18 +49,22 @@ static void test_tls_errno(void)
 	odph_linux_pthread_t threads;
 	odp_barrier_t barrier__;
 	odp_barrier_t *barrier;
+	odph_linux_thr_params_t thr_params;
 
 	CU_ASSERT(1 == odp_cpumask_default_worker(&cpumask, 1));
 
 	barrier = &barrier__;
 	odp_barrier_init(barrier, 2);
 
+
+	thr_params.start = other_thread;
+	thr_params.arg = (void *)barrier;
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.instance = instance;
 	CU_ASSERT(1 == odph_linux_pthread_create(
 			&threads,
 			&cpumask,
-			other_thread,
-			(void *)barrier,
-			ODP_THREAD_CONTROL));
+			&thr_params));
 
 	/* Initialize this thread's ofp_errno. */
 	ofp_errno = 0;

@@ -58,6 +58,7 @@ enum netwrap_state_enum {
 static enum netwrap_state_enum netwrap_state;
 static odph_linux_pthread_t thread_tbl[MAX_WORKERS];
 static int num_workers;
+odp_instance_t netwrap_proc_instance;
 
 __attribute__((destructor)) static void ofp_netwrap_main_dtor();
 
@@ -68,6 +69,7 @@ static void ofp_netwrap_main_ctor()
 	int core_count, ret_val;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
+	odph_linux_thr_params_t thr_params;
 
 	memset(&params, 0, sizeof(params));
 	if (parse_env(&params) != EXIT_SUCCESS)
@@ -79,7 +81,7 @@ static void ofp_netwrap_main_ctor()
 	 * shared memory, threads, pool, qeueus, sheduler, pktio, timer, crypto
 	 * and classification.
 	 */
-	if (odp_init_global(NULL, NULL)) {
+	if (odp_init_global(&netwrap_proc_instance, NULL, NULL)) {
 		printf("Error: ODP global init failed.\n");
 		return;
 	}
@@ -90,7 +92,7 @@ static void ofp_netwrap_main_ctor()
 	 * API calls may be made. Local inits are made here for shared memory,
 	 * threads, pktio and scheduler.
 	 */
-	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
+	if (odp_init_local(netwrap_proc_instance, ODP_THREAD_CONTROL) != 0) {
 		printf("Error: ODP local init failed.\n");
 		ofp_netwrap_main_dtor();
 		return;
@@ -152,7 +154,7 @@ static void ofp_netwrap_main_ctor()
 	 * General configuration will be to pktio and schedluer queues here in
 	 * addition will fast path interface configuration.
 	 */
-	if (ofp_init_global(&app_init_params) != 0) {
+	if (ofp_init_global(netwrap_proc_instance, &app_init_params) != 0) {
 		printf("Error: OFP global init failed.\n");
 		netwrap_state = NETWRAP_OFP_INIT_GLOBAL;
 		ofp_netwrap_main_dtor();
@@ -180,12 +182,13 @@ static void ofp_netwrap_main_ctor()
 	 * input arguments, the cpumask is used to control this.
 	 */
 	memset(thread_tbl, 0, sizeof(thread_tbl));
+	thr_params.start = default_event_dispatcher;
+	thr_params.arg = ofp_eth_vlan_processing;
+	thr_params.thr_type = ODP_THREAD_WORKER;
+	thr_params.instance = netwrap_proc_instance;
 	ret_val = odph_linux_pthread_create(thread_tbl,
 					    &cpumask,
-					    default_event_dispatcher,
-					    ofp_eth_vlan_processing,
-					    ODP_THREAD_WORKER
-					  );
+					    &thr_params);
 	if (ret_val != num_workers) {
 		OFP_ERR("Error: Failed to create worker threads, "
 			"expected %d, got %d",
@@ -202,7 +205,8 @@ static void ofp_netwrap_main_ctor()
 	 * the management core, i.e. not competing for cpu cycles with the
 	 * worker threads
 	 */
-	if (ofp_start_cli_thread(app_init_params.linux_core_id,
+	if (ofp_start_cli_thread(netwrap_proc_instance,
+		app_init_params.linux_core_id,
 		params.conf_file) < 0) {
 		OFP_ERR("Error: Failed to init CLI thread");
 		ofp_netwrap_main_dtor();
@@ -240,7 +244,7 @@ static void ofp_netwrap_main_dtor()
 			printf("Error: odp_term_local failed\n");
 
 	case NETWRAP_ODP_INIT_GLOBAL:
-		if (odp_term_global() < 0)
+		if (odp_term_global(netwrap_proc_instance) < 0)
 			printf("Error: odp_term_global failed\n");
 	};
 }

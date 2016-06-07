@@ -44,15 +44,17 @@ static int init_suite(void)
 	odp_pool_param_t pool_params;
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
 	odp_pool_t pool;
+	odph_linux_thr_params_t thr_params;
+	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
-	if (odp_init_global(NULL, NULL)) {
+	if (odp_init_global(&instance, NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
 		return -1;
 	}
 
 	/* Init this thread */
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
+	if (odp_init_local(instance, ODP_THREAD_CONTROL)) {
 		OFP_ERR("Error: ODP local init failed.\n");
 		return -1;
 	}
@@ -75,11 +77,13 @@ static int init_suite(void)
 	odp_cpumask_t cpumask;
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, 0x1);
+	thr_params.start = pp_thread;
+	thr_params.arg = NULL;
+	thr_params.thr_type = ODP_THREAD_WORKER;
+	thr_params.instance = instance;
 	odph_linux_pthread_create(&pp_thread_handle,
 				&cpumask,
-				pp_thread,
-				NULL,
-				ODP_THREAD_WORKER);
+				&thr_params);
 
 	return 0;
 }

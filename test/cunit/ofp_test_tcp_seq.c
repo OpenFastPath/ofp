@@ -44,6 +44,8 @@ static char *const_cast(const char *str)
 	return (char *)(uintptr_t)str;
 }
 
+odp_instance_t instance;
+
 int main(void)
 {
 	CU_TestInfo tests[] = {
@@ -83,8 +85,8 @@ int main(void)
 
 void initialize_odp(void)
 {
-	CU_ASSERT_FALSE_FATAL(odp_init_global(NULL, NULL));
-	CU_ASSERT_FALSE_FATAL(odp_init_local(ODP_THREAD_WORKER));
+	CU_ASSERT_FALSE_FATAL(odp_init_global(&instance, NULL, NULL));
+	CU_ASSERT_FALSE_FATAL(odp_init_local(instance, ODP_THREAD_WORKER));
 }
 
 void initialize_ofp_timer(int resolution_us)
@@ -134,5 +136,5 @@ void terminate_ofp_timer(void)
 void terminate_odp(void)
 {
 	odp_term_local();
-	odp_term_global();
+	odp_term_global(instance);
 }

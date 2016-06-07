@@ -33,7 +33,7 @@ typedef struct {
 static int parse_args(int argc, char *argv[], appl_args_t *appl_args);
 static void print_info(char *progname, appl_args_t *appl_args);
 static void usage(char *progname);
-static int start_performance(int core_id);
+static int start_performance(odp_instance_t instance, int core_id);
 
  /**
   * global OFP init parms
@@ -100,6 +100,8 @@ int main(int argc, char *argv[])
 	int core_count, num_workers, ret_val;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
+	odph_linux_thr_params_t thr_params;
+	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
 	if (parse_args(argc, argv, &params) != EXIT_SUCCESS)
@@ -116,7 +118,7 @@ int main(int argc, char *argv[])
 	 * shared memory, threads, pool, qeueus, sheduler, pktio, timer, crypto
 	 * and classification.
 	 */
-	if (odp_init_global(NULL, NULL)) {
+	if (odp_init_global(&instance, NULL, NULL)) {
 		printf("Error: ODP global init failed.\n");
 		return EXIT_FAILURE;
 	}
@@ -127,9 +129,9 @@ int main(int argc, char *argv[])
 	 * calls may be made. Local inits are made here for shared memory,
 	 * threads, pktio and scheduler.
 	 */
-	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
+	if (odp_init_local(instance, ODP_THREAD_CONTROL) != 0) {
 		printf("Error: ODP local init failed.\n");
-		odp_term_global();
+		odp_term_global(instance);
 		return EXIT_FAILURE;
 	}
 
@@ -170,7 +172,7 @@ int main(int argc, char *argv[])
 		printf("Error: Too small buffer provided to "
 			"odp_cpumask_to_str\n");
 		odp_term_local();
-		odp_term_global();
+		odp_term_global(instance);
 		return EXIT_FAILURE;
 	}
 
@@ -190,11 +192,11 @@ int main(int argc, char *argv[])
 	 * General configuration will be to pktio and schedluer queues here in
 	 * addition will fast path interface configuration.
 	 */
-	if (ofp_init_global(&app_init_params) != 0) {
+	if (ofp_init_global(instance, &app_init_params) != 0) {
 		printf("Error: OFP global init failed.\n");
 		ofp_term_global();
 		odp_term_local();
-		odp_term_global();
+		odp_term_global(instance);
 		return EXIT_FAILURE;
 	}
 
@@ -203,7 +205,7 @@ int main(int argc, char *argv[])
 		ofp_term_local();
 		ofp_term_global();
 		odp_term_local();
-		odp_term_global();
+		odp_term_global(instance);
 		return EXIT_FAILURE;
 	}
 
@@ -219,12 +221,13 @@ int main(int argc, char *argv[])
 	 * input arguments, the cpumask is used to control this.
 	 */
 	memset(thread_tbl, 0, sizeof(thread_tbl));
+	thr_params.start = default_event_dispatcher;
+	thr_params.arg = ofp_eth_vlan_processing;
+	thr_params.thr_type = ODP_THREAD_WORKER;
+	thr_params.instance = instance;
 	ret_val = odph_linux_pthread_create(thread_tbl,
 					    &cpumask,
-					    default_event_dispatcher,
-					    ofp_eth_vlan_processing,
-					    ODP_THREAD_CONTROL
-					  );
+					    &thr_params);
 	if (ret_val != num_workers) {
 		OFP_ERR("Error: Failed to create worker threads, "
 			"expected %d, got %d",
@@ -234,7 +237,7 @@ int main(int argc, char *argv[])
 		ofp_term_local();
 		ofp_term_global();
 		odp_term_local();
-		odp_term_global();
+		odp_term_global(instance);
 		return EXIT_FAILURE;
 	}
 
@@ -244,7 +247,7 @@ int main(int argc, char *argv[])
 	 * the management core, i.e. not competing for cpu cycles with the
 	 * worker threads
 	 */
-	if (ofp_start_cli_thread(app_init_params.linux_core_id,
+	if (ofp_start_cli_thread(instance, app_init_params.linux_core_id,
 		params.conf_file) < 0) {
 		OFP_ERR("Error: Failed to init CLI thread");
 		ofp_stop_processing();
@@ -252,7 +255,7 @@ int main(int argc, char *argv[])
 		ofp_term_local();
 		ofp_term_global();
 		odp_term_local();
-		odp_term_global();
+		odp_term_global(instance);
 		return EXIT_FAILURE;
 	}
 
@@ -263,14 +266,15 @@ int main(int argc, char *argv[])
 	 * Using this has negligible performance impact (<<0.01%).
 	 */
 	if (params.perf_stat) {
-		if (start_performance(app_init_params.linux_core_id) <= 0) {
+		if (start_performance(instance,
+			app_init_params.linux_core_id) <= 0) {
 			OFP_ERR("Error: Failed to init performance monitor");
 			ofp_stop_processing();
 			odph_linux_pthread_join(thread_tbl, num_workers);
 			ofp_term_local();
 			ofp_term_global();
 			odp_term_local();
-			odp_term_global();
+			odp_term_global(instance);
 			return EXIT_FAILURE;
 		}
 	}
@@ -290,7 +294,7 @@ int main(int argc, char *argv[])
 	if (odp_term_local() < 0)
 		printf("Error: odp_term_local failed\n");
 
-	if (odp_term_global() < 0)
+	if (odp_term_global(instance) < 0)
 		printf("Error: odp_term_global failed\n");
 
 	printf("FPM End Main()\n");
@@ -491,19 +495,20 @@ static void *perf_client(void *arg)
 	return NULL;
 }
 
-static int start_performance(int core_id)
+static int start_performance(odp_instance_t instance, int core_id)
 {
 	odph_linux_pthread_t cli_linux_pthread;
 	odp_cpumask_t cpumask;
+	odph_linux_thr_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
+	thr_params.start = perf_client;
+	thr_params.arg = NULL;
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.instance = instance;
 	return odph_linux_pthread_create(&cli_linux_pthread,
-					 &cpumask,
-					 perf_client,
-					 NULL,
-					 ODP_THREAD_WORKER
-					);
+					 &cpumask, &thr_params);
 
 }

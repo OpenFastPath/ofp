@@ -58,6 +58,8 @@ int main(int argc, char *argv[])
 	int core_count, num_workers;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
+	odph_linux_thr_params_t thr_params;
+	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &params);
@@ -68,11 +70,11 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (odp_init_global(NULL, NULL)) {
+	if (odp_init_global(&instance, NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
+	if (odp_init_local(instance, ODP_THREAD_CONTROL)) {
 		OFP_ERR("Error: ODP local init failed.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -103,7 +105,7 @@ int main(int argc, char *argv[])
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
 
-	if (ofp_init_global(&app_init_params)) {
+	if (ofp_init_global(instance, &app_init_params)) {
 		OFP_ERR("Error: OFP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -115,16 +117,18 @@ int main(int argc, char *argv[])
 	build_classifier(app_init_params.if_count, app_init_params.if_names);
 
 	/* Start CLI */
-	ofp_start_cli_thread(app_init_params.linux_core_id, params.conf_file);
+	ofp_start_cli_thread(instance, app_init_params.linux_core_id, params.conf_file);
 	sleep(1);
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	/* Start dataplane dispatcher worker threads */
+	thr_params.start = default_event_dispatcher;
+	thr_params.arg = ofp_udp4_processing;
+	thr_params.thr_type = ODP_THREAD_WORKER;
+	thr_params.instance = instance;
 	odph_linux_pthread_create(thread_tbl,
 				  &cpumask,
-				  default_event_dispatcher,
-				  ofp_udp4_processing,
-				  ODP_THREAD_WORKER);
+				  &thr_params);
 
 	app_processing();
 

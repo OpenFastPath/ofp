@@ -42,6 +42,19 @@ uint8_t macaddr[6] = { 0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA };
 static int
 init_suite(void)
 {
+	odp_instance_t instance;
+
+	/* Init ODP before calling anything else */
+	if (odp_init_global(&instance, NULL, NULL)) {
+		printf("Error: ODP global init failed.\n");
+		return -1;
+	}
+
+	/* Init this thread */
+	if (odp_init_local(instance, ODP_THREAD_CONTROL)) {
+		printf("Error: ODP local init failed.\n");
+		return -1;
+	}
 	return 0;
 }
 

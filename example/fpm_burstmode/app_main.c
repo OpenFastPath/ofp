@@ -137,6 +137,8 @@ int main(int argc, char *argv[])
 	odp_pktout_queue_param_t pktout_param;
 	odp_pktio_t pktio;
 	int port, queue_id;
+	odph_linux_thr_params_t thr_params;
+	odp_instance_t instance;
 
 	struct pktin_table_s {
 		int	num_in_queue;
@@ -152,11 +154,11 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (odp_init_global(NULL, NULL)) {
+	if (odp_init_global(&instance, NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
+	if (odp_init_local(instance, ODP_THREAD_CONTROL)) {
 		OFP_ERR("Error: ODP local init failed.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -195,7 +197,7 @@ int main(int argc, char *argv[])
 	memset(&app_init_params, 0, sizeof(app_init_params));
 	app_init_params.linux_core_id = 0;
 
-	if (ofp_init_global(&app_init_params)) {
+	if (ofp_init_global(instance, &app_init_params)) {
 		OFP_ERR("Error: OFP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -219,7 +221,7 @@ int main(int argc, char *argv[])
 	pktout_param.op_mode = ODP_PKTIO_OP_MT;
 
 	for (i = 0; i < params.if_count; i++) {
-		if (ofp_ifnet_create(params.if_names[i],
+		if (ofp_ifnet_create(instance, params.if_names[i],
 				&pktio_param,
 				&pktin_param,
 				&pktout_param) < 0) {
@@ -258,23 +260,28 @@ int main(int argc, char *argv[])
 		odp_cpumask_zero(&cpu_mask);
 		odp_cpumask_set(&cpu_mask, first_cpu + i);
 
+		thr_params.start = pkt_io_recv;
+		thr_params.arg = &pktio_thr_args[i];
+		thr_params.thr_type = ODP_THREAD_WORKER;
+		thr_params.instance = instance;
 		odph_linux_pthread_create(&thread_tbl[i],
 					  &cpu_mask,
-					  pkt_io_recv,
-					  &pktio_thr_args[i],
-					  ODP_THREAD_WORKER);
+					  &thr_params);
 	}
 
 	odp_cpumask_zero(&cpu_mask);
 	odp_cpumask_set(&cpu_mask, app_init_params.linux_core_id);
+	thr_params.start = event_dispatcher;
+	thr_params.arg = NULL;
+	thr_params.thr_type = ODP_THREAD_WORKER;
+	thr_params.instance = instance;
 	odph_linux_pthread_create(&dispatcher_thread,
 				  &cpu_mask,
-				  event_dispatcher,
-				  NULL,
-				  ODP_THREAD_WORKER);
+				  &thr_params);
 
 	/* Start CLI */
-	ofp_start_cli_thread(app_init_params.linux_core_id, params.conf_file);
+	ofp_start_cli_thread(instance, app_init_params.linux_core_id,
+		params.conf_file);
 
 	odph_linux_pthread_join(thread_tbl, num_workers);
 	printf("End Main()\n");

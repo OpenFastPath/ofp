@@ -27,6 +27,7 @@
  * @see ofp_init_global() can init interfaces.
  * @see ofp_init_local() which is required per thread before use.
  */
-int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
+int ofp_ifnet_create(odp_instance_t instance, char *if_name,
+	odp_pktio_param_t *pktio_param,
 	odp_pktin_queue_param_t *pktin_param,
 	odp_pktout_queue_param_t *pktout_param);

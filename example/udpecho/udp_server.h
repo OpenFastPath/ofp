@@ -8,6 +8,8 @@
 #ifndef _UDP_SERVER_H_
 #define _UDP_SERVER_H_
 
-void ofp_start_udpserver_thread(int core_id);
+#include "odp.h"
+
+void ofp_start_udpserver_thread(odp_instance_t instance, int core_id);
 
 #endif

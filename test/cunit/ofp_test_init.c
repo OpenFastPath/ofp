@@ -27,18 +27,19 @@
 #include <ofp_init.h>
 #include <ofp_cli.h>
 
+odp_instance_t instance;
 
 static int
 init_suite(void)
 {
 	/* Init ODP before calling anything else */
-	if (odp_init_global(NULL, NULL)) {
+	if (odp_init_global(&instance, NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
 		return -1;
 	}
 
 	/* Init this thread */
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
+	if (odp_init_local(instance, ODP_THREAD_CONTROL)) {
 		OFP_ERR("Error: ODP local init failed.\n");
 		return -1;
 	}
@@ -55,7 +56,7 @@ clean_suite(void)
 		OFP_ERR("Error: ODP local termination failed.\n");
 		rc = -1;
 	}
-	if (odp_term_global() < 0) {
+	if (odp_term_global(instance) < 0) {
 		OFP_ERR("Error: ODP global termination failed.\n");
 		rc = -1;
 	}
@@ -88,9 +89,9 @@ test_global_init_cleanup(void)
 {
 	static ofp_init_global_t oig;
 
-	CU_ASSERT_EQUAL(ofp_init_global(&oig), 0);
+	CU_ASSERT_EQUAL(ofp_init_global(instance, &oig), 0);
 
-	ofp_start_cli_thread(oig.linux_core_id, NULL);
+	ofp_start_cli_thread(instance, oig.linux_core_id, NULL);
 
 	CU_ASSERT_EQUAL(ofp_term_global(), 0);
 }

@@ -52,7 +52,7 @@ typedef struct ofp_init_global_t {
  *
  * @see ofp_init_local() which is required per thread before use.
  */
-int ofp_init_global(ofp_init_global_t *params);
+int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params);
 
 /**
  * Thread local OFP initialization

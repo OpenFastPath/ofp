@@ -1698,10 +1698,11 @@ static void *cli_server(void *arg)
  * @retval -1 on failure
  *
  */
-int ofp_start_cli_thread(int core_id, char *conf_file)
+int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *conf_file)
 {
 	odp_cpumask_t cpumask;
 	struct ofp_global_config_mem *ofp_global_cfg;
+	odph_linux_thr_params_t thr_params;
 
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
@@ -1715,11 +1716,14 @@ int ofp_start_cli_thread(int core_id, char *conf_file)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
+	thr_params.start = cli_server;
+	thr_params.arg = conf_file;
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.instance = instance;
+
 	if (odph_linux_pthread_create(&ofp_global_cfg->cli_thread,
 			&cpumask,
-			cli_server,
-			conf_file,
-			ODP_THREAD_CONTROL) == 0) {
+			&thr_params) == 0) {
 		OFP_ERR("Failed to start CLI thread.");
 		ofp_global_cfg->cli_thread_is_running = 0;
 		return -1;
