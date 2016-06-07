@@ -140,37 +140,26 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
+ODP_VERSION_SUPPORTED="1.7.0.0"
 function check_odp {
 	 AC_CHECK_LIB(odp, odp_packet_alloc, [],
-	     [AC_MSG_ERROR(["This package needs OpenDataPlane (libodp.a) installed"])])
+	     [AC_MSG_FAILURE(["This package needs OpenDataPlane (libodp.a) installed"])])
 	 AC_CHECK_HEADERS([odp.h], [],
 	     [AC_MSG_FAILURE(["Can't find ODP headers"])])
+	 AC_MSG_FAILURE(["Invalid ODP version. ODP $ODP_VERSION_SUPPORTED is required."])
 }
 
-PKG_CHECK_MODULES([ODP], [libodp >= 1.7], [ODP_VERSION=107],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.6], [ODP_VERSION=106],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.5], [ODP_VERSION=105],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.4], [ODP_VERSION=104],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.3], [ODP_VERSION=103],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.2], [ODP_VERSION=102],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.1], [ODP_VERSION=101],
-    [PKG_CHECK_MODULES([ODP], [libodp >= 1.0], [ODP_VERSION=100],
-    check_odp)])])])])])])])
+PKG_CHECK_MODULES([ODP], [libodp = $ODP_VERSION_SUPPORTED], [],
+	check_odp)
 
 # prepending lib to the files to link
-if [[ "${ODP_VERSION}" -gt 101 ]]; then
 LIBS="-lodp -lodphelper $LIBS -ldl"
-else
-LIBS="-lodp $LIBS -ldl"
-fi
 
 ##########################################################################
 # Restore old saved variables
 ##########################################################################
 LDFLAGS=$OLD_LDFLAGS
 CPPFLAGS=$OLD_CPPFLAGS
-
-AC_SUBST(ODP_VERSION)
 
 # Enable/disable OFP_DEBUG
 ofp_debug=no
@@ -364,6 +353,6 @@ AC_MSG_RESULT([
         am_cxxflags:            ${AM_CXXFLAGS}
 	ldflags:		${LDFLAGS}
 	am_ldflags:		${AM_LDFLAGS}
-	odp_version:		${ODP_VERSION}
+	odp_version:		${ODP_VERSION_SUPPORTED}
 	cunit:			${cunit_support}
 ])

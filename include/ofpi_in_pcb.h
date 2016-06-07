@@ -465,25 +465,10 @@ extern int  ofp_tcbinfo_locked_by_line;
 static inline void rw_assert(struct ofp_rec_rwlock *lock, int mode, const char *file, int line) {
 	(void)file;
 	(void)line;
-#if ODP_VERSION >= 106
 	(void)lock;
 	(void)mode;
 
 	return;
-#else
-	int ok = 0;
-	switch (mode) {
-	case RA_LOCKED: ok = lock->lock.cnt.v != 0; break;
-	case RA_RLOCKED: ok = lock->lock.cnt.v > 0; break;
-	case RA_WLOCKED: ok = (int32_t)lock->lock.cnt.v < 0; break;
-	case RA_UNLOCKED: ok = lock->lock.cnt.v == 0; break;
-	}
-
-	if (!ok)
-		OFP_LOG_X("file=%s, line=%d, RWLOCK %p WAS NOT %d BUT %d\nLocked by %s:%d\n",
-			  file, line, lock, mode, lock->lock.cnt.v,
-			  ofp_tcbinfo_locked_by_file, ofp_tcbinfo_locked_by_line);
-#endif
 }
 
 #define	INP_INFO_LOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_LOCKED, __FILE__, __LINE__)

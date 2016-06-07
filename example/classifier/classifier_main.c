@@ -11,7 +11,6 @@
 #include <sys/socket.h>
 
 #include "ofp.h"
-#include "ofp_odp_compat.h"
 
 #define MAX_WORKERS		32
 #define TEST_PORT 54321
@@ -115,7 +114,7 @@ int main(int argc, char *argv[])
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	/* Start dataplane dispatcher worker threads */
-	ofp_linux_pthread_create(thread_tbl,
+	odph_linux_pthread_create(thread_tbl,
 				  &cpumask,
 				  default_event_dispatcher,
 				  ofp_udp4_processing,
@@ -360,33 +359,24 @@ static odp_cos_t build_cos_w_queue(const char *name)
 	odp_cos_t cos;
 	odp_queue_t queue_cos;
 	odp_queue_param_t qparam;
-
-	cos = odp_cls_cos_create(name, &qparam);
-	if (cos == ODP_COS_INVALID) {
-		OFP_ERR("Failed to create COS");
-		return ODP_COS_INVALID;
-	}
+	odp_cls_cos_param_t cos_param;
 
 	odp_queue_param_init(&qparam);
 	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
-	queue_cos = ofp_queue_create(name,
-				ODP_QUEUE_TYPE_SCHED,
-				&qparam);
+	queue_cos = odp_queue_create(name, &qparam);
 	if (queue_cos == ODP_QUEUE_INVALID) {
 		OFP_ERR("Failed to create queue\n");
-		odp_cos_destroy(cos);
 		return ODP_COS_INVALID;
 	}
 
-#if ODP_VERSION < 104
-	if (odp_cos_set_queue(cos, queue_cos) < 0) {
-#else
-	if (odp_cos_queue_set(cos, queue_cos) < 0) {
-#endif
-		OFP_ERR("Failed to set queue on COS");
+	odp_cls_cos_param_init(&cos_param);
+	cos_param.queue = queue_cos;
+	cos = odp_cls_cos_create(name, &cos_param);
+	if (cos == ODP_COS_INVALID) {
+		OFP_ERR("Failed to create COS");
 		odp_cos_destroy(cos);
 		odp_queue_destroy(queue_cos);
 		return ODP_COS_INVALID;
@@ -398,21 +388,13 @@ static odp_cos_t build_cos_w_queue(const char *name)
 static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos)
 {
 	odp_cos_t cos;
-	odp_queue_param_t qparam;
+	odp_cls_cos_param_t cos_param;
 
-	cos = odp_cls_cos_create(name, &qparam);
+	odp_cls_cos_param_init(&cos_param);
+	cos_param.queue = queue_cos;
+	cos = odp_cls_cos_create(name, &cos_param);
 	if (cos == ODP_COS_INVALID) {
 		OFP_ERR("Failed to create COS");
-		return ODP_COS_INVALID;
-	}
-
-#if ODP_VERSION < 104
-	if (odp_cos_set_queue(cos, queue_cos) < 0) {
-#else
-	if (odp_cos_queue_set(cos, queue_cos) < 0) {
-#endif
-		OFP_ERR("Failed to set queue on COS");
-		odp_cos_destroy(cos);
 		return ODP_COS_INVALID;
 	}
 
@@ -424,12 +406,6 @@ static odp_pmr_t build_udp_prm(void)
 	uint32_t pmr_udp_val = TEST_PORT;
 	uint32_t pmr_udp_mask = 0xffffffff;
 
-#if ODP_VERSION < 104
-	return odp_pmr_create(ODP_PMR_UDP_DPORT,
-			      &pmr_udp_val,
-			      &pmr_udp_mask,
-			      1);
-#else
 	const odp_pmr_match_t match = {
 		.term = ODP_PMR_UDP_DPORT,
 		.val = &pmr_udp_val,
@@ -438,7 +414,6 @@ static odp_pmr_t build_udp_prm(void)
 	};
 
 	return odp_pmr_create(&match);
-#endif
 }
 
 static void app_processing(void)

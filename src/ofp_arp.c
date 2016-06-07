@@ -461,24 +461,9 @@ static void ofp_arp_entry_cleanup_on_tmo(int set, struct arp_entry *entry)
 static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 						odp_time_t now)
 {
-#if ODP_VERSION >= 105
 	odp_time_t end = odp_time_sum(entry->usetime, shm->entry_timeout);
 
 	return odp_time_cmp(now, end) > 0;
-#else
-	uint64_t ns;
-	odp_time_t time_diff, usetime;
-
-	usetime = entry->usetime;
-	if (odp_time_to_ns(usetime) >= odp_time_to_ns(now))
-		return 0;
-	time_diff = odp_time_diff(now, usetime);
-	ns = odp_time_to_ns(time_diff);
-	if (ns > shm->entry_timeout)
-		return 1;
-
-	return 0;
-#endif
 }
 
 void ofp_arp_age_cb(void *arg)

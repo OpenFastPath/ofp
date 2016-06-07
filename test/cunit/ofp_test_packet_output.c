@@ -124,17 +124,14 @@ static void init_ifnet(void)
 	dev->pkt_pool = odp_pool_lookup(pool_name);
 
 	sprintf(str, "out default queue:%d", port);
-	dev->outq_def = ofp_queue_create(str,
-					 ODP_QUEUE_TYPE_PLAIN,
-					 NULL);
+	dev->outq_def = odp_queue_create(str, NULL);
 	if (dev->outq_def == ODP_QUEUE_INVALID) {
 		fail_with_odp("Out default queue create failed.\n");
 		return;
 	}
-#if ODP_VERSION >= 107
+
 	dev->out_queue_num = 1;
 	dev->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
-#endif /* ODP_VERSION > 107*/
 
 	/* port 0 vlan 1 */
 	ofp_config_interface_up_v4(port, vlan + 1, vrf, dev_ip + 1, 24);
@@ -150,9 +147,7 @@ static void init_ifnet(void)
 	dev_vlan->pkt_pool = odp_pool_lookup(pool_name);
 
 	sprintf(str, "out default queue:%d", port);
-	dev_vlan->outq_def = ofp_queue_create(str,
-					      ODP_QUEUE_TYPE_PLAIN,
-					      NULL);
+	dev_vlan->outq_def = odp_queue_create(str, NULL);
 	if (dev_vlan->outq_def == ODP_QUEUE_INVALID) {
 		fail_with_odp("Out default queue create failed.\n");
 		return;

@@ -367,15 +367,14 @@ int ofp_set_vxlan_interface_queue(void)
 
 	/* VXLAN interface queue */
 	odp_queue_param_init(&qparam);
+	qparam.type = ODP_QUEUE_TYPE_SCHED;
 	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
-	ifnet->loopq_def = ofp_queue_create("vxlan_loopq",
-					    ODP_QUEUE_TYPE_SCHED,
-					    &qparam);
+	ifnet->loopq_def = odp_queue_create("vxlan_loopq", &qparam);
 	if (ifnet->loopq_def == ODP_QUEUE_INVALID) {
-		OFP_ERR("ofp_queue_create failed");
+		OFP_ERR("odp_queue_create failed");
 		return -1;
 	}
 

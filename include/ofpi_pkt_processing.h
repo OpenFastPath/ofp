@@ -12,7 +12,6 @@
 #include "api/ofp_types.h"
 #include "api/ofp_pkt_processing.h"
 #include "ofpi_in.h"
-#include "ofpi_odp_compat.h"
 
 struct ip_out {
 	struct ofp_ifnet *dev_out;
@@ -44,16 +43,6 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 			odp_packet_t *pkt_tbl, uint32_t pkt_tbl_cnt,
 			int core_id)
 {
-#if ODP_VERSION < 107
-	uint32_t i;
-	odp_event_t ev_tbl[OFP_PKT_TX_BURST_SIZE];
-
-	(void)core_id;
-	for (i = 0; i < pkt_tbl_cnt; i++)
-		ev_tbl[i] = odp_packet_to_event(pkt_tbl[i]);
-
-	return odp_queue_enq_multi(ifnet->outq_def, ev_tbl, pkt_tbl_cnt);
-#else
 	int out_idx;
 
 	out_idx = core_id % ifnet->out_queue_num;
@@ -71,7 +60,6 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 		return odp_queue_enq_multi(ifnet->out_queue_queue[out_idx],
 			ev_tbl, pkt_tbl_cnt);
 	}
-#endif /*ODP_VERSION < 107*/
 }
 
 #endif /* _OFPI_APP_H */

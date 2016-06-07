@@ -10,7 +10,6 @@
 #include <sys/socket.h>
 
 #include "ofp.h"
-#include "ofp_odp_compat.h"
 
 #define MAX_WORKERS		32
 
@@ -181,7 +180,7 @@ static void ofp_netwrap_main_ctor()
 	 * input arguments, the cpumask is used to control this.
 	 */
 	memset(thread_tbl, 0, sizeof(thread_tbl));
-	ret_val = ofp_linux_pthread_create(thread_tbl,
+	ret_val = odph_linux_pthread_create(thread_tbl,
 					    &cpumask,
 					    default_event_dispatcher,
 					    ofp_eth_vlan_processing,

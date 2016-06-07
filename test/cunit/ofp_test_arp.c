@@ -75,7 +75,7 @@ static int init_suite(void)
 	odp_cpumask_t cpumask;
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, 0x1);
-	ofp_linux_pthread_create(&pp_thread_handle,
+	odph_linux_pthread_create(&pp_thread_handle,
 				&cpumask,
 				pp_thread,
 				NULL,

@@ -14,7 +14,6 @@
 #include "ofpi_log.h"
 #include "ofpi_stat.h"
 #include "ofpi_util.h"
-#include "ofpi_odp_compat.h"
 
 #define SHM_NAME_STAT "OfpStatShMem"
 

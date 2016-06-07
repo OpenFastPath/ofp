@@ -347,7 +347,7 @@ void ofp_start_ioctl_thread(int core_id)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
-	ofp_linux_pthread_create(&test_linux_pthread,
+	odph_linux_pthread_create(&test_linux_pthread,
 				  &cpumask,
 				  ioctl_test,
 				  NULL,

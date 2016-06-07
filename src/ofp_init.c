@@ -39,7 +39,6 @@
 #include "ofpi_igmp_var.h"
 #include "ofpi_vxlan.h"
 #include "ofpi_uma.h"
-#include "ofpi_odp_compat.h"
 
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
@@ -151,9 +150,7 @@ int ofp_init_pre_global(const char *pool_name_unused,
 	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.num        = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
-#if ODP_VERSION > 100
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
-#endif /* ODP_VERSION > 100 */
 	pool_params.type           = ODP_POOL_PACKET;
 
 	ofp_packet_pool = ofp_pool_create(SHM_PACKET_POOL_NAME, &pool_params);
@@ -196,9 +193,7 @@ int ofp_init_global(ofp_init_global_t *params)
 	odp_pktio_param_init(&pktio_param);
 	pktio_param.in_mode = params->burst_recv_mode ? ODP_PKTIN_MODE_DIRECT :
 						ODP_PKTIN_MODE_SCHED;
-#if ODP_VERSION >= 107
 	pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
-#endif /* ODP_VERSION >= 107 */
 
 	for (i = 0; i < params->if_count; ++i)
 		HANDLE_ERROR(ofp_ifnet_create(params->if_names[i],
@@ -206,7 +201,7 @@ int ofp_init_global(ofp_init_global_t *params)
 
 #ifdef SP
 	/* Start Netlink server process */
-	if (!ofp_linux_pthread_create(&shm->nl_thread,
+	if (!odph_linux_pthread_create(&shm->nl_thread,
 				  &cpumask,
 				  START_NL_SERVER,
 				  NULL,
@@ -313,27 +308,10 @@ int ofp_term_global(void)
 			ifnet->spq_def = ODP_QUEUE_INVALID;
 		}
 #endif /*SP*/
-#if ODP_VERSION < 107
-		ifnet->outq_def = ODP_QUEUE_INVALID;
-		(void)j;
-#else
 		for (j = 0; j < OFP_PKTOUT_QUEUE_MAX; j++)
 			ifnet->out_queue_queue[j] = ODP_QUEUE_INVALID;
-#endif /* ODP_VERSION < 107 */
 
 		if (ifnet->pktio != ODP_PKTIO_INVALID) {
-#if ODP_VERSION < 107
-			if (ifnet->inq_def != ODP_QUEUE_INVALID) {
-				cleanup_pkt_queue(ifnet->inq_def);
-				if (odp_queue_destroy(ifnet->inq_def) < 0) {
-					OFP_ERR("Failed to destroy default "
-						"input queue for %s",
-						ifnet->if_name);
-					rc = -1;
-				}
-				ifnet->inq_def = ODP_QUEUE_INVALID;
-			}
-#else
 			odp_queue_t in_queue[OFP_PKTIN_QUEUE_MAX];
 			int num_in_queue, idx;
 
@@ -341,7 +319,7 @@ int ofp_term_global(void)
 					in_queue, OFP_PKTIN_QUEUE_MAX);
 			for (idx = 0; idx < num_in_queue; idx++)
 				cleanup_pkt_queue(in_queue[idx]);
-#endif
+
 			if (odp_pktio_close(ifnet->pktio) < 0) {
 				OFP_ERR("Failed to destroy pktio for %s",
 					ifnet->if_name);

@@ -8,6 +8,7 @@
 #define __OFP_H__
 
 #include <odp.h>
+#include <odp/helper/linux.h>
 
 /**
  * @file
@@ -20,7 +21,6 @@
 extern "C" {
 #endif
 
-#include "ofp_odp_compat.h"
 #include "ofp_config.h"
 #include "ofp_types.h"
 #include "ofp_init.h"

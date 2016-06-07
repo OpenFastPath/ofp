@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 			  cpu, pktio_thr_args[i].port);
 		OFP_DBG("cpu mask: %s\n", cpumaskstr);
 
-		ofp_linux_pthread_create(&thread_tbl[i],
+		odph_linux_pthread_create(&thread_tbl[i],
 					  &cpu_mask,
 					  pkt_io_recv,
 					  &pktio_thr_args[i],
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
 
 	odp_cpumask_zero(&cpu_mask);
 	odp_cpumask_set(&cpu_mask, app_init_params.linux_core_id);
-	ofp_linux_pthread_create(&dispatcher_thread,
+	odph_linux_pthread_create(&dispatcher_thread,
 				  &cpu_mask,
 				  event_dispatcher,
 				  NULL,

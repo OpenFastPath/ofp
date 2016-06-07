@@ -5,7 +5,6 @@ SUBDIRS = src example test
 include_HEADERS = \
 		$(top_srcdir)/include/api/ofp.h \
 		$(top_srcdir)/include/api/ofp_config.h \
-		$(top_srcdir)/include/api/ofp_odp_compat.h \
 		$(top_srcdir)/include/api/ofp_init.h \
 		$(top_srcdir)/include/api/ofp_pkt_processing.h \
 		$(top_srcdir)/include/api/ofp_cli.h \
@@ -76,7 +75,6 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_ip_var.h \
 		  $(top_srcdir)/include/ofpi_log.h \
 		  $(top_srcdir)/include/ofpi_md5.h \
-		  $(top_srcdir)/include/ofpi_odp_compat.h \
 		  $(top_srcdir)/include/ofpi_portconf.h \
 		  $(top_srcdir)/include/ofpi_protosw.h \
 		  $(top_srcdir)/include/ofpi_queue.h \

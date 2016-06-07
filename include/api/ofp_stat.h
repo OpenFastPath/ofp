@@ -9,7 +9,6 @@
 #define __OFP_STAT_H__
 
 #include <odp.h>
-#include "ofp_odp_compat.h"
 
 struct ofp_packet_stat {
 	struct {

@@ -19,7 +19,6 @@
 #include "odp.h"
 #include "ofpi_rt_lookup.h"
 #include "ofpi_log.h"
-#include "ofpi_odp_compat.h"
 
 #define SHM_NAME_RT_LOOKUP_MTRIE	"OfpRtlookupMtrieShMem"
 

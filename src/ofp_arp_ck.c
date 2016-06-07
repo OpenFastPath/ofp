@@ -24,7 +24,6 @@
 #include "ofpi_hash.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
-#include "ofpi_odp_compat.h"
 
 #include <config.h>
 

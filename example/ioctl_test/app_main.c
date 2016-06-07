@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	/* Start dataplane dispatcher worker threads */
 
-	ofp_linux_pthread_create(thread_tbl,
+	odph_linux_pthread_create(thread_tbl,
 				  &cpumask,
 				  app_dispatcher_thread,
 				  NULL,

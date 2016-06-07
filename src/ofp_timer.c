@@ -8,8 +8,6 @@
 #include <string.h>
 
 #include "odp.h"
-
-#include "ofp_odp_compat.h"
 #include "ofpi_util.h"
 #include "ofpi_log.h"
 
@@ -173,15 +171,15 @@ int ofp_timer_init_global(int resolution_us,
 	 * Create a queue
 	 */
 	odp_queue_param_init(&param);
+	param.type = ODP_QUEUE_TYPE_SCHED;
 	param.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	param.sched.sync  = ODP_SCHED_SYNC_PARALLEL;
 	param.sched.group = ODP_SCHED_GROUP_ALL;
 
-	shm->queue = ofp_queue_create("TimerQueue", ODP_QUEUE_TYPE_SCHED,
-				      &param);
+	shm->queue = odp_queue_create("TimerQueue", &param);
 
 	if (shm->queue == ODP_QUEUE_INVALID) {
-		OFP_ERR("ofp_queue_create failed");
+		OFP_ERR("odp_queue_create failed");
 		return -1;
 	}
 

@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <odp.h>
+
 #include "ofpi_cli.h"
 #include "ofpi_route.h"
 #include "ofpi_util.h"

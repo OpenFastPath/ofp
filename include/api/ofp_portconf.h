@@ -10,8 +10,6 @@
 
 #include "odp.h"
 
-#include "ofp_odp_compat.h"
-
 #define OFP_IFNAMSIZ  32
 
 struct ofp_ifnet;

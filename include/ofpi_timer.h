@@ -9,7 +9,6 @@
 #define _OFPI_TIMER_H
 
 #include "api/ofp_timer.h"
-#include "ofpi_odp_compat.h"
 
 #define MS_PER_SEC 1000UL
 

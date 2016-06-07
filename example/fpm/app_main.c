@@ -10,7 +10,6 @@
 #include <sys/socket.h>
 
 #include "ofp.h"
-#include "ofp_odp_compat.h"
 #include "linux_sigaction.h"
 
 #define MAX_WORKERS		32
@@ -220,7 +219,7 @@ int main(int argc, char *argv[])
 	 * input arguments, the cpumask is used to control this.
 	 */
 	memset(thread_tbl, 0, sizeof(thread_tbl));
-	ret_val = ofp_linux_pthread_create(thread_tbl,
+	ret_val = odph_linux_pthread_create(thread_tbl,
 					    &cpumask,
 					    default_event_dispatcher,
 					    ofp_eth_vlan_processing,
@@ -476,12 +475,6 @@ static void *perf_client(void *arg)
 {
 	(void) arg;
 
-#if ODP_VERSION < 106
-	if (odp_init_local(ODP_THREAD_CONTROL) != 0) {
-		OFP_ERR("Error: ODP local init failed.\n");
-		return NULL;
-	}
-#endif
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;
@@ -506,7 +499,7 @@ static int start_performance(int core_id)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
-	return ofp_linux_pthread_create(&cli_linux_pthread,
+	return odph_linux_pthread_create(&cli_linux_pthread,
 					 &cpumask,
 					 perf_client,
 					 NULL,

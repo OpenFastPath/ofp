@@ -65,13 +65,6 @@ void *default_event_dispatcher(void *arg)
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
 	odp_bool_t *is_running = NULL;
 
-#if ODP_VERSION < 106
-	if (odp_init_local(ODP_THREAD_WORKER)) {
-		OFP_ERR("odp_init_local failed");
-		return NULL;
-	}
-#endif
-
 	if (ofp_init_local()) {
 		OFP_ERR("ofp_init_local failed");
 		return NULL;

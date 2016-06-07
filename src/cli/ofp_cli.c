@@ -1581,12 +1581,6 @@ static void *cli_server(void *arg)
 
 	OFP_INFO("CLI server started on core %i\n", odp_cpu_id());
 
-#if ODP_VERSION < 106
-	if (odp_init_local(ODP_THREAD_CONTROL)) {
-		OFP_ERR("Error: ODP local init failed.\n");
-		return NULL;
-	}
-#endif
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;
@@ -1721,7 +1715,7 @@ int ofp_start_cli_thread(int core_id, char *conf_file)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
-	if (ofp_linux_pthread_create(&ofp_global_cfg->cli_thread,
+	if (odph_linux_pthread_create(&ofp_global_cfg->cli_thread,
 			&cpumask,
 			cli_server,
 			conf_file,

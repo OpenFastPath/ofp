@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include "odp.h"
+#include "odp/helper/linux.h"
 
 #include "api/ofp_portconf.h"
 #include "api/ofp_socket.h"
@@ -18,7 +19,6 @@
 #include "ofpi_config.h"
 #include "ofpi_ethernet.h"
 #include "ofpi_queue.h"
-#include "ofpi_odp_compat.h"
 
 #define NUM_PORTS (OFP_FP_INTERFACE_MAX + 3)
 
@@ -171,16 +171,9 @@ struct ofp_ifnet {
 #define OFP_OUT_QUEUE_TYPE_PKTOUT 0
 #define OFP_OUT_QUEUE_TYPE_QUEUE 1
 	uint8_t		out_queue_type;
-#if ODP_VERSION < 107
-	odp_queue_t	outq_def;
-#else
+
 	odp_pktout_queue_t out_queue_pktout[OFP_PKTOUT_QUEUE_MAX];
 	odp_queue_t out_queue_queue[OFP_PKTOUT_QUEUE_MAX];
-#endif /*ODP_VERSION < 107*/
-
-#if ODP_VERSION < 107
-	odp_queue_t	inq_def;
-#endif /*ODP_VERSION < 107*/
 
 	odp_queue_t	loopq_def;
 	odp_pool_t	pkt_pool;
@@ -205,6 +198,8 @@ struct ofp_ifnet {
 	void	*if_afdata[OFP_AF_MAX];
 	struct	ofp_ifmultihead if_multiaddrs; /* multicast addresses configured */
 };
+
+#define outq_def out_queue_queue[0]
 
 /*
  * Output queues (ifp->if_snd) and slow device input queues (*ifp->if_slowq)

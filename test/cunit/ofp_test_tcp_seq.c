@@ -11,8 +11,6 @@
 #include "odp.h"
 
 #include "ofp_init.h"
-#include "ofp_odp_compat.h"
-#include "ofpi_odp_compat.h"
 #include "ofpi_tcp_seq.h"
 
 static void test_when_timer_is_not_initialized_tick_count_is_zero(void)

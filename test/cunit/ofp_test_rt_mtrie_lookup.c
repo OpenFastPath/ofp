@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include "ofpi_shared_mem.h"
+#include "ofpi_log.h"
 
 #if OFP_TESTMODE_AUTO
 #include <CUnit/Automated.h>

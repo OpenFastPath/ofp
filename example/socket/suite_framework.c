@@ -42,14 +42,14 @@ void run_suite(run_function run_func1, run_function run_func2)
 	odp_cpumask_zero(&sock_cpumask);
 	odp_cpumask_set(&sock_cpumask, core_id);
 
-	ofp_linux_pthread_create(&sock_pthread1,
+	odph_linux_pthread_create(&sock_pthread1,
 			&sock_cpumask,
 			suite_thread1,
 			run_func1,
 			ODP_THREAD_WORKER
 		      );
 
-	ofp_linux_pthread_create(&sock_pthread2,
+	odph_linux_pthread_create(&sock_pthread2,
 			&sock_cpumask,
 			suite_thread2,
 			run_func2,
