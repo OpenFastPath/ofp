@@ -1094,6 +1094,23 @@ void f_add_alias_command(const char *name)
 	start = add_command(start, &a);
 }
 
+void ofp_cli_add_command(const char *cmd, const char *help,
+			 ofp_cli_cb_func func)
+{
+	struct cli_command a;
+
+	a.command = cmd;
+	a.help = help;
+	a.func = (void (*)(struct cli_conn *, const char *))func;
+	start = add_command(start, &a);
+}
+
+int ofp_cli_get_fd(void *handle)
+{
+	struct cli_conn *conn = handle;
+	return conn->fd;
+}
+
 static void cli_init_commands(void)
 {
 	unsigned i = 0;
