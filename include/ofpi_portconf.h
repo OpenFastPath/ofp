@@ -369,13 +369,4 @@ void ofp_join_device_to_multicat_group(struct ofp_ifnet *dev_root,
 				       uint32_t group);
 void ofp_leave_multicast_group(struct ofp_ifnet *dev_vxlan);
 
-static inline int ofp_queue_context_set(odp_queue_t queue, void *context)
-{
-	return odp_queue_context_set(queue, context);
-}
-
-static inline void *ofp_queue_context(odp_queue_t queue)
-{
-		return odp_queue_context(queue);
-}
 #endif

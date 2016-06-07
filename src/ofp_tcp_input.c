@@ -3217,7 +3217,7 @@ tcp_pulloutofband(struct socket *so, struct ofp_tcphdr *th, odp_packet_t m,
 	INP_WLOCK_ASSERT(tp->t_inpcb);
 	tp->t_iobc = *cp;
 	tp->t_oobflags |= OFP_TCPOOB_HAVEDATA;
-	odp_packet_rem_data(m, cnt, 1);
+	odp_packet_rem_data(&m, cnt, 1);
 }
 
 /*

@@ -2665,7 +2665,7 @@ static int myappend(odp_packet_t *pkt, int size, void *src)
 
 	*pkt = odp_packet_add_data(*pkt, off, size);
 	if (*pkt != ODP_PACKET_INVALID) {
-		odp_packet_copydata_in(*pkt, off, size, src);
+		odp_packet_copy_from_mem(*pkt, off, size, src);
 		return 1;
 	}
 	return 0;

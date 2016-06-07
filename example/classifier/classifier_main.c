@@ -409,17 +409,18 @@ static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos)
 
 static odp_pmr_t build_udp_prm(odp_cos_t cos_src, odp_cos_t cos_dst)
 {
-	uint32_t pmr_udp_val = TEST_PORT;
-	uint32_t pmr_udp_mask = 0xffffffff;
+	odp_pmr_param_t pmr_param;
+	uint16_t pmr_udp_val = TEST_PORT;
+	uint16_t pmr_udp_mask = 0xffff;
 
-	const odp_pmr_match_t match = {
-		.term = ODP_PMR_UDP_DPORT,
-		.val = &pmr_udp_val,
-		.mask = &pmr_udp_mask,
-		.val_sz = 1
-	};
+	odp_cls_pmr_param_init(&pmr_param);
 
-	return odp_cls_pmr_create(&match, 1, cos_src, cos_dst);
+	pmr_param.term = ODP_PMR_UDP_DPORT;
+	pmr_param.match.value = &pmr_udp_val;
+	pmr_param.match.mask = &pmr_udp_mask;
+	pmr_param.val_sz = sizeof (pmr_udp_val);
+
+	return odp_cls_pmr_create(&pmr_param, 1, cos_src, cos_dst);
 }
 
 static void app_processing(void)

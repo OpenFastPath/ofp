@@ -379,7 +379,7 @@ int ofp_set_vxlan_interface_queue(void)
 	}
 
 	/* Set device loopq queue context */
-	ofp_queue_context_set(ifnet->loopq_def, ifnet);
+	odp_queue_context_set(ifnet->loopq_def, ifnet, sizeof(ifnet));
 
 	return 0;
 }

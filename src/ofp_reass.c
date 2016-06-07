@@ -428,8 +428,8 @@ found:
 		frag_ip = FRAG_IP(frag);
 		int fraghlen = frag_ip->ip_hl<<2;
 		int fraglen = frag_ip->ip_len;
-		ret = odp_packet_add_data(ret, nextoff, fraglen);
-		odp_packet_copydata_in(ret, nextoff, fraglen,
+		odp_packet_add_data(&ret, nextoff, fraglen);
+		odp_packet_copy_from_mem(ret, nextoff, fraglen,
 				       (char *)(frag_ip) + fraghlen);
 		nextoff += fraglen;
 		len += fraglen;

@@ -1611,7 +1611,7 @@ dontblock:
 			SBLASTMBUFCHK(&so->so_rcv);
 			SOCKBUF_UNLOCK(&so->so_rcv);
 
-			if (!odp_packet_copydata_out(m, moff, len, (void*)
+			if (!odp_packet_copy_to_mem(m, moff, len, (void*)
 					((uintptr_t)uio->uio_iov->iov_base +
 						 uio_off))) {
 				uio_off += len;

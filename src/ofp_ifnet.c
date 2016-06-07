@@ -119,8 +119,8 @@ int ofp_loopq_create(struct ofp_ifnet *ifnet)
 	}
 
 	/* Set device loopq queue context */
-	if (ofp_queue_context_set(ifnet->loopq_def, ifnet) < 0) {
-		OFP_ERR("ofp_queue_context_set failed");
+	if (odp_queue_context_set(ifnet->loopq_def, ifnet, sizeof(ifnet)) < 0) {
+		OFP_ERR("odp_queue_context_set failed");
 		return -1;
 	}
 

@@ -109,7 +109,7 @@ create_odp_packet_ip4(odp_packet_t *opkt, uint8_t *pkt_data, int plen)
 		return -1;
 	}
 
-	if (odp_packet_copydata_in(pkt, 0, plen, pkt_data) < 0) {
+	if (odp_packet_copy_from_mem(pkt, 0, plen, pkt_data) < 0) {
 		fail_with_odp("Packet data copy failed\n");
 		return -1;
 	};

@@ -817,9 +817,9 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 
 		payload_new = (uint8_t *)(ip_new + 1);
 
-		if (odp_packet_copydata_out(pkt, payload_offset + pl_pos,
+		if (odp_packet_copy_to_mem(pkt, payload_offset + pl_pos,
 					    flen, payload_new) < 0) {
-			OFP_ERR("odp_packet_copydata_out failed");
+			OFP_ERR("odp_packet_copy_to_mem failed");
 			return OFP_PKT_DROP;
 		};
 
@@ -1390,7 +1390,7 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	/* Packets from VXLAN interfaces do not have an outq even
 	 * they have a valid pktio. Use loopback context instead. */
 	if (in_queue != ODP_QUEUE_INVALID)
-		ifnet = (struct ofp_ifnet *)ofp_queue_context(in_queue);
+		ifnet = (struct ofp_ifnet *)odp_queue_context(in_queue);
 
 	if (odp_likely(ifnet == NULL)) {
 		pktio = odp_packet_input(pkt);

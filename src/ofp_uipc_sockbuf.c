@@ -182,7 +182,7 @@ void ofp_sockbuf_copy_out(struct sockbuf *sb, int off, int len, char *dst)
 		int plen = odp_packet_len(sb->sb_mb[i]) - off;
 		if (plen > len)
 			plen = len;
-		odp_packet_copydata_out(sb->sb_mb[i], off, plen, dst + dstoff);
+		odp_packet_copy_to_mem(sb->sb_mb[i], off, plen, dst + dstoff);
 		off = 0;
 		len -= plen;
 		dstoff += plen;
