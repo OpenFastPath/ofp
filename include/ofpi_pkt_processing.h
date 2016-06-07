@@ -48,7 +48,7 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 	out_idx = core_id % ifnet->out_queue_num;
 
 	if (ifnet->out_queue_type == OFP_OUT_QUEUE_TYPE_PKTOUT) {
-		return odp_pktio_send_queue(ifnet->out_queue_pktout[out_idx],
+		return odp_pktout_send(ifnet->out_queue_pktout[out_idx],
 			pkt_tbl, pkt_tbl_cnt);
 	} else {
 		uint32_t i;

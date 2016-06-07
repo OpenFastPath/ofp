@@ -74,6 +74,8 @@
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
 /** Packet pool user area size. */
 #define SHM_PKT_POOL_USER_AREA_SIZE	16
+/** Packet pool name. */
+#define SHM_PKT_POOL_NAME "packet_pool"
 
 /**Socket handle values returned are in the interval:
  * [OFP_SOCK_NUM_OFFSET, OFP_SOCK_NUM_OFFSET + OFP_NUM_SOCKETS_MAX] */

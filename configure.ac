@@ -140,7 +140,7 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
-ODP_VERSION_SUPPORTED="1.7.0.0"
+ODP_VERSION_SUPPORTED="1.8.0.0.git6.g73392bf"
 function check_odp {
 	 AC_CHECK_LIB(odp, odp_packet_alloc, [],
 	     [AC_MSG_FAILURE(["This package needs OpenDataPlane (libodp.a) installed"])])

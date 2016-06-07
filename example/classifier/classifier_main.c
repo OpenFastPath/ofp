@@ -34,7 +34,7 @@ static void usage(char *progname);
 static int build_classifier(int if_count, char **if_names);
 static odp_cos_t build_cos_w_queue(const char *name);
 static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos);
-static odp_pmr_t build_udp_prm(void);
+static odp_pmr_t build_udp_prm(odp_cos_t cos_src, odp_cos_t cos_dst);
 static void app_processing(void);
 
 ofp_init_global_t app_init_params; /**< global OFP init parms */
@@ -62,6 +62,12 @@ int main(int argc, char *argv[])
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &params);
 
+	if (params.if_count > OFP_FP_INTERFACE_MAX) {
+		printf("Error: Invalid number of interfaces: maximum %d\n",
+			OFP_FP_INTERFACE_MAX);
+		exit(EXIT_FAILURE);
+	}
+
 	if (odp_init_global(NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
 		exit(EXIT_FAILURE);
@@ -77,7 +83,7 @@ int main(int argc, char *argv[])
 	core_count = odp_cpu_count();
 	num_workers = core_count;
 
-	if (params.core_count)
+	if (params.core_count && params.core_count < core_count)
 		num_workers = params.core_count;
 	if (num_workers > MAX_WORKERS)
 		num_workers = MAX_WORKERS;
@@ -118,14 +124,13 @@ int main(int argc, char *argv[])
 				  &cpumask,
 				  default_event_dispatcher,
 				  ofp_udp4_processing,
-				  ODP_THREAD_CONTROL
-				);
+				  ODP_THREAD_WORKER);
 
 	app_processing();
 
 	odph_linux_pthread_join(thread_tbl, num_workers);
-	printf("End Main()\n");
 
+	printf("End Main()\n");
 	return 0;
 }
 
@@ -310,12 +315,6 @@ int build_classifier(int if_count, char **if_names)
 		return -1;
 	}
 
-	pmr_udp = build_udp_prm();
-	if (pmr_udp == ODP_PMR_INVAL) {
-		OFP_ERR("Failed to create UDP PRM");
-		return -1;
-	}
-
 	for (i = 0; i < if_count; i++) {
 		pktio = odp_pktio_lookup(if_names[i]);
 		if (pktio == ODP_PKTIO_INVALID) {
@@ -344,10 +343,10 @@ int build_classifier(int if_count, char **if_names)
 			return -1;
 		}
 
-		if (odp_pktio_pmr_cos(pmr_udp, pktio, cos_udp) < 0) {
-			OFP_ERR("Failed to set UDP PRM on interface %s\n",
-				if_names[i]);
-			return 1;
+		pmr_udp = build_udp_prm(cos_def, cos_udp);
+		if (pmr_udp == ODP_PMR_INVAL) {
+			OFP_ERR("Failed to create UDP PRM");
+			return -1;
 		}
 	}
 
@@ -362,6 +361,7 @@ static odp_cos_t build_cos_w_queue(const char *name)
 	odp_cls_cos_param_t cos_param;
 
 	odp_queue_param_init(&qparam);
+	qparam.type = ODP_QUEUE_TYPE_SCHED;
 	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
@@ -374,6 +374,7 @@ static odp_cos_t build_cos_w_queue(const char *name)
 
 	odp_cls_cos_param_init(&cos_param);
 	cos_param.queue = queue_cos;
+	cos_param.pool = odp_pool_lookup(SHM_PKT_POOL_NAME);
 	cos = odp_cls_cos_create(name, &cos_param);
 	if (cos == ODP_COS_INVALID) {
 		OFP_ERR("Failed to create COS");
@@ -392,6 +393,7 @@ static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos)
 
 	odp_cls_cos_param_init(&cos_param);
 	cos_param.queue = queue_cos;
+	cos_param.pool = odp_pool_lookup(SHM_PKT_POOL_NAME);
 	cos = odp_cls_cos_create(name, &cos_param);
 	if (cos == ODP_COS_INVALID) {
 		OFP_ERR("Failed to create COS");
@@ -401,7 +403,7 @@ static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos)
 	return cos;
 }
 
-static odp_pmr_t build_udp_prm(void)
+static odp_pmr_t build_udp_prm(odp_cos_t cos_src, odp_cos_t cos_dst)
 {
 	uint32_t pmr_udp_val = TEST_PORT;
 	uint32_t pmr_udp_mask = 0xffffffff;
@@ -413,7 +415,7 @@ static odp_pmr_t build_udp_prm(void)
 		.val_sz = 1
 	};
 
-	return odp_pmr_create(&match);
+	return odp_cls_pmr_create(&match, 1, cos_src, cos_dst);
 }
 
 static void app_processing(void)
@@ -421,38 +423,36 @@ static void app_processing(void)
 	int fd_rcv = -1;
 	char buf[1500];
 	int len = sizeof(buf);
+	struct ofp_sockaddr_in addr = {0};
+
+	fd_rcv = ofp_socket(OFP_AF_INET, OFP_SOCK_DGRAM,
+				OFP_IPPROTO_UDP);
+	if (fd_rcv == -1) {
+		OFP_ERR("Faild to create RCV socket (errno = %d)\n",
+			ofp_errno);
+		return;
+	}
+
+	addr.sin_len = sizeof(struct ofp_sockaddr_in);
+	addr.sin_family = OFP_AF_INET;
+	addr.sin_port = odp_cpu_to_be_16(TEST_PORT);
+	addr.sin_addr.s_addr = IP4(192, 168, 100, 1);
+
+	if (ofp_bind(fd_rcv, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in)) == -1) {
+		OFP_ERR("Faild to bind socket (errno = %d)\n", ofp_errno);
+		return;
+	}
 
 	do {
-		struct ofp_sockaddr_in addr = {0};
-
-		fd_rcv = ofp_socket(OFP_AF_INET, OFP_SOCK_DGRAM,
-				OFP_IPPROTO_UDP);
-		if (fd_rcv == -1) {
-			OFP_ERR("Faild to create RCV socket (errno = %d)\n",
-				ofp_errno);
-			break;
-		}
-
-		addr.sin_len = sizeof(struct ofp_sockaddr_in);
-		addr.sin_family = OFP_AF_INET;
-		addr.sin_port = odp_cpu_to_be_16(TEST_PORT);
-		addr.sin_addr.s_addr = IP4(192, 168, 100, 1);
-
-		if (ofp_bind(fd_rcv, (const struct ofp_sockaddr *)&addr,
-			sizeof(struct ofp_sockaddr_in)) == -1) {
-			OFP_ERR("Faild to bind socket (errno = %d)\n",
-				ofp_errno);
-			break;
-		}
-
 		len = ofp_recv(fd_rcv, buf, len, 0);
-		if (len == -1)
+		if (len == -1) {
 			OFP_ERR("Faild to receive data (errno = %d)\n",
 				ofp_errno);
-		else
-			OFP_INFO("Data received: length = %d.\n", len);
-
-	} while (0);
+			break;
+		}
+		OFP_INFO("Data received: length = %d.\n", len);
+	} while (1);
 
 	if (fd_rcv != -1) {
 		ofp_close(fd_rcv);

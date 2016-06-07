@@ -166,6 +166,7 @@ int ofp_mtu_set(struct ofp_ifnet *ifnet)
 void ofp_igmp_attach(struct ofp_ifnet *ifnet)
 {
 	struct ofp_in_ifinfo *ii = &ifnet->ii_inet;
+
 	ii->ii_igmp = ofp_igmp_domifattach(ifnet);
 }
 
@@ -226,6 +227,13 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 		odp_pktio_param_init(&pktio_param_local);
 		pktio_param_local.in_mode = ODP_PKTIN_MODE_SCHED;
 		pktio_param_local.out_mode = ODP_PKTOUT_MODE_DIRECT;
+	} else if (pktio_param->in_mode != ODP_PKTIN_MODE_DIRECT &&
+		pktio_param->in_mode != ODP_PKTIN_MODE_SCHED &&
+		pktio_param->in_mode != ODP_PKTIN_MODE_QUEUE &&
+		pktio_param_local.out_mode != ODP_PKTOUT_MODE_DIRECT &&
+		pktio_param_local.out_mode != ODP_PKTOUT_MODE_QUEUE) {
+			OFP_ERR("Invalid pktio configuration parameters.");
+			return -1;
 	}
 
 	HANDLE_ERROR(ofp_pktio_open(ifnet, pktio_param));
@@ -237,11 +245,6 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 	}
 
 	HANDLE_ERROR(ofp_pktin_queue_config(ifnet, pktin_param));
-
-	if (pktout_param)
-		ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_PKTOUT;
-	else
-		ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
 
 	if (!pktout_param) {
 		pktout_param = &pktout_param_local;
@@ -277,20 +280,25 @@ int ofp_ifnet_create(char *if_name, odp_pktio_param_t *pktio_param,
 		return -1;
 	}
 
-	if (ifnet->out_queue_type == OFP_OUT_QUEUE_TYPE_PKTOUT) {
+	if (pktio_param->out_mode == ODP_PKTOUT_MODE_DIRECT) {
+		ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_PKTOUT;
 		ifnet->out_queue_num = pktout_param->num_queues;
 		if (odp_pktout_queue(ifnet->pktio,
 			ifnet->out_queue_pktout,
 			pktout_param->num_queues) <
 				(int)pktout_param->num_queues) {
-			OFP_ERR("Failed to get output queues.");
+			OFP_ERR("Failed to get pkt output queues on %s.",
+				ifnet->if_name);
 			return -1;
 		}
-	} else {
-		ifnet->out_queue_num = 1;
-		ifnet->outq_def = odp_pktio_outq_getdef(ifnet->pktio);
-		if (ifnet->outq_def == ODP_QUEUE_INVALID) {
-			OFP_ERR("odp_pktio_outq_getdef failed");
+	} else if (pktio_param->out_mode == ODP_PKTOUT_MODE_QUEUE) {
+		ifnet->out_queue_type = OFP_OUT_QUEUE_TYPE_QUEUE;
+		ifnet->out_queue_num = pktout_param->num_queues;
+		if (odp_pktout_event_queue(ifnet->pktio,
+			ifnet->out_queue_queue,	pktout_param->num_queues) <
+			(int)pktout_param->num_queues) {
+			OFP_ERR("Failed to get event output queues on %s.",
+				ifnet->if_name);
 			return -1;
 		}
 	}

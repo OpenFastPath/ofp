@@ -153,7 +153,7 @@ int ofp_init_pre_global(const char *pool_name_unused,
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
 	pool_params.type           = ODP_POOL_PACKET;
 
-	ofp_packet_pool = ofp_pool_create(SHM_PACKET_POOL_NAME, &pool_params);
+	ofp_packet_pool = ofp_pool_create(SHM_PKT_POOL_NAME, &pool_params);
 	if (ofp_packet_pool == ODP_POOL_INVALID) {
 		OFP_ERR("odp_pool_create failed");
 		return -1;
@@ -332,7 +332,7 @@ int ofp_term_global(void)
 
 	CHECK_ERROR(ofp_clean_vxlan_interface_queue(), rc);
 
-	if (ofp_term_post_global(SHM_PACKET_POOL_NAME)) {
+	if (ofp_term_post_global(SHM_PKT_POOL_NAME)) {
 		OFP_ERR("Failed to cleanup resources\n");
 		rc = -1;
 	}

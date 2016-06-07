@@ -23,6 +23,11 @@ typedef struct {
 	char *conf_file;
 } appl_args_t;
 
+struct pktio_thr_arg {
+	odp_pktin_queue_t pktin;
+	ofp_pkt_processing_func pkt_func;
+};
+
 /* helper funcs */
 static void parse_args(int argc, char *argv[], appl_args_t *appl_args);
 static void print_info(char *progname, appl_args_t *appl_args);
@@ -35,31 +40,11 @@ ofp_init_global_t app_init_params; /**< global OFP init parms */
 				strrchr((file_name), '/') + 1 : (file_name))
 
 
-/** local hook
- *
- * @param pkt odp_packet_t
- * @param protocol int
- * @return int
- *
- */
-static enum ofp_return_code fastpath_local_hook(odp_packet_t pkt, void *arg)
-{
-	int protocol = *(int *)arg;
-	(void) pkt;
-	(void) protocol;
-	return OFP_PKT_CONTINUE;
-}
-
 #define PKT_BURST_SIZE OFP_PKT_RX_BURST_SIZE
-
-struct pktio_thr_arg {
-	int port;
-	ofp_pkt_processing_func pkt_func;
-};
 
 static void *pkt_io_recv(void *arg)
 {
-	odp_pktio_t pktio;
+	odp_pktin_queue_t pktin;
 	odp_packet_t pkt, pkt_tbl[PKT_BURST_SIZE];
 	int pkt_idx, pkt_cnt;
 	struct pktio_thr_arg *thr_args;
@@ -67,23 +52,17 @@ static void *pkt_io_recv(void *arg)
 
 	thr_args = arg;
 	pkt_func = thr_args->pkt_func;
+	pktin = thr_args->pktin;
 
-	if (odp_init_local(ODP_THREAD_WORKER)) {
-		OFP_ERR("Error: ODP local init failed.\n");
-		return NULL;
-	}
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;
 	}
 
-	pktio = ofp_port_pktio_get(thr_args->port);
-
-	OFP_DBG("PKT-IO receive starting on port: %d, pktio-id: %"PRIX64"\n",
-		  thr_args->port, odp_pktio_to_u64(pktio));
+	OFP_DBG("PKT-IO receive starting on cpu: %d", odp_cpu_id());
 
 	while (1) {
-		pkt_cnt = odp_pktio_recv(pktio, pkt_tbl, PKT_BURST_SIZE);
+		pkt_cnt = odp_pktin_recv(pktin, pkt_tbl, PKT_BURST_SIZE);
 
 		for (pkt_idx = 0; pkt_idx < pkt_cnt; pkt_idx++) {
 			pkt = pkt_tbl[pkt_idx];
@@ -151,12 +130,27 @@ int main(int argc, char *argv[])
 	appl_args_t params;
 	int core_count, num_workers;
 	odp_cpumask_t cpu_mask;
-	char cpumaskstr[64];
-	int cpu, first_cpu, i;
+	int first_cpu, i;
 	struct pktio_thr_arg pktio_thr_args[MAX_WORKERS];
+	odp_pktio_param_t pktio_param;
+	odp_pktin_queue_param_t pktin_param;
+	odp_pktout_queue_param_t pktout_param;
+	odp_pktio_t pktio;
+	int port, queue_id;
+
+	struct pktin_table_s {
+		int	num_in_queue;
+		odp_pktin_queue_t in_queue[OFP_PKTIN_QUEUE_MAX];
+	} pktin_table[OFP_FP_INTERFACE_MAX];
 
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &params);
+
+	if (params.if_count > OFP_FP_INTERFACE_MAX) {
+		printf("Error: Invalid number of interfaces: maximum %d\n",
+			OFP_FP_INTERFACE_MAX);
+		exit(EXIT_FAILURE);
+	}
 
 	if (odp_init_global(NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
@@ -170,41 +164,22 @@ int main(int argc, char *argv[])
 	/* Print both system and application information */
 	print_info(NO_PATH(argv[0]), &params);
 
-	memset(thread_tbl, 0, sizeof(thread_tbl));
-	memset(pktio_thr_args, 0, sizeof(pktio_thr_args));
-
 	core_count = odp_cpu_count();
 	num_workers = core_count;
-	first_cpu = 1;
 
-	if (params.core_count)
+	if (params.core_count && params.core_count < core_count)
 		num_workers = params.core_count;
 	if (num_workers > MAX_WORKERS)
 		num_workers = MAX_WORKERS;
-
 	/*
 	 * By default core #0 runs Linux kernel background tasks.
 	 * Start mapping thread from core #1
 	 */
-	memset(&app_init_params, 0, sizeof(app_init_params));
-
-	app_init_params.linux_core_id = 0;
-
-	if (core_count <= 1) {
+	if (num_workers > 1) {
+		num_workers--;
+		first_cpu = 1;
+	} else {
 		OFP_ERR("Burst mode requires multiple cores.\n");
-		exit(EXIT_FAILURE);
-	}
-	num_workers--;
-
-	printf("Num worker threads: %i\n", num_workers);
-	printf("first CPU:          %i\n", first_cpu);
-
-	app_init_params.if_count = params.if_count;
-	app_init_params.if_names = params.if_names;
-	app_init_params.pkt_hook[OFP_HOOK_LOCAL] = fastpath_local_hook;
-	app_init_params.burst_recv_mode = 1;
-	if (ofp_init_global(&app_init_params)) {
-		OFP_ERR("Error: OFP global init failed.\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -214,25 +189,80 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	printf("Num worker threads: %i\n", num_workers);
+	printf("first CPU:          %i\n", first_cpu);
+
+	memset(&app_init_params, 0, sizeof(app_init_params));
+	app_init_params.linux_core_id = 0;
+
+	if (ofp_init_global(&app_init_params)) {
+		OFP_ERR("Error: OFP global init failed.\n");
+		exit(EXIT_FAILURE);
+	}
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	odp_pktio_param_init(&pktio_param);
+	pktio_param.in_mode = ODP_PKTIN_MODE_DIRECT;
+	pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
+
+	odp_pktin_queue_param_init(&pktin_param);
+	pktin_param.op_mode = ODP_PKTIO_OP_MT;
+	pktin_param.hash_enable = 0;
+	pktin_param.hash_proto.all_bits = 0;
+	pktin_param.num_queues = 1;
+
+	odp_pktout_queue_param_init(&pktout_param);
+	pktout_param.num_queues = 1;
+	pktout_param.op_mode = ODP_PKTIO_OP_MT;
+
+	for (i = 0; i < params.if_count; i++) {
+		if (ofp_ifnet_create(params.if_names[i],
+				&pktio_param,
+				&pktin_param,
+				&pktout_param) < 0) {
+			OFP_ERR("Failed to init interface %s",
+				params.if_names[i]);
+			exit(EXIT_FAILURE);
+		}
+
+		pktio = odp_pktio_lookup(params.if_names[i]);
+		if (pktio == ODP_PKTIO_INVALID) {
+			OFP_ERR("Failed locate pktio %s",
+				params.if_names[i]);
+			exit(EXIT_FAILURE);
+		}
+		pktin_table[i].num_in_queue = odp_pktin_queue(pktio,
+			pktin_table[i].in_queue, OFP_PKTIN_QUEUE_MAX);
+
+		if (pktin_table[i].num_in_queue < 0) {
+			OFP_ERR("Failed get input queues for %s",
+				params.if_names[i]);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	memset(thread_tbl, 0, sizeof(thread_tbl));
+	memset(pktio_thr_args, 0, sizeof(pktio_thr_args));
+
 	for (i = 0; i < num_workers; ++i) {
 		pktio_thr_args[i].pkt_func = ofp_eth_vlan_processing;
-		pktio_thr_args[i].port = i % params.if_count;
+
+		port = i % params.if_count;
+		queue_id = (i / params.if_count) %
+			pktin_table[port].num_in_queue;
+		pktio_thr_args[i].pktin = pktin_table[port].in_queue[queue_id];
 
 		odp_cpumask_zero(&cpu_mask);
-		cpu = first_cpu + i;
-		odp_cpumask_set(&cpu_mask, cpu);
-		odp_cpumask_to_str(&cpu_mask, cpumaskstr, sizeof(cpumaskstr));
-
-		OFP_DBG("Starting pktio receive on core: %d port: %d\n",
-			  cpu, pktio_thr_args[i].port);
-		OFP_DBG("cpu mask: %s\n", cpumaskstr);
+		odp_cpumask_set(&cpu_mask, first_cpu + i);
 
 		odph_linux_pthread_create(&thread_tbl[i],
 					  &cpu_mask,
 					  pkt_io_recv,
 					  &pktio_thr_args[i],
-					  ODP_THREAD_WORKER
-					);
+					  ODP_THREAD_WORKER);
 	}
 
 	odp_cpumask_zero(&cpu_mask);
@@ -241,10 +271,8 @@ int main(int argc, char *argv[])
 				  &cpu_mask,
 				  event_dispatcher,
 				  NULL,
-				  ODP_THREAD_CONTROL
-				);
+				  ODP_THREAD_WORKER);
 
-	/* other app code here.*/
 	/* Start CLI */
 	ofp_start_cli_thread(app_init_params.linux_core_id, params.conf_file);
 
