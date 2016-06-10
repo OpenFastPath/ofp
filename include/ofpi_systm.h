@@ -138,7 +138,7 @@ static inline void tcp_hc_update(struct in_conninfo *c, struct hc_metrics_lite *
 
 
 struct ofp_rec_rwlock {
-	odp_spinlock_recursive_t splock_rec;
+	odp_rwlock_recursive_t rwlock_rec;
 
 };
 
@@ -148,7 +148,7 @@ static inline void ofp_rec_init(struct ofp_rec_rwlock *lock,
 	(void)file;
 	(void)line;
 
-	odp_spinlock_recursive_init(&lock->splock_rec);
+	odp_rwlock_recursive_init(&lock->rwlock_rec);
 
 }
 
@@ -160,7 +160,7 @@ static inline void ofp_rec_wlock(struct ofp_rec_rwlock *lock,
 	(void)file;
 	(void)line;
 
-	odp_spinlock_recursive_lock(&lock->splock_rec);
+	odp_rwlock_recursive_write_lock(&lock->rwlock_rec);
 	return;
 }
 
@@ -170,7 +170,7 @@ static inline void ofp_rec_wunlock(struct ofp_rec_rwlock *lock,
 	(void)file;
 	(void)line;
 
-	odp_spinlock_recursive_unlock(&lock->splock_rec);
+	odp_rwlock_recursive_write_unlock(&lock->rwlock_rec);
 	return;
 }
 
@@ -180,7 +180,7 @@ static inline void ofp_rec_rlock(struct ofp_rec_rwlock *lock,
 	(void)file;
 	(void)line;
 
-	odp_spinlock_recursive_lock(&lock->splock_rec);
+	odp_rwlock_recursive_read_lock(&lock->rwlock_rec);
 	return;
 
 }
@@ -191,7 +191,7 @@ static inline void ofp_rec_runlock(struct ofp_rec_rwlock *lock,
 	(void)file;
 	(void)line;
 
-	odp_spinlock_recursive_unlock(&lock->splock_rec);
+	odp_rwlock_recursive_read_unlock(&lock->rwlock_rec);
 	return;
 
 }
@@ -202,7 +202,7 @@ static inline int ofp_rec_try_wlock(struct ofp_rec_rwlock *lock,
 	(void)file;
 	(void)line;
 
-	return odp_spinlock_recursive_trylock(&lock->splock_rec);
+	return odp_rwlock_recursive_write_trylock(&lock->rwlock_rec);
 }
 
 
