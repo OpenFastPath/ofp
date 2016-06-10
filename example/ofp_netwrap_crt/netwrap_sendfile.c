@@ -26,7 +26,7 @@ void setup_sendfile_wrappers(void)
 
 #define BUF_SIZE 1024
 
-ssize_t sendfile64(int out_fd, int in_fd, off_t *offset, size_t count)
+ssize_t sendfile64(int out_fd, int in_fd, off64_t *offset, size_t count)
 {
 	ssize_t sendfile_value = -1;
 
