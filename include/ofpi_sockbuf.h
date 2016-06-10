@@ -136,32 +136,34 @@ struct	sockbuf {
  * Per-socket buffer mutex used to protect most fields in the socket
  * buffer.
  */
-#ifndef RSS_ENABLED
-#define	SOCKBUF_MTX(_sb)		(&(_sb)->sb_mtx)
+#if (defined OFP_RSS) || (defined OFP_SOCKBUF_MTX_DISABLED)
+/* The same core that puts data to sockbuf must also read the data.
+ * This works with notify callback when the ofp_read/ofp_write is done
+ * on the same core as the one that does udp/tcp_input() processing.
+ */
+# define SOCKBUF_MTX(_sb)		(void)_sb;
 
-#define	SOCKBUF_LOCK_INIT(_sb, _name)	odp_rwlock_init(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_LOCK(_sb)		odp_rwlock_write_lock(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_UNLOCK(_sb)		odp_rwlock_write_unlock(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_RLOCK(_sb)		odp_rwlock_read_lock(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_RUNLOCK(_sb)		odp_rwlock_read_unlock(SOCKBUF_MTX(_sb))
+# define SOCKBUF_LOCK_INIT(_sb, _name)	(void)_sb; (void)_name;
+# define SOCKBUF_LOCK(_sb)		(void)_sb;
+# define SOCKBUF_UNLOCK(_sb)		(void)_sb;
+# define SOCKBUF_RLOCK(_sb)		(void)_sb;
+# define SOCKBUF_RUNLOCK(_sb)		(void)_sb;
 #else
-#define	SOCKBUF_MTX(_sb)		(void)_sb;
+# define SOCKBUF_MTX(_sb)		(&(_sb)->sb_mtx)
 
-#define	SOCKBUF_LOCK_INIT(_sb, _name)	(void)_sb; (void)_name;
-#define	SOCKBUF_LOCK(_sb)		(void)_sb;
-#define	SOCKBUF_UNLOCK(_sb)		(void)_sb;
-#define	SOCKBUF_RLOCK(_sb)		(void)_sb;
-#define	SOCKBUF_RUNLOCK(_sb)		(void)_sb;
+# define SOCKBUF_LOCK_INIT(_sb, _name)	odp_rwlock_init(SOCKBUF_MTX(_sb))
+# define SOCKBUF_LOCK(_sb)		odp_rwlock_write_lock(SOCKBUF_MTX(_sb))
+# define SOCKBUF_UNLOCK(_sb)		odp_rwlock_write_unlock(SOCKBUF_MTX(_sb))
+# define SOCKBUF_RLOCK(_sb)		odp_rwlock_read_lock(SOCKBUF_MTX(_sb))
+# define SOCKBUF_RUNLOCK(_sb)		odp_rwlock_read_unlock(SOCKBUF_MTX(_sb))
 #endif
+#define SOCKBUF_LOCK_DESTROY(_sb)	/*mtx_destroy(SOCKBUF_MTX(_sb))*/
+#define SOCKBUF_OWNED(_sb)		/*mtx_owned(SOCKBUF_MTX(_sb))*/
+#define SOCKBUF_LOCK_ASSERT(_sb)	/*mtx_assert(SOCKBUF_MTX(_sb), MA_OWNED)*/
+#define SOCKBUF_UNLOCK_ASSERT(_sb)	/*mtx_assert(SOCKBUF_MTX(_sb), MA_NOTOWNED)*/
 
-
-#define	SOCKBUF_LOCK_DESTROY(_sb)	//mtx_destroy(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_OWNED(_sb)		//mtx_owned(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_LOCK_ASSERT(_sb)	//mtx_assert(SOCKBUF_MTX(_sb), MA_OWNED)
-#define	SOCKBUF_UNLOCK_ASSERT(_sb)	//mtx_assert(SOCKBUF_MTX(_sb), MA_NOTOWNED)
-
-//#define	SOCKBUF_LOCK_Y(_sb)		ofp_rec_wlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)
-//#define	SOCKBUF_UNLOCK_Y(_sb)		ofp_rec_wunlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)
+/*#define SOCKBUF_LOCK_Y(_sb)		ofp_rec_wlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)*/
+/*#define SOCKBUF_UNLOCK_Y(_sb)		ofp_rec_wunlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)*/
 
 int	packet_accepted_as_event(struct socket *so, odp_packet_t pkt);
 void	sbappend(struct sockbuf *sb, odp_packet_t m);
