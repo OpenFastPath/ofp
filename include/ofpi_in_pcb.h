@@ -451,16 +451,27 @@ struct tcpcb *
 	inp_inpcbtotcpcb(struct inpcb *inp);
 void	inp_4tuple_get(struct inpcb *inp, uint32_t *laddr, uint16_t *lp,
 		uint32_t *faddr, uint16_t *fp);
-
-#define INP_INFO_LOCK_INIT(ipi, d) ofp_rec_init(&(ipi)->ipi_lock, __FILE__, __LINE__)
+#if (defined OFP_RSS) || (defined OFP_INP_INFO_DISABLE)
+# define INP_INFO_LOCK_INIT(ipi, d)	(void)ipi; (void)d;
+/*#define INP_INFO_LOCK_DESTROY(ipi)	(void)ipi;*/
+# define INP_INFO_RLOCK(ipi)		(void)ipi;
+# define INP_INFO_WLOCK(ipi)		(void)ipi;
+# define INP_INFO_TRY_WLOCK(ipi)	1
+# define INP_INFO_RUNLOCK(ipi)		(void)ipi;
+# define INP_INFO_WUNLOCK(ipi)		(void)ipi;
+#else
+# define INP_INFO_LOCK_INIT(ipi, d)	ofp_rec_init(&(ipi)->ipi_lock, __FILE__, __LINE__)
+/* TODO
 #define INP_INFO_LOCK_DESTROY(ipi)	rw_destroy(&(ipi)->ipi_lock)
-#define INP_INFO_RLOCK(ipi) ofp_rec_rlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-#define INP_INFO_WLOCK(ipi) ofp_rec_wlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-#define INP_INFO_TRY_RLOCK(ipi)		ofp_rwlock_try_read_lock(&(ipi)->ipi_lock)
-#define INP_INFO_TRY_WLOCK(ipi)	ofp_rec_try_wlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-#define INP_INFO_TRY_UPGRADE(ipi)	rw_try_upgrade(&(ipi)->ipi_lock)
-#define INP_INFO_RUNLOCK(ipi)  ofp_rec_runlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-#define INP_INFO_WUNLOCK(ipi) ofp_rec_wunlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
+*/
+# define INP_INFO_RLOCK(ipi)		ofp_rec_rlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
+# define INP_INFO_WLOCK(ipi)		ofp_rec_wlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
+/*#define INP_INFO_TRY_RLOCK(ipi)	ofp_rec_try_rlock(&(ipi)->ipi_lock)*/
+# define INP_INFO_TRY_WLOCK(ipi)	ofp_rec_try_wlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
+# define INP_INFO_TRY_UPGRADE(ipi)	rw_try_upgrade(&(ipi)->ipi_lock)
+# define INP_INFO_RUNLOCK(ipi)		ofp_rec_runlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
+# define INP_INFO_WUNLOCK(ipi)		ofp_rec_wunlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
+#endif
 
 #define	RA_LOCKED		0x01
 #define	RA_RLOCKED		0x02
