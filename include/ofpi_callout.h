@@ -107,8 +107,9 @@ int	callout_schedule_on(struct callout *, int, int);
 	    uint64_t us = ((uint64_t)_ticks)*OFP_TIMER_RESOLUTION_US;		\
 	    odp_timer_t tmp = (_c)->odptmo;				\
 	    (_c)->odptmo = ODP_TIMER_INVALID;				\
-	    ofp_timer_cancel(tmp);				\
-	    (_c)->odptmo = ofp_timer_start(us, _func, &param, sizeof(void *)); \
+	    ofp_timer_cancel(tmp);					\
+	    (_c)->odptmo = ofp_timer_start_cpu_id(us, _func, &param,    \
+			 sizeof(void *), _cpu);				\
 	    (_c)->c_flags |= CALLOUT_ACTIVE;				\
 	} while (0)
 

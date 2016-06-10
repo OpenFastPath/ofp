@@ -107,13 +107,10 @@ OFP_SYSCTL_INT(_net_inet_tcp, OFP_OID_AUTO, keepcnt, OFP_CTLFLAG_RW, &ofp_tcp_ke
 int	ofp_tcp_maxpersistidle;
 
 
-//static int	per_cpu_timers = 0;
-
-#if 0 /* HJo */
-#define	INP_CPU(inp)	(per_cpu_timers ? (!CPU_ABSENT(((inp)->inp_flowid % (mp_maxid+1))) ? \
-		((inp)->inp_flowid % (mp_maxid+1)) : curcpu) : 0)
+#if (defined OFP_RSS) || (defined OFP_TCP_MULTICORE_TIMERS)
+#define	INP_CPU(inp) odp_cpu_id()
 #else
-#define	INP_CPU(inp) 0
+#define	INP_CPU(inp) -1
 #endif
 
 /*
@@ -594,7 +591,6 @@ ofp_tcp_timer_activate(struct tcpcb *tp, int timer_type, uint32_t delta)
 	void *f_callout = NULL;
 	struct inpcb *inp = tp->t_inpcb;
 	int cpu = INP_CPU(inp);
-	(void)cpu;
 	(void)inp;
 
 	switch (timer_type) {
