@@ -19,6 +19,7 @@
 #include "ofpi_queue.h"
 #include "ofpi_ioctl.h"
 #include "ofpi_if_vxlan.h"
+#include "ofpi_ifnet.h"
 #include "ofpi_tree.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_in_var.h"
@@ -741,6 +742,8 @@ const char *ofp_config_interface_up_local(uint16_t id, uint16_t vrf,
 	if (data)
 		ofp_config_interface_down(data->port, data->vlan);
 	data = ofp_get_create_ifnet(LOCAL_PORTS, id);
+	ofp_loopq_create(data);
+
 #ifdef SP
 	if (vrf) {
 		/* Create vrf if not exist using dummy call */
@@ -1011,6 +1014,13 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 #endif /* SP */
 		}
 #endif /* INET6 */
+		if (data->loopq_def != ODP_QUEUE_INVALID) {
+			if (odp_queue_destroy(data->loopq_def) < 0) {
+				OFP_ERR("Failed to destroy loop queue for %s",
+					data->if_name);
+			}
+			data->loopq_def = ODP_QUEUE_INVALID;
+		}
 
 		if (data->port == VXLAN_PORTS &&
 		    data->ii_inet.ii_allhosts) {

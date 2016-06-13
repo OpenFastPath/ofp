@@ -970,7 +970,8 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 			eth->ether_dhost[3] = (addr >> 16) & 0x7f;
 			eth->ether_dhost[4] = (addr >> 8) & 0xff;
 			eth->ether_dhost[5] = addr & 0xff;
-		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr) {
+		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr ||
+			   odata->dev_out->port == LOCAL_PORTS) {
 			odata->is_local_address = 1;
 			ofp_copy_mac(eth->ether_dhost, &(odata->dev_out->mac[0]));
 		} else if (ofp_get_mac(odata->dev_out, odata->gw, eth->ether_dhost) < 0) {
@@ -993,7 +994,8 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 			eth_vlan->evl_dhost[3] = (addr >> 16) & 0x7f;
 			eth_vlan->evl_dhost[4] = (addr >> 8) & 0xff;
 			eth_vlan->evl_dhost[5] = addr & 0xff;
-		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr) {
+		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr ||
+			   odata->dev_out->port == LOCAL_PORTS) {
 			odata->is_local_address = 1;
 			ofp_copy_mac(eth_vlan->evl_dhost, odata->dev_out->mac);
 		} else if (ofp_get_mac(odata->dev_out,
@@ -1327,7 +1329,8 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 		return OFP_PKT_DROP;
 
 	/* MAC address for the destination */
-	if (ofp_ip6_equal(dev_out->ip6_addr, ip6->ip6_dst.ofp_s6_addr)) {
+	if (ofp_ip6_equal(dev_out->ip6_addr, ip6->ip6_dst.ofp_s6_addr) ||
+	    dev_out->port == LOCAL_PORTS) {
 		is_local_address = 1;
 		mac = dev_out->mac;
 	} else {
