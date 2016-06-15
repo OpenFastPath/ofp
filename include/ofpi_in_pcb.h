@@ -384,22 +384,32 @@ struct inpcbport {
 	uint16_t phd_port;
 };
 
+#if (defined OFP_RSS) || (defined OFP_INP_LOCK_DISABLED)
+# define INP_LOCK_INIT(inp, d, t) do{(void)inp;} while (0)
+# define INP_RLOCK(inp)
+# define INP_WLOCK(inp)
+# define INP_TRY_WLOCK(inp)	1
+# define INP_RUNLOCK(inp)	do{(void)inp;} while (0)
+# define INP_WUNLOCK(inp)	do{(void)inp;} while (0)
 
-#define INP_LOCK_INIT(inp, d, t) ofp_rec_init(&(inp)->inp_lock, __FILE__, __LINE__)
-#define INP_LOCK_DESTROY(inp)
-#define INP_RLOCK(inp)		ofp_rec_rlock(&(inp)->inp_lock, __FILE__, __LINE__)
-#define INP_WLOCK(inp)		ofp_rec_wlock(&(inp)->inp_lock, __FILE__, __LINE__)
-#define INP_TRY_RLOCK(inp)	//rw_try_rlock(&(inp)->inp_lock)
-#define INP_TRY_WLOCK(inp)	ofp_rec_try_wlock(&(inp)->inp_lock, __FILE__, __LINE__)
-#define INP_RUNLOCK(inp)	ofp_rec_runlock(&(inp)->inp_lock, __FILE__, __LINE__)
-#define INP_WUNLOCK(inp)	ofp_rec_wunlock(&(inp)->inp_lock, __FILE__, __LINE__)
-#define	INP_TRY_UPGRADE(inp)	//rw_try_upgrade(&(inp)->inp_lock)
-#define	INP_DOWNGRADE(inp)	//rw_downgrade(&(inp)->inp_lock)
-#define	INP_WLOCKED(inp)	//rw_wowned(&(inp)->inp_lock)
-#define	INP_LOCK_ASSERT(inp)	//rw_assert(&(inp)->inp_lock, RA_LOCKED)
-#define	INP_RLOCK_ASSERT(inp)	//rw_assert(&(inp)->inp_lock, RA_RLOCKED)
-#define	INP_WLOCK_ASSERT(inp)	//rw_assert(&(inp)->inp_lock, RA_WLOCKED)
-#define	INP_UNLOCK_ASSERT(inp)	//rw_assert(&(inp)->inp_lock, RA_UNLOCKED)
+# define INP_LOCK_ASSERT(inp)
+# define INP_RLOCK_ASSERT(inp)
+# define INP_WLOCK_ASSERT(inp)
+# define INP_UNLOCK_ASSERT(inp)
+#else
+# define INP_LOCK_INIT(inp, d, t) ofp_rec_init(&(inp)->inp_lock, __FILE__, __LINE__)
+# define INP_RLOCK(inp)		ofp_rec_rlock(&(inp)->inp_lock, __FILE__, __LINE__)
+# define INP_WLOCK(inp)		ofp_rec_wlock(&(inp)->inp_lock, __FILE__, __LINE__)
+# define INP_TRY_WLOCK(inp)	ofp_rec_try_wlock(&(inp)->inp_lock, __FILE__, __LINE__)
+# define INP_RUNLOCK(inp)	ofp_rec_runlock(&(inp)->inp_lock, __FILE__, __LINE__)
+# define INP_WUNLOCK(inp)	ofp_rec_wunlock(&(inp)->inp_lock, __FILE__, __LINE__)
+/* TODO implement assert operations*/
+# define INP_LOCK_ASSERT(inp)	/*rw_assert(&(inp)->inp_lock, RA_LOCKED)*/
+# define INP_RLOCK_ASSERT(inp)	/*rw_assert(&(inp)->inp_lock, RA_RLOCKED)*/
+# define INP_WLOCK_ASSERT(inp)	/*rw_assert(&(inp)->inp_lock, RA_WLOCKED)*/
+# define INP_UNLOCK_ASSERT(inp)	/*rw_assert(&(inp)->inp_lock, RA_UNLOCKED)*/
+#endif
+#define INP_LOCK_DESTROY(inp)	/* TODO implement and call lock destroy.*/
 
 /*
  * These locking functions are for inpcb consumers outside of sys/netinet,
