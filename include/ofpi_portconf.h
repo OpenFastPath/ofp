@@ -368,5 +368,6 @@ void ofp_join_device_to_multicat_group(struct ofp_ifnet *dev_root,
 				       struct ofp_ifnet *dev_vxlan,
 				       uint32_t group);
 void ofp_leave_multicast_group(struct ofp_ifnet *dev_vxlan);
+int ofp_local_interfaces_destroy(void);
 
 #endif

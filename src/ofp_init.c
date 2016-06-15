@@ -336,6 +336,7 @@ int ofp_term_global(void)
 	}
 
 	CHECK_ERROR(ofp_clean_vxlan_interface_queue(), rc);
+	CHECK_ERROR(ofp_local_interfaces_destroy(), rc);
 
 	if (ofp_term_post_global(SHM_PKT_POOL_NAME)) {
 		OFP_ERR("Failed to cleanup resources\n");

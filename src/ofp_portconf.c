@@ -933,6 +933,34 @@ const char *ofp_config_interface_up_local_v6(uint16_t id,
 }
 #endif /* INET6 */
 
+static int iter_local_iface_destroy(void *key, void *iter_arg)
+{
+	struct ofp_ifnet *iface = key;
+	(void)iter_arg;
+
+	ofp_config_interface_down(iface->port, iface->vlan);
+
+	return 0;
+}
+
+int ofp_local_interfaces_destroy(void)
+{
+	if (!shm)
+		shm = ofp_shared_memory_lookup(SHM_NAME_PORTS);
+	if (!shm) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		return -1;
+	}
+
+	if (!shm->ofp_ifnet_data[LOCAL_PORTS].vlan_structs)
+		return 0;
+
+	vlan_iterate_inorder(shm->ofp_ifnet_data[LOCAL_PORTS].vlan_structs,
+			     iter_local_iface_destroy, NULL);
+
+	return 0;
+}
+
 const char *ofp_config_interface_down(int port, uint16_t vlan)
 {
 #ifdef SP
