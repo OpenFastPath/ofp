@@ -17,4 +17,10 @@ void ofp_timer_handle(odp_event_t buf);
 int ofp_timer_ticks(int timer_num);
 odp_timer_pool_t ofp_timer(int timer_num);
 
+/** Register a timeout callback that will be posted on the specified cpu timer
+ * queue. */
+odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
+		       void *arg, int arglen, int cpu_id);
+/** Get timer queue for a cpu id. */
+odp_queue_t ofp_timer_queue_cpu(int cpu_id);
 #endif /* __OFP_TIMER_H__ */
