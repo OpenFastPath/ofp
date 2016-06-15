@@ -72,8 +72,6 @@
 #include <netinet/tcp_debug.h>
 #endif
 
-odp_timer_t ofp_tcp_slow_timer = ODP_TIMER_INVALID;
-
 #define	SYSCTL_VNET_INT OFP_SYSCTL_INT
 
 unsigned int ofp_max_protohdr = 0;
@@ -335,8 +333,30 @@ ofp_tcp_init(void)
 	EVENTHANDLER_REGISTER(maxsockets_change, tcp_zone_change, NULL,
 		EVENTHANDLER_PRI_ANY);
 #endif
-	ofp_tcp_slow_timer = ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
+#ifndef OFP_RSS
+	shm_tcp->ofp_tcp_slow_timer = ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
+#else
+	int32_t cpu_id = 0;
+	for (; cpu_id < odp_cpu_count(); cpu_id++)
+		shm_tcp->ofp_tcp_slow_timer[cpu_id] = ofp_timer_start_cpu_id(
+				500000,	ofp_tcp_slowtimo, NULL, 0, cpu_id);
+#endif
 }
+
+static void ofp_tcp_slow_timer_cancel(void)
+{
+#ifndef OFP_RSS
+	ofp_timer_cancel(shm_tcp->ofp_tcp_slow_timer);
+	shm_tcp->ofp_tcp_slow_timer = ODP_TIMER_INVALID;
+#else
+	int32_t cpu_id = 0;
+	for (; cpu_id < odp_cpu_count(); cpu_id++) {
+		ofp_timer_cancel(shm_tcp->ofp_tcp_slow_timer[cpu_id]);
+		shm_tcp->ofp_tcp_slow_timer[cpu_id] = ODP_TIMER_INVALID;
+	}
+#endif
+}
+
 
 void
 ofp_tcp_destroy(void)
@@ -345,10 +365,7 @@ ofp_tcp_destroy(void)
 	struct tcptw *tw;
 	struct tcpcb *tp;
 
-	if (ofp_tcp_slow_timer != ODP_TIMER_INVALID) {
-		ofp_timer_cancel(ofp_tcp_slow_timer);
-		ofp_tcp_slow_timer = ODP_TIMER_INVALID;
-	}
+	ofp_tcp_slow_timer_cancel();
 
 	OFP_LIST_FOREACH_SAFE(inp, V_tcbinfo.ipi_listhead, inp_list, inp_temp) {
 

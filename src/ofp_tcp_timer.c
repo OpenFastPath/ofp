@@ -125,7 +125,15 @@ ofp_tcp_slowtimo(void *notused)
 	INP_INFO_WLOCK(&V_tcbinfo);
 	(void) ofp_tcp_tw_2msl_scan(0);
 	INP_INFO_WUNLOCK(&V_tcbinfo);
-	ofp_tcp_slow_timer = ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
+
+#ifndef OFP_RSS
+	shm_tcp->ofp_tcp_slow_timer =
+			ofp_timer_start(500000, ofp_tcp_slowtimo, NULL, 0);
+#else
+	uint32_t cpu_id = odp_cpu_id();
+	shm_tcp->ofp_tcp_slow_timer[cpu_id] = ofp_timer_start_cpu_id(500000,
+					ofp_tcp_slowtimo, NULL, 0, cpu_id);
+#endif
 }
 
 int	ofp_tcp_syn_backoff[TCP_MAXRXTSHIFT + 1] =

@@ -144,7 +144,13 @@ ofp_tcp_tw_init(void)
 		uma_zone_set_max(V_tcptw_zone, maxtcptw);
 	}
 
+#ifdef OFP_RSS
+	int32_t cpu_id = 0;
+	for (; cpu_id < odp_cpu_count() ; cpu_id++)
+		OFP_TAILQ_INIT(&shm_tcp->twq_2msl[cpu_id]);
+#else
 	OFP_TAILQ_INIT(&V_twq_2msl);
+#endif
 }
 
 
