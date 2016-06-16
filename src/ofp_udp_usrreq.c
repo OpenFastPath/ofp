@@ -142,8 +142,7 @@ ofp_udp_init(void)
 	INP_INFO_LOCK_INIT(&ofp_udbinfo, 0);
 
 	ofp_in_pcbinfo_init(&ofp_udbinfo, "udp", &ofp_udb, UDBHASHSIZE, UDBHASHSIZE,
-			"udp_inpcb", udp_inpcb_init, NULL, 0,
-			IPI_HASHFIELDS_2TUPLE);
+			"udp_inpcb", udp_inpcb_init, NULL, 0);
 }
 
 void

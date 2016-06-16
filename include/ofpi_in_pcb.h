@@ -659,7 +659,10 @@ VNET_DECLARE(int, ofp_ipport_tcpallocs);
 
 void	ofp_in_pcbinfo_destroy(struct inpcbinfo *);
 void	ofp_in_pcbinfo_init(struct inpcbinfo *, const char *, struct inpcbhead *,
-	    int, int, const char *, uma_init, uma_fini, uint32_t, uint32_t);
+	    int, int, const char *, uma_init, uma_fini, uint32_t);
+#ifdef OFP_RSS
+void	ofp_tcp_rss_in_pcbinfo_init(int, int, uma_init, uma_fini, uint32_t);
+#endif
 
 void	ofp_in_pcbinfo_hashstats(struct inpcbinfo *pcbinfo, unsigned int *min,
 	    unsigned int *avg, unsigned int *max);

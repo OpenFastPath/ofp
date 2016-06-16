@@ -97,6 +97,56 @@ refcount_release(odp_atomic_u32_t *count)
 	return (old == 1);
 }
 
+#ifdef OFP_RSS
+void ofp_tcp_rss_in_pcbinfo_init( int hash_nelements, int porthash_nelements,
+    uma_init inpcbzone_init, uma_fini inpcbzone_fini, uint32_t inpcbzone_flags)
+{
+	int32_t cpu_id;
+
+	/* make compiler happy */
+	(void)inpcbzone_init;
+	(void)inpcbzone_fini;
+	(void)inpcbzone_flags;
+
+	for (cpu_id = 0; cpu_id < odp_cpu_count(); cpu_id++) {
+		struct inpcbinfo *pcbinfo = &shm_tcp->ofp_tcbinfo[cpu_id];
+		struct inpcbhead *listhead = &shm_tcp->ofp_tcb[cpu_id];
+		char name_cpu[16];
+
+		sprintf (name_cpu, "tcp_%u", cpu_id);
+		INP_INFO_LOCK_INIT(pcbinfo, name_cpu);
+
+		sprintf (name_cpu, "pcbinfohash_%u", cpu_id);
+		INP_HASH_LOCK_INIT(pcbinfo, name_cpu);
+		pcbinfo->ipi_listhead = listhead;
+		OFP_LIST_INIT(pcbinfo->ipi_listhead);
+		pcbinfo->ipi_count = 0;
+
+		pcbinfo->ipi_hashbase = shm_tcp->ofp_hashtbl;
+		ofp_tcp_hashinit(hash_nelements, &pcbinfo->ipi_hashmask,
+				pcbinfo->ipi_hashbase);
+
+		pcbinfo->ipi_porthashbase = shm_tcp->ofp_porthashtbl;
+		ofp_tcp_hashinit(porthash_nelements,
+			&pcbinfo->ipi_hashmask,
+			pcbinfo->ipi_porthashbase);
+
+		sprintf (name_cpu, "tcp_inpcb_%u", cpu_id);
+		pcbinfo->ipi_zone = uma_zcreate(name_cpu,
+			OFP_NUM_PCB_TCP_MAX, sizeof(struct inpcb),
+			NULL, NULL, inpcbzone_init, inpcbzone_fini,
+			UMA_ALIGN_PTR, inpcbzone_flags);
+
+		if (pcbinfo->ipi_zone == -1)
+			OFP_ERR("ipi_zone for pcbinfo NOT allocated!");
+
+		uma_zone_set_max(pcbinfo->ipi_zone, maxsockets);
+	}
+
+	return;
+}
+#endif
+
 /*
  * Initialize an inpcbinfo -- we should be able to reduce the number of
  * arguments in time.
@@ -105,17 +155,14 @@ void
 ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
     struct inpcbhead *listhead, int hash_nelements, int porthash_nelements,
     const char *inpcbzone_name, uma_init inpcbzone_init, uma_fini inpcbzone_fini,
-    uint32_t inpcbzone_flags, uint32_t hashfields)
+    uint32_t inpcbzone_flags)
 {
 	int pcb_size = OFP_NUM_SOCKETS_MAX;
 
 	/* make compiler happy */
-	(void)name;
-	(void)inpcbzone_name;
 	(void)inpcbzone_init;
 	(void)inpcbzone_fini;
 	(void)inpcbzone_flags;
-	(void)hashfields;
 
 	INP_INFO_LOCK_INIT(pcbinfo, name);
 	INP_HASH_LOCK_INIT(pcbinfo, "pcbinfohash");	/* XXXRW: argument? */

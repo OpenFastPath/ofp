@@ -275,9 +275,12 @@ ofp_tcp_init(void)
 	}
 #endif
 
+#ifdef OFP_RSS
+	ofp_tcp_rss_in_pcbinfo_init(hashsize, hashsize, tcp_inpcb_init, NULL, 0);
+#else
 	ofp_in_pcbinfo_init(&V_tcbinfo, "tcp", &V_tcb, hashsize, hashsize,
-	    "tcp_inpcb", tcp_inpcb_init, NULL, 0,
-	    IPI_HASHFIELDS_4TUPLE);
+	    "tcp_inpcb", tcp_inpcb_init, NULL, 0);
+#endif
 
 	/*
 	 * These have to be type stable for the benefit of the timers.
