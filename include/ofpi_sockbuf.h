@@ -162,8 +162,8 @@ struct	sockbuf {
 #define SOCKBUF_LOCK_ASSERT(_sb)	/*mtx_assert(SOCKBUF_MTX(_sb), MA_OWNED)*/
 #define SOCKBUF_UNLOCK_ASSERT(_sb)	/*mtx_assert(SOCKBUF_MTX(_sb), MA_NOTOWNED)*/
 
-/*#define SOCKBUF_LOCK_Y(_sb)		ofp_rec_wlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)*/
-/*#define SOCKBUF_UNLOCK_Y(_sb)		ofp_rec_wunlock(SOCKBUF_MTX(_sb), __FILE__, __LINE__)*/
+/*#define SOCKBUF_LOCK_Y(_sb)		odp_rwlock_recursive_write_lock(SOCKBUF_MTX(_sb))*/
+/*#define SOCKBUF_UNLOCK_Y(_sb)		odp_rwlock_recursive_write_unlock(SOCKBUF_MTX(_sb))*/
 
 int	packet_accepted_as_event(struct socket *so, odp_packet_t pkt);
 void	sbappend(struct sockbuf *sb, odp_packet_t m);

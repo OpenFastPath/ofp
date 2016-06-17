@@ -177,9 +177,6 @@ OFP_SYSCTL_INT(_net_inet_tcp, OFP_OID_AUTO, passive_trace, OFP_CTLFLAG_RW,
  */
 __thread struct ofp_tcp_var_mem *shm_tcp;
 
-const char *ofp_tcbinfo_locked_by_file = NULL;
-int  ofp_tcbinfo_locked_by_line;
-
 static void	 tcp_dooptions(struct tcpopt *, uint8_t *, int, int);
 static void	 tcp_dropwithreset(odp_packet_t , struct ofp_tcphdr *,
 		     struct tcpcb *, int, int);

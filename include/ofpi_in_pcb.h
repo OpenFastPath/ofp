@@ -157,7 +157,7 @@ struct inpcbinfo {
 	/*
 	 * Global lock protecting global inpcb list, inpcb count, etc.
 	 */
-	struct ofp_rec_rwlock ipi_lock;
+	odp_rwlock_recursive_t	ipi_lock;
 	//int			ipi_lock_cnt;
 	//int			ipi_lock_owner;
 	/*
@@ -348,7 +348,7 @@ struct inpcb {
 	inp_gen_t	inp_gencnt;	/* (c) generation count */
 	struct llentry	*inp_lle;	/* cached L2 information */
 	struct rtentry	*inp_rt;	/* cached L3 information */
-	struct ofp_rec_rwlock	inp_lock;
+	odp_rwlock_recursive_t inp_lock;
 	//int		inp_lock_cnt;
 	//int		inp_lock_owner;
 	//const char	*lockedby_file;
@@ -385,24 +385,24 @@ struct inpcbport {
 };
 
 #if (defined OFP_RSS) || (defined OFP_INP_LOCK_DISABLED)
-# define INP_LOCK_INIT(inp, d, t) do{(void)inp;} while (0)
-# define INP_RLOCK(inp)
-# define INP_WLOCK(inp)
-# define INP_TRY_WLOCK(inp)	1
-# define INP_RUNLOCK(inp)	do{(void)inp;} while (0)
-# define INP_WUNLOCK(inp)	do{(void)inp;} while (0)
+# define INP_LOCK_INIT(inp, d, t)	do{(void)inp;(void)d;(void)t;} while (0)
+# define INP_RLOCK(inp)			do{(void)inp;} while (0)
+# define INP_WLOCK(inp)			do{(void)inp;} while (0)
+# define INP_TRY_WLOCK(inp)		1
+# define INP_RUNLOCK(inp)		do{(void)inp;} while (0)
+# define INP_WUNLOCK(inp)		do{(void)inp;} while (0)
 
-# define INP_LOCK_ASSERT(inp)
-# define INP_RLOCK_ASSERT(inp)
-# define INP_WLOCK_ASSERT(inp)
-# define INP_UNLOCK_ASSERT(inp)
+# define INP_LOCK_ASSERT(inp)		do{(void)inp;} while (0)
+# define INP_RLOCK_ASSERT(inp)		do{(void)inp;} while (0)
+# define INP_WLOCK_ASSERT(inp)		do{(void)inp;} while (0)
+# define INP_UNLOCK_ASSERT(inp)		do{(void)inp;} while (0)
 #else
-# define INP_LOCK_INIT(inp, d, t) ofp_rec_init(&(inp)->inp_lock, __FILE__, __LINE__)
-# define INP_RLOCK(inp)		ofp_rec_rlock(&(inp)->inp_lock, __FILE__, __LINE__)
-# define INP_WLOCK(inp)		ofp_rec_wlock(&(inp)->inp_lock, __FILE__, __LINE__)
-# define INP_TRY_WLOCK(inp)	ofp_rec_try_wlock(&(inp)->inp_lock, __FILE__, __LINE__)
-# define INP_RUNLOCK(inp)	ofp_rec_runlock(&(inp)->inp_lock, __FILE__, __LINE__)
-# define INP_WUNLOCK(inp)	ofp_rec_wunlock(&(inp)->inp_lock, __FILE__, __LINE__)
+# define INP_LOCK_INIT(inp, d, t) odp_rwlock_recursive_init(&(inp)->inp_lock)
+# define INP_RLOCK(inp)		odp_rwlock_recursive_read_lock(&(inp)->inp_lock)
+# define INP_WLOCK(inp)		odp_rwlock_recursive_write_lock(&(inp)->inp_lock)
+# define INP_TRY_WLOCK(inp)	odp_rwlock_recursive_write_trylock(&(inp)->inp_lock)
+# define INP_RUNLOCK(inp)	odp_rwlock_recursive_read_unlock(&(inp)->inp_lock)
+# define INP_WUNLOCK(inp)	odp_rwlock_recursive_write_unlock(&(inp)->inp_lock)
 /* TODO implement assert operations*/
 # define INP_LOCK_ASSERT(inp)	/*rw_assert(&(inp)->inp_lock, RA_LOCKED)*/
 # define INP_RLOCK_ASSERT(inp)	/*rw_assert(&(inp)->inp_lock, RA_RLOCKED)*/
@@ -439,9 +439,6 @@ inp_unlock_assert(struct inpcb *inp)
 
 #endif
 
-extern const char *ofp_tcbinfo_locked_by_file;
-extern int ofp_tcbinfo_locked_by_line;
-
 void	inp_apply_all(void (*func)(struct inpcb *, void *), void *arg);
 int	inp_ip_tos_get(const struct inpcb *inp);
 void	inp_ip_tos_set(struct inpcb *inp, int val);
@@ -452,26 +449,32 @@ struct tcpcb *
 void	inp_4tuple_get(struct inpcb *inp, uint32_t *laddr, uint16_t *lp,
 		uint32_t *faddr, uint16_t *fp);
 #if (defined OFP_RSS) || (defined OFP_INP_INFO_DISABLE)
-# define INP_INFO_LOCK_INIT(ipi, d)	(void)ipi; (void)d;
-/*#define INP_INFO_LOCK_DESTROY(ipi)	(void)ipi;*/
-# define INP_INFO_RLOCK(ipi)		(void)ipi;
-# define INP_INFO_WLOCK(ipi)		(void)ipi;
+# define INP_INFO_LOCK_INIT(ipi, d)	do{(void)ipi;(void)d;} while (0)
+# define INP_INFO_RLOCK(ipi)		do{(void)ipi;} while (0)
+# define INP_INFO_WLOCK(ipi)		do{(void)ipi;} while (0)
 # define INP_INFO_TRY_WLOCK(ipi)	1
-# define INP_INFO_RUNLOCK(ipi)		(void)ipi;
-# define INP_INFO_WUNLOCK(ipi)		(void)ipi;
+# define INP_INFO_RUNLOCK(ipi)		do{(void)ipi;} while (0)
+# define INP_INFO_WUNLOCK(ipi)		do{(void)ipi;} while (0)
+
+# define INP_INFO_LOCK_ASSERT(ipi)	do{(void)ipi;} while (0)
+# define INP_INFO_RLOCK_ASSERT(ipi)	do{(void)ipi;} while (0)
+# define INP_INFO_WLOCK_ASSERT(ipi)	do{(void)ipi;} while (0)
+# define INP_INFO_UNLOCK_ASSERT(ipi)	do{(void)ipi;} while (0)
 #else
-# define INP_INFO_LOCK_INIT(ipi, d)	ofp_rec_init(&(ipi)->ipi_lock, __FILE__, __LINE__)
-/* TODO
-#define INP_INFO_LOCK_DESTROY(ipi)	rw_destroy(&(ipi)->ipi_lock)
-*/
-# define INP_INFO_RLOCK(ipi)		ofp_rec_rlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-# define INP_INFO_WLOCK(ipi)		ofp_rec_wlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-/*#define INP_INFO_TRY_RLOCK(ipi)	ofp_rec_try_rlock(&(ipi)->ipi_lock)*/
-# define INP_INFO_TRY_WLOCK(ipi)	ofp_rec_try_wlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-# define INP_INFO_TRY_UPGRADE(ipi)	rw_try_upgrade(&(ipi)->ipi_lock)
-# define INP_INFO_RUNLOCK(ipi)		ofp_rec_runlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
-# define INP_INFO_WUNLOCK(ipi)		ofp_rec_wunlock(&(ipi)->ipi_lock, __FILE__, __LINE__)
+# define INP_INFO_LOCK_INIT(ipi, d)	odp_rwlock_recursive_init(&(ipi)->ipi_lock)
+# define INP_INFO_RLOCK(ipi)		odp_rwlock_recursive_read_lock(&(ipi)->ipi_lock)
+# define INP_INFO_WLOCK(ipi)		odp_rwlock_recursive_write_lock(&(ipi)->ipi_lock)
+# define INP_INFO_TRY_WLOCK(ipi)	odp_rwlock_recursive_write_trylock(&(ipi)->ipi_lock)
+# define INP_INFO_RUNLOCK(ipi)		odp_rwlock_recursive_read_unlock(&(ipi)->ipi_lock)
+# define INP_INFO_WUNLOCK(ipi)		odp_rwlock_recursive_write_unlock(&(ipi)->ipi_lock)
+
+/* TODO implement assert operations*/
+# define INP_INFO_LOCK_ASSERT(ipi)	/*rw_assert(&(ipi)->ipi_lock, RA_LOCKED, __FILE__, __LINE__)*/
+# define INP_INFO_RLOCK_ASSERT(ipi)	/*rw_assert(&(ipi)->ipi_lock, RA_RLOCKED, __FILE__, __LINE__)*/
+# define INP_INFO_WLOCK_ASSERT(ipi)	/*rw_assert(&(ipi)->ipi_lock, RA_WLOCKED, __FILE__, __LINE__)*/
+# define INP_INFO_UNLOCK_ASSERT(ipi)	do{(void)ipi;} while (0)/*rw_assert(&(ipi)->ipi_lock, RA_UNLOCKED, __FILE__, __LINE__)*/
 #endif
+#define INP_INFO_LOCK_DESTROY(inp)	/* TODO implement and call lock destroy.*/
 
 #define	RA_LOCKED		0x01
 #define	RA_RLOCKED		0x02
@@ -480,22 +483,6 @@ void	inp_4tuple_get(struct inpcb *inp, uint32_t *laddr, uint16_t *lp,
 #define	RA_RECURSED		0x08
 #define	RA_NOTRECURSED		0x10
 
-extern const char *ofp_tcbinfo_locked_by_file;
-extern int  ofp_tcbinfo_locked_by_line;
-
-static inline void rw_assert(struct ofp_rec_rwlock *lock, int mode, const char *file, int line) {
-	(void)file;
-	(void)line;
-	(void)lock;
-	(void)mode;
-
-	return;
-}
-
-#define	INP_INFO_LOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_LOCKED, __FILE__, __LINE__)
-#define INP_INFO_RLOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_RLOCKED, __FILE__, __LINE__)
-#define INP_INFO_WLOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_WLOCKED, __FILE__, __LINE__)
-#define INP_INFO_UNLOCK_ASSERT(ipi)	rw_assert(&(ipi)->ipi_lock, RA_UNLOCKED, __FILE__, __LINE__)
 
 #ifdef OFP_STATIC_SOCKET_CONFIG
 # define INP_HASH_LOCK_INIT(ipi, d)
