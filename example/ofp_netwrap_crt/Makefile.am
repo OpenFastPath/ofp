@@ -6,6 +6,17 @@ AM_CFLAGS +=  -I$(top_srcdir)/include/api \
 
 lib_LTLIBRARIES = $(LIB)/libofp_netwrap_crt.la
 
+noinst_HEADERS = \
+		 $(srcdir)/netwrap_common.h \
+		 $(srcdir)/netwrap_errno.h \
+		 $(srcdir)/netwrap_fork.h \
+		 $(srcdir)/netwrap_ioctl.h \
+		 $(srcdir)/netwrap_select.h \
+		 $(srcdir)/netwrap_sendfile.h \
+		 $(srcdir)/netwrap_socket.h \
+		 $(srcdir)/netwrap_sockopt.h \
+		 $(srcdir)/netwrap_uio.h
+
 __LIB__libofp_netwrap_crt_la_SOURCES = netwrap.c \
 				netwrap_socket.c \
 				netwrap_sockopt.c \
