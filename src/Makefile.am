@@ -1,7 +1,5 @@
 LIB   = $(top_builddir)/lib
 
-dist_pkgdata_DATA = $(LIB)/libofp.la
-
 VPATH = $(srcdir) $(builddir)
 
 lib_LTLIBRARIES = $(LIB)/libofp.la
