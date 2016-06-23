@@ -81,12 +81,14 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_reass.h \
 		  $(top_srcdir)/include/ofpi_route.h \
 		  $(top_srcdir)/include/ofpi_rt_lookup.h \
+		  $(top_srcdir)/include/ofpi_shared_mem.h \
 		  $(top_srcdir)/include/ofpi_sockbuf.h \
 		  $(top_srcdir)/include/ofpi_socket.h \
 		  $(top_srcdir)/include/ofpi_socketvar.h \
 		  $(top_srcdir)/include/ofpi_sockopt.h \
 		  $(top_srcdir)/include/ofpi_sockstate.h \
 		  $(top_srcdir)/include/ofpi_stat.h \
+		  $(top_srcdir)/include/ofpi_syscalls.h \
 		  $(top_srcdir)/include/ofpi_sysctl.h \
 		  $(top_srcdir)/include/ofpi_systm.h \
 		  $(top_srcdir)/include/ofpi_tcp_fsm.h \
@@ -103,6 +105,7 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_udp.h \
 		  $(top_srcdir)/include/ofpi_udp_var.h \
 		  $(top_srcdir)/include/ofpi_udp6_var.h \
+		  $(top_srcdir)/include/ofpi_uma.h \
 		  $(top_srcdir)/include/ofpi_vxlan.h \
 		  $(top_srcdir)/include/ofpi_hook.h \
 		  $(top_srcdir)/include/ofpi_util.h \
