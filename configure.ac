@@ -155,7 +155,7 @@ function check_odp {
 	 AC_MSG_FAILURE(["Invalid ODP version. ODP $ODP_VERSION_SUPPORTED is required."])
 }
 
-PKG_CHECK_MODULES([ODP], [libodp-linux = $ODP_VERSION_SUPPORTED], [],
+PKG_CHECK_MODULES([ODP], [libodp-linux >= $ODP_VERSION_SUPPORTED], [],
 	check_odp)
 
 # prepending lib to the files to link
@@ -359,6 +359,6 @@ AC_MSG_RESULT([
         am_cxxflags:            ${AM_CXXFLAGS}
 	ldflags:		${LDFLAGS}
 	am_ldflags:		${AM_LDFLAGS}
-	odp_version:		${ODP_VERSION_SUPPORTED}
+	odp_version:		$(pkg-config --modversion libodp-linux)
 	cunit:			${cunit_support}
 ])
