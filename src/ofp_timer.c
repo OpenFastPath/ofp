@@ -1,6 +1,6 @@
 /*-
- * Copyright (c) 2014 Nokia
- * Copyright (c) 2014 ENEA Software AB
+ * Copyright (c) 2016 Nokia
+ * Copyright (c) 2016 ENEA Software AB
  *
  * SPDX-License-Identifier:     BSD-3-Clause
  */
@@ -21,7 +21,7 @@ struct ofp_timer_internal {
 	struct ofp_timer_internal *next;
 	odp_buffer_t buf;
 	odp_event_t t_ev;
-	uint32_t id;
+	uintptr_t id;
 	ofp_timer_callback callback;
 	char arg[OFP_TIMER_ARG_LEN];
 };
@@ -36,6 +36,9 @@ struct ofp_timer_long_internal {
 #define TIMER_NUM_LONG_SLOTS    (1<<TIMER_LONG_SHIFT)
 #define TIMER_LONG_MASK	 (TIMER_NUM_LONG_SLOTS-1)
 
+/* MASK applied over odp_timer_t value when OFP handles the timer internally */
+#define OFP_TIMER_MASK (1UL << (sizeof(odp_timer_t) * 8 - 1))
+
 struct ofp_timer_mem {
 	char pool_space[TIMER_POOL_SIZE];
 	odp_pool_t pool;
@@ -45,7 +48,7 @@ struct ofp_timer_mem {
 	odp_timer_pool_t socket_timer_pool;
 	struct ofp_timer_internal *long_table[TIMER_NUM_LONG_SLOTS];
 	int sec_counter;
-	int id;
+	size_t id;
 	odp_spinlock_t lock;
 	odp_timer_t timer_1s;
 };
@@ -374,8 +377,8 @@ odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
 		}
 
 		odp_spinlock_lock(&shm->lock);
-		int ix = (shm->sec_counter + sec) & TIMER_LONG_MASK;
-		bufdata->id = ((shm->id++)<<TIMER_LONG_SHIFT) | ix | 0x80000000;
+		size_t ix = (shm->sec_counter + sec) & TIMER_LONG_MASK;
+		bufdata->id = ((shm->id++)<<TIMER_LONG_SHIFT) | ix | OFP_TIMER_MASK;
 		bufdata->next = shm->long_table[ix];
 		shm->long_table[ix] = bufdata;
 		odp_spinlock_unlock(&shm->lock);
@@ -426,14 +429,14 @@ int ofp_timer_cancel(odp_timer_t tim)
 {
 	odp_event_t timeout_event = ODP_EVENT_INVALID;
 	odp_timeout_t tmo;
-	uint32_t t = (uint32_t)tim;
+	uintptr_t t = (uintptr_t) tim;
 	struct ofp_timer_internal *bufdata;
 	struct ofp_timer_internal *prev = NULL;
 
 	if (tim == ODP_TIMER_INVALID)
 		return 0;
 
-	if (t & 0x80000000) {
+	if (t & OFP_TIMER_MASK) {
 		/* long timeout */
 		odp_spinlock_lock(&shm->lock);
 		bufdata = shm->long_table[t & TIMER_LONG_MASK];
