@@ -157,6 +157,8 @@ struct ofp_socket_mem {
 		odp_timer_t tmo;
 		int woke_by_timer;
 	} *sleep_list;
+	struct sleeper sleeper_list[OFP_NUM_SOCKETS_MAX];
+	struct sleeper *free_sleepers;
 	odp_spinlock_t sleep_lock;
 };
 
@@ -267,6 +269,12 @@ int ofp_socket_init_global(odp_pool_t pool)
 		shm->socket_list[i].so_number = i + OFP_SOCK_NUM_OFFSET;
 	}
 	shm->free_sockets = &(shm->socket_list[0]);
+
+	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
+		shm->sleeper_list[i].next = (i == OFP_NUM_SOCKETS_MAX - 1) ?
+			NULL : &(shm->sleeper_list[i+1]);
+	}
+	shm->free_sleepers = &(shm->sleeper_list[0]);
 
 	shm->somaxconn = SOMAXCONN;
 	shm->pool = pool;
@@ -2536,39 +2544,57 @@ int
 ofp_msleep(void *channel, odp_rwlock_t *mtx, int priority, const char *wmesg,
 	     uint32_t timeout)
 {
-	struct sleeper sleepy;
+	struct sleeper *sleepy;
 	struct voidarg arg;
+	int ret;
 	(void)mtx;
 	(void)priority;
 
 	odp_spinlock_lock(&shm->sleep_lock);
-	sleepy.next = shm->sleep_list;
-	sleepy.channel = channel;
-	sleepy.wmesg = wmesg;
-	sleepy.go = 0;
-	sleepy.woke_by_timer = 0;
-	sleepy.tmo = ODP_TIMER_INVALID;
-	shm->sleep_list = &sleepy;
+	if (!shm->free_sleepers) {
+		odp_spinlock_unlock(&shm->sleep_lock);
+		OFP_ERR("Out of sleepers");
+		return OFP_ENOMEM;
+	}
+	sleepy = shm->free_sleepers;
+	shm->free_sleepers = sleepy->next;
+
+	sleepy->next = shm->sleep_list;
+	sleepy->channel = channel;
+	sleepy->wmesg = wmesg;
+	sleepy->go = 0;
+	sleepy->woke_by_timer = 0;
+	sleepy->tmo = ODP_TIMER_INVALID;
+	shm->sleep_list = sleepy;
 	if (timeout) {
 		arg.p = channel;
-		sleepy.tmo = ofp_timer_start(timeout, sleep_timeout, &arg, sizeof(arg));
+		sleepy->tmo = ofp_timer_start(timeout, sleep_timeout, &arg, sizeof(arg));
 	}
 	odp_spinlock_unlock(&shm->sleep_lock);
 
-	while (sleepy.go == 0) {
+	while (sleepy->go == 0) {
 		if (mtx) {
 			odp_rwlock_write_unlock(mtx);
 		}
-		usleep(1000);
+		sched_yield();
 		if (mtx) {
 			odp_rwlock_write_lock(mtx);
 		}
 	}
 
-	if (sleepy.tmo != ODP_TIMER_INVALID)
-		ofp_timer_cancel(sleepy.tmo);
+	odp_spinlock_lock(&shm->sleep_lock);
 
-	return (sleepy.woke_by_timer ? OFP_EWOULDBLOCK : 0);
+	if (sleepy->tmo != ODP_TIMER_INVALID)
+		ofp_timer_cancel(sleepy->tmo);
+
+	ret = sleepy->woke_by_timer ? OFP_EWOULDBLOCK : 0;
+
+	sleepy->next = shm->free_sleepers;
+	shm->free_sleepers = sleepy;
+
+	odp_spinlock_unlock(&shm->sleep_lock);
+
+	return ret;
 }
 
 static int
