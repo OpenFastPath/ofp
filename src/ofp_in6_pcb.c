@@ -643,7 +643,7 @@ ofp_in6_pcbnotify(struct inpcbinfo *pcbinfo, struct ofp_sockaddr *dst,
 	struct inpcb *inp, *inp_temp;
 	struct ofp_sockaddr_in6 sa6_src, *sa6_dst;
 	u_short	fport = fport_arg, lport = lport_arg;
-	u_int32_t flowinfo;
+	uint32_t flowinfo;
 	int notif_errno;
 
 	(void)cmdarg;
@@ -700,7 +700,7 @@ ofp_in6_pcbnotify(struct inpcbinfo *pcbinfo, struct ofp_sockaddr *dst,
 		    (IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_faddr) ||
 		     IN6_ARE_ADDR_EQUAL(&inp->in6p_faddr, &sa6_dst->sin6_addr))) {
 			ip6_notify_pmtu(inp, (struct sockaddr_in6 *)dst,
-					(u_int32_t *)cmdarg);
+					(uint32_t *)cmdarg);
 		}
 #endif
 		/*
@@ -1053,7 +1053,7 @@ int
 ofp_in6_pcbsetport(struct ofp_in6_addr *laddr, struct inpcb *inp, struct ofp_ucred *cred)
 {
 	struct socket *so = inp->inp_socket;
-	u_int16_t lport = 0;
+	uint16_t lport = 0;
 	int error, lookupflags = 0;
 #ifdef INVARIANTS
 	struct inpcbinfo *pcbinfo = inp->inp_pcbinfo;

@@ -1595,8 +1595,8 @@ ofp_in_pcbrehash_mbuf(struct inpcb *inp, odp_packet_t m)
 {
 	struct inpcbinfo *pcbinfo = inp->inp_pcbinfo;
 	struct inpcbhead *head;
-	u_int32_t hashkey_faddr;
-	u_int32_t hashkey;
+	uint32_t hashkey_faddr;
+	uint32_t hashkey;
 	(void)m;
 
 	INP_WLOCK_ASSERT(inp);

@@ -92,10 +92,10 @@ VNET_DECLARE(int, ip6_defhlim);		/* default hop limit */
 struct	ip6q {
 	struct ip6asfrag *ip6q_down;
 	struct ip6asfrag *ip6q_up;
-	u_int32_t	ip6q_ident;
-	u_int8_t	ip6q_nxt;
-	u_int8_t	ip6q_ecn;
-	u_int8_t	ip6q_ttl;
+	uint32_t	ip6q_ident;
+	uint8_t		ip6q_nxt;
+	uint8_t		ip6q_ecn;
+	uint8_t		ip6q_ttl;
 	struct in6_addr ip6q_src, ip6q_dst;
 	struct ip6q	*ip6q_next;
 	struct ip6q	*ip6q_prev;
@@ -114,7 +114,7 @@ struct	ip6asfrag {
 	int		ip6af_offset;	/* offset in ip6af_m to next header */
 	int		ip6af_frglen;	/* fragmentable part length */
 	int		ip6af_off;	/* fragment offset */
-	u_int16_t	ip6af_mff;	/* more fragment bit in frag off */
+	uint16_t	ip6af_mff;	/* more fragment bit in frag off */
 };
 
 #define IP6_REASS_MBUF(ip6af) (*(struct mbuf **)&((ip6af)->ip6af_m))
@@ -276,7 +276,7 @@ struct	ip6stat {
  * XXX do not make it a kitchen sink!
  */
 struct ip6aux {
-	u_int32_t ip6a_flags;
+	uint32_t ip6a_flags;
 #define IP6A_SWAP	0x01		/* swapped home/care-of on packet */
 #define IP6A_HASEEN	0x02		/* HA was present */
 #define IP6A_BRUID	0x04		/* BR Unique Identifier was present */
@@ -285,13 +285,13 @@ struct ip6aux {
 	/* ip6.ip6_src */
 	struct in6_addr ip6a_careof;	/* care-of address of the peer */
 	struct in6_addr ip6a_home;	/* home address of the peer */
-	u_int16_t	ip6a_bruid;	/* BR unique identifier */
+	uint16_t	ip6a_bruid;	/* BR unique identifier */
 
 	/* ip6.ip6_dst */
 	struct in6_ifaddr *ip6a_dstia6;	/* my ifaddr that matches ip6_dst */
 
 	/* rtalert */
-	u_int16_t ip6a_rtalert;		/* rtalert option value */
+	uint16_t ip6a_rtalert;		/* rtalert option value */
 
 	/*
 	 * decapsulation history will be here.
@@ -404,7 +404,7 @@ void	ip6_input __P((struct mbuf *));
 struct in6_ifaddr *ip6_getdstifaddr __P((struct mbuf *));
 void	ip6_freepcbopts __P((struct ip6_pktopts *));
 
-int	ip6_unknown_opt __P((u_int8_t *, struct mbuf *, int));
+int	ip6_unknown_opt __P((uint8_t *, struct mbuf *, int));
 char *	ip6_get_prevhdr __P((struct mbuf *, int));
 int	ip6_nexthdr __P((struct mbuf *, int, int, int *));
 int	ip6_lasthdr __P((struct mbuf *, int, int, int *));
@@ -416,13 +416,13 @@ struct ip6aux *ip6_findaux __P((struct mbuf *));
 extern int	(*ip6_mforward)(struct ip6_hdr *, struct ifnet *,
     struct mbuf *);
 
-int	ip6_process_hopopts __P((struct mbuf *, u_int8_t *, int, u_int32_t *,
-				 u_int32_t *));
+int	ip6_process_hopopts __P((struct mbuf *, uint8_t *, int, uint32_t *,
+				 uint32_t *));
 struct mbuf	**ip6_savecontrol_v4(struct inpcb *, struct mbuf *,
 	    struct mbuf **, int *);
 void	ip6_savecontrol __P((struct inpcb *, struct mbuf *, struct mbuf **));
 void	ip6_notify_pmtu __P((struct inpcb *, struct sockaddr_in6 *,
-			     u_int32_t *));
+			     uint32_t *));
 int	ip6_sysctl __P((int *, u_int, void *, size_t *, void *, size_t));
 
 void	ip6_forward __P((struct mbuf *, int));

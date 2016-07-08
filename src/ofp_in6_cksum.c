@@ -132,8 +132,8 @@ int ofp_in6_cksum_pseudo(struct ofp_ip6_hdr *ip6,
 {
 	int sum;
 	union {
-		u_int16_t s[2];
-		u_int32_t l;
+		uint16_t s[2];
+		uint32_t l;
 	} l_util;
 
 	sum = _ofp_in6_cksum_pseudo(ip6, len, nxt, csum);

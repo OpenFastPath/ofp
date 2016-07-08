@@ -1396,7 +1396,7 @@ syncookie_generate(struct syncache_head *sch, struct syncache *sc,
 		   uint32_t *flowlabel)
 {
 	MD5_CTX ctx;
-	u_int32_t md5_buffer[MD5_DIGEST_LENGTH / sizeof(u_int32_t)];
+	uint32_t md5_buffer[MD5_DIGEST_LENGTH / sizeof(uint32_t)];
 	uint32_t data;
 	uint32_t *secbits;
 	uint32_t off, pmss, mss;
@@ -1440,13 +1440,13 @@ syncookie_generate(struct syncache_head *sch, struct syncache *sc,
 	data |= off << 1;	/* secret offset, derived from iss, 3 bits */
 	data |= mss << 4;	/* mss, 3 bits */
 	ofp_MD5Init(&ctx);
-	ofp_MD5Update(&ctx, ((u_int8_t *)secbits) + off,
-	    SYNCOOKIE_SECRET_SIZE * sizeof(*secbits) - off);
+	ofp_MD5Update(&ctx, ((uint8_t *)secbits) + off,
+		      SYNCOOKIE_SECRET_SIZE * sizeof(*secbits) - off);
 	ofp_MD5Update(&ctx, secbits, off);
 	ofp_MD5Update(&ctx, &sc->sc_inc, sizeof(sc->sc_inc));
 	ofp_MD5Update(&ctx, &sc->sc_irs, sizeof(sc->sc_irs));
 	ofp_MD5Update(&ctx, &data, sizeof(data));
-	ofp_MD5Final((u_int8_t *)&md5_buffer, &ctx);
+	ofp_MD5Final((uint8_t *)&md5_buffer, &ctx);
 
 	data |= (md5_buffer[0] << 7);
 	sc->sc_iss = data;
@@ -1507,13 +1507,13 @@ syncookie_lookup(struct in_conninfo *inc, struct syncache_head *sch,
 
 	/* Recompute the digest so we can compare it. */
 	ofp_MD5Init(&ctx);
-	ofp_MD5Update(&ctx, ((u_int8_t *)secbits) + off,
-	    SYNCOOKIE_SECRET_SIZE * sizeof(*secbits) - off);
+	ofp_MD5Update(&ctx, ((uint8_t *)secbits) + off,
+		      SYNCOOKIE_SECRET_SIZE * sizeof(*secbits) - off);
 	ofp_MD5Update(&ctx, secbits, off);
 	ofp_MD5Update(&ctx, inc, sizeof(*inc));
 	ofp_MD5Update(&ctx, &seq, sizeof(seq));
 	ofp_MD5Update(&ctx, &flags, sizeof(flags));
-	ofp_MD5Final((u_int8_t *)&md5_buffer, &ctx);
+	ofp_MD5Final((uint8_t *)&md5_buffer, &ctx);
 
 	/* Does the digest part of or ACK'ed ISS match? */
 	if ((ack & (~0x7f)) != (md5_buffer[0] << 7)) {

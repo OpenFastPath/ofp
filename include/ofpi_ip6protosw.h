@@ -111,7 +111,7 @@ struct ofp_ip6ctlparam {
 	struct ofp_sockaddr_in6 *ip6c_dst;	/* (final) dstaddr w/ additional info */
 	struct ofp_in6_addr *ip6c_finaldst;	/* final destination address */
 	void *ip6c_cmdarg;		/* control command dependent data */
-	u_int8_t ip6c_nxt;		/* final next header field */
+	uint8_t ip6c_nxt;		/* final next header field */
 };
 
 struct ip6protosw {

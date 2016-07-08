@@ -1042,7 +1042,7 @@ in6_update_ifa(struct ifnet *ifp, struct in6_aliasreq *ifra,
 	if ((ifp->if_flags & (IFF_POINTOPOINT|IFF_LOOPBACK)) != 0 &&
 	    (dst6.sin6_family == AF_INET6)) {
 		struct in6_addr in6_tmp;
-		u_int32_t zoneid;
+		uint32_t zoneid;
 
 		in6_tmp = dst6.sin6_addr;
 		if (in6_setscope(&in6_tmp, ifp, &zoneid))
@@ -1969,8 +1969,8 @@ ip6_sprintf(char *ip6buf, const struct in6_addr *addr)
 {
 	int i, cnt = 0, maxcnt = 0, idx = 0, index = 0;
 	char *cp;
-	const u_int16_t *a = (const u_int16_t *)addr;
-	const u_int8_t *d;
+	const uint16_t *a = (const uint16_t *)addr;
+	const uint8_t *d;
 	int dcolon = 0, zero = 0;
 
 	cp = ip6buf;

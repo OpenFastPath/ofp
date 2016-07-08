@@ -42,12 +42,12 @@ static void MD5Transform(uint32_t [4], const unsigned char [64]);
 #else
 
 /*
- * Encodes input (u_int32_t) into output (unsigned char). Assumes len is
+ * Encodes input (uint32_t) into output (unsigned char). Assumes len is
  * a multiple of 4.
  */
 
 static void
-Encode (unsigned char *output, u_int32_t *input, unsigned int len)
+Encode (unsigned char *output, uint32_t *input, unsigned int len)
 {
 	unsigned int i;
 	uint32_t ip;
@@ -62,12 +62,12 @@ Encode (unsigned char *output, u_int32_t *input, unsigned int len)
 }
 
 /*
- * Decodes input (unsigned char) into output (u_int32_t). Assumes len is
+ * Decodes input (unsigned char) into output (uint32_t). Assumes len is
  * a multiple of 4.
  */
 
 static void
-Decode (u_int32_t *output, const unsigned char *input, unsigned int len)
+Decode (uint32_t *output, const unsigned char *input, unsigned int len)
 {
 	unsigned int i;
 

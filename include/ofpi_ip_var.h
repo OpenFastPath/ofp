@@ -152,7 +152,7 @@ struct ofp_ifnet *
 void	ip_savecontrol(struct inpcb *, odp_packet_t *, struct ofp_ip *,
 	    odp_packet_t );
 void	ip_slowtimo(void);
-u_int16_t	ip_randomid(void);
+uint16_t	ip_randomid(void);
 int	rip_ctloutput(struct socket *, struct sockopt *);
 void	rip_ctlinput(int, struct ofp_sockaddr *, void *);
 void	rip_init(void);

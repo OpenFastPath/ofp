@@ -517,8 +517,8 @@ ofp_udp6_ctlinput(int cmd, struct ofp_sockaddr *sa, void *d)
 	void *cmdarg;
 	struct inpcb *(*notify)(struct inpcb *, int) = ofp_udp_notify;
 	struct udp_portonly {
-		u_int16_t uh_sport;
-		u_int16_t uh_dport;
+		uint16_t uh_sport;
+		uint16_t uh_dport;
 	} *uhp;
 
 
