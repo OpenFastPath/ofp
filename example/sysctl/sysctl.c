@@ -12,6 +12,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "ofp.h"
 

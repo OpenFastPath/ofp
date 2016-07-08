@@ -33,6 +33,7 @@
  */
 
 #include <string.h>
+#include <stddef.h>
 
 #include "ofpi_pkt_processing.h"
 #include "ofpi_errno.h"

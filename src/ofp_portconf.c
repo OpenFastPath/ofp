@@ -9,6 +9,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "ofpi.h"
 #include "ofpi_portconf.h"

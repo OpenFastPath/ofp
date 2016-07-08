@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
+#include <inttypes.h>
 #include <sys/socket.h>
 
 #include "ofp.h"

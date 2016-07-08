@@ -39,6 +39,7 @@
 #include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #include "ofpi_errno.h"
 #include "ofpi_in.h"

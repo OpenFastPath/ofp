@@ -11,6 +11,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "ofp.h"
 #include "udp_fwd_socket.h"

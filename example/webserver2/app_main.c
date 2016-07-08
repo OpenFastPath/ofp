@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "ofp.h"
 #include "httpd.h"

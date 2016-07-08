@@ -33,6 +33,7 @@
  */
 
 #include <strings.h>
+#include <limits.h>
 
 #include "odp.h"
 

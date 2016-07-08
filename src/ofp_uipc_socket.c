@@ -104,6 +104,8 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <stddef.h>
+#include <limits.h>
 
 #include "odp.h"
 

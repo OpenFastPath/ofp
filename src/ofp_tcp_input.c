@@ -49,6 +49,7 @@
  *	@(#)ofp_tcp_input.c	8.12 (Berkeley) 5/24/95
  */
 #include <strings.h>
+#include <inttypes.h>
 
 #include "ofpi_errno.h"
 #include "ofpi.h"

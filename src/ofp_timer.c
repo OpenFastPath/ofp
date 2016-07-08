@@ -6,6 +6,7 @@
  */
 
 #include <string.h>
+#include <inttypes.h>
 
 #include "odp.h"
 #include "api/ofp_config.h"

@@ -32,6 +32,7 @@
  *	@(#)ofp_tcp_output.c	8.4 (Berkeley) 5/24/95
  */
 #include <string.h>
+#include <stddef.h>
 
 #include "ofpi_errno.h"
 #include "ofpi_protosw.h"
