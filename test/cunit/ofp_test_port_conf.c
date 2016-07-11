@@ -72,7 +72,7 @@ init_suite(void)
 
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num     = SHM_PKT_POOL_NB_PKTS;
 	pool_params.type	= ODP_POOL_PACKET;
 
 	(void) ofp_init_pre_global("packet_pool", &pool_params, pkt_hook, &pool,

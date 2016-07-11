@@ -149,7 +149,7 @@ int ofp_init_pre_global(const char *pool_name_unused,
 	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
 	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num        = SHM_PKT_POOL_SIZE / SHM_PKT_POOL_BUFFER_SIZE;
+	pool_params.pkt.num        = SHM_PKT_POOL_NB_PKTS;
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
 	pool_params.type           = ODP_POOL_PACKET;
 

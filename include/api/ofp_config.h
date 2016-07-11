@@ -69,10 +69,11 @@
 
 /** Packet pool size. */
 #if OFP_CONFIG == OFP_CONFIG_WEBSERVER || \
-	OFP_CONFIG == OFP_CONFIG_NETWRAP_WEBSERVER
-# define SHM_PKT_POOL_SIZE		(512*2048*16)
+	OFP_CONFIG == OFP_CONFIG_NETWRAP_WEBSERVER || \
+	defined(OFP_PLAT_ODP_DPDK)
+# define SHM_PKT_POOL_NB_PKTS		10240
 #else /*OFP_CONFIG_DEFAULT*/
-# define SHM_PKT_POOL_SIZE		(512*2048)
+# define SHM_PKT_POOL_NB_PKTS		512
 #endif /* OFP_CONFIG */
 
 /** Packet pool buffer size. */
