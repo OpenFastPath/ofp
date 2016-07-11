@@ -146,6 +146,12 @@ AC_ARG_WITH([odp-lib],
     [ODP_LIB=$withval],
     [])
 
+# add OFP_PLAT_ODP_DPDK define
+if test "${ODP_LIB}" == "odp-dpdk";
+then
+    AM_CFLAGS="$AM_CFLAGS -DOFP_PLAT_ODP_DPDK"
+fi
+
 ##########################################################################
 # Save and set temporary compilation flags
 ##########################################################################
