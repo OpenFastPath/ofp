@@ -138,6 +138,14 @@ AC_ARG_WITH([odp],
      export PKG_CONFIG_PATH=$with_odp/lib/pkgconfig],
     [])
 
+# introduce optional configure parameter for odp library name
+ODP_LIB=odp-linux
+AC_ARG_WITH([odp-lib],
+    [AS_HELP_STRING([--with-odp-lib=NAME],
+	[odp library name])],
+    [ODP_LIB=$withval],
+    [])
+
 ##########################################################################
 # Save and set temporary compilation flags
 ##########################################################################
@@ -148,18 +156,18 @@ CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
 ODP_VERSION_SUPPORTED="1.10.0.0"
 function check_odp {
-	 AC_CHECK_LIB(odp-linux, odp_packet_alloc, [],
-	     [AC_MSG_FAILURE(["This package needs OpenDataPlane (libodp.a) installed"])])
+	 AC_CHECK_LIB($ODP_LIB, odp_packet_alloc, [],
+	     [AC_MSG_FAILURE(["OpenDataPlane library ($ODP_LIB) not available"])])
 	 AC_CHECK_HEADERS([odp.h], [],
 	     [AC_MSG_FAILURE(["Can't find ODP headers"])])
 	 AC_MSG_FAILURE(["Invalid ODP version. ODP $ODP_VERSION_SUPPORTED is required."])
 }
 
-PKG_CHECK_MODULES([ODP], [libodp-linux >= $ODP_VERSION_SUPPORTED], [],
+PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= $ODP_VERSION_SUPPORTED], [],
 	check_odp)
 
 # prepending lib to the files to link
-LIBS="-lodp-linux -lodphelper-linux $LIBS -ldl"
+LIBS="-l$ODP_LIB -lodphelper-linux $LIBS -ldl"
 
 ##########################################################################
 # Restore old saved variables
@@ -359,6 +367,7 @@ AC_MSG_RESULT([
         am_cxxflags:            ${AM_CXXFLAGS}
 	ldflags:		${LDFLAGS}
 	am_ldflags:		${AM_LDFLAGS}
-	odp_version:		$(pkg-config --modversion libodp-linux)
+	odp_library:		${ODP_LIB}
+	odp_version:		$(pkg-config --modversion lib$ODP_LIB)
 	cunit:			${cunit_support}
 ])
