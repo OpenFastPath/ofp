@@ -9,7 +9,7 @@ cd ${REPOS}
 rm -Rf ./check-odp/
 git clone https://git.linaro.org/lng/check-odp.git
 pushd check-odp
-git checkout 1dd2ba791b298b9e1f8a0e4339c079979db8b587
+git checkout 9afc6e939c7de3ff781c742841a5b0bc3a345a52
 popd
 
 
@@ -17,7 +17,7 @@ popd
 rm -Rf ./odp-dpdk/
 git clone https://git.linaro.org/lng/odp-dpdk.git
 pushd odp-dpdk
-git checkout 8556e01cd7c5e8f9399260c677175a5872b59da8
+git checkout 0ed1ced007d98980f90604675083bf30c354e867
 popd
 
 # Clone/build DPDK
@@ -44,7 +44,7 @@ fi
 
 pushd ${ROOT_DIR}/..
 ./bootstrap
-./configure --with-odp=$REPOS/check-odp/new-build --enable-cunit --enable-debug --prefix=$REPOS/check-odp/new-build
+./configure --with-odp=$REPOS/check-odp/new-build --enable-cunit --enable-debug --prefix=$REPOS/check-odp/new-build --with-odp-lib=odp-dpdk
 make clean
 make
 make install
