@@ -43,6 +43,10 @@
 #ifndef __OFP_ERRNO_H__
 #define __OFP_ERRNO_H__
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 #define	OFP_EPERM		1	/**< Operation not permitted */
 #define	OFP_ENOENT		2	/**< No such file or directory */
 #define	OFP_ESRCH		3	/**< No such process */
@@ -175,5 +179,9 @@
 extern __thread int ofp_errno;
 
 const char *ofp_strerror(int errnum);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_ERRNO_H__ */

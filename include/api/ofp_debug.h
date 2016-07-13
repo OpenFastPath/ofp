@@ -9,6 +9,10 @@
 #define __OFP_DEBUG_H__
 
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Debug configure interface
  */
@@ -38,5 +42,9 @@ void ofp_get_capture_file(char *filename, int max_size);
  * Debug PRINT interface
  */
 void ofp_print_packet(const char *comment, odp_packet_t pkt);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /*__OFP_DEBUG_H__*/

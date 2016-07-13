@@ -39,6 +39,10 @@
 #ifndef _OFP_IF_VLAN_H_
 #define	_OFP_IF_VLAN_H_	1
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 struct	ofp_ether_vlan_header {
 	uint8_t evl_dhost[OFP_ETHER_ADDR_LEN];
 	uint8_t evl_shost[OFP_ETHER_ADDR_LEN];
@@ -55,5 +59,9 @@ struct	ofp_ether_vlan_header {
 #define	OFP_EVL_MAKETAG(vlid, pri, cfi)				\
 	((((((pri) & 7) << 1) | ((cfi) & 1)) << 12) | ((vlid) &		\
 						OFP_EVL_VLID_MASK))	\
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif

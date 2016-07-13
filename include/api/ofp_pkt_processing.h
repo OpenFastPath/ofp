@@ -13,6 +13,10 @@
 #include "ofp_init.h"
 #include "ofp_config.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 typedef enum ofp_return_code (*ofp_pkt_processing_func)(odp_packet_t pkt);
 
 struct ofp_ifnet;
@@ -45,5 +49,9 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 
 enum ofp_return_code ofp_sp_input(odp_packet_t pkt,
 	struct ofp_ifnet *ifnet);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /*__OFP_APP_H__*/

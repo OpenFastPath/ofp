@@ -10,6 +10,10 @@
 
 #include <odp.h>
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 struct ofp_packet_stat {
 	struct {
 		unsigned int rx_fp;
@@ -39,5 +43,9 @@ struct ofp_perf_stat *ofp_get_perf_statistics(void);
 
 void ofp_set_stat_flags(unsigned long int flags);
 unsigned long int ofp_get_stat_flags(void);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_STAT_H__ */

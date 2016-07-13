@@ -13,6 +13,10 @@
 
 #include "ofp_log.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /* ROUTE: ADD/DEL*/
 
 struct ofp_route_msg {
@@ -125,5 +129,9 @@ int ofp_add_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac);
 int ofp_get_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac_out);
 int ofp_del_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac);
 void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_ROUTE_ARP_H__ */

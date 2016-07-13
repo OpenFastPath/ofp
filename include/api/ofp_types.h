@@ -10,6 +10,10 @@
 
 #include "ofp_queue.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 enum ofp_return_code {
 	OFP_PKT_CONTINUE = 0,
 	OFP_PKT_PROCESSED,
@@ -35,5 +39,9 @@ struct ofp_nh6_entry {
 	uint8_t  mac[6];
 	struct pkt6_list pkt6_hold;
 };
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_TYPES_H__ */

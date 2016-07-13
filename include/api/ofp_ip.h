@@ -42,6 +42,10 @@
 
 #include <odp.h>
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Definitions for internet protocol version 4.
  *
@@ -224,4 +228,9 @@ struct ofp_ippseudo {
 	uint8_t		ippseudo_p;	/* protocol */
 	uint16_t		ippseudo_len;	/* protocol length */
 };
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
+
 #endif

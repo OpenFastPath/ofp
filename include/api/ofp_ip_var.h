@@ -33,6 +33,10 @@
 #ifndef _OFP_IP_VAR_H_
 #define	_OFP_IP_VAR_H_
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Overlay for ip header used by other protocols (tcp, udp).
  */
@@ -109,5 +113,9 @@ struct	ofp_ipstat {
 };
 
 extern struct socket *ofp_ip_mrouter;	/* multicast routing daemon */
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* !_OFP_IP_VAR_H_ */

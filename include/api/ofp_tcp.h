@@ -42,6 +42,10 @@
 #include <odp.h>
 #include "ofp_ip_var.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 typedef	uint32_t tcp_seq;
 
 #define ofp_tcp6_seq	tcp_seq	/* for KAME src sync over BSD*'s */
@@ -263,5 +267,9 @@ struct tcpiphdr {
 #define	ti_win		ti_t.th_win
 #define	ti_sum		ti_t.th_sum
 #define	ti_urp		ti_t.th_urp
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* !_OFP_TCP_H_ */

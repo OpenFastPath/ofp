@@ -41,6 +41,10 @@
 
 #include "ofp_socket_types.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Argument structures for Protocol-Independent Multicast Source
  * Filter APIs. [RFC3678]
@@ -544,5 +548,9 @@ char	*ofp_inet_ntoa(struct ofp_in_addr); /* implement */
 uint16_t ofp_cksum_buffer(register uint16_t *addr, register int len);
 int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
 int ofp_in4_cksum(const odp_packet_t pkt);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_IN_H__*/

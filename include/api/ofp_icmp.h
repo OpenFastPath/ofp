@@ -41,6 +41,10 @@
 
 #include "ofp_ip.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Interface Control Message Protocol Definitions.
  * Per RFC 792, September 1981.
@@ -223,5 +227,9 @@ struct ofp_icmp {
 #define BANDLIM_ICMP6_UNREACH 5
 #define BANDLIM_SCTP_OOTB 6
 #define BANDLIM_MAX 6
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif

@@ -72,6 +72,10 @@
 
 #include "ofp_socket_types.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 #ifndef OFP__SOCKLEN_T_DECLARED
 typedef	__ofp_socklen_t	ofp_socklen_t;
 #define OFP__SOCKLEN_T_DECLARED
@@ -301,5 +305,9 @@ struct ofp_ip6_mtuinfo {
 };
 
 int ofp_in6_cksum(odp_packet_t, uint8_t, uint32_t, uint32_t);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_IN6_H__ */

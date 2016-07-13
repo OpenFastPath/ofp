@@ -40,6 +40,10 @@
 #ifndef _OFP_UDP_H_
 #define _OFP_UDP_H_
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * UDP protocol header.
  * Per RFC 768, September, 1981.
@@ -69,5 +73,9 @@ struct ofp_udphdr {
 
 /* Maximum UDP fragment size for ESP over UDP. */
 #define OFP_UDP_ENCAP_ESPINUDP_MAXFRAGLEN	552
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif

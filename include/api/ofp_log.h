@@ -22,6 +22,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * These logging macros can be used to send a message to the logging
  * destination. Currently, this is stderr.
@@ -105,5 +109,9 @@ static inline int ofp_debug_logging_enabled(void)
 			__FILENAME__, __LINE__,				\
 			##__VA_ARGS__);					\
 	} while (0)
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /*__OFP_LOG_H__*/

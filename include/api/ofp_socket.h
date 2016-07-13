@@ -39,6 +39,10 @@
 #include "ofp_socket_types.h"
 #include "ofp_config.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Definitions related to sockets: types, address families, options.
  */
@@ -487,5 +491,9 @@ int	ofp_socketpair(int, int, int, int *);
 #endif
 
 struct ofp_socket;
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_SOCKET_H__ */

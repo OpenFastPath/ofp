@@ -15,6 +15,10 @@
 #ifndef _OFP_ETHERNET_H_
 #define _OFP_ETHERNET_H_
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Some basic Ethernet constants.
  */
@@ -335,5 +339,9 @@ struct ofp_ether_addr {
 #define	OFP_ETHERMTU	(OFP_ETHER_MAX_LEN-OFP_ETHER_HDR_LEN-OFP_ETHER_CRC_LEN)
 #define	OFP_ETHERMIN	(OFP_ETHER_MIN_LEN-OFP_ETHER_HDR_LEN-OFP_ETHER_CRC_LEN)
 #define	OFP_ETHERMTU_JUMBO	(OFP_ETHER_MAX_LEN_JUMBO - OFP_ETHER_HDR_LEN - OFP_ETHER_CRC_LEN)
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif

@@ -35,6 +35,10 @@
 #ifndef _SYS_IOCTL_H_
 #define	_SYS_IOCTL_H_
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Buffer with length to be used in SIOCGIFDESCR/SIOCSIFDESCR requests
  */
@@ -243,5 +247,9 @@ struct ofp_rtentry {
 #define	OFP_SIOCGIFGMEMB	_OFP_IOWR('i', 138, struct ofp_ifgroupreq)	/* get members */
 #define	OFP_SIOCSIFTUN	 _OFP_IOW('i', 139, struct ofp_in_tunreq)	/* set tunnel */
 #define	OFP_SIOCGIFTUN	_OFP_IOWR('i', 140, struct ofp_in_tunreq)	/* get tunnel */
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* !_SYS_SOCKIO_H_ */

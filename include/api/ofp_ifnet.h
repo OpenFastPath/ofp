@@ -27,7 +27,19 @@
  * @see ofp_init_global() can init interfaces.
  * @see ofp_init_local() which is required per thread before use.
  */
+#ifndef __OFP_IFNET_H__
+#define __OFP_IFNET_H__
+
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 int ofp_ifnet_create(odp_instance_t instance, char *if_name,
 	odp_pktio_param_t *pktio_param,
 	odp_pktin_queue_param_t *pktin_param,
 	odp_pktout_queue_param_t *pktout_param);
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
+
+#endif /* __OFP_IFNET_H__ */

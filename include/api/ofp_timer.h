@@ -8,6 +8,10 @@
 #ifndef __OFP_TIMER_H__
 #define __OFP_TIMER_H__
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 typedef void (*ofp_timer_callback)(void *arg);
 
 odp_timer_t ofp_timer_start(uint64_t tmo_us, ofp_timer_callback callback,
@@ -23,4 +27,9 @@ odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
 		       void *arg, int arglen, int cpu_id);
 /** Get timer queue for a cpu id. */
 odp_queue_t ofp_timer_queue_cpu(int cpu_id);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
+
 #endif /* __OFP_TIMER_H__ */

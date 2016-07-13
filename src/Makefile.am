@@ -14,6 +14,7 @@ AM_LDFLAGS += -version-number '$(LIBOFP_VERSION)'
 AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api
 AM_CFLAGS +=  -DINET
+AM_CFLAGS +=  $(VISIBILITY_CFLAGS)
 
 __LIB__libofp_la_SOURCES = \
 ofp_pkt_processing.c \

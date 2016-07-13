@@ -10,6 +10,10 @@
 
 #include "odp.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /** CLI Start thread
  */
 int ofp_start_cli_thread(odp_instance_t instance, int core_id,
@@ -88,5 +92,9 @@ void ofp_cli_add_command(const char *cmd, const char *help,
  * @retval  File descriptor.
  */
 int ofp_cli_get_fd(void *handle);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_CLI_H__ */

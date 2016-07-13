@@ -67,6 +67,10 @@
 #ifndef _OFP_IP6_H_
 #define _OFP_IP6_H_
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /*
  * Definition for internet protocol version 6.
  * RFC 2460
@@ -286,5 +290,9 @@ do {									\
 		return ret;						\
 	}								\
 } while (/*CONSTCOND*/ 0)
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* not _OFP_IP6_H_ */

@@ -10,6 +10,10 @@
 
 #include "odp.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 #define OFP_IFNAMSIZ  32
 
 struct ofp_ifnet;
@@ -67,5 +71,9 @@ enum ofp_portconf_ip_type {
 
 uint32_t ofp_port_get_ipv4_addr(int port, uint16_t vlan,
 				  enum ofp_portconf_ip_type type);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_PORTCONF_H__ */

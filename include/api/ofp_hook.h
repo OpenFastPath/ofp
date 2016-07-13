@@ -10,6 +10,10 @@
 
 #include <odp.h>
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /**
  * @file
  *
@@ -71,5 +75,9 @@ enum ofp_hook_local_par {
 	IS_IPV4_UDP,	/**< UDP over IPv4 packet received in hook*/
 	IS_IPV6_UDP	/**< UDP over IPv6 packet received in hook*/
 };
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_HOOK_H__ */

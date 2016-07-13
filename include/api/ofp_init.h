@@ -25,6 +25,10 @@
 
 #include "ofp_hook.h"
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /**
  * OFP API initialization data
  */
@@ -123,5 +127,9 @@ void ofp_stop_processing(void);
  */
 
 odp_bool_t *ofp_get_processing_state(void);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* __OFP_INIT_H__ */
