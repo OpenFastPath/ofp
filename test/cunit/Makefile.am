@@ -47,4 +47,6 @@ bin_PROGRAMS = \
 
 TESTS = ${bin_PROGRAMS}
 
+EXTRA_DIST = cksum_packets.h fragmented_packet.h test_raw_frames.h
+
 CLEANFILES = $(wildcard *.xml) packets.txt testbuf.txt test.pcap
