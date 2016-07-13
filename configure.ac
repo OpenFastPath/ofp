@@ -234,6 +234,7 @@ AM_CONDITIONAL([OFP_MTRIE], [test x$use_mtrie = xtrue])
 ##########################################################################
 # Enable/disable Unit tests
 ##########################################################################
+cunit_support=no
 AC_ARG_ENABLE(
 	[cunit],
 	[  --enable-cunit         Enable/disable cunit],
