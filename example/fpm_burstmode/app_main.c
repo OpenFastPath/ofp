@@ -131,10 +131,8 @@ int main(int argc, char *argv[])
 {
 	odph_linux_pthread_t thread_tbl[MAX_WORKERS], dispatcher_thread;
 	appl_args_t params;
-	int num_workers, cpu;
+	int num_workers, tx_queues, first_worker, i;
 	odp_cpumask_t cpu_mask;
-	char cpu_mask_str[ODP_CPUMASK_STR_SIZE];
-	int i;
 	struct pktio_thr_arg pktio_thr_args[MAX_WORKERS];
 	odp_pktio_param_t pktio_param;
 	odp_pktin_queue_param_t pktin_param;
@@ -164,18 +162,26 @@ int main(int argc, char *argv[])
 	/* Print both system and application information */
 	print_info(NO_PATH(argv[0]), &params);
 
-	/* Default to system CPU count unless user specified */
-	num_workers = MAX_WORKERS;
-	if (params.core_count && params.core_count < MAX_WORKERS)
-		num_workers = params.core_count;
+	/*
+	 * By default core #0 runs Linux kernel background tasks. Start mapping
+	 * worker threads from core #1. Core #0 requires its own TX queue.
+	 */
+	first_worker = 1;
+	num_workers = odp_cpu_count() - 1;
 
-	/* Get default worker cpumask */
-	num_workers = odp_cpumask_default_worker(&cpu_mask, num_workers);
-	(void)odp_cpumask_to_str(&cpu_mask, cpu_mask_str, sizeof(cpu_mask_str));
+	if (params.core_count && params.core_count < num_workers)
+		num_workers = params.core_count;
+	if (num_workers > MAX_WORKERS)
+		num_workers = MAX_WORKERS;
+	tx_queues = num_workers + 1;
+
+	if (num_workers < 1) {
+		OFP_ERR("ERROR: At least 2 cores required.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	printf("Num worker threads: %i\n", num_workers);
-	printf("first CPU:          %i\n", odp_cpumask_first(&cpu_mask));
-	printf("cpu mask:           %s\n", cpu_mask_str);
+	printf("First worker CPU:   %i\n\n", first_worker);
 
 	memset(&app_init_params, 0, sizeof(app_init_params));
 	app_init_params.linux_core_id = 0;
@@ -201,7 +207,7 @@ int main(int argc, char *argv[])
 
 	odp_pktout_queue_param_init(&pktout_param);
 	pktout_param.op_mode    = ODP_PKTIO_OP_MT_UNSAFE;
-	pktout_param.num_queues = num_workers;
+	pktout_param.num_queues = tx_queues;
 
 	memset(pktio_thr_args, 0, sizeof(pktio_thr_args));
 
@@ -231,7 +237,7 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 
-		if (odp_pktout_queue(pktio, NULL, 0) != num_workers) {
+		if (odp_pktout_queue(pktio, NULL, 0) != tx_queues) {
 			OFP_ERR("Too few pktout queues for %s",
 				params.if_names[i]);
 			exit(EXIT_FAILURE);
@@ -244,9 +250,7 @@ int main(int argc, char *argv[])
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 
 	/* Create worker threads */
-	cpu = odp_cpumask_first(&cpu_mask);
 	for (i = 0; i < num_workers; ++i) {
-		odp_cpumask_t thd_mask;
 
 		pktio_thr_args[i].num_pktin = params.if_count;
 
@@ -255,12 +259,11 @@ int main(int argc, char *argv[])
 		thr_params.thr_type = ODP_THREAD_WORKER;
 		thr_params.instance = instance;
 
-		odp_cpumask_zero(&thd_mask);
-		odp_cpumask_set(&thd_mask, cpu);
+		odp_cpumask_zero(&cpu_mask);
+		odp_cpumask_set(&cpu_mask, first_worker + i);
 
-		odph_linux_pthread_create(&thread_tbl[i], &thd_mask,
+		odph_linux_pthread_create(&thread_tbl[i], &cpu_mask,
 					  &thr_params);
-		cpu = odp_cpumask_next(&cpu_mask, cpu);
 	}
 
 	odp_cpumask_zero(&cpu_mask);
