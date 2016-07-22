@@ -67,8 +67,6 @@ CC="$PTHREAD_CC"
 
 m4_include([./m4/visibility.m4])
 
-AC_SEARCH_LIBS([timer_create],[rt posix4])
-
 ##########################################################################
 # Default warning setup
 ##########################################################################
@@ -175,7 +173,7 @@ PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= $ODP_VERSION_SUPPORTED], [],
 	check_odp)
 
 # prepending lib to the files to link
-LIBS="-l$ODP_LIB -lodphelper-linux $LIBS -ldl"
+LIBS="-l$ODP_LIB -lodphelper-linux $LIBS"
 
 ##########################################################################
 # Restore old saved variables
