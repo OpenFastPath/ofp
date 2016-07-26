@@ -412,24 +412,36 @@ _ofp_select(int nfds, ofp_fd_set *readfds, ofp_fd_set *writefds,
 	return set_ready_fds(nfds, readfds, is_readable);
 }
 
+static inline int
+to_bit_index(int fd)
+{
+	return ((fd - OFP_SOCK_NUM_OFFSET) / 8);
+}
+
+static inline uint8_t
+to_bit(int fd)
+{
+	return (1 << (fd - OFP_SOCK_NUM_OFFSET) % 8);
+}
+
 void
 OFP_FD_CLR(int fd, ofp_fd_set *set)
 {
 	if (set)
-		set->fd_set_buf[fd - OFP_SOCK_NUM_OFFSET] = 0;
+		set->fd_set_buf[to_bit_index(fd)] &= ~to_bit(fd);
 }
 
 int
 OFP_FD_ISSET(int fd, ofp_fd_set *set)
 {
-	return set ? set->fd_set_buf[fd - OFP_SOCK_NUM_OFFSET] : 0;
+	return set ? set->fd_set_buf[to_bit_index(fd)] & to_bit(fd) : 0;
 }
 
 void
 OFP_FD_SET(int fd, ofp_fd_set *set)
 {
 	if (set)
-		set->fd_set_buf[fd - OFP_SOCK_NUM_OFFSET] = 1;
+		set->fd_set_buf[to_bit_index(fd)] |= to_bit(fd);
 }
 
 void

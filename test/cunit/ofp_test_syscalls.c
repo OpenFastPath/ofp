@@ -114,6 +114,16 @@ static void test_clear_fd_from_set(void)
 	CU_ASSERT_FALSE(OFP_FD_ISSET(fd, &set));
 }
 
+static void test_clear_unset_fd_from_set(void)
+{
+        const int fd = OFP_SOCK_NUM_OFFSET;
+        ofp_fd_set set;
+
+        OFP_FD_ZERO(&set);
+        OFP_FD_CLR(fd, &set);
+        CU_ASSERT_FALSE(OFP_FD_ISSET(fd, &set));
+}
+
 static int sleeper_spy(void *channel, odp_rwlock_t *mtx, int priority,
 		       const char *wmesg, uint32_t timeout);
 static void test_select_as_portable_sleep(void)
@@ -295,6 +305,7 @@ int main(void)
 		{ const_cast("NULL fd set"), test_null_fd_set },
 		{ const_cast("Add fd to set"), test_add_fd_to_set },
 		{ const_cast("Remove fd from set"), test_clear_fd_from_set },
+		{ const_cast("Remove unset fd from set"), test_clear_unset_fd_from_set },
 		  CU_TEST_INFO_NULL
 	};
 
