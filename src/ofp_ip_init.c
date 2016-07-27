@@ -69,7 +69,7 @@ void	ofp_ip_destroy(void)
 }
 #endif
 
-int ofp_ip_input(odp_packet_t pkt, int off)
+enum ofp_return_code ofp_ip_input(odp_packet_t pkt, int off)
 {
 	(void)pkt;
 	(void)off;

@@ -1507,7 +1507,7 @@ out_locked:
 	return (0);
 }
 
-int
+enum ofp_return_code
 ofp_igmp_input(odp_packet_t m, int off)
 {
 	int iphlen;

@@ -310,7 +310,7 @@ static int del_route6(struct ofp_route_msg *msg)
 	return 0;
 }
 
-int ofp_route_save_ipv6_pkt(odp_packet_t pkt,
+enum ofp_return_code ofp_route_save_ipv6_pkt(odp_packet_t pkt,
 	uint8_t *addr, struct ofp_ifnet *dev)
 {
 	struct ofp_nh6_entry *nh6 = NULL;

@@ -651,7 +651,7 @@ int	 ofp_tcp_reass(struct tcpcb *, struct ofp_tcphdr *, int *, odp_packet_t );
 void	 ofp_tcp_reass_init(void);
 void	 ofp_tcp_reass_flush(struct tcpcb *);
 
-int	 ofp_tcp_input(odp_packet_t , int);
+enum ofp_return_code ofp_tcp_input(odp_packet_t , int);
 #define	TI_UNLOCKED	1
 #define	TI_WLOCKED	2
 void	 ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,

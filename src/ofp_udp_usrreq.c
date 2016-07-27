@@ -264,7 +264,7 @@ ofp_in_broadcast(struct ofp_in_addr in, struct ofp_ifnet *ifp)
 	return 0;
 }
 
-int
+enum ofp_return_code
 ofp_udp_input(odp_packet_t m, int off)
 {
 
@@ -275,7 +275,7 @@ ofp_udp_input(odp_packet_t m, int off)
 	struct ofp_ifnet *ifp;
 	struct inpcb *inp;
 	//int len;
-	int res;
+	enum ofp_return_code res;
 #ifndef SP
 	struct ofp_ip save_ip;
 #endif /* SP*/

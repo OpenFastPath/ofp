@@ -507,7 +507,7 @@ do { \
  *	establishing, established and closing connections
  */
 #ifdef INET6
-int
+enum ofp_return_code
 ofp_tcp6_input(odp_packet_t m, int *offp, int *nxt)
 {
 	enum ofp_return_code ret = OFP_PKT_PROCESSED;
@@ -545,7 +545,7 @@ ofp_tcp6_input(odp_packet_t m, int *offp, int *nxt)
 }
 #endif /* INET6 */
 
-int
+enum ofp_return_code
 ofp_tcp_input(odp_packet_t m, int off0)
 {
 	struct ofp_tcphdr *th = NULL;

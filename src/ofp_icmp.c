@@ -123,7 +123,7 @@ SYSCTL_VNET_INT(_net_inet_icmp, OID_AUTO, bmcastecho, CTLFLAG_RW,
 int	icmpprintfs = 0;
 #endif
 
-static int	icmp_reflect(odp_packet_t pkt);
+static enum ofp_return_code icmp_reflect(odp_packet_t pkt);
 static void	icmp_send(odp_packet_t pkt, struct ofp_nh_entry *nh);
 
 extern	struct protosw inetsw[];
@@ -164,7 +164,7 @@ kmod_icmpstat_inc(int statnum)
  * Generate an error packet of type error
  * in response to bad packet ip.
  */
-int
+enum ofp_return_code
 ofp_icmp_error(odp_packet_t pkt_in, int type, int code, uint32_t dest, int mtu)
 {
 	register struct ofp_ip *ip_in = (struct ofp_ip *)odp_packet_l3_ptr(pkt_in, NULL);
@@ -302,7 +302,7 @@ freeit:
 /*
  * Process a received ICMP message.
  */
-int
+enum ofp_return_code
 ofp_icmp_input(odp_packet_t pkt, int off)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
@@ -557,7 +557,7 @@ freeit:
 /*
  * Reflect the ip packet back to the source
  */
-static int
+static enum ofp_return_code
 icmp_reflect(odp_packet_t pkt)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);

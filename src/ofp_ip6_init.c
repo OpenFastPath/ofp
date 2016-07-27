@@ -98,7 +98,7 @@ void	ofp_ip6_destroy(void)
 }
 #endif
 
-int ofp_ip6_input(odp_packet_t pkt, int *offp, int *nxt)
+enum ofp_return_code ofp_ip6_input(odp_packet_t pkt, int *offp, int *nxt)
 {
 	(void)pkt;
 	(void)offp;
@@ -107,7 +107,7 @@ int ofp_ip6_input(odp_packet_t pkt, int *offp, int *nxt)
 	return OFP_PKT_CONTINUE;
 }
 
-int ofp_ip6_none_input(odp_packet_t pkt, int *offp, int *nxt)
+enum ofp_return_code ofp_ip6_none_input(odp_packet_t pkt, int *offp, int *nxt)
 {
 	(void)pkt;
 	(void)offp;
@@ -116,7 +116,7 @@ int ofp_ip6_none_input(odp_packet_t pkt, int *offp, int *nxt)
 	return OFP_PKT_PROCESSED;
 }
 
-int ofp_ip6_unrecognized_hdr_input(odp_packet_t pkt, int *offp, int *nxt)
+enum ofp_return_code ofp_ip6_unrecognized_hdr_input(odp_packet_t pkt, int *offp, int *nxt)
 {
 	(void)offp;
 

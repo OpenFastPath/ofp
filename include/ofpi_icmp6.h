@@ -15,7 +15,7 @@ void	icmp6_paramerror(struct mbuf *, int);
 */
 void	ofp_icmp6_error(odp_packet_t, int, int, int);
 void	ofp_icmp6_error2(odp_packet_t, int, int, int, struct ofp_ifnet *);
-int	ofp_icmp6_input(odp_packet_t, int *, int *);
+enum ofp_return_code ofp_icmp6_input(odp_packet_t, int *, int *);
 /*
 void	icmp6_fasttimo(void);
 void	icmp6_slowtimo(void);

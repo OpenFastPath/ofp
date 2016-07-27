@@ -92,8 +92,8 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev);
 int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 			struct ofp_ifnet *dev);
-int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
-			    uint32_t ipv4_addr, struct ofp_ifnet *dev);
+enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
+				uint32_t ipv4_addr, struct ofp_ifnet *dev);
 
 void ofp_arp_show_table(int fd);
 void ofp_arp_show_saved_packets(int fd);

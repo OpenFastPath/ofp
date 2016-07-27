@@ -415,7 +415,7 @@ ofp_icmp6_error(odp_packet_t m, int type, int code, int param)
 /*
  * Process a received ICMP6 message.
  */
-int
+enum ofp_return_code
 ofp_icmp6_input(odp_packet_t m, int *offp, int *nxt)
 {
 	/*struct ofp_ether_header *eth;*/

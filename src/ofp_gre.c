@@ -20,7 +20,7 @@
 #include "ofpi_hook.h"
 #include "ofpi_util.h"
 
-int ofp_gre_input(odp_packet_t pkt, int off0)
+enum ofp_return_code ofp_gre_input(odp_packet_t pkt, int off0)
 {
 	int res;
 	struct ofp_ifnet *dev, *dev_in;

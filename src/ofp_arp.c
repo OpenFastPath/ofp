@@ -389,7 +389,7 @@ static void ofp_arp_cleanup_pkt_list(void *arg)
 	ofp_arp_ipv4_remove(args->ipv4_addr, args->dev);
 }
 
-int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
+enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 			    uint32_t ipv4_addr, struct ofp_ifnet *dev)
 {
 	struct arp_entry *newarp;

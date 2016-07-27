@@ -184,7 +184,7 @@ udp6_append(struct inpcb *inp, odp_packet_t pkt, int off,
 		sorwakeup_locked(so);
 }
 
-int
+enum ofp_return_code
 ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 {
 	int off = *offp;
@@ -192,7 +192,7 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 	struct ofp_ifnet *ifp;
 	struct ofp_ip6_hdr *ip6;
 	struct ofp_udphdr *uh;
-	int res = OFP_PKT_CONTINUE;
+	enum ofp_return_code res = OFP_PKT_CONTINUE;
 	int plen, ulen;
 	/*uint16_t uh_sum;*/
 	struct ofp_sockaddr_in6 fromsa;

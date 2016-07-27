@@ -165,7 +165,7 @@ static void ofp_vxlan_tmo(void *arg)
 		OFP_ERR("Failed to restart VXLAN timer.");
 }
 
-int ofp_vxlan_input(odp_packet_t pkt)
+enum ofp_return_code ofp_vxlan_input(odp_packet_t pkt)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 	struct ofp_udphdr *udp;
@@ -223,7 +223,7 @@ int ofp_vxlan_input(odp_packet_t pkt)
 	return OFP_PKT_PROCESSED;
 }
 
-int ofp_vxlan_prepend_hdr(odp_packet_t pkt, struct ofp_ifnet *vxdev,
+enum ofp_return_code ofp_vxlan_prepend_hdr(odp_packet_t pkt, struct ofp_ifnet *vxdev,
 			  struct ofp_nh_entry *nh)
 {
 	static uint16_t id = 0;

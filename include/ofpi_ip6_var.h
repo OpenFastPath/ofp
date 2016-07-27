@@ -391,9 +391,9 @@ void	ofp_ip6_init (void);
 void	ofp_ip6_destroy (void);
 #endif
 
-int ofp_ip6_input(odp_packet_t, int *, int *);
-int ofp_ip6_none_input(odp_packet_t, int *, int *);
-int ofp_ip6_unrecognized_hdr_input(odp_packet_t, int *, int *);
+enum ofp_return_code ofp_ip6_input(odp_packet_t, int *, int *);
+enum ofp_return_code ofp_ip6_none_input(odp_packet_t, int *, int *);
+enum ofp_return_code ofp_ip6_unrecognized_hdr_input(odp_packet_t, int *, int *);
 
 #if 0
 #ifdef _KERNEL
