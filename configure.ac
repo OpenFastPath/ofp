@@ -169,11 +169,18 @@ function check_odp {
 	 AC_MSG_FAILURE(["Invalid ODP version. ODP $ODP_VERSION_SUPPORTED is required."])
 }
 
-PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= $ODP_VERSION_SUPPORTED], [],
-	check_odp)
+PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= $ODP_VERSION_SUPPORTED], [], check_odp)
+AC_SUBST([ODP_CFLAGS])
+AC_SUBST([ODP_LIBS])
+
+PKG_CHECK_MODULES([ODPHELPER], [libodphelper-linux])
+AC_SUBST([ODPHELPER_CFLAGS])
+AC_SUBST([ODPHELPER_LIBS])
+
+AM_CPPFLAGS="$AM_CPPFLAGS $ODP_CFLAGS $ODPHELPER_CFLAGS"
 
 # prepending lib to the files to link
-LIBS="-l$ODP_LIB -lodphelper-linux $LIBS"
+LIBS="$ODP_LIBS $ODPHELPER_LIBS $LIBS"
 
 ##########################################################################
 # Restore old saved variables
@@ -376,5 +383,9 @@ AC_MSG_RESULT([
 	am_ldflags:		${AM_LDFLAGS}
 	odp_library:		${ODP_LIB}
 	odp_version:		$(pkg-config --modversion lib$ODP_LIB)
+	odp_cflags:		${ODP_CFLAGS}
+	odp_libs:		${ODP_LIBS}
+	odphelper_cflags:	${ODPHELPER_CFLAGS}
+	odphelper_libs:		${ODPHELPER_LIBS}
 	cunit:			${cunit_support}
 ])
