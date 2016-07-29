@@ -3,7 +3,8 @@ LDADD = $(LIB)/libofp.la
 
 DEFAULT_INCLUDES=-I.
 
-AM_CFLAGS += \
+AM_CPPFLAGS += \
+	     $(DEFAULT_INCLUDES) \
 	     -I$(srcdir) \
 	     -I$(top_srcdir)/include/api \
 	     -I$(top_srcdir)/example/common

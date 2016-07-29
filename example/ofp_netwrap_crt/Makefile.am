@@ -1,7 +1,7 @@
 LIB   = $(top_builddir)/lib
 
-AM_CFLAGS =  -I.
-AM_CFLAGS +=  -I$(top_srcdir)/include/api
+AM_CPPFLAGS +=  -I.
+AM_CPPFLAGS +=  -I$(top_srcdir)/include/api
 
 lib_LTLIBRARIES = $(LIB)/libofp_netwrap_crt.la
 

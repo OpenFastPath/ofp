@@ -2,7 +2,6 @@ include $(top_srcdir)/example/Makefile.inc
 
 noinst_PROGRAMS = socket
 socket_LDFLAGS = $(AM_LDFLAGS) -static
-socket_CFLAGS = $(AM_CFLAGS)
 
 dist_socket_SOURCES = \
 suite_framework.c \
@@ -34,5 +33,5 @@ noinst_HEADERS = \
 		${srcdir}/suite_framework.h \
 		${srcdir}/socket_send_recv_tcp.h
 if OFP_IPv6
-socket_CFLAGS +=  -DINET6
+socket_CFLAGS =  -DINET6
 endif
