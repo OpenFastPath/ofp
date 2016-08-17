@@ -328,35 +328,6 @@ to_usec(struct ofp_timeval *timeout)
 	return timeout ? timeout->tv_sec * US_PER_SEC + timeout->tv_usec : 0;
 }
 
-static inline int
-is_accepting_socket(struct socket *so)
-{
-	return (so->so_options & OFP_SO_ACCEPTCONN);
-}
-
-static inline int
-is_accepting_socket_readable(struct socket *so)
-{
-	return !(OFP_TAILQ_EMPTY(&so->so_comp));
-}
-
-static inline int
-is_listening_socket_readable(struct socket *so)
-{
-	return (so->so_rcv.sb_cc > 0);
-}
-
-static int
-is_readable(int fd)
-{
-	struct socket *so = ofp_get_sock_by_fd(fd);
-
-	if (is_accepting_socket(so))
-		return is_accepting_socket_readable(so);
-
-	return is_listening_socket_readable(so);
-}
-
 static int
 set_ready_fd(int fd, ofp_fd_set *fd_set, int(*is_ready)(int fd))
 {
