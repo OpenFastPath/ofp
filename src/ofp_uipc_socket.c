@@ -2844,3 +2844,32 @@ ofp_send_sock_event(struct socket *head, struct socket *so, int event)
 	}
 	return 0;
 }
+
+static inline int
+is_accepting_socket(struct socket *so)
+{
+	return (so->so_options & OFP_SO_ACCEPTCONN);
+}
+
+static inline int
+is_accepting_socket_readable(struct socket *so)
+{
+	return !(OFP_TAILQ_EMPTY(&so->so_comp));
+}
+
+static inline int
+is_listening_socket_readable(struct socket *so)
+{
+	return (so->so_rcv.sb_cc > 0);
+}
+
+int
+is_readable(int fd)
+{
+	struct socket *so = ofp_get_sock_by_fd(fd);
+
+	if (is_accepting_socket(so))
+		return is_accepting_socket_readable(so);
+
+	return is_listening_socket_readable(so);
+}
