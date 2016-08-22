@@ -9,6 +9,13 @@
 #include "ofpi_epoll.h"
 #include "ofp_errno.h"
 
+#define LENGTH(array) \
+	sizeof(array)/sizeof(*array)
+#define FOREACH(item, array) \
+	int i, l, breaked; \
+	for (i = 0, l = LENGTH(array), breaked = 0; i < l && !breaked; ++i, breaked = !breaked) \
+		for (item = &array[i]; !breaked; breaked = !breaked)
+
 static int (*epoll_socket_creator)(void);
 
 int ofp_epoll_create(int size)
@@ -45,9 +52,25 @@ static inline int is_epoll_socket(struct socket *epoll)
 	return (epoll->so_type == OFP_SOCK_EPOLL);
 }
 
+static inline int is_fd(int *epoll_set, int fd)
+{
+	return (*epoll_set == fd);
+}
+
+static inline int *find_fd(struct socket *epoll, int fd)
+{
+	int *epoll_set;
+
+	FOREACH(epoll_set, epoll->epoll_set)
+		if (is_fd(epoll_set, fd))
+			return epoll_set;
+
+	return NULL;
+}
+
 static inline int is_registered(struct socket *epoll, int fd)
 {
-	return (epoll->epoll_set == fd);
+	return (find_fd(epoll, fd) != NULL);
 }
 
 static inline void set_fd(int *epoll_set, int fd)
@@ -55,9 +78,9 @@ static inline void set_fd(int *epoll_set, int fd)
 	*epoll_set = fd;
 }
 
-static inline int modify_epoll_set(struct socket *epoll, int fd)
+static inline int modify_epoll_set(struct socket *epoll, int old_fd, int new_fd)
 {
-	set_fd(&epoll->epoll_set, fd);
+	set_fd(find_fd(epoll, old_fd), new_fd);
 	return 0;
 }
 
@@ -66,7 +89,7 @@ static int ofp_epoll_ctl_add(struct socket *epoll, int fd)
 	if (is_registered(epoll, fd))
 		return failure(OFP_EEXIST);
 
-	return modify_epoll_set(epoll, fd);
+	return modify_epoll_set(epoll, -1, fd);
 }
 
 static int ofp_epoll_ctl_del(struct socket *epoll, int fd)
@@ -74,7 +97,7 @@ static int ofp_epoll_ctl_del(struct socket *epoll, int fd)
 	if (!is_registered(epoll, fd))
 		return failure(OFP_ENOENT);
 
-	return modify_epoll_set(epoll, -1);
+	return modify_epoll_set(epoll, fd, -1);
 }
 
 static int ofp_epoll_ctl_mod(struct socket *epoll, int fd)

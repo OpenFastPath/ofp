@@ -145,7 +145,7 @@ struct socket {
 	} pcb_space;
 	struct ofp_sigevent so_sigevent;
 
-	int epoll_set;
+	int epoll_set[OFP_NUM_SOCKETS_MAX];
 };
 
 

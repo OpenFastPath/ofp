@@ -28,6 +28,14 @@
 #define SETUP_NON_BLOCKING
 #endif
 
+#define LENGTH(array) \
+	sizeof(array)/sizeof(*array)
+#define FOREACH(item, array) \
+	int i, l, breaked; \
+	for (i = 0, l = LENGTH(array), breaked = 0; i < l && !breaked; ++i, breaked = !breaked) \
+		for (item = &array[i]; !breaked; breaked = !breaked)
+
+
 static const int epfd = OFP_SOCK_NUM_OFFSET;
 static const int fd = OFP_SOCK_NUM_OFFSET + 1;
 static struct socket epoll = { 0 };
@@ -152,6 +160,7 @@ static void setup_non_blocking(void)
 {
 	epoll_create();
 	add_fd(fd);
+	add_fd(fd + 1);
 	ofp_errno = 0;
 }
 
@@ -179,6 +188,9 @@ static void test_add_registered_fd(void)
 
 	CU_ASSERT_EQUAL(add_fd(fd), -1);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EEXIST);
+
+	CU_ASSERT_EQUAL(add_fd(fd + 1), -1);
+	CU_ASSERT_EQUAL(ofp_errno, OFP_EEXIST);
 }
 
 static void test_delete_registered_fd(void)
@@ -187,6 +199,9 @@ static void test_delete_registered_fd(void)
 
 	CU_ASSERT_EQUAL(delete_fd(fd), 0);
 	CU_ASSERT_EQUAL(delete_fd(fd), -1);
+
+	CU_ASSERT_EQUAL(delete_fd(fd + 1), 0);
+	CU_ASSERT_EQUAL(delete_fd(fd + 1), -1);
 }
 
 static void test_modify_registered_fd(void)
@@ -304,9 +319,14 @@ int failing_socket_creator(void)
 
 static int epoll_socket_creator(void)
 {
+	int *epoll_set;
+
 	epoll.so_number = epfd;
 	epoll.so_type = OFP_SOCK_EPOLL;
-	epoll.epoll_set = -1;
+
+	FOREACH(epoll_set, epoll.epoll_set)
+		*epoll_set = -1;
+
 	return epoll.so_number;
 }
 
@@ -322,7 +342,13 @@ int is_epoll_socket(struct socket *socket)
 
 int is_epoll_set_initialized(struct socket *epoll)
 {
-	return (epoll->epoll_set == -1);
+	int *epoll_set;
+
+	FOREACH(epoll_set, epoll->epoll_set)
+		if (*epoll_set != -1)
+			return 0;
+
+	return 1;
 }
 
 struct socket *dummy_socket_getter(int fd)
