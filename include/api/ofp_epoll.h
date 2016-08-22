@@ -8,6 +8,31 @@
 #ifndef __OFP_EPOLL_H__
 #define __OFP_EPOLL_H__
 
+#include <stdint.h>
+
+typedef union ofp_epoll_data {
+	void    *ptr;
+	int      fd;
+	uint32_t u32;
+	uint64_t u64;
+} ofp_epoll_data_t;
+
+struct ofp_epoll_event {
+	uint32_t events;
+	ofp_epoll_data_t data;
+};
+
+enum OFP_EPOLL_EVENTS {
+	OFP_EPOLLIN = 0x001,
+#define OFP_EPOLLIN OFP_EPOLLIN
+};
+
+#define OFP_EPOLL_CTL_ADD 1
+#define OFP_EPOLL_CTL_DEL 2
+#define OFP_EPOLL_CTL_MOD 3
+
 int ofp_epoll_create(int size);
+
+int ofp_epoll_ctl(int epfd, int op, int fd, struct ofp_epoll_event *event);
 
 #endif

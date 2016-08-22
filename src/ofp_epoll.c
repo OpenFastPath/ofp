@@ -29,3 +29,46 @@ int _ofp_epoll_create(int size, int(*create_socket)(void))
 
 	return create_socket();
 }
+
+static struct socket *(*get_socket)(int fd);
+
+int ofp_epoll_ctl(int epfd, int op, int fd, struct ofp_epoll_event *event)
+{
+	if (epfd == fd)
+		return failure(OFP_EINVAL);
+
+	return _ofp_epoll_ctl(get_socket(epfd), op, fd, event);
+}
+
+static inline int is_epoll_socket(struct socket *epoll)
+{
+	return (epoll->so_type == OFP_SOCK_EPOLL);
+}
+
+int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event *event)
+{
+	(void)event;
+
+	if (!epoll || !get_socket(fd))
+		return failure(OFP_EBADF);
+
+	if (!is_epoll_socket(epoll))
+		return failure(OFP_EINVAL);
+
+	switch (op) {
+	case OFP_EPOLL_CTL_ADD:
+		return 0;
+	case OFP_EPOLL_CTL_DEL:
+	case OFP_EPOLL_CTL_MOD:
+		return failure(OFP_ENOENT);
+	default:
+		ofp_errno = OFP_EINVAL;
+	}
+
+	return -1;
+}
+
+void ofp_set_socket_getter(struct socket*(*socket_getter)(int fd))
+{
+	get_socket = socket_getter;
+}
