@@ -204,6 +204,33 @@ static void test_delete_registered_fd(void)
 	CU_ASSERT_EQUAL(delete_fd(fd + 1), -1);
 }
 
+static int fd_not_ready(int fd);
+static void test_wait_with_no_available_events(void)
+{
+	SETUP_NON_BLOCKING;
+
+	ofp_set_is_ready_checker(fd_not_ready);
+
+	CU_ASSERT_EQUAL(epoll_wait(2), 0);
+}
+
+static int fd_is_ready(int fd);
+static void test_wait_with_multiple_available_events(void)
+{
+	SETUP_NON_BLOCKING;
+
+	ofp_set_is_ready_checker(fd_is_ready);
+
+	CU_ASSERT_EQUAL(epoll_wait(2), 2);
+}
+
+static void test_wait_with_maxevents_less_than_ready_fds(void)
+{
+	SETUP_NON_BLOCKING;
+
+	CU_ASSERT_EQUAL(epoll_wait(1), 1);
+}
+
 static void test_modify_registered_fd(void)
 {
 	SETUP_NON_BLOCKING;
@@ -270,6 +297,12 @@ int main(void)
 		  test_add_registered_fd },
 		{ const_cast("Delete registered fd from epoll instance"),
 		  test_delete_registered_fd },
+		{ const_cast("Wait will return zero when no event available"),
+		  test_wait_with_no_available_events },
+		{ const_cast("Wait will return the number of available events"),
+		  test_wait_with_multiple_available_events },
+		{ const_cast("Wait will return only upto maxevents ready fds"),
+		  test_wait_with_maxevents_less_than_ready_fds },
 		{ const_cast("Modify registered fd in epoll instance"),
 		  test_modify_registered_fd },
 		CU_TEST_INFO_NULL
@@ -387,4 +420,16 @@ int delete_fd(int fd)
 int modify_fd(int fd)
 {
 	return epoll_control(OFP_EPOLL_CTL_MOD, fd);
+}
+
+int fd_not_ready(int fd)
+{
+	(void)fd;
+	return 0;
+}
+
+int fd_is_ready(int fd)
+{
+	(void)fd;
+	return 1;
 }

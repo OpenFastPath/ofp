@@ -52,9 +52,14 @@ static inline int is_epoll_socket(struct socket *epoll)
 	return (epoll->so_type == OFP_SOCK_EPOLL);
 }
 
+static inline int get_fd(int *epoll_set)
+{
+	return *epoll_set;
+}
+
 static inline int is_fd(int *epoll_set, int fd)
 {
-	return (*epoll_set == fd);
+	return (get_fd(epoll_set) == fd);
 }
 
 static inline int *find_fd(struct socket *epoll, int fd)
@@ -137,6 +142,25 @@ int ofp_epoll_wait(int epfd, struct ofp_epoll_event *events, int maxevents, int 
 	return _ofp_epoll_wait(get_socket(epfd), events, maxevents, timeout);
 }
 
+static inline int is_fd_set(int *epoll_set)
+{
+	return !is_fd(epoll_set, -1);
+}
+
+static int (*is_ready)(int fd);
+
+static int available_events(struct socket *epoll, int maxevents)
+{
+	int *epoll_set;
+	int ready = 0;
+
+	FOREACH(epoll_set, epoll->epoll_set)
+		if (ready < maxevents && is_fd_set(epoll_set) && is_ready(get_fd(epoll_set)))
+			++ready;
+
+	return ready;
+}
+
 int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int maxevents, int timeout)
 {
 	(void)timeout;
@@ -150,10 +174,15 @@ int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int ma
 	if (!events)
 		return failure(OFP_EFAULT);
 
-	return 0;
+	return available_events(epoll, maxevents);
 }
 
 void ofp_set_socket_getter(struct socket*(*socket_getter)(int fd))
 {
 	get_socket = socket_getter;
+}
+
+void ofp_set_is_ready_checker(int(*is_ready_checker)(int fd))
+{
+	is_ready = is_ready_checker;
 }
