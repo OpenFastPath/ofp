@@ -7,9 +7,11 @@
 
 #include "ofp.h"
 
-#include "httpd.h"
+#ifdef USE_EPOLL
+#include "ofp_epoll.h"
+#endif
 
-void httpd_main(uint32_t addr);
+#include "httpd.h"
 
 int sigreceived = 0;
 static uint32_t myaddr;
@@ -131,21 +133,115 @@ static int analyze_http(char *http, int s) {
 	return 0;
 }
 
+#ifndef USE_EPOLL
 static void monitor_connections(ofp_fd_set *fd_set)
 {
 	int i;
 
 	for (i = 0; i < NUM_CONNECTIONS; ++i)
-	        if (connections[i].fd)
-	                OFP_FD_SET(connections[i].fd, fd_set);
+		if (connections[i].fd)
+			OFP_FD_SET(connections[i].fd, fd_set);
+}
+#endif
+
+static inline int accept_connection(int serv_fd)
+{
+	int tmp_fd, i;
+	struct ofp_sockaddr_in caller;
+	unsigned int alen = sizeof(caller);
+
+	if ((tmp_fd = ofp_accept(serv_fd, (struct ofp_sockaddr *)&caller, &alen)) > 0) {
+		OFP_INFO("accept fd=%d", tmp_fd);
+
+		for (i = 0; i < NUM_CONNECTIONS; i++)
+			if (connections[i].fd == 0)
+				break;
+
+		if (i >= NUM_CONNECTIONS) {
+			OFP_ERR("Node cannot accept new connections!");
+			ofp_close(tmp_fd);
+			return -1;
+		}
+
+#if 0
+		struct ofp_linger so_linger;
+		so_linger.l_onoff = 1;
+		so_linger.l_linger = 0;
+		int r1 = ofp_setsockopt(tmp_fd,
+					  OFP_SOL_SOCKET,
+					  OFP_SO_LINGER,
+					  &so_linger,
+					  sizeof so_linger);
+		if (r1) OFP_ERR("SO_LINGER failed!");
+#endif
+		struct ofp_timeval tv;
+		tv.tv_sec = 3;
+		tv.tv_usec = 0;
+		int r2 = ofp_setsockopt(tmp_fd,
+					  OFP_SOL_SOCKET,
+					  OFP_SO_SNDTIMEO,
+					  &tv,
+					  sizeof tv);
+		if (r2) OFP_ERR("SO_SNDTIMEO failed!");
+
+		connections[i].fd = tmp_fd;
+		connections[i].addr = caller.sin_addr.s_addr;
+		connections[i].closed = FALSE;
+	}
+
+	return tmp_fd;
+}
+
+static int handle_connection(int i)
+{
+	int fd, r;
+	static char buf[1024];
+
+	if (connections[i].fd == 0)
+		return 0;
+
+	fd = connections[i].fd;
+	r = ofp_recv(connections[i].fd, buf, sizeof(buf)-1, 0);
+
+	if (r < 0)
+		return 0;
+
+	if (r > 0) {
+		buf[r] = 0;
+		OFP_INFO("recv data: %s", buf);
+
+		if (!strncmp(buf, "GET", 3))
+			analyze_http(buf, connections[i].fd);
+		else
+			OFP_INFO("Not an HTTP GET request");
+
+		OFP_INFO("closing %d\n", connections[i].fd);
+
+		while (ofp_close(connections[i].fd) < 0) {
+			OFP_ERR("ofp_close failed, fd=%d err='%s'",
+				connections[i].fd,
+				ofp_strerror(ofp_errno));
+			sleep(1);
+		}
+		OFP_INFO("closed fd=%d", connections[i].fd);
+		connections[i].fd = 0;
+	} else if (r == 0) {
+		if (connections[i].post) {
+			OFP_INFO("File download finished");
+			fclose(connections[i].post);
+			connections[i].post = NULL;
+		}
+		ofp_close(connections[i].fd);
+		connections[i].fd = 0;
+	}
+
+	return fd;
 }
 
 static void *webserver(void *arg)
 {
-	int serv_fd, tmp_fd, nfds;
-	unsigned int alen;
-	struct ofp_sockaddr_in my_addr, caller;
-	ofp_fd_set read_fd;
+	int serv_fd, tmp_fd;
+	struct ofp_sockaddr_in my_addr;
 
 	(void)arg;
 
@@ -178,13 +274,23 @@ static void *webserver(void *arg)
 	}
 
 	ofp_listen(serv_fd, 10);
+
+#ifndef USE_EPOLL
+	OFP_INFO("Using ofp_select");
+	ofp_fd_set read_fd;
 	OFP_FD_ZERO(&read_fd);
-	nfds = serv_fd;
+	int nfds = serv_fd;
+#else
+	OFP_INFO("Using ofp_epoll");
+	int epfd = ofp_epoll_create(1);
+	struct ofp_epoll_event e = { OFP_EPOLLIN, { .fd = serv_fd } };
+	ofp_epoll_ctl(epfd, OFP_EPOLL_CTL_ADD, serv_fd, &e);
+#endif
 
 	for ( ; ; )
 	{
+#ifndef USE_EPOLL
 		int r, i;
-		static char buf[1024];
 		struct ofp_timeval timeout;
 
 		timeout.tv_sec = 0;
@@ -193,94 +299,34 @@ static void *webserver(void *arg)
 		OFP_FD_SET(serv_fd, &read_fd);
 		monitor_connections(&read_fd);
 		r = ofp_select(nfds + 1, &read_fd, NULL, NULL, &timeout);
+
 		if (r <= 0)
 			continue;
 
-		if (OFP_FD_ISSET(serv_fd, &read_fd)) {
-			alen = sizeof(caller);
-			if ((tmp_fd = ofp_accept(serv_fd,
-						   (struct ofp_sockaddr *)&caller,
-						   &alen)) > 0) {
-				OFP_INFO("accept fd=%d", tmp_fd);
+		if (OFP_FD_ISSET(serv_fd, &read_fd))
+			if ((tmp_fd = accept_connection(serv_fd)) > nfds)
+				nfds = tmp_fd;
 
-				for (i = 0; i < NUM_CONNECTIONS; i++)
-					if (connections[i].fd == 0)
-						break;
+		for (i = 0; i < NUM_CONNECTIONS; i++)
+			if (OFP_FD_ISSET(connections[i].fd, &read_fd) &&
+			   (tmp_fd = handle_connection(i)))
+				OFP_FD_CLR(tmp_fd, &read_fd);
+#else
+		int r, i;
+		struct ofp_epoll_event events[10];
 
-				if (i >= NUM_CONNECTIONS) {
-					OFP_ERR("Node cannot accept new connections!");
-					ofp_close(tmp_fd);
-					continue;
-				}
+		r = ofp_epoll_wait(epfd, events, 10, 200);
 
-#if 0
-				struct ofp_linger so_linger;
-				so_linger.l_onoff = 1;
-				so_linger.l_linger = 0;
-				int r1 = ofp_setsockopt(tmp_fd,
-							  OFP_SOL_SOCKET,
-							  OFP_SO_LINGER,
-							  &so_linger,
-							  sizeof so_linger);
-				if (r1) OFP_ERR("SO_LINGER failed!");
+		for (i = 0; i < r; ++i) {
+			if (events[i].data.fd == serv_fd) {
+				tmp_fd = accept_connection(serv_fd);
+				struct ofp_epoll_event e = { OFP_EPOLLIN, { .u32 = i } };
+				ofp_epoll_ctl(epfd, OFP_EPOLL_CTL_ADD, tmp_fd, &e);
+			}
+			else if ((tmp_fd = handle_connection(events[i].data.u32)))
+				ofp_epoll_ctl(epfd, OFP_EPOLL_CTL_DEL, tmp_fd, NULL);
+		}
 #endif
-				struct ofp_timeval tv;
-				tv.tv_sec = 3;
-				tv.tv_usec = 0;
-				int r2 = ofp_setsockopt(tmp_fd,
-							  OFP_SOL_SOCKET,
-							  OFP_SO_SNDTIMEO,
-							  &tv,
-							  sizeof tv);
-				if (r2) OFP_ERR("SO_SNDTIMEO failed!");
-
-				connections[i].fd = tmp_fd;
-				connections[i].addr = caller.sin_addr.s_addr;
-				connections[i].closed = FALSE;
-
-				if (tmp_fd > nfds)
-				        nfds = tmp_fd;
-			}
-		}
-
-		for (i = 0; i < NUM_CONNECTIONS; i++) {
-			if (connections[i].fd == 0)
-				continue;
-
-			if (!(OFP_FD_ISSET(connections[i].fd, &read_fd)))
-				continue;
-
-			r = ofp_recv(connections[i].fd, buf, sizeof(buf)-1, 0);
-			if (r > 0) {
-				buf[r] = 0;
-				OFP_INFO("recv data: %s", buf);
-
-				if (!strncmp(buf, "GET", 3))
-					analyze_http(buf, connections[i].fd);
-				else
-					OFP_INFO("Not a HTTP GET request");
-
-				OFP_INFO("closing %d\n", connections[i].fd);
-				OFP_FD_CLR(connections[i].fd, &read_fd);
-				while (ofp_close(connections[i].fd) < 0) {
-					OFP_ERR("ofp_close failed, fd=%d err='%s'",
-						connections[i].fd,
-						ofp_strerror(ofp_errno));
-					sleep(1);
-				}
-				OFP_INFO("closed fd=%d", connections[i].fd);
-				connections[i].fd = 0;
-			} else if (r == 0) {
-				if (connections[i].post) {
-					OFP_INFO("File download finished");
-					fclose(connections[i].post);
-					connections[i].post = NULL;
-				}
-				ofp_close(connections[i].fd);
-				OFP_FD_CLR(connections[i].fd, &read_fd);
-				connections[i].fd = 0;
-			}
-		}
 	}
 
 	OFP_INFO("httpd exiting");

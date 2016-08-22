@@ -38,6 +38,13 @@ export www_dir=/path/to/your/www
 # To stop the web server:
 ./scripts/start_webserver.sh <ethX>
 
+By default the webserver uses ofp_select to monitor the file descriptors. By
+defining CPPFLAGS='-DUSE_EPOLL' when running configure the webserver can be set to
+use the ofp epoll implementation, e.g.:
+
+./configure <typical-ofp-flags> CPPFLAGS='-DUSE_EPOLL'
+make clean
+make
 
 webserver2
 -------------------------------------------------------------------------------
