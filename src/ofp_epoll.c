@@ -52,19 +52,19 @@ static inline int is_epoll_socket(struct socket *epoll)
 	return (epoll->so_type == OFP_SOCK_EPOLL);
 }
 
-static inline int get_fd(int *epoll_set)
+static inline int get_fd(struct epoll_set *epoll_set)
 {
-	return *epoll_set;
+	return epoll_set->fd;
 }
 
-static inline int is_fd(int *epoll_set, int fd)
+static inline int is_fd(struct epoll_set *epoll_set, int fd)
 {
 	return (get_fd(epoll_set) == fd);
 }
 
-static inline int *find_fd(struct socket *epoll, int fd)
+static inline struct epoll_set *find_fd(struct socket *epoll, int fd)
 {
-	int *epoll_set;
+	struct epoll_set *epoll_set;
 
 	FOREACH(epoll_set, epoll->epoll_set)
 		if (is_fd(epoll_set, fd))
@@ -78,45 +78,46 @@ static inline int is_registered(struct socket *epoll, int fd)
 	return (find_fd(epoll, fd) != NULL);
 }
 
-static inline void set_fd(int *epoll_set, int fd)
+static inline void set_fd(struct epoll_set *epoll_set, int fd, struct ofp_epoll_event *event)
 {
-	*epoll_set = fd;
+	epoll_set->fd = fd;
+	epoll_set->event = *event;
 }
 
-static inline int modify_epoll_set(struct socket *epoll, int old_fd, int new_fd)
+static inline int modify_epoll_set(struct socket *epoll, int old_fd, int new_fd, struct ofp_epoll_event *event)
 {
-	set_fd(find_fd(epoll, old_fd), new_fd);
+	set_fd(find_fd(epoll, old_fd), new_fd, event);
 	return 0;
 }
 
-static int ofp_epoll_ctl_add(struct socket *epoll, int fd)
+static int ofp_epoll_ctl_add(struct socket *epoll, int fd, struct ofp_epoll_event *event)
 {
 	if (is_registered(epoll, fd))
 		return failure(OFP_EEXIST);
 
-	return modify_epoll_set(epoll, -1, fd);
+	return modify_epoll_set(epoll, -1, fd, event);
 }
 
 static int ofp_epoll_ctl_del(struct socket *epoll, int fd)
 {
+	struct ofp_epoll_event event = { 0 };
+
 	if (!is_registered(epoll, fd))
 		return failure(OFP_ENOENT);
 
-	return modify_epoll_set(epoll, fd, -1);
+	return modify_epoll_set(epoll, fd, -1, &event);
 }
 
-static int ofp_epoll_ctl_mod(struct socket *epoll, int fd)
+static int ofp_epoll_ctl_mod(struct socket *epoll, int fd, struct ofp_epoll_event *event)
 {
 	if (!is_registered(epoll, fd))
 		return failure(OFP_ENOENT);
 
-	return 0;
+	return modify_epoll_set(epoll, fd, fd, event);
 }
 
 int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event *event)
 {
-	(void)event;
-
 	if (!epoll || !get_socket(fd))
 		return failure(OFP_EBADF);
 
@@ -125,11 +126,11 @@ int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event 
 
 	switch (op) {
 	case OFP_EPOLL_CTL_ADD:
-		return ofp_epoll_ctl_add(epoll, fd);
+		return ofp_epoll_ctl_add(epoll, fd, event);
 	case OFP_EPOLL_CTL_DEL:
 		return ofp_epoll_ctl_del(epoll, fd);
 	case OFP_EPOLL_CTL_MOD:
-		return ofp_epoll_ctl_mod(epoll, fd);
+		return ofp_epoll_ctl_mod(epoll, fd, event);
 	default:
 		ofp_errno = OFP_EINVAL;
 	}
@@ -142,21 +143,26 @@ int ofp_epoll_wait(int epfd, struct ofp_epoll_event *events, int maxevents, int 
 	return _ofp_epoll_wait(get_socket(epfd), events, maxevents, timeout);
 }
 
-static inline int is_fd_set(int *epoll_set)
+static inline int is_fd_set(struct epoll_set *epoll_set)
 {
 	return !is_fd(epoll_set, -1);
 }
 
 static int (*is_ready)(int fd);
 
-static int available_events(struct socket *epoll, int maxevents)
+static inline struct ofp_epoll_event get_event(struct epoll_set *epoll_set)
 {
-	int *epoll_set;
+	return epoll_set->event;
+}
+
+static int available_events(struct socket *epoll, struct ofp_epoll_event *events, int maxevents)
+{
+	struct epoll_set *epoll_set;
 	int ready = 0;
 
 	FOREACH(epoll_set, epoll->epoll_set)
 		if (ready < maxevents && is_fd_set(epoll_set) && is_ready(get_fd(epoll_set)))
-			++ready;
+			events[ready++] = get_event(epoll_set);
 
 	return ready;
 }
@@ -174,7 +180,7 @@ int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int ma
 	if (!events)
 		return failure(OFP_EFAULT);
 
-	return available_events(epoll, maxevents);
+	return available_events(epoll, events, maxevents);
 }
 
 void ofp_set_socket_getter(struct socket*(*socket_getter)(int fd))

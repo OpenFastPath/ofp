@@ -41,7 +41,7 @@ static const int fd = OFP_SOCK_NUM_OFFSET + 1;
 static struct socket epoll = { 0 };
 static struct socket non_epoll = { 0 };
 static struct ofp_epoll_event event = { 0 };
-static struct ofp_epoll_event events[1];
+static struct ofp_epoll_event events[2];
 
 static void test_create_with_invalid_size(void)
 {
@@ -229,6 +229,8 @@ static void test_wait_with_maxevents_less_than_ready_fds(void)
 	SETUP_NON_BLOCKING;
 
 	CU_ASSERT_EQUAL(epoll_wait(1), 1);
+	CU_ASSERT_EQUAL(events[0].events, OFP_EPOLLIN);
+	CU_ASSERT_EQUAL(events[0].data.fd, fd);
 }
 
 static void test_modify_registered_fd(void)
@@ -236,6 +238,9 @@ static void test_modify_registered_fd(void)
 	SETUP_NON_BLOCKING;
 
 	CU_ASSERT_EQUAL(modify_fd(fd), 0);
+	CU_ASSERT_EQUAL(epoll_wait(1), 1);
+	CU_ASSERT_EQUAL(events[0].events, OFP_EPOLLIN);
+	CU_ASSERT_EQUAL(events[0].data.u32, 313);
 }
 
 static char *const_cast(const char *str)
@@ -352,13 +357,13 @@ int failing_socket_creator(void)
 
 static int epoll_socket_creator(void)
 {
-	int *epoll_set;
+	struct epoll_set *epoll_set;
 
 	epoll.so_number = epfd;
 	epoll.so_type = OFP_SOCK_EPOLL;
 
 	FOREACH(epoll_set, epoll.epoll_set)
-		*epoll_set = -1;
+		epoll_set->fd = -1;
 
 	return epoll.so_number;
 }
@@ -375,10 +380,10 @@ int is_epoll_socket(struct socket *socket)
 
 int is_epoll_set_initialized(struct socket *epoll)
 {
-	int *epoll_set;
+	struct epoll_set *epoll_set;
 
 	FOREACH(epoll_set, epoll->epoll_set)
-		if (*epoll_set != -1)
+		if (epoll_set->fd != -1)
 			return 0;
 
 	return 1;
@@ -409,6 +414,8 @@ static int epoll_control(int op, int fd)
 
 int add_fd(int fd)
 {
+	event.events = OFP_EPOLLIN;
+	event.data.fd = fd;
 	return epoll_control(OFP_EPOLL_CTL_ADD, fd);
 }
 
@@ -419,6 +426,7 @@ int delete_fd(int fd)
 
 int modify_fd(int fd)
 {
+	event.data.u32 = 313;
 	return epoll_control(OFP_EPOLL_CTL_MOD, fd);
 }
 

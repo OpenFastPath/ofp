@@ -36,6 +36,7 @@
 #ifndef _SYS_SOCKETVAR_H_
 #define _SYS_SOCKETVAR_H_
 
+#include "ofp_epoll.h"
 #include "ofpi_queue.h"			/* for TAILQ macros */
 #include "ofpi_sockbuf.h"
 #include "ofpi_in_pcb.h"
@@ -145,7 +146,10 @@ struct socket {
 	} pcb_space;
 	struct ofp_sigevent so_sigevent;
 
-	int epoll_set[OFP_NUM_SOCKETS_MAX];
+	struct epoll_set {
+		int fd;
+		struct ofp_epoll_event event;
+	} epoll_set[OFP_NUM_SOCKETS_MAX];
 };
 
 
