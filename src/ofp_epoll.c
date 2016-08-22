@@ -16,7 +16,23 @@
 	for (i = 0, l = LENGTH(array), breaked = 0; i < l && !breaked; ++i, breaked = !breaked) \
 		for (item = &array[i]; !breaked; breaked = !breaked)
 
-static int (*epoll_socket_creator)(void);
+static int epoll_socket_creator(void)
+{
+	const int epfd = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, 0);
+	struct socket *epoll;
+	struct epoll_set *epoll_set;
+
+	if (epfd == -1)
+		return -1;
+
+	epoll = ofp_get_sock_by_fd(epfd);
+	epoll->so_type = OFP_SOCK_EPOLL;
+
+	FOREACH(epoll_set, epoll->epoll_set)
+		epoll_set->fd = -1;
+
+	return epfd;
+}
 
 int ofp_epoll_create(int size)
 {
@@ -37,7 +53,7 @@ int _ofp_epoll_create(int size, int(*create_socket)(void))
 	return create_socket();
 }
 
-static struct socket *(*get_socket)(int fd);
+static struct socket *(*get_socket)(int fd) = ofp_get_sock_by_fd;
 
 int ofp_epoll_ctl(int epfd, int op, int fd, struct ofp_epoll_event *event)
 {
@@ -138,7 +154,10 @@ int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event 
 	return -1;
 }
 
-static int (*sleeper)(int timeout);
+static int sleeper(int timeout)
+{
+	return ofp_msleep(NULL, NULL, 0, "epoll", timeout * 1000);
+}
 
 int ofp_epoll_wait(int epfd, struct ofp_epoll_event *events, int maxevents, int timeout)
 {
@@ -150,7 +169,7 @@ static inline int is_fd_set(struct epoll_set *epoll_set)
 	return !is_fd(epoll_set, -1);
 }
 
-static int (*is_fd_readable)(int fd);
+static int (*is_fd_readable)(int fd) = is_readable;
 
 static inline struct ofp_epoll_event get_event(struct epoll_set *epoll_set)
 {
