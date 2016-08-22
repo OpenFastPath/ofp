@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include "ofpi_shared_mem.h"
 #include "ofpi_log.h"
+#include "ofp_cunit_version.h"
 
 #if OFP_TESTMODE_AUTO
 #include <CUnit/Automated.h>
@@ -21,21 +22,14 @@
 #include <CUnit/Basic.h>
 #endif
 
-/* http://stackoverflow.com/questions/2124339/c-preprocessor-va-args-number-of-arguments */
-#define COUNT_ARGS(...) COUNT_ARGS_(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)
-#define COUNT_ARGS_(_1, _2, _3, _4, _5, _6, N, ...) N
-
-/* The CUnit 2.1-3 version supports per test setup and teardown functions while
- * the older versions don't. The CUnit header only has a string type of version
- * number which cannot be used with preprocessor conditionals. The main
- * difference of interest between the CUnit versions is within the definition of
- * 'CU_SuiteInfo' structure. This is also visible in the 'CU_SUITE_INFO_NULL'
- * macro that has a different 'size' between the versions. This 'size'
- * difference can be checked by the preprocessor and used to set up the
- * compilation environment.
- */
-#if COUNT_ARGS(CU_SUITE_INFO_NULL) > 4
-#define CU_HAS_TEST_SETUP_AND_TEARDOWN
+#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
+#define SETUP setup()
+#define SETUP_WITH_SHM setup_with_shm()
+#define TEARDOWN_WITH_SHM teardown_with_shm()
+#else
+#define SETUP
+#define SETUP_WITH_SHM
+#define TEARDOWN_WITH_SHM
 #endif
 
 enum ofp_log_level_s log_level;
@@ -90,9 +84,7 @@ static int reference_count_increased(struct ofp_rtl_node *node);
 static int route_not_set(struct ofp_rtl_node *node);
 static void test_insert_returns_data_when_allocation_fails(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup();
-#endif
+	SETUP;
 
 	CU_ASSERT_PTR_EQUAL(insert_route(SECOND_LEVEL_MASK), &data);
 
@@ -107,9 +99,7 @@ static void test_insert_does_nothing_when_current_mask_is_bigger(void)
 {
 	const uint32_t masklen = FIRST_LEVEL_MASK + TWO_SUBNETS;
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup();
-#endif
+	SETUP;
 
 	set_mask(&root[0], masklen - 1);
 	set_mask(&root[1], masklen + 1);
@@ -130,9 +120,7 @@ static void test_insert_with_second_level_mask_updates_unset_mask(void)
 	struct ofp_rtl_node node = { 0 };
 	const uint32_t masklen = SECOND_LEVEL_MASK;
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup();
-#endif
+	SETUP;
 
 	set_mask(&node, masklen + 1);
 	set_next(&root[1], &node);
@@ -155,9 +143,7 @@ static void test_insert_with_second_level_mask_allocates_new_nodes(void)
 	struct ofp_rtl_node *node;
 	const uint32_t masklen = SECOND_LEVEL_MASK;
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	set_mask(&root[1], 1);
 
@@ -177,49 +163,37 @@ static void test_insert_with_second_level_mask_allocates_new_nodes(void)
 
 	CU_ASSERT_TRUE(route_not_set(&node[1]));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static const char *print_rule(uint16_t vrf);
 static void test_print_nothing_when_no_rules_added(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	CU_ASSERT_STRING_EQUAL("", print_rule(0));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static void add_rules(void);
 static void add_rule(uint16_t vrf, uint32_t masklen, uint16_t port);
 static void test_adding_rule_updates_existing(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	add_rules();
 	add_rule(1, 1, 2);
 
 	CU_ASSERT_STRING_EQUAL("[1,1,2][1,2,1]", print_rule(1));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static void remove_rule(uint16_t vrf, uint32_t masklen);
 static void test_adding_rule_uses_first_unused_slot(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	add_rules();
 	remove_rule(2, 1);
@@ -227,16 +201,12 @@ static void test_adding_rule_uses_first_unused_slot(void)
 
 	CU_ASSERT_STRING_EQUAL("[1,1,1][1,3,2][1,2,1]", print_rule(1));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static void test_removing_unset_rule_does_nothing(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	add_rules();
 	remove_rule(2, 2);
@@ -245,23 +215,17 @@ static void test_removing_unset_rule_does_nothing(void)
 	CU_ASSERT_STRING_EQUAL("[1,1,1][1,2,1]", print_rule(1));
 	CU_ASSERT_STRING_EQUAL("[2,1,1]", print_rule(2));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static struct ofp_nh_entry *remove_route(uint32_t masklen);
 static void test_remove_does_nothing_when_no_rule_added(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	CU_ASSERT_PTR_NULL(remove_route(0));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static void increase_reference_count(struct ofp_rtl_node *node);
@@ -269,9 +233,7 @@ static void test_remove_with_second_level_mask_does_nothing_when_mask_not_set(vo
 {
 	const uint32_t masklen = SECOND_LEVEL_MASK;
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	increase_reference_count(root);
 
@@ -279,9 +241,7 @@ static void test_remove_with_second_level_mask_does_nothing_when_mask_not_set(vo
 	CU_ASSERT_PTR_NULL(remove_route(masklen));
 	CU_ASSERT_FALSE(reference_count_increased(root));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static void test_removed_route_is_reinserted(void)
@@ -289,9 +249,7 @@ static void test_removed_route_is_reinserted(void)
 	struct ofp_nh_entry *removed;
 	const uint32_t masklen = FIRST_LEVEL_MASK + TWO_SUBNETS;
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	increase_reference_count(&root[0]);
 	set_mask(&root[0], masklen);
@@ -309,9 +267,7 @@ static void test_removed_route_is_reinserted(void)
 	CU_ASSERT_FALSE(reference_count_increased(&root[1]));
 	CU_ASSERT_TRUE(route_set(&root[1], masklen));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static void set_route(struct ofp_rtl_node *node, uint32_t masklen);
@@ -320,9 +276,7 @@ static void test_removed_route_not_reinserted_when_rule_prefix_not_match(void)
 	struct ofp_rtl_node node[] = { { 0 }, { 0 } };
 	const uint32_t masklen = SECOND_LEVEL_MASK + TWO_SUBNETS;
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP_WITH_SHM;
 
 	increase_reference_count(&root[0]);
 	increase_reference_count(&node[0]);
@@ -349,9 +303,7 @@ static void test_removed_route_not_reinserted_when_rule_prefix_not_match(void)
 	CU_ASSERT_PTR_NULL(get_next(&node[1]));
 	CU_ASSERT_TRUE(route_set(&node[1], 0));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN_WITH_SHM;
 }
 
 static char *const_cast(const char *str)
