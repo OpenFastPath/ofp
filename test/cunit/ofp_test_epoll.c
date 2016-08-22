@@ -173,12 +173,12 @@ static void test_delete_unregistered_fd(void)
 	CU_ASSERT_EQUAL(ofp_errno, OFP_ENOENT);
 }
 
-static int modify_fd(int fd);
+static int modify_fd(int fd, int events);
 static void test_modify_unregistered_fd(void)
 {
 	SETUP_NON_BLOCKING;
 
-	CU_ASSERT_EQUAL(modify_fd(epfd), -1);
+	CU_ASSERT_EQUAL(modify_fd(epfd, OFP_EPOLLIN), -1);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_ENOENT);
 }
 
@@ -204,22 +204,22 @@ static void test_delete_registered_fd(void)
 	CU_ASSERT_EQUAL(delete_fd(fd + 1), -1);
 }
 
-static int fd_not_ready(int fd);
+static int fd_not_readable(int fd);
 static void test_wait_with_no_available_events(void)
 {
 	SETUP_NON_BLOCKING;
 
-	ofp_set_is_ready_checker(fd_not_ready);
+	ofp_set_is_readable_checker(fd_not_readable);
 
 	CU_ASSERT_EQUAL(epoll_wait(2), 0);
 }
 
-static int fd_is_ready(int fd);
+static int fd_is_readable(int fd);
 static void test_wait_with_multiple_available_events(void)
 {
 	SETUP_NON_BLOCKING;
 
-	ofp_set_is_ready_checker(fd_is_ready);
+	ofp_set_is_readable_checker(fd_is_readable);
 
 	CU_ASSERT_EQUAL(epoll_wait(2), 2);
 }
@@ -237,10 +237,19 @@ static void test_modify_registered_fd(void)
 {
 	SETUP_NON_BLOCKING;
 
-	CU_ASSERT_EQUAL(modify_fd(fd), 0);
+	CU_ASSERT_EQUAL(modify_fd(fd, OFP_EPOLLIN), 0);
 	CU_ASSERT_EQUAL(epoll_wait(1), 1);
 	CU_ASSERT_EQUAL(events[0].events, OFP_EPOLLIN);
 	CU_ASSERT_EQUAL(events[0].data.u32, 313);
+}
+
+static void test_wait_with_unset_events(void)
+{
+	SETUP_NON_BLOCKING;
+
+	CU_ASSERT_EQUAL(modify_fd(fd, 0), 0);
+	CU_ASSERT_EQUAL(modify_fd(fd + 1, 0), 0);
+	CU_ASSERT_EQUAL(epoll_wait(2), 0);
 }
 
 static char *const_cast(const char *str)
@@ -310,6 +319,8 @@ int main(void)
 		  test_wait_with_maxevents_less_than_ready_fds },
 		{ const_cast("Modify registered fd in epoll instance"),
 		  test_modify_registered_fd },
+		{ const_cast("Wait will return zero when events bit mask is unset"),
+		  test_wait_with_unset_events },
 		CU_TEST_INFO_NULL
 	};
 
@@ -424,19 +435,20 @@ int delete_fd(int fd)
 	return epoll_control(OFP_EPOLL_CTL_DEL, fd);
 }
 
-int modify_fd(int fd)
+int modify_fd(int fd, int events)
 {
+	event.events = events;
 	event.data.u32 = 313;
 	return epoll_control(OFP_EPOLL_CTL_MOD, fd);
 }
 
-int fd_not_ready(int fd)
+int fd_not_readable(int fd)
 {
 	(void)fd;
 	return 0;
 }
 
-int fd_is_ready(int fd)
+int fd_is_readable(int fd)
 {
 	(void)fd;
 	return 1;

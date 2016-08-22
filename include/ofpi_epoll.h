@@ -18,6 +18,6 @@ int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int ma
 
 void ofp_set_socket_getter(struct socket*(*socket_getter)(int fd));
 
-void ofp_set_is_ready_checker(int(*is_ready_checker)(int fd));
+void ofp_set_is_readable_checker(int(*is_readable_checker)(int fd));
 
 #endif

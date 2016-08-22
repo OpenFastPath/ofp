@@ -148,11 +148,24 @@ static inline int is_fd_set(struct epoll_set *epoll_set)
 	return !is_fd(epoll_set, -1);
 }
 
-static int (*is_ready)(int fd);
+static int (*is_fd_readable)(int fd);
 
 static inline struct ofp_epoll_event get_event(struct epoll_set *epoll_set)
 {
 	return epoll_set->event;
+}
+
+static inline int is_waiting_read_event(struct epoll_set *epoll_set)
+{
+	return (get_event(epoll_set).events & OFP_EPOLLIN);
+}
+
+static int is_ready(struct epoll_set *epoll_set)
+{
+	if (!is_fd_set(epoll_set))
+		return 0;
+
+	return (is_waiting_read_event(epoll_set) && is_fd_readable(get_fd(epoll_set)));
 }
 
 static int available_events(struct socket *epoll, struct ofp_epoll_event *events, int maxevents)
@@ -161,7 +174,7 @@ static int available_events(struct socket *epoll, struct ofp_epoll_event *events
 	int ready = 0;
 
 	FOREACH(epoll_set, epoll->epoll_set)
-		if (ready < maxevents && is_fd_set(epoll_set) && is_ready(get_fd(epoll_set)))
+		if (ready < maxevents && is_ready(epoll_set))
 			events[ready++] = get_event(epoll_set);
 
 	return ready;
@@ -188,7 +201,7 @@ void ofp_set_socket_getter(struct socket*(*socket_getter)(int fd))
 	get_socket = socket_getter;
 }
 
-void ofp_set_is_ready_checker(int(*is_ready_checker)(int fd))
+void ofp_set_is_readable_checker(int(*is_readable_checker)(int fd))
 {
-	is_ready = is_ready_checker;
+	is_fd_readable = is_readable_checker;
 }
