@@ -35,4 +35,6 @@ int ofp_epoll_create(int size);
 
 int ofp_epoll_ctl(int epfd, int op, int fd, struct ofp_epoll_event *event);
 
+int ofp_epoll_wait(int epfd, struct ofp_epoll_event *events, int maxevents, int timeout);
+
 #endif

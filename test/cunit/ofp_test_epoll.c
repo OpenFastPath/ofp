@@ -26,6 +26,7 @@ static const int fd = OFP_SOCK_NUM_OFFSET + 1;
 static struct socket epoll = { 0 };
 static struct socket non_epoll = { 0 };
 static struct ofp_epoll_event event = { 0 };
+static struct ofp_epoll_event events[1];
 
 static void test_create_with_invalid_size(void)
 {
@@ -98,6 +99,45 @@ static void test_control_with_invalid_op(void)
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EINVAL);
 }
 
+static void test_wait_with_bad_epoll_fd(void)
+{
+	ofp_set_socket_getter(null_socket_getter);
+	ofp_errno = 0;
+
+	CU_ASSERT_EQUAL(ofp_epoll_wait(-1, events, 1, 0), -1);
+	CU_ASSERT_EQUAL(ofp_errno, OFP_EBADF);
+}
+
+static void test_wait_with_non_epoll_fd(void)
+{
+	ofp_errno = 0;
+
+	CU_ASSERT_EQUAL(_ofp_epoll_wait(&non_epoll, events, 1, 0), -1);
+	CU_ASSERT_EQUAL(ofp_errno, OFP_EINVAL);
+}
+
+static void test_wait_with_invalid_max_events(void)
+{
+	ofp_errno = 0;
+
+	CU_ASSERT_EQUAL(_ofp_epoll_wait(&epoll, events, 0, 0), -1);
+	CU_ASSERT_EQUAL(ofp_errno, OFP_EINVAL);
+}
+
+static void test_wait_with_null_events(void)
+{
+	ofp_errno = 0;
+
+	CU_ASSERT_EQUAL(_ofp_epoll_wait(&epoll, NULL, 1, 0), -1);
+	CU_ASSERT_EQUAL(ofp_errno, OFP_EFAULT);
+}
+
+static int epoll_wait(int maxevents);
+static void test_wait_with_no_registered_fds(void)
+{
+	CU_ASSERT_EQUAL(epoll_wait(1), 0);
+}
+
 static int add_fd(int fd);
 static void test_add_unregistered_fd(void)
 {
@@ -132,7 +172,7 @@ int main(void)
 	if (CU_initialize_registry() != CUE_SUCCESS)
 		return CU_get_error();
 
-	CU_SuiteInfo suites[4] = { CU_SUITE_INFO_NULL };
+	CU_SuiteInfo suites[5] = { CU_SUITE_INFO_NULL };
 
 	CU_TestInfo create[] = {
 		{ const_cast("Create will fail when called with non-positive size"),
@@ -158,6 +198,20 @@ int main(void)
 		CU_TEST_INFO_NULL
 	};
 
+	CU_TestInfo wait[] = {
+		{ const_cast("Wait will fail when called with bad epoll fd"),
+		  test_wait_with_bad_epoll_fd },
+		{ const_cast("Wait will fail when called with non-epoll fd"),
+		  test_wait_with_non_epoll_fd },
+		{ const_cast("Wait will fail when called with non-positive maxevents"),
+		  test_wait_with_invalid_max_events },
+		{ const_cast("Wait will fail when called with invalid events"),
+		  test_wait_with_null_events },
+		{ const_cast("Wait will return zero with no registered fds"),
+		  test_wait_with_no_registered_fds },
+		CU_TEST_INFO_NULL
+	};
+
 	CU_TestInfo non_blocking_operations[] = {
 		{ const_cast("Add unregistered fd to epoll instance"),
 		  test_add_unregistered_fd },
@@ -173,8 +227,10 @@ int main(void)
 	suites[0].pTests = create;
 	suites[1].pName = const_cast("ofp epoll - control");
 	suites[1].pTests = control;
-	suites[2].pName = const_cast("ofp epoll - non-blocking operations");
-	suites[2].pTests = non_blocking_operations;
+	suites[2].pName = const_cast("ofp epoll - wait");
+	suites[2].pTests = wait;
+	suites[3].pName = const_cast("ofp epoll - non-blocking operations");
+	suites[3].pTests = non_blocking_operations;
 
 	if (CU_register_suites(suites) != CUE_SUCCESS) {
 		CU_cleanup_registry();
@@ -232,6 +288,11 @@ struct socket *null_socket_getter(int fd)
 {
 	(void)fd;
 	return NULL;
+}
+
+int epoll_wait(int maxevents)
+{
+	return _ofp_epoll_wait(&epoll, events, maxevents, 0);
 }
 
 static int epoll_control(int op, int fd)

@@ -68,6 +68,27 @@ int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event 
 	return -1;
 }
 
+int ofp_epoll_wait(int epfd, struct ofp_epoll_event *events, int maxevents, int timeout)
+{
+	return _ofp_epoll_wait(get_socket(epfd), events, maxevents, timeout);
+}
+
+int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int maxevents, int timeout)
+{
+	(void)timeout;
+
+	if (!epoll)
+		return failure(OFP_EBADF);
+
+	if (!is_epoll_socket(epoll) || maxevents < 1)
+		return failure(OFP_EINVAL);
+
+	if (!events)
+		return failure(OFP_EFAULT);
+
+	return 0;
+}
+
 void ofp_set_socket_getter(struct socket*(*socket_getter)(int fd))
 {
 	get_socket = socket_getter;
