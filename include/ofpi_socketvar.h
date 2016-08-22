@@ -144,6 +144,8 @@ struct socket {
 		struct inpcb dummy;
 	} pcb_space;
 	struct ofp_sigevent so_sigevent;
+
+	int epoll_set;
 };
 
 

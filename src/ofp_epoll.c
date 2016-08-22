@@ -45,6 +45,46 @@ static inline int is_epoll_socket(struct socket *epoll)
 	return (epoll->so_type == OFP_SOCK_EPOLL);
 }
 
+static inline int is_registered(struct socket *epoll, int fd)
+{
+	return (epoll->epoll_set == fd);
+}
+
+static inline void set_fd(int *epoll_set, int fd)
+{
+	*epoll_set = fd;
+}
+
+static inline int modify_epoll_set(struct socket *epoll, int fd)
+{
+	set_fd(&epoll->epoll_set, fd);
+	return 0;
+}
+
+static int ofp_epoll_ctl_add(struct socket *epoll, int fd)
+{
+	if (is_registered(epoll, fd))
+		return failure(OFP_EEXIST);
+
+	return modify_epoll_set(epoll, fd);
+}
+
+static int ofp_epoll_ctl_del(struct socket *epoll, int fd)
+{
+	if (!is_registered(epoll, fd))
+		return failure(OFP_ENOENT);
+
+	return modify_epoll_set(epoll, -1);
+}
+
+static int ofp_epoll_ctl_mod(struct socket *epoll, int fd)
+{
+	if (!is_registered(epoll, fd))
+		return failure(OFP_ENOENT);
+
+	return 0;
+}
+
 int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event *event)
 {
 	(void)event;
@@ -57,10 +97,11 @@ int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event 
 
 	switch (op) {
 	case OFP_EPOLL_CTL_ADD:
-		return 0;
+		return ofp_epoll_ctl_add(epoll, fd);
 	case OFP_EPOLL_CTL_DEL:
+		return ofp_epoll_ctl_del(epoll, fd);
 	case OFP_EPOLL_CTL_MOD:
-		return failure(OFP_ENOENT);
+		return ofp_epoll_ctl_mod(epoll, fd);
 	default:
 		ofp_errno = OFP_EINVAL;
 	}
