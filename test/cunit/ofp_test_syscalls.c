@@ -14,6 +14,7 @@
 #include "ofpi_socketvar.h"
 #include "ofpi_protosw.h"
 #include "ofpi_shared_mem.h"
+#include "ofp_cunit_version.h"
 
 #if OFP_TESTMODE_AUTO
 #include <CUnit/Automated.h>
@@ -21,21 +22,12 @@
 #include <CUnit/Basic.h>
 #endif
 
-/* http://stackoverflow.com/questions/2124339/c-preprocessor-va-args-number-of-arguments */
-#define COUNT_ARGS(...) COUNT_ARGS_(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)
-#define COUNT_ARGS_(_1, _2, _3, _4, _5, _6, N, ...) N
-
-/* The CUnit 2.1-3 version supports per test setup and teardown functions while
- * the older versions don't. The CUnit header only has a string type of version
- * number which cannot be used with preprocessor conditionals. The main
- * difference of interest between the CUnit versions is within the definition of
- * 'CU_SuiteInfo' structure. This is also visible in the 'CU_SUITE_INFO_NULL'
- * macro that has a different 'size' between the versions. This 'size'
- * difference can be checked by the preprocessor and used to set up the
- * compilation environment.
- */
-#if COUNT_ARGS(CU_SUITE_INFO_NULL) > 4
-#define CU_HAS_TEST_SETUP_AND_TEARDOWN
+#ifndef CU_HAS_SETUP_AND_TEARDOWN
+#define SETUP setup_with_shm()
+#define TEARDOWN teardown_with_shm()
+#else
+#define SETUP
+#define TEARDOWN
 #endif
 
 void *shm;
@@ -136,26 +128,20 @@ static void test_select_as_portable_sleep(void)
 
 static void test_select_returns_immediately(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP;
 
 	struct ofp_timeval timeout = { 0, 0 };
 
 	CU_ASSERT_EQUAL(_ofp_select(0, NULL, NULL, NULL, &timeout, sleeper_spy), 0);
 	CU_ASSERT_FALSE(sleeper_called);
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN;
 }
 
 static int select_readfds(int nfds, ofp_fd_set *readfds);
 static void test_select_times_out(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP;
 
 	const int accepting = OFP_SOCK_NUM_OFFSET + OFP_NUM_SOCKETS_MAX - 1;
 	const int listening = OFP_SOCK_NUM_OFFSET;
@@ -169,18 +155,14 @@ static void test_select_times_out(void)
 	CU_ASSERT_FALSE(OFP_FD_ISSET(accepting, &set));
 	CU_ASSERT_FALSE(OFP_FD_ISSET(listening, &set));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN;
 }
 
 static void set_accepting_socket(int fd);
 static void set_accepting_socket_readable(int fd);
 static void test_select_with_accepting_socket_readable(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP;
 
 	const int fd = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, 0);
 	ofp_fd_set set;
@@ -194,17 +176,13 @@ static void test_select_with_accepting_socket_readable(void)
 	CU_ASSERT_EQUAL(select_readfds(fd + 1, &set), 1);
 	CU_ASSERT_TRUE(OFP_FD_ISSET(fd, &set));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN;
 }
 
 static void set_listening_socket_readable(int fd);
 static void test_select_with_listening_socket_readable(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP;
 
 	const int fd = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, 0);
 	ofp_fd_set set;
@@ -217,16 +195,12 @@ static void test_select_with_listening_socket_readable(void)
 	CU_ASSERT_EQUAL(select_readfds(fd + 1, &set), 1);
 	CU_ASSERT_TRUE(OFP_FD_ISSET(fd, &set));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN;
 }
 
 static void test_select_with_multiple_readable_fds(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP;
 
 	const int accepting = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, 0);
 	const int listening = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, 0);
@@ -242,16 +216,12 @@ static void test_select_with_multiple_readable_fds(void)
 
 	CU_ASSERT_EQUAL(select_readfds(listening + 1, &set), 2);
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN;
 }
 
 static void test_select_with_already_readable_fd(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP;
 
 	const int fd = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, 0);
 	ofp_fd_set set;
@@ -264,18 +234,14 @@ static void test_select_with_already_readable_fd(void)
 	CU_ASSERT_EQUAL(_ofp_select(fd + 1, &set, NULL, NULL, NULL, sleeper_spy), 1);
 	CU_ASSERT_FALSE(sleeper_called);
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN;
 }
 
 static int sleeper_fake(void *channel, odp_rwlock_t *mtx, int priority,
 			const char *wmesg, uint32_t timeout);
 static void test_select_with_sleep_interrupting_fd(void)
 {
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	setup_with_shm();
-#endif
+	SETUP;
 
 	const int fd = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, 0);
 	ofp_fd_set set;
@@ -286,9 +252,7 @@ static void test_select_with_sleep_interrupting_fd(void)
 	CU_ASSERT_EQUAL(_ofp_select(fd + 1, &set, NULL, NULL, NULL, sleeper_fake), 1);
 	CU_ASSERT_TRUE(OFP_FD_ISSET(fd, &set));
 
-#ifndef CU_HAS_TEST_SETUP_AND_TEARDOWN
-	teardown_with_shm();
-#endif
+	TEARDOWN;
 }
 
 static char *const_cast(const char *str)
