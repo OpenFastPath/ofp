@@ -24,8 +24,10 @@
 
 #ifndef CU_HAS_SETUP_AND_TEARDOWN
 #define SETUP_NON_BLOCKING setup_non_blocking()
+#define SETUP_BLOCKING setup_blocking()
 #else
 #define SETUP_NON_BLOCKING
+#define SETUP_BLOCKING
 #endif
 
 #define LENGTH(array) \
@@ -42,6 +44,7 @@ static struct socket epoll = { 0 };
 static struct socket non_epoll = { 0 };
 static struct ofp_epoll_event event = { 0 };
 static struct ofp_epoll_event events[2];
+static int sleeper_called = 0;
 
 static void test_create_with_invalid_size(void)
 {
@@ -129,7 +132,7 @@ static void test_wait_with_non_epoll_fd(void)
 {
 	ofp_errno = 0;
 
-	CU_ASSERT_EQUAL(_ofp_epoll_wait(&non_epoll, events, 1, 0), -1);
+	CU_ASSERT_EQUAL(_ofp_epoll_wait(&non_epoll, events, 1, 0, NULL), -1);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EINVAL);
 }
 
@@ -137,7 +140,7 @@ static void test_wait_with_invalid_max_events(void)
 {
 	ofp_errno = 0;
 
-	CU_ASSERT_EQUAL(_ofp_epoll_wait(&epoll, events, 0, 0), -1);
+	CU_ASSERT_EQUAL(_ofp_epoll_wait(&epoll, events, 0, 0, NULL), -1);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EINVAL);
 }
 
@@ -145,7 +148,7 @@ static void test_wait_with_null_events(void)
 {
 	ofp_errno = 0;
 
-	CU_ASSERT_EQUAL(_ofp_epoll_wait(&epoll, NULL, 1, 0), -1);
+	CU_ASSERT_EQUAL(_ofp_epoll_wait(&epoll, NULL, 1, 0, NULL), -1);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EFAULT);
 }
 
@@ -252,6 +255,42 @@ static void test_wait_with_unset_events(void)
 	CU_ASSERT_EQUAL(epoll_wait(2), 0);
 }
 
+static void setup_blocking(void)
+{
+	setup_non_blocking();
+	sleeper_called = 0;
+}
+static int epoll_wait_with_timeout(int maxevents, int timeout);
+static void test_wait_with_nonzero_timeout(void)
+{
+	SETUP_BLOCKING;
+
+	ofp_set_is_readable_checker(fd_not_readable);
+
+	CU_ASSERT_EQUAL(epoll_wait_with_timeout(2, 1), 0);
+	CU_ASSERT_TRUE(sleeper_called);
+}
+
+static void test_wait_with_zero_timeout(void)
+{
+	SETUP_BLOCKING;
+
+	ofp_set_is_readable_checker(fd_not_readable);
+
+	CU_ASSERT_EQUAL(epoll_wait(2), 0);
+	CU_ASSERT_FALSE(sleeper_called);
+}
+
+static void test_wait_with_already_readable_fd(void)
+{
+	SETUP_BLOCKING;
+
+	ofp_set_is_readable_checker(fd_is_readable);
+
+	CU_ASSERT_EQUAL(epoll_wait_with_timeout(2, 1), 2);
+	CU_ASSERT_FALSE(sleeper_called);
+}
+
 static char *const_cast(const char *str)
 {
 	return (char *)(uintptr_t)str;
@@ -262,7 +301,7 @@ int main(void)
 	if (CU_initialize_registry() != CUE_SUCCESS)
 		return CU_get_error();
 
-	CU_SuiteInfo suites[5] = { CU_SUITE_INFO_NULL };
+	CU_SuiteInfo suites[6] = { CU_SUITE_INFO_NULL };
 
 	CU_TestInfo create[] = {
 		{ const_cast("Create will fail when called with non-positive size"),
@@ -324,6 +363,15 @@ int main(void)
 		CU_TEST_INFO_NULL
 	};
 
+	CU_TestInfo blocking_operations[] = {
+		{ const_cast("Wait will block when no fd is ready"),
+		  test_wait_with_nonzero_timeout },
+		{ const_cast("Wait will not block when timeout is zero"),
+		  test_wait_with_zero_timeout },
+		{ const_cast("Wait will not block if any fd is ready"),
+		  test_wait_with_already_readable_fd },
+		CU_TEST_INFO_NULL
+	};
 
 	suites[0].pName = const_cast("ofp epoll - create");
 	suites[0].pTests = create;
@@ -336,6 +384,11 @@ int main(void)
 	suites[3].pSetUpFunc = setup_non_blocking;
 #endif
 	suites[3].pTests = non_blocking_operations;
+	suites[4].pName = const_cast("ofp epoll - blocking operations");
+#ifdef CU_HAS_SETUP_AND_TEARDOWN
+	suites[4].pSetUpFunc = setup_blocking;
+#endif
+	suites[4].pTests = blocking_operations;
 
 	if (CU_register_suites(suites) != CUE_SUCCESS) {
 		CU_cleanup_registry();
@@ -414,7 +467,7 @@ struct socket *null_socket_getter(int fd)
 
 int epoll_wait(int maxevents)
 {
-	return _ofp_epoll_wait(&epoll, events, maxevents, 0);
+	return epoll_wait_with_timeout(maxevents, 0);
 }
 
 static int epoll_control(int op, int fd)
@@ -452,4 +505,16 @@ int fd_is_readable(int fd)
 {
 	(void)fd;
 	return 1;
+}
+
+static int sleeper_spy(int timeout)
+{
+	(void)timeout;
+	sleeper_called = 1;
+	return 0;
+}
+
+int epoll_wait_with_timeout(int maxevents, int timeout)
+{
+	return _ofp_epoll_wait(&epoll, events, maxevents, timeout, sleeper_spy);
 }

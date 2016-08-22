@@ -14,7 +14,8 @@ int _ofp_epoll_create(int size, int(*create_socket)(void));
 
 int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event *event);
 
-int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int maxevents, int timeout);
+int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int maxevents, int timeout,
+		    int(*msleep)(int timeout));
 
 void ofp_set_socket_getter(struct socket*(*socket_getter)(int fd));
 

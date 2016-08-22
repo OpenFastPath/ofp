@@ -138,9 +138,11 @@ int _ofp_epoll_ctl(struct socket *epoll, int op, int fd, struct ofp_epoll_event 
 	return -1;
 }
 
+static int (*sleeper)(int timeout);
+
 int ofp_epoll_wait(int epfd, struct ofp_epoll_event *events, int maxevents, int timeout)
 {
-	return _ofp_epoll_wait(get_socket(epfd), events, maxevents, timeout);
+	return _ofp_epoll_wait(get_socket(epfd), events, maxevents, timeout, sleeper);
 }
 
 static inline int is_fd_set(struct epoll_set *epoll_set)
@@ -168,6 +170,17 @@ static int is_ready(struct epoll_set *epoll_set)
 	return (is_waiting_read_event(epoll_set) && is_fd_readable(get_fd(epoll_set)));
 }
 
+static int none_of_ready(struct socket *epoll)
+{
+	struct epoll_set *epoll_set;
+
+	FOREACH(epoll_set, epoll->epoll_set)
+		if (is_ready(epoll_set))
+			return 0;
+
+	return 1;
+}
+
 static int available_events(struct socket *epoll, struct ofp_epoll_event *events, int maxevents)
 {
 	struct epoll_set *epoll_set;
@@ -180,10 +193,9 @@ static int available_events(struct socket *epoll, struct ofp_epoll_event *events
 	return ready;
 }
 
-int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int maxevents, int timeout)
+int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int maxevents, int timeout,
+		    int(*msleep)(int timeout))
 {
-	(void)timeout;
-
 	if (!epoll)
 		return failure(OFP_EBADF);
 
@@ -192,6 +204,9 @@ int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int ma
 
 	if (!events)
 		return failure(OFP_EFAULT);
+
+	if (timeout && none_of_ready(epoll))
+		msleep(timeout);
 
 	return available_events(epoll, events, maxevents);
 }
