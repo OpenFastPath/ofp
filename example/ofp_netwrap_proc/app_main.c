@@ -30,7 +30,7 @@ typedef struct {
  * helper funcs
  */
 static int parse_env(appl_args_t *appl_args);
-static void print_info(char *progname, appl_args_t *appl_args);
+static void print_info(const char *progname, appl_args_t *appl_args);
 static void usage(char *progname);
 
  /**
@@ -61,10 +61,9 @@ static odph_linux_pthread_t thread_tbl[MAX_WORKERS];
 static int num_workers;
 odp_instance_t netwrap_proc_instance;
 
-__attribute__((destructor)) static void ofp_netwrap_main_dtor();
+__attribute__((destructor)) static void ofp_netwrap_main_dtor(void);
 
-__attribute__((constructor))
-static void ofp_netwrap_main_ctor()
+__attribute__((constructor)) static void ofp_netwrap_main_ctor(void)
 {
 	appl_args_t params;
 	int core_count, ret_val;
@@ -220,7 +219,7 @@ static void ofp_netwrap_main_ctor()
 }
 
 __attribute__((destructor))
-static void ofp_netwrap_main_dtor()
+static void ofp_netwrap_main_dtor(void)
 {
 	ofp_stop_processing();
 
@@ -247,6 +246,8 @@ static void ofp_netwrap_main_dtor()
 	case NETWRAP_ODP_INIT_GLOBAL:
 		if (odp_term_global(netwrap_proc_instance) < 0)
 			printf("Error: odp_term_global failed\n");
+	case NETWRAP_UNINT:
+		;
 	};
 }
 
@@ -396,7 +397,7 @@ static int parse_env(appl_args_t *appl_args)
 /**
  * Print system and application info
  */
-static void print_info(char *progname, appl_args_t *appl_args)
+static void print_info(const char *progname, appl_args_t *appl_args)
 {
 	int i;
 

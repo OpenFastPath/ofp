@@ -12,7 +12,7 @@
 
 #define NETWRAP_ERRNO(x) ((x >= 0 && x <= OFP_ELAST) ?  netwrap_errno[x] : x)
 
-static int netwrap_errno[OFP_ELAST + 1] = {
+static const int netwrap_errno[OFP_ELAST + 1] = {
 0,
 EPERM,			/* OFP_EPERM		1 */
 ENOENT,		/* OFP_ENOENT		2 */
@@ -132,6 +132,5 @@ EPROTO,		/* OFP_EPROTO		92 */
 EINVAL,		/* OFP_ENOTCAPABLE	93 */
 EINVAL			/* OFP_ECAPMODE		94 */
 };
-
 
 #endif /*__NETWRAP_ERRNO_H__*/

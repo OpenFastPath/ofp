@@ -36,8 +36,8 @@ int select(int nfds, fd_set *readfds, fd_set *writefds,
 		uint32_t period_usec = 0;
 		uint32_t temp_period_usec = 0;
 
-		(void *)writefds;
-		(void *)exceptfds;
+		(void)writefds;
+		(void)exceptfds;
 
 		if (!readfds) {
 			errno = EBADF;

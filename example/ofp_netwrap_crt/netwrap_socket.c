@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <unistd.h>
 #include "ofp.h"
 #include "netwrap_socket.h"
 #include "netwrap_errno.h"
@@ -34,7 +35,7 @@ static int (*libc_accept4)(int, struct sockaddr*, socklen_t*, int);
 static int (*libc_listen)(int, int);
 static int (*libc_connect)(int, const struct sockaddr*, socklen_t);
 static ssize_t (*libc_read)(int, void*, size_t);
-static ssize_t (*libc_write)(int, void*, size_t);
+static ssize_t (*libc_write)(int, const void*, size_t);
 static ssize_t (*libc_recv)(int, void*, size_t, int);
 static ssize_t (*libc_send)(int, const void*, size_t, int);
 
@@ -199,7 +200,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 
 		bind_value = ofp_bind(sockfd,
 				(const struct ofp_sockaddr *)&ofp_addr,
-				addrlen);
+				ofp_addrlen);
 		errno = NETWRAP_ERRNO(ofp_errno);
 	} else if (libc_bind)
 		bind_value = (*libc_bind)(sockfd, addr, addrlen);
@@ -235,7 +236,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 		if (addr) {
 			ofp_addr = (struct ofp_sockaddr *)&ofp_addr_local;
 
-			if (!addrlen || (addrlen && (*addrlen) < 0)) {
+			if (!addrlen) {
 				errno = EINVAL;
 				return -1;
 			}
@@ -330,7 +331,7 @@ int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 		if (addr) {
 			ofp_addr = (struct ofp_sockaddr *)&ofp_addr_local;
 
-			if (!addrlen || (addrlen && (*addrlen) < 0)) {
+			if (!addrlen) {
 				errno = EINVAL;
 				return -1;
 			}
@@ -466,14 +467,14 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 		switch (addr->sa_family) {
 		case AF_INET:
 		{
-			struct sockaddr_in *addr_in_tmp;
+			const struct sockaddr_in *addr_in_tmp;
 			struct ofp_sockaddr_in *ofp_addr_in_tmp;
 
 			if (addrlen < sizeof(struct sockaddr_in)) {
 				errno = EINVAL;
 				return -1;
 			}
-			addr_in_tmp = (struct sockaddr_in *)addr;
+			addr_in_tmp = (const struct sockaddr_in *)addr;
 			ofp_addr_in_tmp = (struct ofp_sockaddr_in *)ofp_addr;
 
 			ofp_addr_in_tmp->sin_family = OFP_AF_INET;
@@ -488,14 +489,14 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 		}
 		case AF_INET6:
 		{
-			struct sockaddr_in6 *addr_in6_tmp;
+			const struct sockaddr_in6 *addr_in6_tmp;
 			struct ofp_sockaddr_in6 *ofp_addr_in6_tmp;
 
 			if (addrlen < sizeof(struct sockaddr_in6)) {
 				errno = EINVAL;
 				return -1;
 			}
-			addr_in6_tmp = (struct sockaddr_in6 *)addr;
+			addr_in6_tmp = (const struct sockaddr_in6 *)addr;
 			ofp_addr_in6_tmp = (struct ofp_sockaddr_in6 *)ofp_addr;
 
 			ofp_addr_in6_tmp->sin6_family = OFP_AF_INET6;
@@ -508,7 +509,7 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 				sizeof(struct ofp_sockaddr_in6);
 
 			memcpy((unsigned char *)ofp_addr_in6_tmp->sin6_addr.__u6_addr.__u6_addr16,
-				(unsigned char *)addr_in6_tmp->sin6_addr.s6_addr,
+				(const unsigned char *)addr_in6_tmp->sin6_addr.s6_addr,
 				16);
 
 			ofp_addrlen = sizeof(struct ofp_sockaddr_in6);
@@ -565,7 +566,7 @@ ssize_t read(int sockfd, void *buf, size_t len)
 	return read_value;
 }
 
-ssize_t write(int sockfd, void *buf, size_t len)
+ssize_t write(int sockfd, const void *buf, size_t len)
 {
 	ssize_t write_value;
 

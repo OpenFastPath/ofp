@@ -16,7 +16,7 @@
 #include "netwrap_uio.h"
 #include "netwrap_sendfile.h"
 
-__attribute__((constructor)) static void setup_wrappers()
+__attribute__((constructor)) static void setup_wrappers(void)
 {
 	setup_socket_wrappers();
 	setup_sockopt_wrappers();
