@@ -4,6 +4,7 @@
  *
  * SPDX-License-Identifier:     BSD-3-Clause
  */
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <CUnit/Basic.h>
 
