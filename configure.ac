@@ -163,17 +163,16 @@ CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 ODP_VERSION_SUPPORTED="1.10.1.0"
 function check_odp {
 	 AC_CHECK_LIB($ODP_LIB, odp_packet_alloc, [],
-	     [AC_MSG_FAILURE(["OpenDataPlane library ($ODP_LIB) not available"])])
+	     [AC_MSG_FAILURE(["OpenDataPlane library ($ODP_LIB) not available"])],[-lrt -lpthread -lcrypto])
 	 AC_CHECK_HEADERS([odp.h], [],
 	     [AC_MSG_FAILURE(["Can't find ODP headers"])])
-	 AC_MSG_FAILURE(["Invalid ODP version. ODP $ODP_VERSION_SUPPORTED is required."])
 }
 
 PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= $ODP_VERSION_SUPPORTED], [], check_odp)
 AC_SUBST([ODP_CFLAGS])
 AC_SUBST([ODP_LIBS])
 
-PKG_CHECK_MODULES([ODPHELPER], [libodphelper-linux])
+PKG_CHECK_MODULES([ODPHELPER], [libodphelper-linux],[],[ODPHELPER_LIBS="-lodphelper-linux"])
 AC_SUBST([ODPHELPER_CFLAGS])
 AC_SUBST([ODPHELPER_LIBS])
 
