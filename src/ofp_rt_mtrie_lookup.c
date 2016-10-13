@@ -267,7 +267,7 @@ static inline void dec_use_reference(struct ofp_rtl_node *node)
 
 static inline uint32_t to_network_prefix(uint32_t addr_be, uint32_t masklen)
 {
-	return (odp_be_to_cpu_32(addr_be)) & ((~0) << (32 - masklen));
+	return (odp_be_to_cpu_32(addr_be)) & (0xFFFFFFFF << (32 - masklen));
 }
 
 static inline uint32_t

@@ -157,7 +157,7 @@ void ofp_ip6_masklen_to_mask(int masklen, uint8_t *mask)
 		mask[i] = 0xff;
 
 	if (i < 16 && bits < 8)
-		mask[i] = (~0) << bits;
+		mask[i] = 0xffff << bits;
 }
 
 /*

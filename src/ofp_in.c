@@ -266,7 +266,7 @@ ofp_in_control(struct socket *so, uint32_t cmd, char *data, struct ofp_ifnet *if
 
 	case OFP_SIOCGIFNETMASK:
 		((struct ofp_sockaddr_in *)&ifr->ifr_addr)->sin_addr.s_addr =
-			odp_cpu_to_be_32((~0)<<(32 - ifp->masklen));
+			odp_cpu_to_be_32(0xFFFFFFFF << (32 - ifp->masklen));
 		goto out;
 
 	case OFP_SIOCGIFFIB:
