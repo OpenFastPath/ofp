@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <netinet/in.h>
-#include <netinet/ip.h>
+#include <linux/ip.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/if_arp.h>
