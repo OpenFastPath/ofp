@@ -35,6 +35,11 @@
 #ifndef _SYS_IOCTL_H_
 #define	_SYS_IOCTL_H_
 
+#include <stddef.h>
+#include "ofp_in.h"
+#include "ofp_portconf.h"
+#include "ofp_socket.h"
+
 #if __GNUC__ >= 4
 #pragma GCC visibility push(default)
 #endif

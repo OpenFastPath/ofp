@@ -39,7 +39,6 @@
 #ifndef _OFP_TCP_H_
 #define _OFP_TCP_H_
 
-#include <odp.h>
 #include "ofp_ip_var.h"
 
 #if __GNUC__ >= 4

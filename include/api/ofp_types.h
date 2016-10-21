@@ -8,6 +8,7 @@
 #ifndef __OFP_TYPES_H__
 #define __OFP_TYPES_H__
 
+#include <stdint.h>
 #include "ofp_queue.h"
 
 #if __GNUC__ >= 4

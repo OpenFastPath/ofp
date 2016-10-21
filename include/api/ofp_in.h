@@ -39,6 +39,8 @@
 #ifndef __OFP_IN_H__
 #define __OFP_IN_H__
 
+#include <sys/types.h>
+#include "ofp_socket.h"
 #include "ofp_socket_types.h"
 
 #if __GNUC__ >= 4

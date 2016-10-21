@@ -8,7 +8,7 @@
 #ifndef __OFP_SOCKET_TYPES_H__
 #define __OFP_SOCKET_TYPES_H__
 
-#include "odp.h"
+#include <stdint.h>
 
 #if __GNUC__ >= 4
 #pragma GCC visibility push(default)

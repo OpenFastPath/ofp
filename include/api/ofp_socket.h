@@ -35,7 +35,7 @@
 #ifndef __OFP_SOCKET_H__
 #define __OFP_SOCKET_H__
 
-#include "odp.h"
+#include <odp.h>
 #include "ofp_socket_types.h"
 #include "ofp_config.h"
 

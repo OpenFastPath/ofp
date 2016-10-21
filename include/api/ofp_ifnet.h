@@ -30,6 +30,8 @@
 #ifndef __OFP_IFNET_H__
 #define __OFP_IFNET_H__
 
+#include <odp.h>
+
 #if __GNUC__ >= 4
 #pragma GCC visibility push(default)
 #endif
