@@ -35,6 +35,8 @@
 #ifndef _OFP_SYSCTL_H_
 #define _OFP_SYSCTL_H_
 
+#include <stddef.h>
+#include <stdint.h>
 #include "ofp_queue.h"
 
 #if __GNUC__ >= 4

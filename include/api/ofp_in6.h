@@ -70,6 +70,8 @@
 #ifndef __OFP_IN6_H__
 #define __OFP_IN6_H__
 
+#include "ofp_in.h"
+#include "ofp_socket.h"
 #include "ofp_socket_types.h"
 
 #if __GNUC__ >= 4

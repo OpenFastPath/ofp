@@ -33,6 +33,9 @@
 #ifndef _OFP_IP_VAR_H_
 #define	_OFP_IP_VAR_H_
 
+#include <stdint.h>
+#include "ofp_in.h"
+
 #if __GNUC__ >= 4
 #pragma GCC visibility push(default)
 #endif

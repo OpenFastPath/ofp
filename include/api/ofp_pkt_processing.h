@@ -10,8 +10,6 @@
 
 #include <odp.h>
 #include "ofp_types.h"
-#include "ofp_init.h"
-#include "ofp_config.h"
 
 #if __GNUC__ >= 4
 #pragma GCC visibility push(default)
