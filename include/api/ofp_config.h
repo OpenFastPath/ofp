@@ -19,15 +19,6 @@
  * Used to define the size of internal structures. */
 #define OFP_MAX_NUM_CPU 64
 
-
-/* OFP Configuration flavors */
-
-#define OFP_CONFIG_DEFAULT 0
-#define OFP_CONFIG_WEBSERVER 1
-#define OFP_CONFIG_NETWRAP_WEBSERVER 2
-
-#define OFP_CONFIG OFP_CONFIG_DEFAULT
-
 /* Enable features */
 
 /**Enable PERFORMANCE measurements mode. Some validations are skipped.*/
@@ -66,15 +57,14 @@
 
 
 /* Configure values */
-
 /** Packet pool size. */
-#if OFP_CONFIG == OFP_CONFIG_WEBSERVER || \
-	OFP_CONFIG == OFP_CONFIG_NETWRAP_WEBSERVER || \
+#if defined(OFP_CONFIG_WEBSERVER) || \
+	defined(OFP_CONFIG_NETWRAP_WEBSERVER) || \
 	defined(OFP_PLAT_ODP_DPDK)
 # define SHM_PKT_POOL_NB_PKTS		10240
 #else /*OFP_CONFIG_DEFAULT*/
 # define SHM_PKT_POOL_NB_PKTS		512
-#endif /* OFP_CONFIG */
+#endif /* OFP_CONFIGS */
 
 /** Packet pool buffer size. */
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
@@ -85,7 +75,7 @@
 
 /**Socket handle values returned are in the interval:
  * [OFP_SOCK_NUM_OFFSET, OFP_SOCK_NUM_OFFSET + OFP_NUM_SOCKETS_MAX] */
-#if OFP_CONFIG == OFP_CONFIG_WEBSERVER
+#if defined(OFP_CONFIG_WEBSERVER)
 /**Maximum number of sockets. */
 # define OFP_NUM_SOCKETS_MAX 60000
 /**First socket number value. */
@@ -96,7 +86,7 @@
 
 # define OFP_TCP_MAX_CONNECTION_RATE
 
-#elif OFP_CONFIG == OFP_CONFIG_NETWRAP_WEBSERVER
+#elif defined(OFP_CONFIG_NETWRAP_WEBSERVER)
 /**Maximum number of sockets. */
 # define OFP_NUM_SOCKETS_MAX 1000
 /**First socket number value. */
@@ -113,7 +103,7 @@
 
 /**Maximum number of TCP PCBs. */
 # define OFP_NUM_PCB_TCP_MAX 2048
-#endif /* OFP_CONFIG*/
+#endif /* OFP_CONFIGS*/
 
 /**Maximum number of fastpath interfaces used.
  * For each fastpath interface a PKTIO in opened by OFP.*/

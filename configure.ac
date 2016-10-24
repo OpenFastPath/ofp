@@ -152,6 +152,21 @@ then
     AM_CFLAGS="$AM_CFLAGS -DOFP_PLAT_ODP_DPDK"
 fi
 
+# introduce optional configure parameter for ofp configuration flavor
+OFP_CONFIG_FLV=default
+AC_ARG_WITH([config-flv],
+    [AS_HELP_STRING([--with-config-flv=NAME],
+	[OFP configuration flavor: default, webserver, netwrap-webserver])],
+    [OFP_CONFIG_FLV=$withval],
+    [])
+
+case "${OFP_CONFIG_FLV}" in
+	default) AM_CFLAGS="$AM_CFLAGS -DOFP_CONFIG_DEFAULT" ;;
+	webserver) AM_CFLAGS="$AM_CFLAGS -DOFP_CONFIG_WEBSERVER" ;;
+	netwrap-webserver) AM_CFLAGS="$AM_CFLAGS -DOFP_CONFIG_NETWRAP_WEBSERVER" ;;
+	*) AC_MSG_ERROR([bad value '${OFP_CONFIG_FLV}' for --with-config-flv]) ;;
+esac
+
 ##########################################################################
 # Save and set temporary compilation flags
 ##########################################################################
