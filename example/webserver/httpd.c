@@ -6,11 +6,6 @@
 #include <unistd.h>
 
 #include "ofp.h"
-
-#ifdef USE_EPOLL
-#include "ofp_epoll.h"
-#endif
-
 #include "httpd.h"
 
 int sigreceived = 0;
