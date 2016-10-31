@@ -196,6 +196,17 @@ static void test_add_registered_fd(void)
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EEXIST);
 }
 
+static void fill_epoll_set(void);
+static void test_add_past_limit(void)
+{
+	SETUP_NON_BLOCKING;
+
+	fill_epoll_set();
+
+	CU_ASSERT_EQUAL(add_fd(fd), -1);
+	CU_ASSERT_EQUAL(ofp_errno, OFP_ENOSPC);
+}
+
 static void test_delete_registered_fd(void)
 {
 	SETUP_NON_BLOCKING;
@@ -348,6 +359,8 @@ int main(void)
 		  test_modify_unregistered_fd },
 		{ const_cast("Control will fail when adding registered fd"),
 		  test_add_registered_fd },
+		{ const_cast("Control will fail when adding past limit"),
+		  test_add_past_limit },
 		{ const_cast("Delete registered fd from epoll instance"),
 		  test_delete_registered_fd },
 		{ const_cast("Wait will return zero when no event available"),
@@ -493,6 +506,14 @@ int modify_fd(int fd, int events)
 	event.events = events;
 	event.data.u32 = 313;
 	return epoll_control(OFP_EPOLL_CTL_MOD, fd);
+}
+
+void fill_epoll_set(void)
+{
+	struct epoll_set *epoll_set;
+
+	FOREACH(epoll_set, epoll.epoll_set)
+		epoll_set->fd = 1;
 }
 
 int fd_not_readable(int fd)

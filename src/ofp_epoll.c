@@ -94,16 +94,19 @@ static inline int is_registered(struct socket *epoll, int fd)
 	return (find_fd(epoll, fd) != NULL);
 }
 
-static inline void set_fd(struct epoll_set *epoll_set, int fd, struct ofp_epoll_event *event)
+static inline int set_fd(struct epoll_set *epoll_set, int fd, struct ofp_epoll_event *event)
 {
+	if (!epoll_set)
+		return failure(OFP_ENOSPC);
+
 	epoll_set->fd = fd;
 	epoll_set->event = *event;
+	return 0;
 }
 
 static inline int modify_epoll_set(struct socket *epoll, int old_fd, int new_fd, struct ofp_epoll_event *event)
 {
-	set_fd(find_fd(epoll, old_fd), new_fd, event);
-	return 0;
+	return set_fd(find_fd(epoll, old_fd), new_fd, event);
 }
 
 static int ofp_epoll_ctl_add(struct socket *epoll, int fd, struct ofp_epoll_event *event)

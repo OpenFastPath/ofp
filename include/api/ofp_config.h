@@ -105,6 +105,9 @@
 # define OFP_NUM_PCB_TCP_MAX 2048
 #endif /* OFP_CONFIGS*/
 
+/** Epoll set size */
+#define EPOLL_SET_SIZE 16
+
 /**Maximum number of fastpath interfaces used.
  * For each fastpath interface a PKTIO in opened by OFP.*/
 #define OFP_FP_INTERFACE_MAX 8

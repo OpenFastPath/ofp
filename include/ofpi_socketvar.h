@@ -149,7 +149,7 @@ struct socket {
 	struct epoll_set {
 		int fd;
 		struct ofp_epoll_event event;
-	} epoll_set[OFP_NUM_SOCKETS_MAX];
+	} epoll_set[EPOLL_SET_SIZE];
 };
 
 
