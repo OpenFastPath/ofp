@@ -134,9 +134,9 @@ extern	struct protosw inetsw[];
 static uint32_t
 iptime(void)
 {
-        struct timeval tv;
+	struct timeval tv;
 	uint32_t t;
-        gettimeofday(&tv, NULL);
+	gettimeofday(&tv, NULL);
 
 	t = (tv.tv_sec % (24*60*60)) * 1000 + tv.tv_usec / 1000;
 	return (odp_cpu_to_be_32(t));
@@ -307,8 +307,20 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 {
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 	struct ofp_icmp *icp = (struct ofp_icmp *)((uint8_t *)ip + off);
+	const int icmplen = odp_be_to_cpu_16(ip->ip_len);
+
+	if (ofp_cksum(pkt, odp_packet_l3_offset(pkt) + off, icmplen - (ip->ip_hl << 2)))
+		return OFP_PKT_DROP;
+
+	return _ofp_icmp_input(pkt, ip, icp, icmp_reflect);
+}
+
+enum ofp_return_code
+_ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
+                enum ofp_return_code (*reflect)(odp_packet_t pkt))
+{
 	struct ofp_sockaddr_in icmpsrc, icmpdst, icmpgw;
-	int icmplen = odp_be_to_cpu_16(ip->ip_len);
+	const int icmplen = odp_be_to_cpu_16(ip->ip_len);
 	int code;
 	pr_ctlinput_t *ctlfunc;
 
@@ -334,12 +346,6 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 
 	if (icmplen < OFP_ICMP_MINLEN) {
 /*		ICMPSTAT_INC(icps_tooshort);*/
-		goto freeit;
-	}
-
-	if (ofp_cksum(pkt, odp_packet_l3_offset(pkt) + off,
-			icmplen - (ip->ip_hl << 2))) {
-		/*ICMPSTAT_INC(icps_checksum);*/
 		goto freeit;
 	}
 
@@ -495,7 +501,7 @@ reflect:
 		ICMPSTAT_INC(icps_reflect);
 		ICMPSTAT_INC(icps_outhist[icp->icmp_type]);
 */
-		return icmp_reflect(pkt);
+		return reflect(pkt);
 
 	case OFP_ICMP_REDIRECT:
 		/*if (V_log_redirect)*/ {
@@ -676,7 +682,7 @@ match:
 					    break;
 				    len = cp[IPOPT_OLEN];
 				    if (len < IPOPT_OLEN + sizeof(*cp) ||
-				        len > cnt)
+					len > cnt)
 					    break;
 			    }
 			     * Should check for overflow, but it "can't happen"
