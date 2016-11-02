@@ -315,20 +315,188 @@ ofp_icmp_input(odp_packet_t pkt, int off)
 	return _ofp_icmp_input(pkt, ip, icp, icmp_reflect);
 }
 
+static enum ofp_return_code
+icmp_deliver(struct ofp_icmp *icp, int icmplen, int code)
+{
+	struct ofp_sockaddr_in icmpsrc;
+	pr_ctlinput_t *ctlfunc;
+
+	bzero(&icmpsrc, sizeof(icmpsrc));
+	icmpsrc.sin_len = sizeof(struct ofp_sockaddr_in);
+	icmpsrc.sin_family = OFP_AF_INET;
+
+	/*
+	 * Problem with datagram; advise higher level routines.
+	 */
+	if (((unsigned int)icmplen) < OFP_ICMP_ADVLENMIN || icmplen < OFP_ICMP_ADVLEN(icp) ||
+	    icp->ofp_icmp_ip.ip_hl < (sizeof(struct ofp_ip) >> 2)) {
+		return OFP_PKT_DROP;
+	}
+
+	icp->ofp_icmp_ip.ip_len = odp_be_to_cpu_16(icp->ofp_icmp_ip.ip_len);
+
+#ifdef ICMPPRINTFS
+	if (icmpprintfs)
+		OFP_DBG("deliver to protocol %d", icp->icmp_ip.ip_p);
+#endif
+
+	icmpsrc.sin_addr = icp->ofp_icmp_ip.ip_dst;
+	/*
+	 * XXX if the packet contains [IPv4 AH TCP], we can't make a
+	 * notification to TCP layer.
+	 */
+	ctlfunc = ofp_inetsw[ofp_ip_protox[icp->ofp_icmp_ip.ip_p]].pr_ctlinput;
+
+	if (ctlfunc)
+		(*ctlfunc)(code, (struct ofp_sockaddr *)&icmpsrc,
+			   (void *)&icp->ofp_icmp_ip);
+
+	return OFP_PKT_DROP;
+}
+
+static enum ofp_return_code
+icmp_destination_unreachable(struct ofp_icmp *icp, int icmplen)
+{
+	switch (icp->icmp_code) {
+	case OFP_ICMP_UNREACH_NET:
+	case OFP_ICMP_UNREACH_HOST:
+	case OFP_ICMP_UNREACH_SRCFAIL:
+	case OFP_ICMP_UNREACH_NET_UNKNOWN:
+	case OFP_ICMP_UNREACH_HOST_UNKNOWN:
+	case OFP_ICMP_UNREACH_ISOLATED:
+	case OFP_ICMP_UNREACH_TOSNET:
+	case OFP_ICMP_UNREACH_TOSHOST:
+	case OFP_ICMP_UNREACH_HOST_PRECEDENCE:
+	case OFP_ICMP_UNREACH_PRECEDENCE_CUTOFF:
+		return icmp_deliver(icp, icmplen, OFP_PRC_UNREACH_NET);
+
+	case OFP_ICMP_UNREACH_NEEDFRAG:
+		return icmp_deliver(icp, icmplen, OFP_PRC_MSGSIZE);
+
+	/*
+	 * RFC 1122, Sections 3.2.2.1 and 4.2.3.9.
+	 * Treat subcodes 2,3 as immediate RST
+	 */
+	case OFP_ICMP_UNREACH_PROTOCOL:
+	case OFP_ICMP_UNREACH_PORT:
+		return icmp_deliver(icp, icmplen, OFP_PRC_UNREACH_PORT);
+
+	case OFP_ICMP_UNREACH_NET_PROHIB:
+	case OFP_ICMP_UNREACH_HOST_PROHIB:
+	case OFP_ICMP_UNREACH_FILTER_PROHIB:
+		return icmp_deliver(icp, icmplen, OFP_PRC_UNREACH_ADMIN_PROHIB);
+
+	default:
+		break;
+    }
+
+    return OFP_PKT_DROP;
+}
+
+static enum ofp_return_code
+icmp_time_exceeded(struct ofp_icmp *icp, int icmplen)
+{
+	if (icp->icmp_code > 1)
+		return OFP_PKT_DROP;
+
+	return icmp_deliver(icp, icmplen, icp->icmp_code + OFP_PRC_TIMXCEED_INTRANS);
+}
+
+static enum ofp_return_code
+icmp_bad_ip_header(struct ofp_icmp *icp, int icmplen)
+{
+	if (icp->icmp_code > 1)
+		return OFP_PKT_DROP;
+
+	return icmp_deliver(icp, icmplen, OFP_PRC_PARAMPROB);
+}
+
+static enum ofp_return_code
+icmp_packet_lost(struct ofp_icmp *icp, int icmplen)
+{
+	if (icp->icmp_code)
+		return OFP_PKT_DROP;
+
+	return icmp_deliver(icp, icmplen, OFP_PRC_QUENCH);
+}
+
+static enum ofp_return_code
+icmp_echo(odp_packet_t pkt, struct ofp_icmp *icp,
+	  enum ofp_return_code (*reflect)(odp_packet_t pkt))
+{
+	icp->icmp_type = OFP_ICMP_ECHOREPLY;
+	return reflect(pkt);
+}
+
+static enum ofp_return_code
+icmp_timestamp_request(odp_packet_t pkt, struct ofp_icmp *icp, int icmplen,
+		       enum ofp_return_code (*reflect)(odp_packet_t pkt))
+{
+	if ((unsigned int)icmplen < OFP_ICMP_TSLEN)
+		return OFP_PKT_DROP;
+
+	icp->icmp_type = OFP_ICMP_TSTAMPREPLY;
+	icp->ofp_icmp_rtime = iptime();
+	icp->ofp_icmp_ttime = icp->ofp_icmp_rtime;      /* bogus, do later! */
+	return reflect(pkt);
+}
+
+static enum ofp_return_code
+icmp_address_mask_request(odp_packet_t pkt,
+			  enum ofp_return_code (*reflect)(odp_packet_t pkt))
+{
+/*TODO  if (V_icmpmaskrepl == 0)*/
+		return OFP_PKT_DROP;
+
+	return reflect(pkt);
+}
+
+static enum ofp_return_code
+icmp_shorter_route(void)
+{
+	/*if (V_log_redirect)*/ {
+#if defined(OFP_DEBUG)
+		u_long src, dst, gw;
+
+		src = odp_be_to_cpu_32(ip->ip_src.s_addr);
+		dst = odp_be_to_cpu_32(icp->ofp_icmp_ip.ip_dst.s_addr);
+		gw = odp_be_to_cpu_32(icp->ofp_icmp_gwaddr.s_addr);
+		OFP_DBG("icmp redirect from %d.%d.%d.%d: "
+		       "%d.%d.%d.%d => %d.%d.%d.%d",
+		       (int)(src >> 24), (int)((src >> 16) & 0xff),
+		       (int)((src >> 8) & 0xff), (int)(src & 0xff),
+		       (int)(dst >> 24), (int)((dst >> 16) & 0xff),
+		       (int)((dst >> 8) & 0xff), (int)(dst & 0xff),
+		       (int)(gw >> 24), (int)((gw >> 16) & 0xff),
+		       (int)((gw >> 8) & 0xff), (int)(gw & 0xff));
+#endif
+	}
+	/*
+	 * RFC1812 says we must ignore ICMP redirects if we
+	 * are acting as router.
+	 */
+/*TODO  if (V_drop_redirect || V_ipforwarding) */
+		return OFP_PKT_DROP;
+	/*
+	 * Short circuit routing redirects to force
+	 * immediate change in the kernel's routing
+	 * tables.  The message is also handed to anyone
+	 * listening on a raw socket (e.g. the routing
+	 * daemon for use in updating its tables).
+	 */
+}
+
 enum ofp_return_code
 _ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
-                enum ofp_return_code (*reflect)(odp_packet_t pkt))
+		enum ofp_return_code (*reflect)(odp_packet_t pkt))
 {
-	struct ofp_sockaddr_in icmpsrc, icmpdst, icmpgw;
 	const int icmplen = odp_be_to_cpu_16(ip->ip_len);
-	int code;
-	pr_ctlinput_t *ctlfunc;
 
 #ifdef PROMISCUOUS_INET
 	/* XXX ICMP plumbing is currently incomplete for promiscuous mode interfaces not in fib 0 */
 	if ((m->m_pkthdr.rcvif->if_flags & IFF_PROMISCINET) &&
 	    (M_GETFIB(m) > 0))
-		goto freeit;
+		return OFP_PKT_DROP;
 #endif
 
 	/*
@@ -344,10 +512,8 @@ _ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
 	}
 #endif
 
-	if (icmplen < OFP_ICMP_MINLEN) {
-/*		ICMPSTAT_INC(icps_tooshort);*/
-		goto freeit;
-	}
+	if (icmplen < OFP_ICMP_MINLEN)
+		return OFP_PKT_DROP;
 
 #ifdef ICMPPRINTFS
 	if (icmpprintfs)
@@ -358,182 +524,35 @@ _ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
 	 * Message type specific processing.
 	 */
 	if (icp->icmp_type > OFP_ICMP_MAXTYPE)
-		goto raw;
-
-	/* Initialize */
-	bzero(&icmpsrc, sizeof(icmpsrc));
-	icmpsrc.sin_len = sizeof(struct ofp_sockaddr_in);
-	icmpsrc.sin_family = OFP_AF_INET;
-	bzero(&icmpdst, sizeof(icmpdst));
-	icmpdst.sin_len = sizeof(struct ofp_sockaddr_in);
-	icmpdst.sin_family = OFP_AF_INET;
-	bzero(&icmpgw, sizeof(icmpgw));
-	icmpgw.sin_len = sizeof(struct ofp_sockaddr_in);
-	icmpgw.sin_family = OFP_AF_INET;
+		return OFP_PKT_DROP;
 
 /*TODO ICMP stats
 	ICMPSTAT_INC(icps_inhist[icp->icmp_type]);*/
-	code = icp->icmp_code;
 	switch (icp->icmp_type) {
 
 	case OFP_ICMP_UNREACH:
-		switch (code) {
-			case OFP_ICMP_UNREACH_NET:
-			case OFP_ICMP_UNREACH_HOST:
-			case OFP_ICMP_UNREACH_SRCFAIL:
-			case OFP_ICMP_UNREACH_NET_UNKNOWN:
-			case OFP_ICMP_UNREACH_HOST_UNKNOWN:
-			case OFP_ICMP_UNREACH_ISOLATED:
-			case OFP_ICMP_UNREACH_TOSNET:
-			case OFP_ICMP_UNREACH_TOSHOST:
-			case OFP_ICMP_UNREACH_HOST_PRECEDENCE:
-			case OFP_ICMP_UNREACH_PRECEDENCE_CUTOFF:
-				code = OFP_PRC_UNREACH_NET;
-				break;
-
-			case OFP_ICMP_UNREACH_NEEDFRAG:
-				code = OFP_PRC_MSGSIZE;
-				break;
-
-			/*
-			 * RFC 1122, Sections 3.2.2.1 and 4.2.3.9.
-			 * Treat subcodes 2,3 as immediate RST
-			 */
-			case OFP_ICMP_UNREACH_PROTOCOL:
-			case OFP_ICMP_UNREACH_PORT:
-				code = OFP_PRC_UNREACH_PORT;
-				break;
-
-			case OFP_ICMP_UNREACH_NET_PROHIB:
-			case OFP_ICMP_UNREACH_HOST_PROHIB:
-			case OFP_ICMP_UNREACH_FILTER_PROHIB:
-				code = OFP_PRC_UNREACH_ADMIN_PROHIB;
-				break;
-
-			default:
-				goto badcode;
-		}
-		goto deliver;
+		return icmp_destination_unreachable(icp, icmplen);
 
 	case OFP_ICMP_TIMXCEED:
-		if (code > 1)
-			goto badcode;
-		code += OFP_PRC_TIMXCEED_INTRANS;
-		goto deliver;
+		return icmp_time_exceeded(icp, icmplen);
 
 	case OFP_ICMP_PARAMPROB:
-		if (code > 1)
-			goto badcode;
-		code = OFP_PRC_PARAMPROB;
-		goto deliver;
+		return icmp_bad_ip_header(icp, icmplen);
 
 	case OFP_ICMP_SOURCEQUENCH:
-		if (code)
-			goto badcode;
-		code = OFP_PRC_QUENCH;
-	deliver:
-		/*
-		 * Problem with datagram; advise higher level routines.
-		 */
-		if (((unsigned int)icmplen) < OFP_ICMP_ADVLENMIN || icmplen < OFP_ICMP_ADVLEN(icp) ||
-		    icp->ofp_icmp_ip.ip_hl < (sizeof(struct ofp_ip) >> 2)) {
-/*			ICMPSTAT_INC(icps_badlen);*/
-			goto freeit;
-		}
-		icp->ofp_icmp_ip.ip_len = odp_be_to_cpu_16(icp->ofp_icmp_ip.ip_len);
-		/* Discard ICMP's in response to multicast packets */
-/*		if (IN_MULTICAST(ntohl(icp->icmp_ip.ip_dst.s_addr)))
-			goto badcode;
-*/
-#ifdef ICMPPRINTFS
-		if (icmpprintfs)
-			OFP_DBG("deliver to protocol %d", icp->icmp_ip.ip_p);
-#endif
-		icmpsrc.sin_addr = icp->ofp_icmp_ip.ip_dst;
-		/*
-		 * XXX if the packet contains [IPv4 AH TCP], we can't make a
-		 * notification to TCP layer.
-		 */
-		ctlfunc = ofp_inetsw[ofp_ip_protox[icp->ofp_icmp_ip.ip_p]].pr_ctlinput;
-		if (ctlfunc)
-			(*ctlfunc)(code, (struct ofp_sockaddr *)&icmpsrc,
-				   (void *)&icp->ofp_icmp_ip);
-		break;
-
-	badcode:
-/*		ICMPSTAT_INC(icps_badcode); */
-		break;
+		return icmp_packet_lost(icp, icmplen);
 
 	case OFP_ICMP_ECHO:
-/*		if (!V_icmpbmcastecho
-		    && (m->m_flags & (M_MCAST | M_BCAST)) != 0) {
-			ICMPSTAT_INC(icps_bmcastecho);
-			break;
-		}
-*/
-		icp->icmp_type = OFP_ICMP_ECHOREPLY;
-
-		goto reflect;
+		return icmp_echo(pkt, icp, reflect);
 
 	case OFP_ICMP_TSTAMP:
-/*
-		if (!V_icmpbmcastecho
-		    && (m->m_flags & (M_MCAST | M_BCAST)) != 0) {
-			ICMPSTAT_INC(icps_bmcasttstamp);
-			break;
-		}
-*/
-		if ((unsigned int)icmplen < OFP_ICMP_TSLEN) {
-/*			ICMPSTAT_INC(icps_badlen);*/
-			break;
-		}
-		icp->icmp_type = OFP_ICMP_TSTAMPREPLY;
-		icp->ofp_icmp_rtime = iptime();
-		icp->ofp_icmp_ttime = icp->ofp_icmp_rtime;	/* bogus, do later! */
-
-		goto reflect;
+		return icmp_timestamp_request(pkt, icp, icmplen, reflect);
 
 	case OFP_ICMP_MASKREQ:
-/*TODO		if (V_icmpmaskrepl == 0)*/
-			break;
-reflect:
-/*
-		ICMPSTAT_INC(icps_reflect);
-		ICMPSTAT_INC(icps_outhist[icp->icmp_type]);
-*/
-		return reflect(pkt);
+		return icmp_address_mask_request(pkt, reflect);
 
 	case OFP_ICMP_REDIRECT:
-		/*if (V_log_redirect)*/ {
-#if defined(OFP_DEBUG)
-			u_long src, dst, gw;
-
-			src = odp_be_to_cpu_32(ip->ip_src.s_addr);
-			dst = odp_be_to_cpu_32(icp->ofp_icmp_ip.ip_dst.s_addr);
-			gw = odp_be_to_cpu_32(icp->ofp_icmp_gwaddr.s_addr);
-			OFP_DBG("icmp redirect from %d.%d.%d.%d: "
-			       "%d.%d.%d.%d => %d.%d.%d.%d",
-			       (int)(src >> 24), (int)((src >> 16) & 0xff),
-			       (int)((src >> 8) & 0xff), (int)(src & 0xff),
-			       (int)(dst >> 24), (int)((dst >> 16) & 0xff),
-			       (int)((dst >> 8) & 0xff), (int)(dst & 0xff),
-			       (int)(gw >> 24), (int)((gw >> 16) & 0xff),
-			       (int)((gw >> 8) & 0xff), (int)(gw & 0xff));
-#endif
-		}
-		/*
-		 * RFC1812 says we must ignore ICMP redirects if we
-		 * are acting as router.
-		 */
-/*TODO		if (V_drop_redirect || V_ipforwarding) */
-			break;
-		/*
-		 * Short circuit routing redirects to force
-		 * immediate change in the kernel's routing
-		 * tables.  The message is also handed to anyone
-		 * listening on a raw socket (e.g. the routing
-		 * daemon for use in updating its tables).
-		 */
+		return icmp_shorter_route();
 
 	/*
 	 * No kernel processing for the following;
@@ -549,14 +568,10 @@ reflect:
 		break;
 	}
 
-raw:
 /*TODO pas to ip raw listener. What processing is done in raw listener?
 	rip_input(m, off);
 	return;
 */
-	return OFP_PKT_DROP;
-
-freeit:
 	return OFP_PKT_DROP;
 }
 
