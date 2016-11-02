@@ -43,7 +43,8 @@ bin_PROGRAMS = \
 	ofp_test_tcp_seq \
 	ofp_test_rt_lookup \
 	ofp_test_rt_mtrie_lookup \
-	ofp_test_syscalls
+	ofp_test_syscalls \
+	ofp_test_icmp
 
 TESTS = ${bin_PROGRAMS}
 
