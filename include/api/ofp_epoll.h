@@ -10,6 +10,10 @@
 
 #include <stdint.h>
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 typedef union ofp_epoll_data {
 	void    *ptr;
 	int      fd;
@@ -36,5 +40,9 @@ int ofp_epoll_create(int size);
 int ofp_epoll_ctl(int epfd, int op, int fd, struct ofp_epoll_event *event);
 
 int ofp_epoll_wait(int epfd, struct ofp_epoll_event *events, int maxevents, int timeout);
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif
