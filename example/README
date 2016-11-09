@@ -79,7 +79,8 @@ ofp_netwrap_crt - implements symbols overloading (using dlsym()) and arguments
 conversion between native calls and OFP calls. Current implementation
 overloads the following symbols: socket(), close(), shutdown(), bind(), accept(),
 accept4(), listen(), connect(), read(), write(), recv(), send(), getsockopt(),
-setsockopt(), writev(), sendfile64(), select(), ioctl() and fork().
+setsockopt(), writev(), sendfile64(), select(), epoll_create(), epoll_ctl(), epoll_wait(),
+ioctl() and fork().
 
 A script is provided in order to make utilization of this feature friendlier.
 
@@ -91,7 +92,7 @@ Script's default configuration (see OFP_NETWRAP_ENV environment variable):
  - Configuration file ./scripts/ofp_netwrap.conf is used for additional settings
 
 Restrictions:
- - Application needs to run as supper user
+ - Application needs to run as super user
  - Slow path support needs to be disabled (use --enable-sp=no in configuration line)
  - Specific socket configuration needs to be activated in include/api/ofp_config.h:
 set OFP_CONFIG to OFP_CONFIG_NETWRAP_WEBSERVER

@@ -15,6 +15,7 @@
 #include "netwrap_select.h"
 #include "netwrap_uio.h"
 #include "netwrap_sendfile.h"
+#include "netwrap_epoll.h"
 
 __attribute__((constructor)) static void setup_wrappers(void)
 {
@@ -25,6 +26,5 @@ __attribute__((constructor)) static void setup_wrappers(void)
 	setup_select_wrappers();
 	setup_uio_wrappers();
 	setup_sendfile_wrappers();
+	setup_epoll_wrappers();
 }
-
-
