@@ -1317,7 +1317,7 @@ ofp_soreceive_generic(struct socket *so, struct ofp_sockaddr **psa, struct uio *
 	int flags, error, offset;
 	ofp_ssize_t len;
 	struct protosw *pr = so->so_proto;
-	int moff, /* type = 0, last_m_flags,*/ hole_break = 0;
+	int moff/*, type = 0, last_m_flags, hole_break = 0*/;
 	ofp_ssize_t orig_resid = uio->uio_resid;
 	uint32_t uio_off;
 
@@ -1327,13 +1327,11 @@ ofp_soreceive_generic(struct socket *so, struct ofp_sockaddr **psa, struct uio *
 	if (controlp != NULL)
 		*controlp = ODP_PACKET_INVALID;
 	if (flagsp != NULL) {
-		hole_break = *flagsp & OFP_MSG_HOLE_BREAK;
+/*		hole_break = *flagsp & OFP_MSG_HOLE_BREAK;*/
 		*flagsp &= ~OFP_MSG_HOLE_BREAK;
 		flags = *flagsp &~ OFP_MSG_EOR;
 	} else
 		flags = 0;
-
-	hole_break = hole_break;
 
 	/* HJo: FIX
 	if (flags & OFP_MSG_OOB)

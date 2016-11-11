@@ -261,22 +261,11 @@ void f_route_del_v6(struct cli_conn *conn, const char *s)
 /* route add from DEV to DEV */
 void f_route_add_dev_to_dev(struct cli_conn *conn, const char *s)
 {
-
 	char dev[16], from[16];
-	int from_port, to_port, vlan;
 
 	if (sscanf(s, "%s %s", from, dev) != 2)
 		return;
-	from_port = ofp_name_to_port_vlan(from, &vlan);
-	to_port = ofp_name_to_port_vlan(dev, &vlan);
-	from_port = from_port; /* remove warnings*/
-	to_port = to_port;
-	/*set_port_params(16, ofp_ifnet_data[32].address,
-	  ufp_ifnet_data[32].masklen, ufp_ifnet_data[32].mac,
-	  ufp_ifnet_data[32].link_local);
-	add_to_next_hop_table(ADD_ENTRY, ufp_ifnet_data[to_port].address,
-	from_port, ufp_ifnet_data[to_port].masklen,
-	  NH_FLAGS_TO_LOCAL_SEGMENT, to_port, 0, to_port, NULL, 0);*/
+
 	sendcrlf(conn);
 }
 

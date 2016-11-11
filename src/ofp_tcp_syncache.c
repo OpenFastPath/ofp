@@ -908,7 +908,7 @@ _syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphdr *th,
 	odp_packet_t ipopts = ODP_PACKET_INVALID;
 	uint32_t flowtmp = 0;
 	uint32_t ltflags;
-	int win, sb_hiwat, ip_ttl, ip_tos;
+	int win, ip_ttl, ip_tos;
 #ifdef INET6
 	int autoflowlabel = 0;
 #endif
@@ -936,8 +936,6 @@ _syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphdr *th,
 	ip_ttl = inp->inp_ip_ttl;
 	ip_tos = inp->inp_ip_tos;
 	win = sbspace(&so->so_rcv);
-	sb_hiwat = so->so_rcv.sb_hiwat;
-	sb_hiwat = sb_hiwat;
 	ltflags = (tp->t_flags & (TF_NOOPT | TF_SIGNATURE));
 
 	/* By the time we drop the lock these should no longer be used. */

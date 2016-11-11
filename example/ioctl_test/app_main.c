@@ -67,7 +67,7 @@ static void *app_dispatcher_thread(void *arg)
 	odp_packet_t pkt;
 	odp_queue_t in_queue;
 
-	arg = arg;
+	(void)arg;
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");

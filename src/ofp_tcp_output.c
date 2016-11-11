@@ -171,15 +171,13 @@ ofp_tcp_output(struct tcpcb *tp)
 	int tso;
 	struct tcpopt to;
 
-	ipov = ipov;
+	(void)ipov;
 #if 0
 	int maxburst = OFP_TCP_MAXBURST;
 #endif
 #ifdef INET6
 	struct ofp_ip6_hdr *ip6 = NULL;
 	int isipv6;
-
-	(void)ipov;
 
 	isipv6 = (tp->t_inpcb->inp_vflag & INP_IPV6) != 0;
 #endif
