@@ -584,7 +584,7 @@ dontupdate:
 	 * If our state indicates that FIN should be sent
 	 * and we have not yet done so, then we need to send.
 	 */
-	if (flags & OFP_TH_FIN &&
+	if ((flags & OFP_TH_FIN) &&
 	    ((tp->t_flags & TF_SENTFIN) == 0 || tp->snd_nxt == tp->snd_una))
 		goto send;
 
@@ -905,7 +905,7 @@ send:
 	 * window for use in delaying messages about window sizes.
 	 * If resending a FIN, be sure not to use a new sequence number.
 	 */
-	if (flags & OFP_TH_FIN && tp->t_flags & TF_SENTFIN &&
+	if ((flags & OFP_TH_FIN) && (tp->t_flags & TF_SENTFIN) &&
 	    tp->snd_nxt == tp->snd_max)
 		tp->snd_nxt--;
 	/*

@@ -295,7 +295,7 @@ ofp_tcp_timer_keep(void *xtp)
 	TCPSTAT_INC(tcps_keeptimeo);
 	if (tp->t_state < TCPS_ESTABLISHED)
 		goto dropit;
-	if ((always_keepalive || inp->inp_socket->so_options & OFP_SO_KEEPALIVE) &&
+	if ((always_keepalive || (inp->inp_socket->so_options & OFP_SO_KEEPALIVE)) &&
 	    tp->t_state <= TCPS_CLOSING) {
 		if ((int)(ofp_timer_ticks(0) - tp->t_rcvtime) >=
 		    TP_KEEPIDLE(tp) + TP_MAXIDLE(tp))

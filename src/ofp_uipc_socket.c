@@ -888,7 +888,7 @@ ofp_soconnect(struct socket *so, struct ofp_sockaddr *nam, struct thread *td)
 	 * Otherwise, if connected, try to disconnect first.  This allows
 	 * user to disconnect by connecting to, e.g., a null address.
 	 */
-	if (so->so_state & (SS_ISCONNECTED|SS_ISCONNECTING) &&
+	if ((so->so_state & (SS_ISCONNECTED|SS_ISCONNECTING)) &&
 	    ((so->so_proto->pr_flags & PR_CONNREQUIRED) ||
 	    (error = ofp_sodisconnect(so)))) {
 		error = OFP_EISCONN;
@@ -1639,7 +1639,7 @@ dontblock:
 				 * each record.
 				 */
 				if (m != ODP_PACKET_INVALID &&
-				    pr->pr_flags & PR_ATOMIC &&
+				    (pr->pr_flags & PR_ATOMIC) &&
 				    ((flags & OFP_MSG_PEEK) == 0))
 					(void)ofp_sbdroprecord_locked(&so->so_rcv);
 				SOCKBUF_UNLOCK(&so->so_rcv);
@@ -1741,11 +1741,11 @@ dontblock:
 		 * short count but without error.  Keep sockbuf locked
 		 * against other readers.
 		 */
-		while (flags & OFP_MSG_WAITALL && m == ODP_PACKET_INVALID &&
+		while ((flags & OFP_MSG_WAITALL) && m == ODP_PACKET_INVALID &&
 		       uio->uio_resid > 0 &&
 		       !sosendallatonce(so) /* && nextrecord == NULL*/) {
 			SOCKBUF_LOCK_ASSERT(&so->so_rcv);
-			if (so->so_error || so->so_rcv.sb_state & SBS_CANTRCVMORE)
+			if (so->so_error || (so->so_rcv.sb_state & SBS_CANTRCVMORE))
 				break;
 			/*
 			 * Notify the protocol that some data has been
@@ -1774,7 +1774,7 @@ dontblock:
 	}
 
 	SOCKBUF_LOCK_ASSERT(&so->so_rcv);
-	if (m != ODP_PACKET_INVALID && pr->pr_flags & PR_ATOMIC) {
+	if (m != ODP_PACKET_INVALID && (pr->pr_flags & PR_ATOMIC)) {
 		flags |= OFP_MSG_TRUNC;
 		if ((flags & OFP_MSG_PEEK) == 0)
 			(void) ofp_sbdroprecord_locked(&so->so_rcv);
@@ -1885,7 +1885,7 @@ ofp_soreceive_dgram(struct socket *so, struct ofp_sockaddr **psa, struct uio *ui
 			SOCKBUF_UNLOCK(&so->so_rcv);
 			return (error);
 		}
-		if (so->so_rcv.sb_state & SBS_CANTRCVMORE ||
+		if ((so->so_rcv.sb_state & SBS_CANTRCVMORE) ||
 		    uio->uio_resid == 0) {
 			SOCKBUF_UNLOCK(&so->so_rcv);
 			return (0);

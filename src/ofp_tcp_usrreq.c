@@ -203,7 +203,7 @@ tcp_detach(struct socket *so, struct inpcb *inp)
 		 *
 		 * XXXRW: Does the second case still occur?
 		 */
-		if (inp->inp_flags & INP_DROPPED ||
+		if ((inp->inp_flags & INP_DROPPED) ||
 		    tp->t_state < TCPS_SYN_SENT) {
 			ofp_tcp_discardcb(tp);
 			ofp_in_pcbdetach(inp);
@@ -1020,9 +1020,9 @@ tcp_usr_rcvoob(struct socket *so, odp_packet_t m, int flags)
 	tp = intotcpcb(inp);
 	TCPDEBUG1();
 	if ((so->so_oobmark == 0 &&
-	     (so->so_rcv.sb_state & SBS_RCVATMARK) == 0) ||
-	    so->so_options & OFP_SO_OOBINLINE ||
-	    tp->t_oobflags & OFP_TCPOOB_HADDATA) {
+	    (so->so_rcv.sb_state & SBS_RCVATMARK) == 0) ||
+	    (so->so_options & OFP_SO_OOBINLINE) ||
+	    (tp->t_oobflags & OFP_TCPOOB_HADDATA)) {
 		error = OFP_EINVAL;
 		goto out;
 	}
