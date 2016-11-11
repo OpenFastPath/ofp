@@ -1,0 +1,200 @@
+= OpenFastPath Release Policy
+Jere Leppänen <jere.leppanen@nokia.com>
+:max-width: 600px
+:numbered:
+:toc:
+
+
+
+== Introduction
+
+This document defines the policies concerning OpenFastPath (OFP)
+software releases. Written rules are required to produce uniform
+releases. Publicly documented release policy and release process also
+brings some predictability to the project, which is beneficial to both
+users and contributors.
+
+This document is informational, not binding. The policy may be changed
+at the decision of the OFP Technical Steering Committee (TSC).
+
+The purpose of OFP releases is to provide supported software with a
+stable API and ABI to users. The API is defined by C header files in
+the include/api directory in the OFP repository <<repo>>.
+
+
+
+== Versioning and Naming
+
+* Semantic Versioning <<semver>> is used.
+
+* Versioning is driven by API, ABI and CLI.
+
+    ** Any compatible change of API, ABI or CLI increments the minor
+       version.
+
+    ** Any incompatible change of API, ABI or CLI increments the major
+       version.
+
+    ** An incompatible CLI change means that a CLI command doesn't
+       work anymore or does something different than it did before.
+
+* Every minor version is a release.
+
+* Releases are named after small animals, with the first letters of
+  the names progressing in alphabetical order.
+
+* Bug fixes are gathered and tagged as a patch version, and published
+  as a patch release.
+
+* Libraries are versioned independently from release versioning, and
+  independently of each other, using Semantic Versioning driven by the
+  ABI provided by the library.
+
+.Referring to a release or a version
+****
+. "OpenFastPath" or "OFP", without the quotes.
+. Release name, starting with a capital letter.
+. Version.
+
+Some elements may be omitted, but the remaining elements always appear
+in this order.
+
+Examples:
+
+* OpenFastPath Angelfish 2.0.0 - for maximum clarity.
+
+* OFP Angelfish - when the exact version doesn't matter, because
+  they're all compatible anyway.
+
+* OFP 2.0.0 - when you don't care about the naming.
+
+* Angelfish 2.0.0 - when referring to a release, but at the same time
+  wanting to specify the exact version for those individuals in the
+  audience for whom it means something.
+****
+
+
+
+== Compatibility
+
+It follows from the versioning scheme that within a release, API, ABI
+and CLI are backwards compatible. Beyond that, version numbers are
+needed to determine whether two releases are compatible or not.
+
+Each library is separately versioned, so it's possible for a
+particular library to be ABI compatible across different releases or
+even across different major versions.
+
+
+
+== Requirements
+
+Release Notes lists the requirements for each OFP release, including
+the required version of OpenDataPlane (ODP).  Newer compatible
+versions of ODP may be used. In ODP's four level versioning, as long
+as the first two levels remain the same, the API is compatible. Please
+see <<ODPRG>> for more information on ODP release versioning.
+
+
+
+== Support
+
+All serious bugs in the current General Availability release are fixed
+on a best-effort basis. Bug fixes are integrated in a patch release.
+The example applications in the examples directory may have a lower
+support priority than the core implementation.
+
+New features and improvements are usually added only in new releases,
+although it's possible to add new features in a patch release as long
+as compatibility is preserved.
+
+
+
+== Release Contents
+
+An OFP release consists of the following source code and documentation:
+
+* Release Announcement on the OFP announcements page and on the
+  mailing list, which states the name, version and date of the
+  release, and contains a link to the Release Notes.
+
+* Release Notes, which includes information about requirements, the
+  release life cycle, changes since last release and known
+  issues. Release Notes are archived on the OFP Release Archive page
+  <<relarch>>.
+
+* Release tag in the OFP repository <<repo>>, and all the content in
+  the repository that the release tag points to.
+
+
+
+== Release Life Cycle
+
+* The stages of a release are:
+
+    Development:: In this stage, new features are being developed and
+        old features may be modified or even removed. The API, ABI and
+        CLI may be unstable.
+
+    Release Candidate:: Once all features have been implemented and
+        API finalized, a feature freeze, which implies API, ABI and
+        CLI freeze, may be initiated and the release moved to the
+        release candidate stage. Release candidates are tagged. If
+        issues are found, a correction is made and a new release
+        candidate is tagged. Even though the API is frozen, bugs in
+        the API may still be corrected in this stage. Once a release
+        enters the Release Candidate stage, the next release enters
+        Development stage.
+
+    General Availability:: A release may enter this stage once the
+        following criteria are met:
+
+        *** All automated test cases pass.
+
+        *** At least one week has passed since the last release
+            candidate was tagged, and no issues requiring a correction
+            have been found.
+
+        *** All release content, listed in the
+            <<_release_contents,Release Contents>> section, is
+            available.
+
+    End of Life:: A release enters End of Life stage once the next
+        release enters General Availability stage. In the End of Life
+        stage, no changes are made to the release and bug reports are
+        not necessarily accepted anymore. Even if a bug report is
+        accepted, the correction will only be done to the current
+        release.
+
+* Only one release at a time is maintained (in General Availability
+  stage).
+
+* General Availability stage lasts for at least five months.
+
+* OFP aims to adapt to new ODP releases within one month of the ODP
+  release. This usually necessitates a new OFP release.
+
+* Stage transitions are communicated on the announcements page and
+  mailing list at least one week beforehand, End of Life at least one
+  month beforehand.
+
+* The decisions and approvals related to transitions between these
+  stages are the responsibility of the TSC, based on the criteria
+  above and inputs and comments from OFP members.
+
+
+
+== References
+
+[bibliography]
+
+* [[[ODPRG]]] ODP Release Guide.
+  http://docs.opendataplane.org/snapshots/odp-publish/generic/usr_html/latest/master/linux-generic/output/release-guide.html
+
+* [[[relarch]]] OFP Release Archive.
+  http://www.openfastpath.org/index.php/service/releasearchives/
+
+* [[[repo]]] OFP Repository. https://github.com/OpenFastPath/ofp
+
+* [[[semver]]] Semantic Versioning 2.0.0.
+  http://semver.org/spec/v2.0.0.html
