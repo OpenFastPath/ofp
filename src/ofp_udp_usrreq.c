@@ -204,8 +204,8 @@ udp_append(struct inpcb *inp, struct ofp_ip *ip, odp_packet_t n, int off,
 
 	off += sizeof(struct ofp_udphdr);
 
-	if (inp->inp_flags & INP_CONTROLOPTS ||
-	    inp->inp_socket->so_options & (OFP_SO_TIMESTAMP | OFP_SO_BINTIME)) {
+	if ((inp->inp_flags & INP_CONTROLOPTS) ||
+	    (inp->inp_socket->so_options & (OFP_SO_TIMESTAMP | OFP_SO_BINTIME))) {
 #ifdef _INET6
 		if (inp->inp_vflag & INP_IPV6)
 			(void)ip6_savecontrol_v4(inp, n, &opts, NULL);

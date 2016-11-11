@@ -136,7 +136,7 @@ void ofp_set_stat_flags(unsigned long int flags)
 	ofp_stat_flags = flags;
 
 	if ((!(old_flags & OFP_STAT_COMPUTE_PERF)) &&
-		ofp_stat_flags & OFP_STAT_COMPUTE_PERF)
+	    (ofp_stat_flags & OFP_STAT_COMPUTE_PERF))
 		ofp_start_perf_stat();
 }
 unsigned long int ofp_get_stat_flags(void)

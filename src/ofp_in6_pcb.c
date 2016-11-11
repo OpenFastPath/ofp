@@ -291,7 +291,7 @@ ofp_in6_pcbbind(register struct inpcb *inp, struct ofp_sockaddr *nam,
 				ofp_in6_sin6_2_sin(&sin, sin6);
 				t = ofp_in_pcblookup_local(pcbinfo, sin.sin_addr,
 				    lport, lookupflags, cred);
-				if (t && t->inp_flags & INP_TIMEWAIT) {
+				if (t && (t->inp_flags & INP_TIMEWAIT)) {
 					tw = intotw(t);
 					if (tw == NULL)
 						return (OFP_EADDRINUSE);

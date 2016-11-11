@@ -1529,7 +1529,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 				 * "bad retransmit" recovery.
 				 */
 				if (tp->t_rxtshift == 1 &&
-				    tp->t_flags & TF_PREVVALID &&
+				    (tp->t_flags & TF_PREVVALID) &&
 				    (int)(ticks - tp->t_badrxtwin) < 0) {
 					/* HJo: FIX:
 					ofp_cc_cong_signal(tp, th, CC_RTO_ERR);
@@ -2442,7 +2442,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 						KASSERT((tp->t_dupacks == 2 &&
 						    tp->snd_limited == 0) ||
 						   (sent == tp->t_maxseg + 1 &&
-						    tp->t_flags & TF_SENTFIN),
+						   (tp->t_flags & TF_SENTFIN)),
 						    ("%s: sent too much",
 						    __func__));
 						tp->snd_limited = 2;
