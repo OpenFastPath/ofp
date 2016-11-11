@@ -971,8 +971,6 @@ ofp_in_pcbref(struct inpcb *inp)
 int
 ofp_in_pcbrele_rlocked(struct inpcb *inp)
 {
-	struct inpcbinfo *pcbinfo;
-
 	KASSERT(inp->inp_refcount.v > 0, ("%s: refcount 0", __func__));
 
 	INP_RLOCK_ASSERT(inp);
@@ -983,17 +981,13 @@ ofp_in_pcbrele_rlocked(struct inpcb *inp)
 	KASSERT(inp->inp_socket == NULL, ("%s: inp_socket != NULL", __func__));
 
 	INP_RUNLOCK(inp);
-	pcbinfo = inp->inp_pcbinfo;
-	pcbinfo = pcbinfo;
-	uma_zfree(pcbinfo->ipi_zone, inp);
+	uma_zfree(inp->inp_pcbinfo->ipi_zone, inp);
 	return (1);
 }
 
 int
 ofp_in_pcbrele_wlocked(struct inpcb *inp)
 {
-	struct inpcbinfo *pcbinfo;
-
 	KASSERT(inp->inp_refcount.v > 0, ("%s: refcount 0", __func__));
 
 	INP_WLOCK_ASSERT(inp);
@@ -1004,9 +998,7 @@ ofp_in_pcbrele_wlocked(struct inpcb *inp)
 	KASSERT(inp->inp_socket == NULL, ("%s: inp_socket != NULL", __func__));
 
 	INP_WUNLOCK(inp);
-	pcbinfo = inp->inp_pcbinfo;
-	pcbinfo = pcbinfo;
-	uma_zfree(pcbinfo->ipi_zone, inp);
+	uma_zfree(inp->inp_pcbinfo->ipi_zone, inp);
 	return (1);
 }
 

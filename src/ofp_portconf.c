@@ -115,7 +115,7 @@ static int vlan_ifnet_compare(void *compare_arg, void *a, void *b)
 	struct ofp_ifnet *a1 = a;
 	struct ofp_ifnet *b1 = b;
 
-	compare_arg = compare_arg;
+	(void)compare_arg;
 
 	return (a1->vlan - b1->vlan);
 }

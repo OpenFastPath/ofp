@@ -556,7 +556,6 @@ static int del_link(struct ifinfomsg *ifinfo_entry, int vlan, int link)
 	struct ofp_ifnet key;
 
 	OFP_DBG("DEL LINK vlan=%d link=%d", vlan, link);
-	ifinfo_entry = ifinfo_entry;
 
 	if (vlan != -1) {
 		if (ifinfo_entry->ifi_type == ARPHRD_IPGRE) {
