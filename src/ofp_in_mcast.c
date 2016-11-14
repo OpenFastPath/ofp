@@ -77,34 +77,11 @@ static int
 if_delmulti_locked(struct ofp_ifnet *ifp,
 		   struct ofp_ifmultiaddr *ifma, int detaching);
 
-int	ofp_if_addgroup(struct ofp_ifnet *, const char *);
-int	ofp_if_delgroup(struct ofp_ifnet *, const char *);
 int	ofp_if_addmulti(struct ofp_ifnet *, struct ofp_sockaddr *, struct ofp_ifmultiaddr **);
-int	ofp_if_allmulti(struct ofp_ifnet *, int);
-struct	ofp_ifnet* ofp_if_alloc(u_char);
-void	ofp_if_attach(struct ofp_ifnet *);
-void	ofp_if_dead(struct ofp_ifnet *);
 int	ofp_if_delmulti(struct ofp_ifnet *, struct ofp_sockaddr *);
 void	ofp_if_delmulti_ifma(struct ofp_ifmultiaddr *);
-void	ofp_if_detach(struct ofp_ifnet *);
-void	ofp_if_vmove(struct ofp_ifnet *, struct vnet *);
-void	ofp_if_purgeaddrs(struct ofp_ifnet *);
-void	ofp_if_delallmulti(struct ofp_ifnet *);
-void	ofp_if_down(struct ofp_ifnet *);
 struct ofp_ifmultiaddr *
 	ofp_if_findmulti(struct ofp_ifnet *, struct ofp_sockaddr *);
-void	ofp_if_free(struct ofp_ifnet *);
-void	ofp_if_free_type(struct ofp_ifnet *, u_char);
-void	ofp_if_initname(struct ofp_ifnet *, const char *, int);
-void	ofp_if_link_state_change(struct ofp_ifnet *, int);
-//int	ofp_if_printf(struct ofp_ifnet *, const char *, ...) __printflike(2, 3);
-void	ofp_if_qflush(struct ofp_ifnet *);
-void	ofp_if_ref(struct ofp_ifnet *);
-void	ofp_if_rele(struct ofp_ifnet *);
-int	ofp_if_setlladdr(struct ofp_ifnet *, const uint8_t *, int);
-void	ofp_if_up(struct ofp_ifnet *);
-//int	ifioctl(struct ofp_socket *, u_long, caddr_t, struct thread *);
-int	ifpromisc(struct ofp_ifnet *, int);
 
 static uint32_t V_if_index = (4096 << 4) | 15;
 

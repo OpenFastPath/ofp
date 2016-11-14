@@ -78,8 +78,6 @@
 #include "ofp_log.h"
 #include "ofp_pkt_processing.h"
 
-extern void print_ipv4(FILE *f, char *p);
-
 extern odp_pool_t ofp_packet_pool;
 
 #ifndef KTR_IGMPV3

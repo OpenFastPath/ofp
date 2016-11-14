@@ -1982,7 +1982,6 @@ ofp_sooptcopyin(struct sockopt *sopt, void *buf, size_t len, size_t minlen)
 	return (0);
 }
 
-extern int ofp_ip_ctloutput(struct socket *so, struct sockopt *sopt);
 int
 ofp_sosetopt(struct socket *so, struct sockopt *sopt)
 {

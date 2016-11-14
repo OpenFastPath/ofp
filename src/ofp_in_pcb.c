@@ -63,8 +63,6 @@
 #define	HASH_NOWAIT	0x00000001
 #define	HASH_WAITOK	0x00000002
 extern void *ofp_hashinit(int count, void *type, uint64_t *hashmask);
-extern void *ofp_hashinit_flags(int elements, void *type, uint64_t *hashmask, int flags);
-extern void *ofp_phashinit(int count, void *type, uint64_t *nentries);
 extern void  ofp_hashdestroy(void *vhashtbl, void *type, uint64_t hashmask);
 
 extern struct inpcbinfo ofp_udbinfo;
