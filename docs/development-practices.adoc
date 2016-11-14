@@ -1,0 +1,328 @@
+= OpenFastPath Development Practices
+Jere Leppänen <jere.leppanen@nokia.com>
+:max-width: 600px
+:numbered:
+:toc:
+
+
+
+== Introduction
+
+This document defines those OpenFastPath (OFP) development practices,
+which every contributor should be aware of. This document should
+enable contributors to be consistent where it matters, it is not an
+exhaustive list of rules.
+
+OFP follows a subset of Linux kernel development practices, also used
+in many other open source projects. Contributors are expected to have
+some familiarity with development practices in kernel development or
+other open source projects with similar practices.
+
+A quick summary of the mandatory stages of getting a change into OFP:
+
+. Changes are submitted as patches to the mailing list <<mail>>.
+
+. Patches are discussed and reviewed on the mailing list.
+
+. Once a Maintainer has reviewed and accepted the patch, the patch is
+  pushed to the repository <<repo>>.
+
+
+
+== Problems and Questions
+
+The mailing list is the best way to contact other developers
+and the Maintainers. Support requests and questions should be sent to
+the mailing list.
+
+Bugs should be reported via <<bugzilla>>.
+
+Github interface (for issues, pull requests, etc.) is not used.
+
+
+
+== Coding Style
+
+Linux kernel coding style <<kstyle>> is used. See also <<kdp4coding>>.
+
+Global functions and variables are prefixed with "ofp_".
+
+BSD/libuinet style <<bsdstyle>> structures are used.
+
+Copyright and license <<license>> information must appear at the top
+of each source file, using the following template:
+----
+/*
+ * Copyright (c) <year>, <company1>
+ * Copyright (c) <year>, <company2>
+ * Copyright (c) <year>, <person>
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier:     BSD-3-Clause
+ */
+----
+
+
+
+== Preparing Patches
+
+<<ksubmit>> and <<kdp5posting>> describe how to prepare patches for
+submission. The main points are:
+
+* Patches should be small.
+
+* Each logically independent change should be formatted as a separate
+  patch.
+
+* Each patch should yield working code.
+
+* The first line of a patch comment should be a short one-line
+  description of the change, in imperative mood.
+
+* A patch comment should describe what is changed and why.
+
+Each patch set should add its own tests. When implementation is added,
+the corresponding unit tests should be added in separate patches in
+the same patch set.
+
+Before posting patches, make sure all old and new unit test cases
+pass.
+
+The kernel checkpatch.pl script <<checkpatch>> should be used to check
+patches before submitting. Example: `$ git show --pretty=email
+<commit> | linux/scripts/checkpatch.pl --show-types --no-tree
+--max-line-length=150 --ignore
+ASSIGN_IN_IF,TRAILING_STATEMENTS,GLOBAL_INITIALISERS,
+C99_COMMENTS,NEW_TYPEDEFS,FILE_PATH_CHANGES -`
+
+Use the -s option in git commit to add your Signed-off-by tag line
+before posting patches. If a patch has multiple authors, there should
+be one Signed-off-by tag line for each author.
+
+=== "Fixes" Tags.
+
+If a commit is a fix to a bug, it should include at least one Fixes
+tag line. This tag line may contain:
+
+* Abbreviated commit hash and commit title, e.g. as listed by git log
+  --oneline. Example: `Fixes: 41d53bb Add epoll set to socket
+  structure`
+
+* The number and title of a bugzilla bug, with the number prefixed
+  with the number sign "#". Example: `Fixes: #99 TCP issue with big
+  file transfer`
+
+Each bug should be fixed by a separate patch, unless boundaries aren't
+clear or bugs are intertwined so that the fixes can't be separated.
+If a patch corrects multiple problems, each one is recorded on its own
+"Fixes" line. If multiple patches together fix one problem, then each
+patch has the same "Fixes" line.
+
+
+
+== Posting and Reviewing
+
+Patches are posted to the mailing list <<mail>> using git send-email.
+
+When posting patches to a branch other than master, use the option
+`--subject-prefix="PATCH <name>"`, where <name> is the name of the
+branch.
+
+All changes should be reviewed. Every commit must have at least one
+"Acked-by" or "Reviewed-by" tag line from a Maintainer, who must not
+be with the same company as the author. Once a Maintainer has reviewed
+a patch and notified the mailing list, the patch may be pushed after
+two office days have passed, unless there are unaddressed comments
+made by others before or during that time.
+
+Reviewers may send their tag lines as a reply to a patch, to be added
+to the final revision of the patch by the patch author, or to be added
+by a Maintainer before the patch is pushed. Tags defined in
+<<kdp5posting>> and <<ksubmit>> may be used, other tags should be
+avoided.
+
+See also <<kdp5posting>> and <<kdp6flwt>>.
+
+
+
+== Branches
+
+The "cactus" branching model advocated by <<judin>> is used. The
+strength of this model is its simplicity and its focus on master, the
+one eternal branch. A perfect fit for OFP, which is small and where
+there are no commercial or legal obligations related to release
+maintenance.
+
+=== master
+
+Latest and greatest. "Unstable". Development happens on master.
+
+There are no merges to master other than fast-forward and
+cherry-pick. Bug fixes may be cherry-picked from release branches, but
+a better way of working is to fix the problem on master first, then
+cherry-pick the fix to the current release branch.
+
+=== Release Branches
+
+Branched from master. Stable. Releases are tagged on release branches.
+
+The only changes should be bug fixes. Bug fixes may be cherry-picked
+from master. In some cases, the TSC may decide to cherry-pick new
+functionality from master, as long as compatibility is preserved.
+
+The name of a release branch is the name of the release in lowercase.
+
+=== Feature Branches
+
+<<judin>> argues against long lived feature branches, but sometimes
+you need a shared feature branch. One way to resolve this is to have a
+shared feature branch, which is rebased regularly. That way the branch
+isn't long lived, since it's in fact new every time it's rebased. By
+rebasing every week or every day, you effectively end up integrating
+early and often. As the amount of changes on a feature branch
+increases over time, the rebase will get increasingly onerous. This
+should provide contributors an incentive to submit their patches.
+
+Only Maintainers can push to the public repository, so contributors
+will have to keep their feature branches elsewhere. For example Github
+forks may be used for this purpose.
+
+Ultimately contributors may use feature branches in any way they want,
+as long as the end result is a clean patch set, which applies to
+master HEAD.
+
+
+
+== Tagging
+
+All tags are annotated tags, which record who created the tag and
+when. Tag comments are rarely seen and therefore don't matter
+much. "Tag <tag>.", where <tag> is the tag name, is a good enough
+comment for a tag.
+
+All tags conform to <<semver>>.
+
+A release tag is exactly the same as the semantic version of the
+release.
+
+Release candidate tags are of the form <ver>-rc.<ordinal>, where <ver>
+is the release version and <ordinal> starts at 1 for each release and
+is incremented with every new tag. For example, the first release
+candidate tag for 2.1.0 would be "2.1.0-rc.1", without the quotes.
+
+
+
+== Release Process
+
+Release stages and the policies this process is based on, are defined
+in <<relpol>>. The release process may begin once the TSC decides that
+development is ready, and sufficient time, defined in <<relpol>>, has
+passed since announcing the End of Life of the previous release.
+
+. Library versions are incremented on master according to what kind of
+  changes have been made to the ABI of each library since the previous
+  release. The usual rules are followed:
+
+    * If there are only bug fixes, then the patch version is
+      incremented.
+
+    * If there are compatible ABI changes, then the minor version is
+      incremented and patch version set to zero.
+
+    * If there are incompatible ABI changes, then the major version is
+      incremented and minor and patch versions set to zero.
+
+. A release branch is created by branching from master. The branch
+  point may be master HEAD or some earlier commit on master.
+
+. If the branch point is not master head, some cherry-picks may be
+  needed in this stage. Merging or cherry-picking from elsewhere than
+  master should be avoided.
+
+. Once the release criteria is met and the TSC makes the decision, the
+  release branch is tagged with a release candidate tag.
+
+. Availability of the new release candidate is announced on the
+  mailing list.
+
+. When problems are found, the fixes are applied on the release
+  branch, and a new release candidate tag created. Each release tag
+  should be announced, so it's probably best to wait for at least a
+  few days between release candidates.
+
+. Once the criteria defined in the policy is met and the release
+  candidate is ready to be released, the last release candidate is
+  tagged with a release tag.
+
+. Availability of the new release is announced on the mailing list and
+  announcements web page.
+
+The process for patch releases is simpler. As soon as the TSC decides
+it's time for a patch release, the release branch is tagged and the
+announcement made.
+
+
+
+=== Announcements
+
+Release announcements are posted on the announcements web page and the
+mailing list. Release candidates are announced only on the mailing
+list, not on the web page.
+
+The subject of the message to the mailing list should be
+`[ANNOUNCEMENT] OpenFastPath <name> <ver> <what>.`, where <name> is
+the name of the release, <ver> is the version and <what> is what's
+happening. <what> may be for example `is available` or `is reaching
+End of Life`.
+
+The post on the mailing list and the announcements web page should
+include exactly the same information.
+
+
+
+== References
+
+[bibliography]
+
+* [[[bsdstyle]]] BSD style(9) man page.
+  https://www.freebsd.org/cgi/man.cgi?query=style&sektion=9
+
+* [[[bugzilla]]] OFP Bugzilla.
+  https://issues.openfastpath.org/
+
+* [[[checkpatch]]] Linux kernel checkpatch.pl script.
+  https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/scripts/checkpatch.pl
+
+* [[[judin]]] A Successful GIT Branching Model Considered Harmful. Jussi Judin.
+  https://barro.github.io/2016/02/a-succesful-git-branching-model-considered-harmful/
+
+* [[[kdp4coding]]] A guide to the Kernel Development Process, Chapter 4. Coding.
+  https://www.kernel.org/doc/Documentation/development-process/4.Coding.rst
+
+* [[[kdp5posting]]] A guide to the Kernel Development Process, Chapter 5. Posting.
+  https://www.kernel.org/doc/Documentation/development-process/5.Posting.rst
+
+* [[[kdp6flwt]]] A guide to the Kernel Development Process, Chapter 6. Followthrough.
+  https://www.kernel.org/doc/Documentation/development-process/6.Followthrough.rst
+
+* [[[kstyle]]] Linux kernel coding style.
+  https://www.kernel.org/doc/Documentation/CodingStyle
+
+* [[[ksubmit]]] How to Get Your Change Into the Linux Kernel or Care And Operation Of Your Linus Torvalds.
+  https://www.kernel.org/doc/Documentation/SubmittingPatches
+
+* [[[license]]] BSD 3-clause "New" or "Revised" License.
+  http://spdx.org/licenses/BSD-3-Clause
+
+* [[[mail]]] OFP mailing list.
+  openfastpath@list.openfastpath.org
+  http://www.openfastpath.org/mailman/listinfo/openfastpath
+
+* [[[relpol]]] OpenFastPath Release Policy.
+  https://github.com/OpenFastPath/ofp/blob/master/docs/release-policy.adoc
+
+* [[[repo]]] OFP Repository.
+  https://github.com/OpenFastPath/ofp
+
+* [[[semver]]] Semantic Versioning 2.0.0.
+  http://semver.org/spec/v2.0.0.html
