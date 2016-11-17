@@ -364,7 +364,7 @@ struct ofp_ifnet *ofp_get_ifnet_by_ip(uint32_t ip, uint16_t vrf);
 /* Finds the tunnel interface by tunnel addresses  */
 struct ofp_ifnet *ofp_get_ifnet_by_tunnel(uint32_t tun_loc,
 					      uint32_t tun_rem, uint16_t vrf);
-void ofp_join_device_to_multicat_group(struct ofp_ifnet *dev_root,
+void ofp_join_device_to_multicast_group(struct ofp_ifnet *dev_root,
 				       struct ofp_ifnet *dev_vxlan,
 				       uint32_t group);
 void ofp_leave_multicast_group(struct ofp_ifnet *dev_vxlan);
