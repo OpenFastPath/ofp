@@ -618,7 +618,7 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 	return NULL;
 }
 
-void ofp_join_device_to_multicat_group(struct ofp_ifnet *dev_root,
+void ofp_join_device_to_multicast_group(struct ofp_ifnet *dev_root,
 				       struct ofp_ifnet *dev_vxlan,
 				       uint32_t group)
 {
@@ -696,7 +696,7 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 			     data->ip_addr & mask, data->masklen, 0, OFP_RTF_NET);
 
 	/* Join root device to multicast group. */
-	ofp_join_device_to_multicat_group(dev_root, data, group);
+	ofp_join_device_to_multicast_group(dev_root, data, group);
 
 #ifdef SP
 	if (data->vrf == 0)

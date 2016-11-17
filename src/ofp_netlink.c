@@ -276,7 +276,7 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 
 			ofp_leave_multicast_group(dev);
 			if (dev_root)
-				ofp_join_device_to_multicat_group(dev_root, dev,
+				ofp_join_device_to_multicast_group(dev_root, dev,
 								  dev->ip_p2p);
 			else
 				OFP_ERR(" ! VXLAN: No root device!");
