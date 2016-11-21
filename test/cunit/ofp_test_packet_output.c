@@ -34,7 +34,9 @@
 #include <ofpi_util.h>
 #include <ofpi_debug.h>
 
+#ifdef INET6
 #include "test_raw_frames.h"
+#endif
 
 static int my_test_val;
 #define TEST_HOOK_OUT_IPv4		0x8006
@@ -172,6 +174,7 @@ static enum ofp_return_code fastpath_hook_out_IPv4(odp_packet_t pkt,
 		return TEST_HOOK_OUT_IPv4_VALUE;
 	return OFP_PKT_CONTINUE;
 }
+#ifdef INET6
 static enum ofp_return_code fastpath_hook_out_IPv6(odp_packet_t pkt,
 		void *arg)
 {
@@ -182,6 +185,7 @@ static enum ofp_return_code fastpath_hook_out_IPv6(odp_packet_t pkt,
 		return TEST_HOOK_OUT_IPv6_VALUE;
 	return OFP_PKT_CONTINUE;
 }
+#endif
 
 static int
 init_suite(void)
@@ -295,6 +299,7 @@ create_odp_packet_ip4(odp_packet_t *opkt, uint8_t *pkt_data, int plen,
 	return 0;
 }
 
+#ifdef INET6
 static int
 create_odp_packet_ip6(odp_packet_t *opkt, uint8_t *pkt_data, int plen)
 {
@@ -332,6 +337,7 @@ create_odp_packet_ip6(odp_packet_t *opkt, uint8_t *pkt_data, int plen)
 
 	return 0;
 }
+#endif
 
 /*
  * Tests

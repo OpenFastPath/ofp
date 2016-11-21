@@ -992,8 +992,10 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 
 		/* Remove interface from the if_addr v4 queue */
 		ofp_ifaddr_elem_del(data);
+#ifdef INET6
 		/* Remove interface from the if_addr v6 queue */
 		ofp_ifaddr6_elem_del(data);
+#endif
 #ifdef SP
 		vrf = data->vrf;
 #endif /*SP*/
@@ -1076,8 +1078,10 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 
 		/* Remove interface from the if_addr v4 queue */
 		ofp_ifaddr_elem_del(data);
+#ifdef INET6
 		/* Remove interface from the if_addr v6 queue */
 		ofp_ifaddr6_elem_del(data);
+#endif
 #ifdef SP
 		vrf = data->vrf;
 #endif /*SP*/
@@ -1168,8 +1172,10 @@ struct ofp_ifnet *ofp_get_create_ifnet(int port, uint16_t vlan)
 #endif /* INET6 */
 			/* Add interface to the if_addr v4 queue */
 			ofp_ifaddr_elem_add(data);
+#ifdef INET6
 			/* Add interface to the if_addr v6 queue */
 			ofp_ifaddr6_elem_add(data);
+#endif
 			/* Multicast related */
 			OFP_TAILQ_INIT(&data->if_multiaddrs);
 			data->if_flags |= OFP_IFF_MULTICAST;
