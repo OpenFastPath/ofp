@@ -126,6 +126,8 @@ static void assert_dev(struct ofp_ifnet *dev, int port, uint16_t vlan,
 #ifdef INET6
 	if (memcmp(dev->link_local, link_local, 16))
 		CU_FAIL("Link local address");
+#else
+	(void)link_local;
 #endif /* INET6 */
 }
 

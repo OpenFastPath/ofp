@@ -146,6 +146,7 @@ struct ofp_nh6_entry *ofp_get_next_hop6(uint16_t vrf,
 	return nh6;
 }
 
+#ifdef INET6
 void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac)
 {
 	struct ofp_nh6_entry *nh;
@@ -184,6 +185,7 @@ void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac)
 		pkt6_entry_free(pktentry);
 	}
 }
+#endif
 
 static int add_route(struct ofp_route_msg *msg)
 {

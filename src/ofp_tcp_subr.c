@@ -685,8 +685,6 @@ ofp_tcp_newtcpcb(struct inpcb *inp)
 	int isipv6 = (inp->inp_vflag & INP_IPV6) != 0;
 #endif /* INET6 */
 
-	(void)isipv6;
-
 	tm = uma_zalloc(V_tcpcb_zone, 0);
 	if (tm == NULL)
 		return (NULL);
