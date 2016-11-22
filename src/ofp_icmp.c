@@ -452,7 +452,7 @@ icmp_address_mask_request(odp_packet_t pkt,
 }
 
 static enum ofp_return_code
-icmp_shorter_route(void)
+icmp_shorter_route(struct ofp_ip *ip, struct ofp_icmp *icp)
 {
 	/*if (V_log_redirect)*/ {
 #if defined(OFP_DEBUG)
@@ -469,6 +469,9 @@ icmp_shorter_route(void)
 		       (int)((dst >> 8) & 0xff), (int)(dst & 0xff),
 		       (int)(gw >> 24), (int)((gw >> 16) & 0xff),
 		       (int)((gw >> 8) & 0xff), (int)(gw & 0xff));
+#else
+		(void)ip;
+		(void)icp;
 #endif
 	}
 	/*
@@ -552,7 +555,7 @@ _ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
 		return icmp_address_mask_request(pkt, reflect);
 
 	case OFP_ICMP_REDIRECT:
-		return icmp_shorter_route();
+		return icmp_shorter_route(ip, icp);
 
 	/*
 	 * No kernel processing for the following;
