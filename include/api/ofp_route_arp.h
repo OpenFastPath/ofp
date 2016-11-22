@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "ofp_log.h"
 
 #if __GNUC__ >= 4
 #pragma GCC visibility push(default)

@@ -11,6 +11,7 @@
 
 #include "ofpi_icmp.h"
 #include <stdint.h>
+#include "api/ofp_log.h"
 #include "ofpi_protosw.h"
 
 #if OFP_TESTMODE_AUTO
@@ -19,23 +20,28 @@
 #include <CUnit/Basic.h>
 #endif
 
+enum ofp_log_level_s log_level;
 pr_ctlinput_t *ctlinput_bkp;
 static odp_packet_t icmp = { 0 };
 static struct ofp_ip ip = { 0 };
 static struct ofp_icmp icp = { 0 };
 static int command;
 
+static enum ofp_log_level_s disable_logging(void);
 static void ctlinput_spy(int cmd, struct ofp_sockaddr *sa, void *vip);
 static int init(void)
 {
+	log_level = disable_logging();
 	ctlinput_bkp = ofp_inetsw[0].pr_ctlinput;
 	ofp_inetsw[0].pr_ctlinput = ctlinput_spy;
 	return 0;
 }
 
+static void restore_logging(enum ofp_log_level_s log_level);
 static int cleanup(void)
 {
 	ofp_inetsw[0].pr_ctlinput = ctlinput_bkp;
+	restore_logging(log_level);
 	return 0;
 }
 
@@ -258,11 +264,24 @@ int main(void)
 		nr_of_failed_suites : nr_of_failed_tests);
 }
 
+enum ofp_log_level_s disable_logging(void)
+{
+	const enum ofp_log_level_s previous = ofp_loglevel;
+
+	ofp_loglevel = OFP_LOG_DISABLED;
+	return previous;
+}
+
 void ctlinput_spy(int cmd, struct ofp_sockaddr *sa, void *vip)
 {
 	(void)sa;
 	(void)vip;
 	command = cmd;
+}
+
+void restore_logging(enum ofp_log_level_s log_level)
+{
+	ofp_loglevel = log_level;
 }
 
 void set_packet_length(uint16_t length)
