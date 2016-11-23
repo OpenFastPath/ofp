@@ -12,6 +12,9 @@
 
 /* Open a packet IO instance for this ifnet device. */
 int ofp_pktio_open(struct ofp_ifnet *ifnet, odp_pktio_param_t *pktio_param);
+/* Initialize packet input queue parameters */
+void ofp_pktin_queue_param_init(odp_pktin_queue_param_t *param,
+		odp_pktin_mode_t in_mode, odp_schedule_group_t sched_group);
 /* Create loop queue */
 int ofp_loopq_create(struct ofp_ifnet *ifnet);
 /* Set ifnet interface MAC address */

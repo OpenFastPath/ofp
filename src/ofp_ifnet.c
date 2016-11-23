@@ -27,8 +27,8 @@ int ofp_pktio_open(struct ofp_ifnet *ifnet, odp_pktio_param_t *pktio_param)
 	return 0;
 }
 
-static void ofp_pktin_queue_param_init(odp_pktin_queue_param_t *param,
-		odp_pktin_mode_t in_mode)
+void ofp_pktin_queue_param_init(odp_pktin_queue_param_t *param,
+		odp_pktin_mode_t in_mode, odp_schedule_group_t sched_group)
 {
 	odp_queue_param_t *queue_param;
 
@@ -44,7 +44,7 @@ static void ofp_pktin_queue_param_init(odp_pktin_queue_param_t *param,
 		queue_param->context = NULL;
 		queue_param->sched.prio = ODP_SCHED_PRIO_DEFAULT;
 		queue_param->sched.sync = ODP_SCHED_SYNC_ATOMIC;
-		queue_param->sched.group = ODP_SCHED_GROUP_ALL;
+		queue_param->sched.group = sched_group;
 	} else if (in_mode == ODP_PKTIN_MODE_QUEUE) {
 		queue_param->type = ODP_QUEUE_TYPE_PLAIN;
 		queue_param->enq_mode = ODP_QUEUE_OP_MT;
@@ -248,7 +248,7 @@ int ofp_ifnet_create(odp_instance_t instance,
 	if (!pktin_param) {
 		pktin_param = &pktin_param_local;
 		ofp_pktin_queue_param_init(&pktin_param_local,
-			pktio_param->in_mode);
+			pktio_param->in_mode, ODP_SCHED_GROUP_ALL);
 	}
 
 	HANDLE_ERROR(ofp_pktin_queue_config(ifnet, pktin_param));

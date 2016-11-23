@@ -79,7 +79,8 @@ test_global_resources_init_cleanup(void)
 
 	CU_ASSERT_EQUAL(ofp_init_pre_global(
 				"packet_pool", &pool_params, pkt_hook, &pool,
-				ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT), 0);
+				ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT,
+				ODP_SCHED_GROUP_ALL), 0);
 
 	CU_ASSERT_EQUAL(ofp_term_post_global("packet_pool"), 0);
 }

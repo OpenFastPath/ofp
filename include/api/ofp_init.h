@@ -36,6 +36,7 @@ typedef struct ofp_init_global_t {
 	uint16_t if_count;	/**< Interface count that needs init */
 	uint16_t linux_core_id;	/**< Core index that is reserved for Linux */
 	char **if_names;	/**< Interface names in relation to #if_count */
+	odp_schedule_group_t sched_group;	/**< Thread schedule group */
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];	/**< @see ofp_hook.h */
 	uint8_t burst_recv_mode;		/**< Interfaces use polling
 						when value set is 1.
@@ -76,6 +77,9 @@ int ofp_init_local(void);
  *
  * This function must be called only once in an ODP control
  * thread before exiting application.
+ *
+ * Should be called from a thread within the same schedule group specified in
+ * the parameters of ofp_init_global().
  *
  * @retval 0 on success
  * @retval -1 on failure

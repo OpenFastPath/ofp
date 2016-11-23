@@ -99,7 +99,8 @@ void initialize_ofp_timer(int resolution_us)
 	CU_ASSERT_FALSE_FATAL(ofp_timer_init_global(resolution_us,
 						    OFP_TIMER_MIN_US,
 						    OFP_TIMER_MAX_US,
-						    OFP_TIMER_TMO_COUNT));
+						    OFP_TIMER_TMO_COUNT,
+						    ODP_SCHED_GROUP_ALL));
 }
 
 void wait_until_timer_expires(int resolution_us)

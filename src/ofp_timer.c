@@ -118,7 +118,7 @@ static int ofp_timer_free_shared_memory(void)
 	return rc;
 }
 
-static int ofp_timer_create_queues(void)
+static int ofp_timer_create_queues(odp_schedule_group_t sched_group)
 {
 	odp_queue_param_t param;
 	uint32_t cpu_id = 0;
@@ -127,7 +127,7 @@ static int ofp_timer_create_queues(void)
 	param.type = ODP_QUEUE_TYPE_SCHED;
 	param.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
 	param.sched.sync  = ODP_SCHED_SYNC_PARALLEL;
-	param.sched.group = ODP_SCHED_GROUP_ALL;
+	param.sched.group = sched_group;
 
 	shm->queue = odp_queue_create("TimerQueue", &param);
 	if (shm->queue == ODP_QUEUE_INVALID) {
@@ -160,7 +160,8 @@ static int ofp_timer_create_queues(void)
 
 int ofp_timer_init_global(int resolution_us,
 		int min_us, int max_us,
-		int tmo_count)
+		int tmo_count,
+		odp_schedule_group_t sched_group)
 {
 	odp_pool_param_t pool_params;
 	odp_timer_pool_param_t timer_params;
@@ -216,7 +217,7 @@ int ofp_timer_init_global(int resolution_us,
 
 	odp_timer_pool_start();
 
-	HANDLE_ERROR(ofp_timer_create_queues());
+	HANDLE_ERROR(ofp_timer_create_queues(sched_group));
 
 	odp_spinlock_init(&shm->lock);
 

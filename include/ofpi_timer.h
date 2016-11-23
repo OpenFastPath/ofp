@@ -35,7 +35,8 @@
 int ofp_timer_lookup_shared_memory(void);
 int ofp_timer_init_global(int resolution_us,
 	int min_us, int max_us,
-	int tmo_count);
+	int tmo_count,
+	odp_schedule_group_t sched_group);
 int ofp_timer_stop_global(void);
 int ofp_timer_term_global(void);
 
