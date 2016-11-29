@@ -404,7 +404,7 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 	int ret = 0;
 #endif /* SP */
 	struct ofp_ifnet *data;
-	uint32_t mask;
+	uint32_t mask, mask_t;
 
 #ifdef SP
 	(void)ret;
@@ -475,13 +475,14 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 		else
 			data->sp_status = OFP_SP_DOWN;
 
+		mask_t = odp_be_to_cpu_32(mask);
 		snprintf(cmd, sizeof(cmd), "ifconfig %s %s netmask %d.%d.%d.%d up",
 			 ofp_port_vlan_to_ifnet_name(port, vlan),
 			 ofp_print_ip_addr(addr),
-			(uint8_t)(mask >> 24),
-			(uint8_t)(mask >> 16),
-			(uint8_t)(mask >> 8),
-			(uint8_t)mask);
+			(uint8_t)(mask_t >> 24),
+			(uint8_t)(mask_t >> 16),
+			(uint8_t)(mask_t >> 8),
+			(uint8_t)mask_t);
 
 		ret = exec_sys_call_depending_on_vrf(cmd, vrf);
 #endif /* SP */
@@ -516,13 +517,14 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 		else
 			data->sp_status = OFP_SP_DOWN;
 
+		mask_t = odp_be_to_cpu_32(mask);
 		snprintf(cmd, sizeof(cmd), "ifconfig %s %s netmask %d.%d.%d.%d up",
 			ofp_port_vlan_to_ifnet_name(port, 0),
 			ofp_print_ip_addr(addr),
-			(uint8_t)(mask >> 24),
-			(uint8_t)(mask >> 16),
-			(uint8_t)(mask >> 8),
-			(uint8_t)mask);
+			(uint8_t)(mask_t >> 24),
+			(uint8_t)(mask_t >> 16),
+			(uint8_t)(mask_t >> 8),
+			(uint8_t)mask_t);
 		ret = exec_sys_call_depending_on_vrf(cmd, vrf);
 #endif /* SP */
 	}
