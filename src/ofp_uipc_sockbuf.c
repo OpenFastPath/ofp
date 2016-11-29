@@ -68,27 +68,31 @@ uint64_t ofp_sb_max_adj =
 
 static uint64_t sb_efficiency = 8;	/* parameter for ofp_sbreserve() */
 
-int packet_accepted_as_event(struct socket *so_rcv_sock, odp_packet_t pkt)
+int packet_accepted_as_event(struct socket *so, odp_packet_t pkt)
 {
-	struct ofp_sigevent *ev = &so_rcv_sock->so_sigevent;
-	struct ofp_sock_sigval ss_temp, *ss;
-	union ofp_sigval sv;
+	struct ofp_sigevent *ev;
 
-	if (!so_rcv_sock)
+	if (!so)
 		return 0;
 
-	ss = &ss_temp;
-	sv.sival_ptr = ss;
+	ev = &so->so_sigevent;
 
 	if (ev->ofp_sigev_notify) {
-		ss->pkt = pkt;
-		ss->event = OFP_EVENT_RECV;
-		ss->sockfd = so_rcv_sock->so_number;
+		union ofp_sigval sv;
+		struct ofp_sock_sigval ss;
+
+		sv.sival_ptr = (void *)&ss;
+
+		ss.pkt = pkt;
+		ss.event = OFP_EVENT_RECV;
+		ss.sockfd = so->so_number;
+
+		so->so_state |= SS_EVENT;
 		ev->ofp_sigev_notify_function(sv);
-		if (ss->pkt == ODP_PACKET_INVALID) {
-			/* Callback function accepted the packet. */
-			return 1;
-		}
+		so->so_state &= ~SS_EVENT;
+
+		if (ss.pkt == ODP_PACKET_INVALID)
+			return 1; /* Callback function accepted the packet. */
 	}
 	return 0;
 }
@@ -96,25 +100,8 @@ int packet_accepted_as_event(struct socket *so_rcv_sock, odp_packet_t pkt)
 static int packet_accepted_as_event_locked(struct sockbuf *sb, odp_packet_t pkt)
 {
 	struct socket *so = sb->sb_socket;
-	if (!so)
-		return 0;
 
-	struct ofp_sigevent *ev = &so->so_sigevent;
-	struct ofp_sock_sigval *ss = ev->ofp_sigev_value.sival_ptr;
-
-	if (ev->ofp_sigev_notify && &(so->so_rcv) == sb) {
-		ss->pkt = pkt;
-		ss->event = OFP_EVENT_RECV;
-		ss->sockfd = so->so_number;
-		so->so_state |= SS_EVENT;
-		ev->ofp_sigev_notify_function(ev->ofp_sigev_value);
-		so->so_state &= ~SS_EVENT;
-		if (ss->pkt == ODP_PACKET_INVALID) {
-			/* Callback function accepted the packet. */
-			return 1;
-		}
-	}
-	return 0;
+	return packet_accepted_as_event(so, pkt);
 }
 
 int ofp_sockbuf_put_last(struct sockbuf *sb, odp_packet_t pkt)

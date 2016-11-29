@@ -2829,13 +2829,18 @@ ofp_send_sock_event(struct socket *head, struct socket *so, int event)
 	struct ofp_sigevent *ev = &head->so_sigevent;
 
 	if (ev->ofp_sigev_notify) {
-		struct ofp_sock_sigval *ss = ev->ofp_sigev_value.sival_ptr;
-		ss->event = event;
-		ss->sockfd = head->so_number;
-		ss->sockfd2 = so->so_number;
+		union ofp_sigval sv;
+		struct ofp_sock_sigval ss;
+
+		sv.sival_ptr = (void *)&ss;
+
+		ss.event = event;
+		ss.sockfd = head->so_number;
+		ss.sockfd2 = so->so_number;
+
 		so->so_state |= SS_EVENT;
 		head->so_state |= SS_EVENT;
-		ev->ofp_sigev_notify_function(ev->ofp_sigev_value);
+		ev->ofp_sigev_notify_function(sv);
 		so->so_state &= ~SS_EVENT;
 		head->so_state &= ~SS_EVENT;
 	}
