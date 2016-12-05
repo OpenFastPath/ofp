@@ -153,7 +153,7 @@ static int tcp_timer_race;
 void
 ofp_tcp_timer_delack(void *xtp)
 {
-	struct tcpcb *tp = xtp;
+	struct tcpcb *tp = *(struct tcpcb **)xtp;
 	struct inpcb *inp;
 
 	if (tp->t_timers)
@@ -188,7 +188,7 @@ ofp_tcp_timer_delack(void *xtp)
 void
 ofp_tcp_timer_2msl(void *xtp)
 {
-	struct tcpcb *tp = xtp;
+	struct tcpcb *tp = *(struct tcpcb **)xtp;
 	struct inpcb *inp;
 #ifdef TCPDEBUG
 	int ostate;
@@ -258,7 +258,7 @@ ofp_tcp_timer_2msl(void *xtp)
 void
 ofp_tcp_timer_keep(void *xtp)
 {
-	struct tcpcb *tp = xtp;
+	struct tcpcb *tp = *(struct tcpcb **)xtp;
 	struct tcptemp *t_template;
 	struct inpcb *inp;
 #ifdef TCPDEBUG
@@ -353,7 +353,7 @@ dropit:
 void
 ofp_tcp_timer_persist(void *xtp)
 {
-	struct tcpcb *tp = xtp;
+	struct tcpcb *tp = *(struct tcpcb **)xtp;
 	struct inpcb *inp;
 #ifdef TCPDEBUG
 	int ostate;
@@ -419,7 +419,7 @@ out:
 void
 ofp_tcp_timer_rexmt(void * xtp)
 {
-	struct tcpcb *tp = xtp;
+	struct tcpcb *tp = *(struct tcpcb **)xtp;
 	int rexmt;
 	int headlocked;
 	struct inpcb *inp;
@@ -563,7 +563,7 @@ out:
 void
 tcp_timer_reassdl(void *xtp)
 {
-	struct tcpcb *tp = xtp;
+	struct tcpcb *tp = *(struct tcpcb **)xtp;
 	struct inpcb *inp;
 
 	inp = tp->t_inpcb;
