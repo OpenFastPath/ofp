@@ -547,7 +547,7 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 			odp_packet_l3_offset_set(m, 0);
 			odp_packet_l4_offset_set(m, sizeof(struct ofp_ip6_hdr));
 		} else
-#else
+#endif
 		{
 			m = ofp_packet_alloc(sizeof(struct ofp_ip) +
 				       sizeof(struct ofp_tcphdr));
@@ -558,7 +558,6 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 			odp_packet_l3_offset_set(m, 0);
 			odp_packet_l4_offset_set(m, sizeof(struct ofp_ip));
 		}
-#endif
 		flags = OFP_TH_ACK;
 	}
 
