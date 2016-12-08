@@ -24,8 +24,8 @@ A quick summary of the mandatory stages of getting a change into OFP:
 
 . Patches are discussed and reviewed on the mailing list.
 
-. Once a Maintainer has reviewed and accepted the patch, the patch is
-  pushed to the repository <<repo>>.
+. Once a patch has been reviewed and accepted, a Maintainer pushes it
+  to the repository <<repo>>.
 
 
 
@@ -129,7 +129,7 @@ When posting patches to a branch other than master, use the option
 branch.
 
 All changes should be reviewed. Every commit must have at least one
-"Acked-by" or "Reviewed-by" tag line from a Maintainer, who must not
+"Reviewed-by" tag line from a Maintainer, who must not
 be with the same company as the author. Once a Maintainer has reviewed
 a patch and notified the mailing list, the patch may be pushed after
 two office days have passed, unless there are unaddressed comments
@@ -140,6 +140,11 @@ to the final revision of the patch by the patch author, or to be added
 by a Maintainer before the patch is pushed. Tags defined in
 <<kdp5posting>> and <<ksubmit>> may be used, other tags should be
 avoided.
+
+A Maintainer may authorize another person to review a patch on his
+behalf. Also in this case the reviewer should not be with the same
+company as the author. Once the review has been concluded, the
+Maintainer should accept the review by sending his "Acked-by" tag.
 
 See also <<kdp5posting>> and <<kdp6flwt>>.
 
