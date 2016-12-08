@@ -2788,49 +2788,58 @@ dodata:							/* XXX */
 		 * immediately when segments are out of order (so
 		 * fast retransmit can work).
 		 */
-		if (th->th_seq == tp->rcv_nxt &&
-		    OFP_LIST_EMPTY(&tp->t_segq) &&
-		    TCPS_HAVEESTABLISHED(tp->t_state)) {
-			if (DELAY_ACK(tp))
-				t_flags_or(tp->t_flags, TF_DELACK);
-			else
+		if (tlen <= sbspace(&so->so_rcv)) {
+			if (th->th_seq == tp->rcv_nxt &&
+			    OFP_LIST_EMPTY(&tp->t_segq) &&
+			    TCPS_HAVEESTABLISHED(tp->t_state)) {
+				if (DELAY_ACK(tp))
+					t_flags_or(tp->t_flags, TF_DELACK);
+				else
+					t_flags_or(tp->t_flags, TF_ACKNOW);
+				tp->rcv_nxt += tlen;
+				thflags = th->th_flags & OFP_TH_FIN;
+				TCPSTAT_INC(tcps_rcvpack);
+				TCPSTAT_ADD(tcps_rcvbyte, tlen);
+				ND6_HINT(tp);
+				SOCKBUF_LOCK(&so->so_rcv);
+				if (so->so_rcv.sb_state & SBS_CANTRCVMORE)
+					odp_packet_free(m);
+				else
+					ofp_sbappendstream_locked(&so->so_rcv,
+									m);
+				/* NB: sorwakeup_locked() does an implicit unlock. */
+				sorwakeup_locked(so);
+			} else {
+				/*
+				 * XXX: Due to the header drop above "th" is
+				 * theoretically invalid by now.  Fortunately
+				 * m_adj() doesn't actually frees any mbufs
+				 * when trimming from the head.
+				 */
+				thflags = ofp_tcp_reass(tp, th, &tlen, m);
 				t_flags_or(tp->t_flags, TF_ACKNOW);
-			tp->rcv_nxt += tlen;
-			thflags = th->th_flags & OFP_TH_FIN;
-			TCPSTAT_INC(tcps_rcvpack);
-			TCPSTAT_ADD(tcps_rcvbyte, tlen);
-			ND6_HINT(tp);
-			SOCKBUF_LOCK(&so->so_rcv);
-			if (so->so_rcv.sb_state & SBS_CANTRCVMORE)
-				odp_packet_free(m);
-			else
-				ofp_sbappendstream_locked(&so->so_rcv, m);
-			/* NB: sorwakeup_locked() does an implicit unlock. */
-			sorwakeup_locked(so);
-		} else {
+			}
+			if (tlen > 0 && (tp->t_flags & TF_SACK_PERMIT))
+				ofp_tcp_update_sack_list(tp, 
+							save_start,
+							save_start + tlen);
+#if 0
 			/*
-			 * XXX: Due to the header drop above "th" is
-			 * theoretically invalid by now.  Fortunately
-			 * m_adj() doesn't actually frees any mbufs
-			 * when trimming from the head.
+			 * Note the amount of data that peer has sent into
+			 * our window, in order to estimate the sender's
+			 * buffer size.
+			 * XXX: Unused.
 			 */
-			thflags = ofp_tcp_reass(tp, th, &tlen, m);
+			if (SEQ_GT(tp->rcv_adv, tp->rcv_nxt))
+				len = so->so_rcv.sb_hiwat -
+					(tp->rcv_adv - tp->rcv_nxt);
+			else
+				len = so->so_rcv.sb_hiwat;
+#endif
+		} else {
+			odp_packet_free(m);
 			t_flags_or(tp->t_flags, TF_ACKNOW);
 		}
-		if (tlen > 0 && (tp->t_flags & TF_SACK_PERMIT))
-			ofp_tcp_update_sack_list(tp, save_start, save_start + tlen);
-#if 0
-		/*
-		 * Note the amount of data that peer has sent into
-		 * our window, in order to estimate the sender's
-		 * buffer size.
-		 * XXX: Unused.
-		 */
-		if (SEQ_GT(tp->rcv_adv, tp->rcv_nxt))
-			len = so->so_rcv.sb_hiwat - (tp->rcv_adv - tp->rcv_nxt);
-		else
-			len = so->so_rcv.sb_hiwat;
-#endif
 	} else {
 		odp_packet_free(m);
 		thflags &= ~OFP_TH_FIN;
