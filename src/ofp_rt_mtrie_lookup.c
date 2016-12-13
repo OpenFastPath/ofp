@@ -144,9 +144,10 @@ int ofp_rtl6_init(struct ofp_rtl6_tree *tree)
 }
 
 
-static int16_t ofp_rt_rule_search(uint16_t vrf, uint32_t addr, uint32_t masklen)
+static int16_t ofp_rt_rule_search(uint16_t vrf, uint32_t addr_be, uint32_t masklen)
 {
 	uint32_t index;
+	uint32_t addr = odp_be_to_cpu_32(addr_be);
 
 	for (index = 0; index < ROUTE_LIST_SIZE; index++)
 		if (shm->rules[index].used &&
@@ -169,26 +170,26 @@ static int32_t find_first_unused_rule(void)
 	return -1;
 }
 
-void ofp_rt_rule_add(uint16_t vrf, uint32_t addr, uint32_t masklen, struct ofp_nh_entry *data)
+void ofp_rt_rule_add(uint16_t vrf, uint32_t addr_be, uint32_t masklen, struct ofp_nh_entry *data)
 {
 	int32_t reserved;
 
-	if ((reserved = ofp_rt_rule_search(vrf, addr, masklen)) == -1 &&
-	    (reserved = find_first_unused_rule()) == -1) {
+	if ((reserved = ofp_rt_rule_search(vrf, addr_be, masklen)) == -1 &&
+		(reserved = find_first_unused_rule()) == -1) {
 		OFP_ERR("ofp_rt_rule_search failed");
 		return;
 	}
 
 	shm->rules[reserved].used = 1;
 	shm->rules[reserved].masklen = masklen;
-	shm->rules[reserved].addr = addr;
+	shm->rules[reserved].addr = odp_be_to_cpu_32(addr_be);
 	shm->rules[reserved].vrf = vrf;
 	shm->rules[reserved].data[0] = *data;
 }
 
-void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr, uint32_t masklen)
+void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr_be, uint32_t masklen)
 {
-	int32_t reserved = ofp_rt_rule_search(vrf, addr, masklen);
+	int32_t reserved = ofp_rt_rule_search(vrf, addr_be, masklen);
 
 	if (reserved == -1) {
 		OFP_ERR("ofp_rt_rule_search failed");
@@ -205,9 +206,8 @@ void ofp_rt_rule_print(int fd, uint16_t vrf,
 
 	for (index = 0; index < ROUTE_LIST_SIZE; index++)
 		if (shm->rules[index].used && shm->rules[index].vrf == vrf)
-			func(fd, odp_be_to_cpu_32(shm->rules[index].addr),
-			     shm->rules[index].masklen,
-			     &shm->rules[index].data[0]);
+			func(fd, shm->rules[index].addr,
+				 shm->rules[index].masklen, &shm->rules[index].data[0]);
 }
 
 static inline uint32_t
@@ -234,13 +234,12 @@ int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t maskl
 		rule = &shm->rules[index];
 
 		if (rule->vrf == vrf &&
-		    rule->masklen >= low_int &&
-		    rule->masklen <= masklen &&
-		    equal_most_significant_bits(rule->addr, addr, masklen))
-		{
-		/* search route rule with prefix_len in the same interval,
-		 * largest prefix_len that is smaller or equal than what we
-		 * removed, same route ipv4 address prefix */
+			rule->masklen >= low_int &&
+			rule->masklen <= masklen &&
+			equal_most_significant_bits(rule->addr, addr, rule->masklen)) {
+			/* search route rule with prefix_len in the same interval,
+			 * largest prefix_len that is smaller or equal than what we
+			 * removed, same route ipv4 address prefix */
 			low_int = rule->masklen;
 			reserved = index;
 		}
@@ -401,10 +400,9 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 	odp_mb_release();
 
 	if (insert != -1)
-		ofp_rtl_insert(tree,
-				shm->rules[insert].addr,
-				shm->rules[insert].masklen,
-				&shm->rules[insert].data[0]);
+		ofp_rtl_insert(tree, odp_cpu_to_be_32(shm->rules[insert].addr),
+					   shm->rules[insert].masklen,
+					   &shm->rules[insert].data[0]);
 
 	return data;
 }
