@@ -223,7 +223,9 @@ equal_most_significant_bits(uint32_t addr_lhs, uint32_t addr_rhs, uint32_t maskl
 	       shift_least_significant_bits(addr_rhs, masklen);
 }
 
-int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t masklen, uint8_t low)
+int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr,
+									  uint8_t masklen, uint8_t low,
+									  uint32_t removing_rule)
 {
 	uint32_t index;
 	uint8_t low_int = low + 1;
@@ -231,6 +233,9 @@ int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t maskl
 	struct ofp_rt_rule *rule;
 
 	for (index = 0; index < ROUTE_LIST_SIZE; index++) {
+		if (index == removing_rule)
+			continue;
+
 		rule = &shm->rules[index];
 
 		if (rule->vrf == vrf &&
@@ -354,12 +359,15 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 {
 	struct ofp_rtl_node *elem, *node = tree->root;
 	const uint32_t addr = to_network_prefix(addr_be, masklen);
-	struct ofp_nh_entry *data = find_data(tree->vrf, addr_be, masklen);
+	struct ofp_nh_entry *data;
+	int32_t removing_rule;
 	uint32_t low = 0, high = IPV4_FIRST_LEVEL;
 	int32_t insert = -1;
 
-	if (!data)
+	removing_rule = ofp_rt_rule_search(tree->vrf, addr_be, masklen);
+	if (removing_rule == -1)
 		return NULL;
+	data = &shm->rules[removing_rule].data[0];
 
 	for (; high <= IPV4_LENGTH ; low = high, high += IPV4_LEVEL) {
 		dec_use_reference(node);
@@ -379,7 +387,8 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 				}
 			}
 			/* if exists, re-insert previous route that was overwritten, after cleanup*/
-			insert = ofp_rt_rule_find_prefix_match(tree->vrf, addr, masklen, low);
+			insert = ofp_rt_rule_find_prefix_match(tree->vrf, addr,
+												   masklen, low, removing_rule);
 			break;
 		}
 
