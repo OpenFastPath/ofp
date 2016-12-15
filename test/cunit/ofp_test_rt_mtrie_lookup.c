@@ -244,7 +244,9 @@ static void test_remove_with_second_level_mask_does_nothing_when_mask_not_set(vo
 	TEARDOWN_WITH_SHM;
 }
 
-static void test_removed_route_is_reinserted(void)
+static void set_route(struct ofp_rtl_node *node, uint32_t masklen);
+static int route_cleared(struct ofp_rtl_node *node);
+static void test_remove_route_not_reinserted(void)
 {
 	struct ofp_nh_entry *removed;
 	const uint32_t masklen = FIRST_LEVEL_MASK + TWO_SUBNETS;
@@ -252,8 +254,8 @@ static void test_removed_route_is_reinserted(void)
 	SETUP_WITH_SHM;
 
 	increase_reference_count(&root[0]);
-	set_mask(&root[0], masklen);
-	set_mask(&root[1], masklen - 1);
+	set_route(&root[0], masklen);
+	set_route(&root[1], masklen);
 	add_rule(tree.vrf, masklen, data.port);
 
 	removed = remove_route(masklen);
@@ -261,17 +263,16 @@ static void test_removed_route_is_reinserted(void)
 	CU_ASSERT_PTR_NOT_NULL_FATAL(removed);
 	CU_ASSERT_EQUAL(removed->port, data.port);
 
-	CU_ASSERT_TRUE(reference_count_increased(&root[0]));
-	CU_ASSERT_TRUE(route_set(&root[0], masklen));
+	CU_ASSERT_FALSE(reference_count_increased(&root[0]));
+	CU_ASSERT_TRUE(route_cleared(&root[0]));
 
 	CU_ASSERT_FALSE(reference_count_increased(&root[1]));
-	CU_ASSERT_TRUE(route_set(&root[1], masklen));
+	CU_ASSERT_TRUE(route_cleared(&root[1]));
 
 	TEARDOWN_WITH_SHM;
 }
 
-static void set_route(struct ofp_rtl_node *node, uint32_t masklen);
-static void test_removed_route_not_reinserted_when_rule_prefix_not_match(void)
+static void test_remove_route_with_second_level_mask_not_reinserted(void)
 {
 	struct ofp_rtl_node node[] = { { 0 }, { 0 } };
 	const uint32_t masklen = SECOND_LEVEL_MASK + TWO_SUBNETS;
@@ -302,6 +303,74 @@ static void test_removed_route_not_reinserted_when_rule_prefix_not_match(void)
 	CU_ASSERT_FALSE(reference_count_increased(&node[1]));
 	CU_ASSERT_PTR_NULL(get_next(&node[1]));
 	CU_ASSERT_TRUE(route_set(&node[1], 0));
+
+	TEARDOWN_WITH_SHM;
+}
+
+static void test_remove_route_reinserted_when_covering_rule_exist(void)
+{
+	struct ofp_nh_entry *removed;
+	const uint32_t masklen = FIRST_LEVEL_MASK;
+
+	SETUP_WITH_SHM;
+
+	increase_reference_count(&root[0]);
+	set_route(&root[1], masklen);
+	add_rule(tree.vrf, masklen, data.port);
+	/*
+	 * below as a covering rule to
+	 * make the removed route reinserted according to the covering rule
+	 */
+	add_rule(tree.vrf, masklen-1, data.port);
+
+	removed = remove_route(masklen);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(removed);
+	CU_ASSERT_EQUAL(removed->port, data.port);
+
+	CU_ASSERT_TRUE(reference_count_increased(&root[0]));
+	CU_ASSERT_TRUE(route_set(&root[0], masklen-1));
+
+	CU_ASSERT_FALSE(reference_count_increased(&root[1]));
+	CU_ASSERT_TRUE(route_set(&root[1], masklen-1));
+
+	TEARDOWN_WITH_SHM;
+}
+
+static void test_remove_route_with_second_level_mask_reinserted_when_covering_rule_exist(void)
+{
+	struct ofp_rtl_node node[] = { { 0 }, { 0 } };
+	const uint32_t masklen = SECOND_LEVEL_MASK;
+	struct ofp_rtl_node *nodep;
+
+	SETUP_WITH_SHM;
+
+	increase_reference_count(&root[0]);
+	increase_reference_count(&node[0]);
+	set_mask(&root[1], masklen);
+	set_route(&node[0], masklen);
+	set_next(&root[1], node);
+
+	add_rule(tree.vrf, masklen, data.port);
+	/*
+	 * below as a covering rule to
+	 * make the removed route reinserted according to the covering rule
+	 */
+	add_rule(tree.vrf, masklen-1, data.port);
+
+	CU_ASSERT_PTR_NOT_NULL(remove_route(masklen));
+
+	CU_ASSERT_TRUE(reference_count_increased(&root[0]));
+
+	nodep = get_next(&root[1]);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nodep);
+	CU_ASSERT_TRUE(route_partly_set(&root[1], masklen-1));
+
+	CU_ASSERT_TRUE(reference_count_increased(&nodep[0]));
+	CU_ASSERT_TRUE(route_set(&nodep[0], masklen-1));
+
+	CU_ASSERT_FALSE(reference_count_increased(&nodep[1]));
+	CU_ASSERT_TRUE(route_set(&node[1], masklen-1));
 
 	TEARDOWN_WITH_SHM;
 }
@@ -341,10 +410,14 @@ int main(void)
 		  test_remove_does_nothing_when_no_rule_added },
 		{ const_cast("Remove with second level mask does nothing when mask is not set"),
 		  test_remove_with_second_level_mask_does_nothing_when_mask_not_set },
-		{ const_cast("Removed route is re-inserted"),
-		  test_removed_route_is_reinserted },
-		{ const_cast("Removed route is not re-inserted when rule prefix do not match"),
-		  test_removed_route_not_reinserted_when_rule_prefix_not_match },
+		{ const_cast("Remove route and not re-inserted"),
+		  test_remove_route_not_reinserted },
+		{ const_cast("Remove route with second level mask and not re-inserted"),
+		  test_remove_route_with_second_level_mask_not_reinserted },
+		{ const_cast("Remove route reinserted when there exists a different rule covering the rule being deleted"),
+		  test_remove_route_reinserted_when_covering_rule_exist},
+		{ const_cast("Remove route with second level mask reinserted when there exists a different rule covering the rule being deleted"),
+		  test_remove_route_with_second_level_mask_reinserted_when_covering_rule_exist},
 		CU_TEST_INFO_NULL,
 	};
 
@@ -431,6 +504,11 @@ int reference_count_increased(struct ofp_rtl_node *node)
 int route_not_set(struct ofp_rtl_node *node)
 {
 	return (node->masklen == 0 && node->data[0].port == 0);
+}
+
+int route_cleared(struct ofp_rtl_node *node)
+{
+	return (node->masklen == 0);
 }
 
 void set_mask(struct ofp_rtl_node *node, uint32_t masklen)

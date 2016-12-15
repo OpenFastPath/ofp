@@ -123,7 +123,7 @@ static __inline struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, u
 }
 #else
 struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, uint32_t addr_be);
-int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t masklen, uint8_t low);
+int32_t ofp_rt_rule_find_prefix_match(uint16_t vrf, uint32_t addr, uint8_t masklen, uint8_t low, uint32_t removing_rule);
 #endif
 
 static inline int ofp_rt_bit_set(uint8_t *p, int bit)
