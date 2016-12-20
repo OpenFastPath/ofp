@@ -43,7 +43,9 @@ typedef enum ofp_return_code (*ofp_pkt_hook)(odp_packet_t pkt, void *arg);
  * callbacks on #pkt_hook[#ofp_hook_id]
  */
 enum ofp_hook_id {
-	OFP_HOOK_LOCAL = 0,	/**< Registers a function to handle all packets
+	OFP_HOOK_PREROUTING = 0,
+
+	OFP_HOOK_LOCAL,		/**< Registers a function to handle all packets
 					with processing at IP level */
 	OFP_HOOK_LOCAL_IPv4,	/**< Registers a function to handle all packets
 					with processing at IPv4 level */

@@ -110,6 +110,7 @@ AC_CONFIG_FILES([
 	example/udp_fwd_socket/Makefile
 	example/ofp_netwrap_proc/Makefile
 	example/ofp_netwrap_crt/Makefile
+	example/ofp_vs/Makefile
 	pkgconfig/libofp.pc
 	scripts/Makefile
 	test/Makefile
@@ -175,7 +176,8 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
-ODP_VERSION_SUPPORTED="1.11.0.0_monarch"
+#ODP_VERSION_SUPPORTED="1.11.0.0_monarch"
+ODP_VERSION_SUPPORTED="1.10.1.0"
 function check_odp {
 	 AC_CHECK_LIB($ODP_LIB, odp_packet_alloc, [],
 	     [AC_MSG_FAILURE(["OpenDataPlane library ($ODP_LIB) not available"])],[-lrt -lpthread -lcrypto])

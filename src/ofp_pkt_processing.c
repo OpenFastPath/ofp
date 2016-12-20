@@ -321,6 +321,12 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		ofp_print_ip_addr(dev->ip_addr),
 		ofp_print_ip_addr(ip->ip_dst.s_addr));
 
+	OFP_HOOK(OFP_HOOK_PREROUTING, pkt, &protocol, &res);
+	if (res != OFP_PKT_CONTINUE) {
+		OFP_DBG("OFP_HOOK_PREROUTING returned %d", res);
+		return res;
+	}
+
 	is_ours = dev->ip_addr == ip->ip_dst.s_addr ||
 		OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr));
 
