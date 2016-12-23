@@ -263,7 +263,7 @@ ofp_in_pcballoc(struct socket *so, struct inpcbinfo *pcbinfo)
 
 	INP_INFO_WLOCK_ASSERT(pcbinfo);
 	error = 0;
-	inp = uma_zalloc(pcbinfo->ipi_zone, M_NOWAIT);
+	inp = uma_zalloc(pcbinfo->ipi_zone, OFP_M_NOWAIT);
 	if (inp == NULL)
 		return (OFP_ENOBUFS);
 	bzero(inp, inp_zero_size);

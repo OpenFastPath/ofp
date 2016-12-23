@@ -76,7 +76,7 @@ int ofp_uma_pool_destroy(uma_zone_t zone)
 	return ret;
 }
 
-void *ofp_uma_pool_alloc(uma_zone_t zone)
+void *ofp_uma_pool_alloc(uma_zone_t zone, int flags)
 {
 	odp_buffer_t buffer;
 	struct uma_pool_metadata *meta;
@@ -95,6 +95,9 @@ void *ofp_uma_pool_alloc(uma_zone_t zone)
 	meta = (struct uma_pool_metadata *) odp_buffer_addr(buffer);
 	meta->buffer_handle = buffer;
 
+	if (flags & OFP_M_ZERO)
+		odp_memset((void *)&meta->data, 0, odp_buffer_size(buffer) -
+			sizeof(struct uma_pool_metadata));
 	return (void *) &meta->data;
 }
 
