@@ -87,7 +87,7 @@ static inline int ip_vs_addr_equal(int af, const union nf_inet_addr *a,
 	((x >> 24) & 0xFF)
 
 
-#ifdef CONFIG_IP_VS_DEBUG
+#ifdef OFP_DEBUG
 
 extern int ip_vs_get_debug_level(void);
 
