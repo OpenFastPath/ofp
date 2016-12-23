@@ -66,7 +66,7 @@ void ofp_vs_mod_timer(struct ofp_vs_timer *timer, uint64_t expires)
 	}
 
 	
-#ifdef CONFIG_IP_VS_DEBUG
+#ifdef OFP_DEBUG
 	IP_VS_DBG(12, "expires:%lu timer.expires:%lu"
 		" ticks:%lu to_ticks:%lu cpu:%d\n",
 		expires, timer->expires, ticks,

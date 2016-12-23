@@ -172,7 +172,7 @@ static inline const char *ip_vs_dbg_addr(int af, char *buf, size_t buf_len,
 #define EnterFunction(level)   do {} while (0)
 #define LeaveFunction(level)   do {} while (0)
 
-#endif /* CONFIG_IP_VS_DEBUG */
+#endif /* OFP_DEBUG */
 
 
 #define IP_VS_ERR_RL(__fmt, args...) \

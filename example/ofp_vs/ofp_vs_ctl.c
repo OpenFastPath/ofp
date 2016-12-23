@@ -156,7 +156,7 @@ static int ip_vs_reserve_core_min = 0;
 static int ip_vs_reserve_core_max = 6;
 */
 
-#ifdef CONFIG_IP_VS_DEBUG
+#ifdef OFP_DEBUG
 static int sysctl_ip_vs_debug_level = 12;
 
 int ip_vs_get_debug_level(void)
@@ -1145,7 +1145,7 @@ ip_vs_add_laddr(struct ip_vs_service *svc, struct ip_vs_laddr_user_kern *uladdr)
 	list_add_tail(&laddr->n_list, &this_svc->laddr_list);
 	this_svc->num_laddrs++;
 
-#ifdef CONFIG_IP_VS_DEBUG
+#ifdef OFP_DEBUG
 	/* Dump the destinations */
 	IP_VS_DBG_BUF(0, "	cpu%d svc %s:%d num %d curr %p \n",
 			cpu, IP_VS_DBG_ADDR(svc->af, &svc->addr),
@@ -1194,7 +1194,7 @@ ip_vs_del_laddr(struct ip_vs_service *svc, struct ip_vs_laddr_user_kern *uladdr)
 	list_del(&laddr->n_list);
 	this_svc->num_laddrs--;
 
-#ifdef CONFIG_IP_VS_DEBUG
+#ifdef OFP_DEBUG
 	IP_VS_DBG_BUF(0, "	cpu%d svc %s:%d num %d curr %p \n",
 			cpu, IP_VS_DBG_ADDR(svc->af, &svc->addr),
 			ntohs(svc->port), this_svc->num_laddrs,

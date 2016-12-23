@@ -11,7 +11,6 @@ AM_CFLAGS +=  -msse4.2
 
 ofp_vs_LDFLAGS = $(AM_LDFLAGS) -static -L/usr/local/lib -lnl-3 -lnl-genl-3 -lnl-cli-3
 ofp_vs_CFLAGS = $(AM_CFLAGS) -Woverride-init 
-ofp_vs_CFLAGS += -DCONFIG_IP_VS_DEBUG
 ofp_vs_CFLAGS += -DCONFIG_IP_VS_PROTO_TCP
 ofp_vs_CFLAGS += -DCONFIG_IP_VS_PROTO_UDP 
 ofp_vs_CFLAGS += -DCONFIG_OFP_VS_RTE_TIMER
