@@ -190,7 +190,7 @@ ofp_tcp_twstart(struct tcpcb *tp)
 		}
 	}
 
-	tw = uma_zalloc(V_tcptw_zone, M_NOWAIT);
+	tw = uma_zalloc(V_tcptw_zone, OFP_M_NOWAIT);
 	if (tw == NULL) {
 		tw = ofp_tcp_tw_2msl_scan(1);
 		if (tw == NULL) {

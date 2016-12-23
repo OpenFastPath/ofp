@@ -226,7 +226,7 @@ ofp_tcp_reass(struct tcpcb *tp, struct ofp_tcphdr *th, int *tlenp, odp_packet_t 
 	 * Use a temporary structure on the stack for the missing segment
 	 * when the zone is exhausted. Otherwise we may get stuck.
 	 */
-	te = uma_zalloc(V_tcp_reass_zone, M_NOWAIT);
+	te = uma_zalloc(V_tcp_reass_zone, OFP_M_NOWAIT);
 	if (te == NULL) {
 		if (th->th_seq != tp->rcv_nxt || !TCPS_HAVEESTABLISHED(tp->t_state)) {
 			TCPSTAT_INC(tcps_rcvmemdrop);

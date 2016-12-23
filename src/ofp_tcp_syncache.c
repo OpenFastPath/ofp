@@ -1005,7 +1005,7 @@ _syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphdr *th,
 		goto done;
 	}
 
-	sc = uma_zalloc(V_tcp_syncache_zone, M_NOWAIT | M_ZERO);
+	sc = uma_zalloc(V_tcp_syncache_zone, OFP_M_NOWAIT | OFP_M_ZERO);
 	if (sc == NULL) {
 		/*
 		 * The zone allocator couldn't provide more entries.
@@ -1014,7 +1014,7 @@ _syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct ofp_tcphdr *th,
 		 */
 		if ((sc = OFP_TAILQ_LAST(&sch->sch_bucket, sch_head)) != NULL)
 			syncache_drop(sc, sch);
-		sc = uma_zalloc(V_tcp_syncache_zone, M_NOWAIT | M_ZERO);
+		sc = uma_zalloc(V_tcp_syncache_zone, OFP_M_NOWAIT | OFP_M_ZERO);
 		if (sc == NULL) {
 			if (V_tcp_syncookies) {
 				bzero(&scs, sizeof(scs));

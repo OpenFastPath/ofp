@@ -254,7 +254,7 @@ tcp_sackhole_alloc(struct tcpcb *tp, tcp_seq start, tcp_seq end)
 		return NULL;
 	}
 
-	hole = (struct sackhole *)uma_zalloc(V_sack_hole_zone, M_NOWAIT);
+	hole = (struct sackhole *)uma_zalloc(V_sack_hole_zone, OFP_M_NOWAIT);
 	if (hole == NULL)
 		return NULL;
 
