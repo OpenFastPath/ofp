@@ -252,7 +252,7 @@ static void ofp_pktout_queue_param_init(
 {
 	odp_pktout_queue_param_init(param);
 
-	param->op_mode = ODP_PKTIO_OP_MT;
+	param->op_mode = ODP_PKTIO_OP_MT_UNSAFE;
 	param->num_queues = tx_queues;
 }
 
