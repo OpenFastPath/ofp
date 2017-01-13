@@ -15,6 +15,7 @@
 #include "ofpi_shared_mem.h"
 #include "ofpi_log.h"
 #include "ofp_cunit_version.h"
+#include "ofpi_avl.h"
 
 #if OFP_TESTMODE_AUTO
 #include <CUnit/Automated.h>
@@ -33,7 +34,7 @@
 #endif
 
 enum ofp_log_level_s log_level;
-void *shm;
+void *shm, *shm_avl, *shm_rt_lookup;
 struct ofp_rtl_node root[] = { { 0 }, { 0 } };
 struct ofp_rtl_tree tree = { 0, root };
 struct ofp_nh_entry data = { 0 };
@@ -70,12 +71,16 @@ static void setup_with_shm(void)
 {
 	setup();
 	ofp_set_custom_allocator(allocator);
+	ofp_avl_init_global();
+	shm_avl = shm;
 	ofp_rt_lookup_init_global();
+	shm_rt_lookup = shm;
 }
 
 static void teardown_with_shm(void)
 {
-	free(shm);
+	free(shm_avl);
+	free(shm_rt_lookup);
 	ofp_set_custom_allocator(NULL);
 }
 
@@ -191,15 +196,108 @@ static void test_adding_rule_updates_existing(void)
 }
 
 static void remove_rule(uint16_t vrf, uint32_t masklen);
-static void test_adding_rule_uses_first_unused_slot(void)
+
+static void test_rules_add_search_remove(void)
 {
 	SETUP_WITH_SHM;
 
-	add_rules();
-	remove_rule(2, 1);
-	add_rule(1, 3, 2);
+	/*add and check*/
+	CU_ASSERT_STRING_EQUAL("", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("", print_rule(2));
+	add_rule(0, 8, 0);
+	CU_ASSERT_STRING_EQUAL("[0,8,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("", print_rule(2));
+	add_rule(1, 8, 1);
+	CU_ASSERT_STRING_EQUAL("[0,8,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("", print_rule(2));
+	add_rule(2, 8, 2);
+	CU_ASSERT_STRING_EQUAL("[0,8,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2]", print_rule(2));
+	add_rule(0, 16, 0);
+	CU_ASSERT_STRING_EQUAL("[0,8,0][0,16,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2]", print_rule(2));
+	add_rule(1, 16, 1);
+	CU_ASSERT_STRING_EQUAL("[0,8,0][0,16,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,16,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2]", print_rule(2));
+	add_rule(2, 16, 2);
+	CU_ASSERT_STRING_EQUAL("[0,8,0][0,16,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,16,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2]", print_rule(2));
+	add_rule(0, 24, 0);
+	CU_ASSERT_STRING_EQUAL("[0,8,0][0,16,0][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,16,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2]", print_rule(2));
+	add_rule(1, 24, 1);
+	CU_ASSERT_STRING_EQUAL("[0,8,0][0,16,0][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,16,1][1,24,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2]", print_rule(2));
+	add_rule(2, 24, 2);
+	CU_ASSERT_STRING_EQUAL("[0,8,0][0,16,0][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,16,1][1,24,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2][2,24,2]", print_rule(2));
+	/*remove and check*/
+	remove_rule(0, 8);
+	CU_ASSERT_STRING_EQUAL("[0,16,0][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,16,1][1,24,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2][2,24,2]", print_rule(2));
+	remove_rule(1, 16);
+	CU_ASSERT_STRING_EQUAL("[0,16,0][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,24,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2][2,24,2]", print_rule(2));
+	remove_rule(2, 24);
+	CU_ASSERT_STRING_EQUAL("[0,16,0][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,24,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2]", print_rule(2));
+	/*re-add and check*/
+	add_rule(0, 17, 17);
+	CU_ASSERT_STRING_EQUAL("[0,16,0][0,17,17][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,24,1]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2]", print_rule(2));
+	add_rule(1, 25, 25);
+	CU_ASSERT_STRING_EQUAL("[0,16,0][0,17,17][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,24,1][1,25,25]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,8,2][2,16,2]", print_rule(2));
+	add_rule(2, 7, 7);
+	CU_ASSERT_STRING_EQUAL("[0,16,0][0,17,17][0,24,0]", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("[1,8,1][1,24,1][1,25,25]", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("[2,7,7][2,8,2][2,16,2]", print_rule(2));
+	/*remove all and check*/
+	remove_rule(0, 16);
+	remove_rule(0, 17);
+	remove_rule(0, 24);
+	remove_rule(1, 8);
+	remove_rule(1, 24);
+	remove_rule(1, 25);
+	remove_rule(2, 7);
+	remove_rule(2, 8);
+	remove_rule(2, 16);
+	CU_ASSERT_STRING_EQUAL("", print_rule(0));
+	CU_ASSERT_STRING_EQUAL("", print_rule(1));
+	CU_ASSERT_STRING_EQUAL("", print_rule(2));
 
-	CU_ASSERT_STRING_EQUAL("[1,1,1][1,3,2][1,2,1]", print_rule(1));
+	TEARDOWN_WITH_SHM;
+}
+
+static void test_adding_rule_when_rule_table_full(void)
+{
+	uint32_t i;
+
+	SETUP_WITH_SHM;
+
+	add_rule(0, 24, 0);
+	add_rule(0, 16, 0);
+	for (i = 0; i < ROUTE4_RULE_LIST_SIZE-2; ++i)
+		add_rule(2+i, 24, 0);
+
+	add_rule(1, 1, 1);
+
+	CU_ASSERT_STRING_EQUAL("", print_rule(1));
 
 	TEARDOWN_WITH_SHM;
 }
@@ -402,8 +500,10 @@ int main(void)
 		  test_print_nothing_when_no_rules_added },
 		{ const_cast("When adding rule existing is updated"),
 		  test_adding_rule_updates_existing },
-		{ const_cast("When adding rule first unused slot is used"),
-		  test_adding_rule_uses_first_unused_slot },
+		{ const_cast("Add remove and search rules"),
+		  test_rules_add_search_remove },
+		{ const_cast("Add rule when rule table is full"),
+		  test_adding_rule_when_rule_table_full },
 		{ const_cast("Removing unset rule does nothing"),
 		  test_removing_unset_rule_does_nothing },
 		{ const_cast("Remove does nothing when no rule is added"),
