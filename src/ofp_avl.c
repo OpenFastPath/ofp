@@ -41,7 +41,7 @@
  * Shared data
  */
 struct ofp_avl_mem {
-#define NUM_NODES 16384
+#define NUM_NODES (65536*2)
 	avl_node node_list[NUM_NODES];
 	avl_node *free_nodes;
 #define NUM_TREES 64
@@ -804,15 +804,17 @@ avl_iterate_index_range (avl_tree * tree,
                          void * iter_arg)
 {
     unsigned long m;
-    unsigned long num_left;
+    unsigned long num, i;
     avl_node * node;
 
     if (high > tree->length) {
         return -1;
     }
-    num_left = (high - low);
-    /* find the <high-1>th node */
-    m = high;
+    num = (high - low);
+    /* find the <low>th node
+	 * internal index start from 1 while external index start from 0
+	 */
+    m = low + 1;
     node = tree->root->right;
     while (1) {
         if (m < AVL_GET_RANK (node)) {
@@ -824,13 +826,13 @@ avl_iterate_index_range (avl_tree * tree,
             break;
         }
     }
-    /* call <iter_fun> on <node>, <get_pred(node)>, ... */
-    while (num_left) {
-        num_left = num_left - 1;
-        if (iter_fun (num_left, node->key, iter_arg) != 0) {
+    /* call <iter_fun> on <node>, <get_next(node)>, ... */
+	i = 0;
+    while (i < num) {
+		i++;
+        if (iter_fun(low + i, node->key, iter_arg) != 0)
             return -1;
-        }
-        node = avl_get_prev (node);
+        node = avl_get_next(node);
     }
     return 0;
 }
