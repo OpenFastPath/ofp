@@ -76,6 +76,7 @@ static struct ofp_rtl_node *NODEALLOC(void)
 
 		rtl_node->root = 0;
 		rtl_node->ref = 0;
+		rtl_node->next = NULL;
 	}
 
 	return rtl_node;
