@@ -13,6 +13,8 @@
 
 /* Set www_dir to point to your web directory. */
 static const char *www_dir;
+static __thread char bufo_in[512];
+static __thread char bufo_out[1024];
 
 /* Sending function with some debugging. */
 static int mysend(int s, char *p, int len)
@@ -28,56 +30,67 @@ static int mysend(int s, char *p, int len)
 		}
 		len -= n;
 		p += n;
-		if (len) {
+		if (len)
 			OFP_WARN("Only %d bytes sent", n);
-		}
 	}
 	return len;
 }
 
 static int sendf(int fd, const char *fmt, ...)
 {
-	char buf[1024];
-	int ret;
+	int ret, n;
 	va_list ap;
+
 	va_start(ap, fmt);
-	int n = vsnprintf(buf, sizeof(buf), fmt, ap);
+	n = vsnprintf(bufo_out, sizeof(bufo_out), fmt, ap);
 	va_end(ap);
-	ret = mysend(fd, buf, n);
+	ret = mysend(fd, bufo_out, n);
 	return ret;
 }
 
 /* Send one file. */
 static void get_file(int s, char *url)
 {
-	char bufo[512];
 	int n, w;
 
 	const char *mime = NULL;
 	const char *p = url;
+	char *p2;
 
 	if (*p == 0)
 		p = "index.html";
 
-	char *p2 = strrchr(p, '.');
+	p2 = strrchr(p, '.');
 	if (p2) {
 		p2++;
-		if (!strcmp(p2, "html")) mime = "text/html";
-		else if (!strcmp(p2, "htm")) mime = "text/html";
-		else if (!strcmp(p2, "css")) mime = "text/css";
-		else if (!strcmp(p2, "txt")) mime = "text/plain";
-		else if (!strcmp(p2, "png")) mime = "image/png";
-		else if (!strcmp(p2, "jpg")) mime = "image/jpg";
-		else if (!strcmp(p2, "class")) mime = "application/x-java-applet";
-		else if (!strcmp(p2, "jar")) mime = "application/java-archive";
-		else if (!strcmp(p2, "pdf")) mime = "application/pdf";
-		else if (!strcmp(p2, "swf")) mime = "application/x-shockwave-flash";
-		else if (!strcmp(p2, "ico")) mime = "image/vnd.microsoft.icon";
-		else if (!strcmp(p2, "js")) mime = "text/javascript";
+		if (!strcmp(p2, "html"))
+			mime = "text/html";
+		else if (!strcmp(p2, "htm"))
+			mime = "text/html";
+		else if (!strcmp(p2, "css"))
+			mime = "text/css";
+		else if (!strcmp(p2, "txt"))
+			mime = "text/plain";
+		else if (!strcmp(p2, "png"))
+			mime = "image/png";
+		else if (!strcmp(p2, "jpg"))
+			mime = "image/jpg";
+		else if (!strcmp(p2, "class"))
+			mime = "application/x-java-applet";
+		else if (!strcmp(p2, "jar"))
+			mime = "application/java-archive";
+		else if (!strcmp(p2, "pdf"))
+			mime = "application/pdf";
+		else if (!strcmp(p2, "swf"))
+			mime = "application/x-shockwave-flash";
+		else if (!strcmp(p2, "ico"))
+			mime = "image/vnd.microsoft.icon";
+		else if (!strcmp(p2, "js"))
+			mime = "text/javascript";
 	}
 
-	snprintf(bufo, sizeof(bufo), "%s/%s", www_dir, p);
-	FILE *f = fopen(bufo, "rb");
+	snprintf(bufo_in, sizeof(bufo_in), "%s/%s", www_dir, p);
+	FILE *f = fopen(bufo_in, "rb");
 
 	if (!f) {
 		sendf(s, "HTTP/1.0 404 NOK\r\n\r\n");
@@ -90,25 +103,28 @@ static void get_file(int s, char *url)
 	else
 		sendf(s, "\r\n");
 
-	while ((n = fread(bufo, 1, sizeof(bufo), f)) > 0)
-		if ((w = mysend(s, bufo, n)) < 0)
+	while ((n = fread(bufo_in, 1, sizeof(bufo_in), f)) > 0) {
+		w = mysend(s, bufo_in, n);
+		if (w < 0)
 			break;
+	}
 	fclose(f);
 }
 
-static int analyze_http(char *http, int s) {
+static int analyze_http(char *http, int s)
+{
 	char *url;
+	char *p;
 
 	if (!strncmp(http, "GET ", 4)) {
 		url = http + 4;
 		while (*url == ' ')
 			url++;
-		char *p = strchr(url, ' ');
+		p = strchr(url, ' ');
 		if (p)
 			*p = 0;
 		else
 			return -1;
-		OFP_INFO("GET %s (fd=%d)", url, s);
 		get_file(s, url);
 	} else if (!strncmp(http, "POST ", 5)) {
 		/* Post is not supported. */
@@ -146,6 +162,16 @@ static void notify(union ofp_sigval sv)
 
 	if (event != OFP_EVENT_RECV)
 		return;
+
+	if (pkt == ODP_PACKET_INVALID)
+		return;
+
+	if (odp_unlikely(odp_packet_has_error(pkt))) {
+		odp_packet_free(pkt);
+		ss->pkt = ODP_PACKET_INVALID;
+		return;
+	}
+
 
 	r = odp_packet_len(pkt);
 

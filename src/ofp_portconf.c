@@ -685,7 +685,7 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 	data->ip_p2p = group;
 	data->ip_addr = addr;
 	data->masklen = mlen;
-	data->bcast_addr = addr | ~odp_cpu_to_be_32(0xFFFFFFFF << (32 - mlen));
+	data->bcast_addr = addr | ~odp_cpu_to_be_32(0xFFFFFFFFULL << (32 - mlen));
 	data->if_mtu = dev_root->if_mtu - sizeof(struct ofp_vxlan_udp_ip);
 	data->physport = physport;
 	data->physvlan = physvlan;
@@ -1004,7 +1004,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		if (data->ip_addr) {
 			uint32_t a = (data->port == GRE_PORTS) ?
 				data->ip_p2p : data->ip_addr;
-			a = odp_cpu_to_be_32(odp_be_to_cpu_32(a) & (0xFFFFFFFF << (32-data->masklen)));
+			a = odp_cpu_to_be_32(odp_be_to_cpu_32(a) & (0xFFFFFFFFULL << (32-data->masklen)));
 
 			if (data->port == LOCAL_PORTS)
 				ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
@@ -1090,7 +1090,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		if (data->ip_addr) {
 			uint32_t a = odp_cpu_to_be_32(
 				odp_be_to_cpu_32(data->ip_addr) &
-				(0xFFFFFFFF << (32 - data->masklen)));
+				(0xFFFFFFFFULL << (32 - data->masklen)));
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, 0 /*vlan*/, port,
 					     data->ip_addr, 32, 0, 0);
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, 0 /*vlan*/, port,
