@@ -660,7 +660,7 @@ igi_alloc_locked(/*const*/ struct ofp_ifnet *ifp)
 
 	IGMP_LOCK_ASSERT();
 
-	igi = malloc(sizeof(struct ofp_igmp_ifinfo));
+	igi = calloc(1, sizeof(struct ofp_igmp_ifinfo));
 	if (igi == NULL)
 		goto out;
 
