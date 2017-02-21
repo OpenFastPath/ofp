@@ -35,9 +35,9 @@ The mailing list is the best way to contact other developers
 and the Maintainers. Support requests and questions should be sent to
 the mailing list.
 
-Bugs should be reported via <<bugzilla>>.
+Bugs should be reported via <<issues,GitHub Issues>>.
 
-Github interface (for issues, pull requests, etc.) is not used.
+Github interface for pull requests is not used.
 
 
 
@@ -108,7 +108,7 @@ tag line. This tag line may contain:
   --oneline. Example: `Fixes: 41d53bb Add epoll set to socket
   structure`
 
-* The number and title of a bugzilla bug, with the number prefixed
+* The number and title of a GitHub Issue, with the number prefixed
   with the number sign "#". Example: `Fixes: #99 TCP issue with big
   file transfer`
 
@@ -292,8 +292,8 @@ include exactly the same information.
 * [[[bsdstyle]]] BSD style(9) man page.
   https://www.freebsd.org/cgi/man.cgi?query=style&sektion=9
 
-* [[[bugzilla]]] OFP Bugzilla.
-  https://issues.openfastpath.org/
+* [[[issues]]] OFP GitHub Issues.
+  https://github.com/OpenFastPath/ofp/issues
 
 * [[[checkpatch]]] Linux kernel checkpatch.pl script.
   https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/scripts/checkpatch.pl
@@ -302,19 +302,19 @@ include exactly the same information.
   https://barro.github.io/2016/02/a-succesful-git-branching-model-considered-harmful/
 
 * [[[kdp4coding]]] A guide to the Kernel Development Process, Chapter 4. Coding.
-  https://www.kernel.org/doc/Documentation/development-process/4.Coding.rst
+  https://github.com/torvalds/linux/blob/master/Documentation/process/4.Coding.rst
 
 * [[[kdp5posting]]] A guide to the Kernel Development Process, Chapter 5. Posting.
-  https://www.kernel.org/doc/Documentation/development-process/5.Posting.rst
+  https://github.com/torvalds/linux/blob/master/Documentation/process/5.Posting.rst
 
 * [[[kdp6flwt]]] A guide to the Kernel Development Process, Chapter 6. Followthrough.
-  https://www.kernel.org/doc/Documentation/development-process/6.Followthrough.rst
+  https://github.com/torvalds/linux/blob/master/Documentation/process/6.Followthrough.rst
 
 * [[[kstyle]]] Linux kernel coding style.
-  https://www.kernel.org/doc/Documentation/CodingStyle
+  https://github.com/torvalds/linux/blob/master/Documentation/process/coding-style.rst
 
 * [[[ksubmit]]] How to Get Your Change Into the Linux Kernel or Care And Operation Of Your Linus Torvalds.
-  https://www.kernel.org/doc/Documentation/SubmittingPatches
+  https://github.com/torvalds/linux/blob/master/Documentation/process/submitting-patches.rst
 
 * [[[license]]] BSD 3-clause "New" or "Revised" License.
   http://spdx.org/licenses/BSD-3-Clause
