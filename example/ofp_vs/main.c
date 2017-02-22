@@ -405,9 +405,6 @@ int main(int argc, char *argv[])
 	if (num_workers > MAX_WORKERS)
 		num_workers = MAX_WORKERS;
 
-	if (core_count > 1)
-		num_workers--;
-
 	num_workers = odp_cpumask_default_worker(&cpumask, num_workers);
 	odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr));
 

@@ -1,2 +1,2 @@
 #!/bin/sh
-./ofp_vs -i 0 -c 3 -f ofp.conf
+./ofp_vs -i 0 -c 2 -f ofp.conf
