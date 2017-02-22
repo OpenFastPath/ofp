@@ -252,7 +252,7 @@ static void ofp_pktout_queue_param_init(
 {
 	odp_pktout_queue_param_init(param);
 
-	param->op_mode = ODP_PKTIO_OP_MT_UNSAFE;
+	param->op_mode = ODP_PKTIO_OP_MT;
 	param->num_queues = tx_queues;
 }
 
@@ -287,18 +287,17 @@ static int create_ifnet_and_bind_queues(odp_instance_t instance,
 
 		/* Configure fdir for FULLNAT local address */
 		odp_pktio_config_init(&default_pktio_config);
-		/*
 		default_pktio_config.fdir_conf.fdir_mode = RTE_FDIR_MODE_PERFECT;
 		default_pktio_config.fdir_conf.src_ipv4_mask = 0x0;
 		default_pktio_config.fdir_conf.dst_ipv4_mask = 0xffffffff;
 		default_pktio_config.fdir_conf.src_port_mask = 0x0;
 		default_pktio_config.fdir_conf.dst_port_mask = 0x0;
-		*/
 
 		if (ofp_ifnet_create(instance, params->if_names[i],
 				&pktio_param,
 				&pktin_param,
-				&pktout_param) < 0) {
+				&pktout_param,
+				&default_pktio_config) < 0) {
 			OFP_ERR("Failed to init interface %s",
 				params->if_names[i]);
 			return -1;
@@ -462,7 +461,7 @@ int main(int argc, char *argv[])
 				  &thr_params);
 
 	
-	//ofp_vs_cli_cmd_init();
+	ofp_vs_cli_cmd_init();
 
 
 	/* other app code here.*/

@@ -3,34 +3,33 @@
 
 extern odp_pktio_config_t default_pktio_config;
 
+struct flow_type_info {
+	char str[32];
+	uint16_t type;
+};
+static struct flow_type_info flowtype_str_table[] = {
+	{"raw", RTE_ETH_FLOW_RAW},
+	//{"ipv4", RTE_ETH_FLOW_IPV4},
+	{"ipv4-frag", RTE_ETH_FLOW_FRAG_IPV4},
+	{"ipv4-tcp", RTE_ETH_FLOW_NONFRAG_IPV4_TCP},
+	{"ipv4-udp", RTE_ETH_FLOW_NONFRAG_IPV4_UDP},
+	{"ipv4-sctp", RTE_ETH_FLOW_NONFRAG_IPV4_SCTP},
+	{"ipv4-other", RTE_ETH_FLOW_NONFRAG_IPV4_OTHER},
+	{"ipv6", RTE_ETH_FLOW_IPV6},
+	{"ipv6-frag", RTE_ETH_FLOW_FRAG_IPV6},
+	{"ipv6-tcp", RTE_ETH_FLOW_NONFRAG_IPV6_TCP},
+	{"ipv6-udp", RTE_ETH_FLOW_NONFRAG_IPV6_UDP},
+	{"ipv6-sctp", RTE_ETH_FLOW_NONFRAG_IPV6_SCTP},
+	{"ipv6-other", RTE_ETH_FLOW_NONFRAG_IPV6_OTHER},
+	{"l2-payload", RTE_ETH_FLOW_L2_PAYLOAD},
+};
+
 static char *
 flowtype_to_str(uint16_t flow_type)
 {
-	struct flow_type_info {
-		char str[32];
-		uint16_t ftype;
-	};
-
 	uint8_t i;
-	static struct flow_type_info flowtype_str_table[] = {
-		{"raw", RTE_ETH_FLOW_RAW},
-		{"ipv4", RTE_ETH_FLOW_IPV4},
-		{"ipv4-frag", RTE_ETH_FLOW_FRAG_IPV4},
-		{"ipv4-tcp", RTE_ETH_FLOW_NONFRAG_IPV4_TCP},
-		{"ipv4-udp", RTE_ETH_FLOW_NONFRAG_IPV4_UDP},
-		{"ipv4-sctp", RTE_ETH_FLOW_NONFRAG_IPV4_SCTP},
-		{"ipv4-other", RTE_ETH_FLOW_NONFRAG_IPV4_OTHER},
-		{"ipv6", RTE_ETH_FLOW_IPV6},
-		{"ipv6-frag", RTE_ETH_FLOW_FRAG_IPV6},
-		{"ipv6-tcp", RTE_ETH_FLOW_NONFRAG_IPV6_TCP},
-		{"ipv6-udp", RTE_ETH_FLOW_NONFRAG_IPV6_UDP},
-		{"ipv6-sctp", RTE_ETH_FLOW_NONFRAG_IPV6_SCTP},
-		{"ipv6-other", RTE_ETH_FLOW_NONFRAG_IPV6_OTHER},
-		{"l2_payload", RTE_ETH_FLOW_L2_PAYLOAD},
-	};
-
 	for (i = 0; i < RTE_DIM(flowtype_str_table); i++) {
-		if (flowtype_str_table[i].ftype == flow_type)
+		if (flowtype_str_table[i].type == flow_type)
 			return flowtype_str_table[i].str;
 	}
 
@@ -41,34 +40,14 @@ static uint16_t
 str2flowtype(char *string)
 {
 	uint8_t i = 0;
-	static const struct {
-		char str[32];
-		uint16_t type;
-	} flowtype_str[] = {
-		{"raw", RTE_ETH_FLOW_RAW},
-		{"ipv4", RTE_ETH_FLOW_IPV4},
-		{"ipv4_frag", RTE_ETH_FLOW_FRAG_IPV4},
-		{"ipv4_tcp", RTE_ETH_FLOW_NONFRAG_IPV4_TCP},
-		{"ipv4_udp", RTE_ETH_FLOW_NONFRAG_IPV4_UDP},
-		{"ipv4_sctp", RTE_ETH_FLOW_NONFRAG_IPV4_SCTP},
-		{"ipv4_other", RTE_ETH_FLOW_NONFRAG_IPV4_OTHER},
-		{"ipv6", RTE_ETH_FLOW_IPV6},
-		{"ipv6-frag", RTE_ETH_FLOW_FRAG_IPV6},
-		{"ipv6_tcp", RTE_ETH_FLOW_NONFRAG_IPV6_TCP},
-		{"ipv6_udp", RTE_ETH_FLOW_NONFRAG_IPV6_UDP},
-		{"ipv6_sctp", RTE_ETH_FLOW_NONFRAG_IPV6_SCTP},
-		{"ipv6_other", RTE_ETH_FLOW_NONFRAG_IPV6_OTHER},
-		{"l2_payload", RTE_ETH_FLOW_L2_PAYLOAD},
-	};
-
-	for (i = 0; i < RTE_DIM(flowtype_str); i++) {
-		if (!strcmp(flowtype_str[i].str, string))
-			return flowtype_str[i].type;
+	for (i = 0; i < RTE_DIM(flowtype_str_table); i++) {
+		if (!strcmp(flowtype_str_table[i].str, string))
+			return flowtype_str_table[i].type;
 	}
 	return RTE_ETH_FLOW_UNKNOWN;
 }
 
-static void fdir_ctrl(void *handle, const char *args)
+static void __fdir_ctrl(void *handle, const char *args, const char *op)
 {
 	int ret;
 	int sscanf_cnt;
@@ -77,7 +56,6 @@ static void fdir_ctrl(void *handle, const char *args)
 	int a, b, c, d, e, f, g, h, src_port, dst_port, queue_id, port, vlan;
 	char dev[16];
 	char proto[16];
-	char op[16];
 	struct rte_eth_fdir_filter entry;
 	uint8_t flexbytes[RTE_ETH_FDIR_MAX_FLEXLEN];
 
@@ -90,6 +68,10 @@ static void fdir_ctrl(void *handle, const char *args)
 		sendcrlf((struct cli_conn *)handle);
 		return;
 	}
+
+	OFP_DBG("args: %s %s %d.%d.%d.%d %d %d.%d.%d.%d %d %d",
+		dev, proto, a, b, c, d, src_port,
+		e, f, g, h, dst_port, queue_id);
 	
 	src_ip = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
 	dst_ip = odp_cpu_to_be_32((e << 24) | (f << 16) | (g << 8) | h);
@@ -113,7 +95,9 @@ static void fdir_ctrl(void *handle, const char *args)
 
 	entry.input.flow_type = str2flowtype(proto);
 	switch (entry.input.flow_type) {
+	//case RTE_ETH_FLOW_IPV4:
 	case RTE_ETH_FLOW_FRAG_IPV4:
+	case RTE_ETH_FLOW_NONFRAG_IPV4_OTHER:
 	case RTE_ETH_FLOW_NONFRAG_IPV4_UDP:
 	case RTE_ETH_FLOW_NONFRAG_IPV4_TCP:
 		entry.input.flow.ip4_flow.dst_ip = dst_ip;
@@ -125,7 +109,10 @@ static void fdir_ctrl(void *handle, const char *args)
 				rte_cpu_to_be_16(src_port);
 		break;
 	default:
-		break;
+		ofp_sendf(fd, "Not support flow_type %d\r\n",
+		        entry.input.flow_type);
+		sendcrlf((struct cli_conn *)handle);
+		return;
 	}
 
 	
@@ -134,25 +121,36 @@ static void fdir_ctrl(void *handle, const char *args)
 	entry.action.report_status = RTE_ETH_FDIR_REPORT_ID;
 	entry.action.rx_queue = queue_id;
 
-	if (!strcmp(op, "add"))
+	if (!strcmp(op, "add")) {
 		ret = rte_eth_dev_filter_ctrl(port,
 			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_ADD, &entry);
-	else if (!strcmp(op, "del"))
+	} else if (!strcmp(op, "del")) {
 		ret = rte_eth_dev_filter_ctrl(port,
 			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_DELETE, &entry);
-	else
+	} else {
 		ret = rte_eth_dev_filter_ctrl(port,
 			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_UPDATE, &entry);
+	}
 
 	if (ret < 0) {
-		ofp_sendf(fd, "flow director programming error: (%s)\n",
+		ofp_sendf(fd, "flow director programming error: (%s)\r\n",
 			strerror(-ret));
 		sendcrlf((struct cli_conn *)handle);
 		return;
 	}
 
-	ofp_sendf(fd, "OK\r\n");
+	ofp_sendf(fd, "%s OK\r\n", op);
 	sendcrlf((struct cli_conn *)handle);
+}
+
+static void fdir_add(void *handle, const char *args)
+{
+	__fdir_ctrl(handle, args, "add");
+}
+
+static void fdir_del(void *handle, const char *args)
+{
+	__fdir_ctrl(handle, args, "del");
 }
 
 static inline void
@@ -170,15 +168,16 @@ print_fdir_flow_type(int fd, uint32_t flow_types_mask)
 		else
 			ofp_sendf(fd, " unknown");
 	}
-	ofp_sendf(fd, "\n");
+	ofp_sendf(fd, "\r\n");
 }
 
 static inline void
 print_fdir_mask(int fd,
 	struct rte_eth_fdir_masks *mask)
 {
-	ofp_sendf(fd, "\n    vlan_tci: 0x%04x, ", mask->vlan_tci_mask);
-
+	ofp_sendf(fd, "\r\n    vlan_tci: 0x%04x, ", mask->vlan_tci_mask);
+	
+	/*
 	if (default_pktio_config.fdir_conf.fdir_mode ==
 	    RTE_FDIR_MODE_PERFECT_MAC_VLAN)
 		ofp_sendf(fd, "mac_addr: 0x%02x", mask->mac_addr_byte_mask);
@@ -187,13 +186,15 @@ print_fdir_mask(int fd,
 		ofp_sendf(fd, "mac_addr: 0x%02x, tunnel_type: 0x%01x, tunnel_id: 0x%08x",
 			mask->mac_addr_byte_mask, mask->tunnel_type_mask,
 			mask->tunnel_id_mask);
-	else {
+	else
+	*/
+	{
 		ofp_sendf(fd, "src_ipv4: 0x%08x, dst_ipv4: 0x%08x,"
 			" src_port: 0x%04x, dst_port: 0x%04x",
 			mask->ipv4_mask.src_ip, mask->ipv4_mask.dst_ip,
 			mask->src_port_mask, mask->dst_port_mask);
 
-		ofp_sendf(fd, "\n    src_ipv6: 0x%08x,0x%08x,0x%08x,0x%08x,"
+		ofp_sendf(fd, "\r\n    src_ipv6: 0x%08x,0x%08x,0x%08x,0x%08x,"
 			" dst_ipv6: 0x%08x,0x%08x,0x%08x,0x%08x",
 			mask->ipv6_mask.src_ip[0], mask->ipv6_mask.src_ip[1],
 			mask->ipv6_mask.src_ip[2], mask->ipv6_mask.src_ip[3],
@@ -201,7 +202,7 @@ print_fdir_mask(int fd,
 			mask->ipv6_mask.dst_ip[2], mask->ipv6_mask.dst_ip[3]);
 	}
 
-	ofp_sendf(fd, "\n");
+	ofp_sendf(fd, "\r\n");
 }
 
 static inline void
@@ -214,19 +215,19 @@ print_fdir_flex_payload(int fd,
 	for (i = 0; i < flex_conf->nb_payloads; i++) {
 		cfg = &flex_conf->flex_set[i];
 		if (cfg->type == RTE_ETH_RAW_PAYLOAD)
-			ofp_sendf(fd, "\n    RAW:  ");
+			ofp_sendf(fd, "\r\n    RAW:  ");
 		else if (cfg->type == RTE_ETH_L2_PAYLOAD)
-			ofp_sendf(fd, "\n    L2_PAYLOAD:  ");
+			ofp_sendf(fd, "\r\n    L2_PAYLOAD:  ");
 		else if (cfg->type == RTE_ETH_L3_PAYLOAD)
-			ofp_sendf(fd, "\n    L3_PAYLOAD:  ");
+			ofp_sendf(fd, "\r\n    L3_PAYLOAD:  ");
 		else if (cfg->type == RTE_ETH_L4_PAYLOAD)
-			ofp_sendf(fd, "\n    L4_PAYLOAD:  ");
+			ofp_sendf(fd, "\r\n    L4_PAYLOAD:  ");
 		else
-			ofp_sendf(fd, "\n    UNKNOWN PAYLOAD(%u):  ", cfg->type);
+			ofp_sendf(fd, "\r\n    UNKNOWN PAYLOAD(%u):  ", cfg->type);
 		for (j = 0; j < num; j++)
 			ofp_sendf(fd, "  %-5u", cfg->src_offset[j]);
 	}
-	ofp_sendf(fd, "\n");
+	ofp_sendf(fd, "\r\n");
 }
 
 static inline void
@@ -240,11 +241,11 @@ print_fdir_flex_mask(int fd,
 	for (i = 0; i < flex_conf->nb_flexmasks; i++) {
 		mask = &flex_conf->flex_mask[i];
 		p = (char *)flowtype_to_str(mask->flow_type);
-		ofp_sendf(fd, "\n    %s:\t", p ? p : "unknown");
+		ofp_sendf(fd, "\r\n    %s:\t", p ? p : "unknown");
 		for (j = 0; j < num; j++)
 			ofp_sendf(fd, " %02x", mask->mask[j]);
 	}
-	ofp_sendf(fd, "\n");
+	ofp_sendf(fd, "\r\n");
 }
 
 static void fdir_get_infos(int fd, int port_id)
@@ -259,7 +260,7 @@ static void fdir_get_infos(int fd, int port_id)
 		return;
 	ret = rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_FDIR);
 	if (ret < 0) {
-		ofp_sendf(fd, "\n FDIR is not supported on port %-2d\n",
+		ofp_sendf(fd, "\r\n FDIR is not supported on port %-2d\r\n",
 			port_id);
 		return;
 	}
@@ -270,28 +271,28 @@ static void fdir_get_infos(int fd, int port_id)
 	memset(&fdir_stat, 0, sizeof(fdir_stat));
 	rte_eth_dev_filter_ctrl(port_id, RTE_ETH_FILTER_FDIR,
 			       RTE_ETH_FILTER_STATS, &fdir_stat);
-	ofp_sendf(fd, "\n  %s FDIR infos for port %-2d     %s\n",
+	ofp_sendf(fd, "\r\n  %s FDIR infos for port %-2d     %s\r\n",
 	       fdir_stats_border, port_id, fdir_stats_border);
 	ofp_sendf(fd, "  MODE: ");
 	if (fdir_info.mode == RTE_FDIR_MODE_PERFECT)
-		ofp_sendf(fd, "  PERFECT\n");
+		ofp_sendf(fd, "  PERFECT\r\n");
 	else if (fdir_info.mode == RTE_FDIR_MODE_PERFECT_MAC_VLAN)
-		ofp_sendf(fd, "  PERFECT-MAC-VLAN\n");
+		ofp_sendf(fd, "  PERFECT-MAC-VLAN\r\n");
 	else if (fdir_info.mode == RTE_FDIR_MODE_PERFECT_TUNNEL)
-		ofp_sendf(fd, "  PERFECT-TUNNEL\n");
+		ofp_sendf(fd, "  PERFECT-TUNNEL\r\n");
 	else if (fdir_info.mode == RTE_FDIR_MODE_SIGNATURE)
-		ofp_sendf(fd, "  SIGNATURE\n");
+		ofp_sendf(fd, "  SIGNATURE\r\n");
 	else
-		ofp_sendf(fd, "  DISABLE\n");
+		ofp_sendf(fd, "  DISABLE\r\n");
 	if (fdir_info.mode != RTE_FDIR_MODE_PERFECT_MAC_VLAN
 		&& fdir_info.mode != RTE_FDIR_MODE_PERFECT_TUNNEL) {
 		ofp_sendf(fd, "  SUPPORTED FLOW TYPE: ");
 		print_fdir_flow_type(fd, fdir_info.flow_types_mask[0]);
 	}
-	ofp_sendf(fd, "  FLEX PAYLOAD INFO:\n");
-	ofp_sendf(fd, "  max_len:       %-10"PRIu32"  payload_limit: %-10"PRIu32"\n"
-	       "  payload_unit:  %-10"PRIu32"  payload_seg:   %-10"PRIu32"\n"
-	       "  bitmask_unit:  %-10"PRIu32"  bitmask_num:   %-10"PRIu32"\n",
+	ofp_sendf(fd, "  FLEX PAYLOAD INFO:\r\n");
+	ofp_sendf(fd, "  max_len:       %-10"PRIu32"  payload_limit: %-10"PRIu32"\r\n"
+	       "  payload_unit:  %-10"PRIu32"  payload_seg:   %-10"PRIu32"\r\n"
+	       "  bitmask_unit:  %-10"PRIu32"  bitmask_num:   %-10"PRIu32"\r\n",
 		fdir_info.max_flexpayload, fdir_info.flex_payload_limit,
 		fdir_info.flex_payload_unit,
 		fdir_info.max_flex_payload_segment_num,
@@ -306,19 +307,19 @@ static void fdir_get_infos(int fd, int port_id)
 		ofp_sendf(fd, "  FLEX MASK CFG:");
 		print_fdir_flex_mask(fd, &fdir_info.flex_conf, fdir_info.max_flexpayload);
 	}
-	ofp_sendf(fd, "  guarant_count: %-10"PRIu32"  best_count:    %"PRIu32"\n",
+	ofp_sendf(fd, "  guarant_count: %-10"PRIu32"  best_count:    %"PRIu32"\r\n",
 	       fdir_stat.guarant_cnt, fdir_stat.best_cnt);
-	ofp_sendf(fd, "  guarant_space: %-10"PRIu32"  best_space:    %"PRIu32"\n",
+	ofp_sendf(fd, "  guarant_space: %-10"PRIu32"  best_space:    %"PRIu32"\r\n",
 	       fdir_info.guarant_spc, fdir_info.best_spc);
-	ofp_sendf(fd, "  collision:     %-10"PRIu32"  free:          %"PRIu32"\n"
-	       "  maxhash:       %-10"PRIu32"  maxlen:        %"PRIu32"\n"
-	       "  add:	         %-10"PRIu64"  remove:        %"PRIu64"\n"
-	       "  f_add:         %-10"PRIu64"  f_remove:      %"PRIu64"\n",
+	ofp_sendf(fd, "  collision:     %-10"PRIu32"  free:          %"PRIu32"\r\n"
+	       "  maxhash:       %-10"PRIu32"  maxlen:        %"PRIu32"\r\n"
+	       "  add:	         %-10"PRIu64"  remove:        %"PRIu64"\r\n"
+	       "  f_add:         %-10"PRIu64"  f_remove:      %"PRIu64"\r\n",
 	       fdir_stat.collision, fdir_stat.free,
 	       fdir_stat.maxhash, fdir_stat.maxlen,
 	       fdir_stat.add, fdir_stat.remove,
 	       fdir_stat.f_add, fdir_stat.f_remove);
-	ofp_sendf(fd, "  %s############################%s\n",
+	ofp_sendf(fd, "  %s############################%s\r\n",
 	       fdir_stats_border, fdir_stats_border);
 }
 
@@ -355,15 +356,24 @@ static void fdir_flush(void *handle, const char *args)
 	
 	ret = rte_eth_dev_filter_supported(port, RTE_ETH_FILTER_FDIR);
 	if (ret < 0) {
-		ofp_sendf(fd, "flow director table flushing error: (%s)\n",
+		ofp_sendf(fd, "flow director table flushing error: (%s)\r\n",
 			strerror(-ret));
 		sendcrlf((struct cli_conn *)handle);
 		return;
 	}
 
-	ofp_sendf(fd, "OK\r\n");
+	ret = rte_eth_dev_filter_ctrl(port,
+			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_FLUSH, NULL);
+
+	if (ret < 0)
+		ofp_sendf(fd, "flow director table flushing error: (%s)\r\n",
+			strerror(-ret));
+	else
+		ofp_sendf(fd, "OK\r\n");
+
 	sendcrlf((struct cli_conn *)handle);
 }
+
 
 void ofp_vs_cli_cmd_init(void)
 {
@@ -371,12 +381,12 @@ void ofp_vs_cli_cmd_init(void)
 			"src_port NUMBER dst_ipv4 IP4ADDR "
 			"dst_port NUMBER queue_id NUMBER",
 			"Add a flow director entry to network interface",
-			fdir_ctrl);
+			fdir_add);
 	ofp_cli_add_command("fdir del DEV proto STRING src_ipv4 IP4ADDR "
 			"src_port NUMBER dst_ipv4 IP4ADDR "
 			"dst_port NUMBER queue_id NUMBER",
 			"Add a flow director entry to network interface",
-			fdir_ctrl);
+			fdir_del);
 
 	ofp_cli_add_command("fdir show DEV",
 			"Show flow director entries of a network interface",

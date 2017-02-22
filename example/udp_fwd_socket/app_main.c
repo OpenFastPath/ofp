@@ -232,7 +232,8 @@ int main(int argc, char *argv[])
 		if (ofp_ifnet_create(instance, params.if_names[i],
 				&pktio_param,
 				&pktin_param,
-				&pktout_param) < 0) {
+				&pktout_param,
+				NULL) < 0) {
 			OFP_ERR("Failed to init interface %s",
 				params.if_names[i]);
 			exit(EXIT_FAILURE);
