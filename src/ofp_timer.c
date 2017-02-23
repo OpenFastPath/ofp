@@ -362,6 +362,10 @@ odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
 		return ODP_TIMER_INVALID;
 	}
 
+#if !((defined OFP_RSS) || (defined OFP_TCP_MULTICORE_TIMERS))
+	cpu_id = -1;
+#endif
+
 	bufdata = (struct ofp_timer_internal *)odp_buffer_addr(buf);
 	bufdata->callback = callback;
 	bufdata->buf = buf;
@@ -541,7 +545,14 @@ odp_timer_pool_t ofp_timer(int timer_num)
 
 odp_queue_t ofp_timer_queue_cpu(int cpu_id)
 {
+#if !((defined OFP_RSS) || (defined OFP_TCP_MULTICORE_TIMERS))
+	cpu_id = -1;
+#endif
+
 	if (!shm || cpu_id > OFP_MAX_NUM_CPU)
 		return ODP_QUEUE_INVALID;
-	return shm->queue_per_cpu[cpu_id];
+	else if (cpu_id == -1)
+		return shm->queue;
+	else
+		return shm->queue_per_cpu[cpu_id];
 }
