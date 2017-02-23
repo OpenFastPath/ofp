@@ -176,8 +176,7 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
-#ODP_VERSION_SUPPORTED="1.11.0.0_monarch"
-ODP_VERSION_SUPPORTED="1.10.1.0"
+ODP_VERSION_SUPPORTED="1.11.0.0_monarch"
 function check_odp {
 	 AC_CHECK_LIB($ODP_LIB, odp_packet_alloc, [],
 	     [AC_MSG_FAILURE(["OpenDataPlane library ($ODP_LIB) not available"])],[-lrt -lpthread -lcrypto])
