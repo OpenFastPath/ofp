@@ -97,19 +97,20 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	example/Makefile
+	example/classifier/Makefile
 	example/fpm/Makefile
 	example/fpm_burstmode/Makefile
+	example/ioctl_test/Makefile
+	example/multicast/Makefile
+	example/ofp_netwrap_crt/Makefile
+	example/ofp_netwrap_proc/Makefile
 	example/socket/Makefile
-	example/classifier/Makefile
+	example/sysctl/Makefile
+	example/tcpperf/Makefile
+	example/udp_fwd_socket/Makefile
+	example/udpecho/Makefile
 	example/webserver/Makefile
 	example/webserver2/Makefile
-	example/udpecho/Makefile
-	example/ioctl_test/Makefile
-	example/sysctl/Makefile
-	example/multicast/Makefile
-	example/udp_fwd_socket/Makefile
-	example/ofp_netwrap_proc/Makefile
-	example/ofp_netwrap_crt/Makefile
 	pkgconfig/libofp.pc
 	scripts/Makefile
 	test/Makefile
