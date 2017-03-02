@@ -67,6 +67,7 @@
 #endif
 #include "ofpi_tcp_syncache.h"
 #include "ofpi_md5.h"
+#include "ofpi_route.h"
 
 //#include "ofp_tcpip.h"
 #ifdef TCPDEBUG
@@ -1749,45 +1750,34 @@ ofp_tcp_mtudisc(struct inpcb *inp, int mtuoffer)
 u_long
 ofp_tcp_maxmtu(struct in_conninfo *inc, int *flags)
 {
-	(void)inc;
 	(void)flags;
-	return 1000;
-#if 0 /* HJo: FIX */
-	struct route sro;
-	struct ofp_sockaddr_in *dst;
-	struct ifnet *ifp = NULL;
 	uint64_t maxmtu = 0;
 
 	KASSERT(inc != NULL, ("ofp_tcp_maxmtu with NULL in_conninfo pointer"));
 
-	bzero(&sro, sizeof(sro));
 	if (inc->inc_faddr.s_addr != OFP_INADDR_ANY) {
-	        dst = (struct ofp_sockaddr_in *)&sro.ro_dst;
-		dst->sin_family = OFP_AF_INET;
-		dst->sin_len = sizeof(*dst);
-		dst->sin_addr = inc->inc_faddr;
-		in_rtalloc_ign(&sro, 0, inc->inc_fibnum);
+		uint16_t vrf = inc->inc_fibnum;
+		uint32_t fl;
+		struct ofp_nh_entry *nh = ofp_get_next_hop(vrf,	inc->inc_faddr.s_addr, &fl);
+		if (nh) {
+			struct ofp_ifnet *ifp = ofp_get_ifnet(nh->port, nh->vlan);
+			/*
+			 * TODO: We should do min(rmx_mtu, if_mtu),
+			 * but currently there's no point digging up
+			 * rmx_mtu - it's always zero.
+			 */
+			if (ifp) maxmtu = ifp->if_mtu;
+		}
 	}
-	if (sro.ro_rt != NULL) {
-		ifp = sro.ro_rt->rt_ifp;
-		if (sro.ro_rt->rt_rmx.rmx_mtu == 0)
-			maxmtu = ifp->if_mtu;
-		else
-			maxmtu = min(sro.ro_rt->rt_rmx.rmx_mtu, ifp->if_mtu);
-
-		RTFREE(sro.ro_rt);
-	}
-
+#if 0
 	/* Report additional interface capabilities. */
 	if (ifp && (flags != NULL)) {
 		if (ifp->if_capenable & IFCAP_TSO4 &&
 		    ifp->if_hwassist & CSUM_TSO)
 			*flags |= CSUM_TSO;
 	}
-
-
-	return (maxmtu);
 #endif
+	return (maxmtu);
 }
 #endif /* INET */
 
@@ -1795,41 +1785,21 @@ ofp_tcp_maxmtu(struct in_conninfo *inc, int *flags)
 u_long
 ofp_tcp_maxmtu6(struct in_conninfo *inc, int *flags)
 {
-#if 0
-	struct route_in6 sro6;
-	struct ifnet *ifp;
-#endif
-	uint64_t maxmtu = 1000;
-
-	(void)inc;
 	(void)flags;
+	uint64_t maxmtu = 0;
 
-	KASSERT(inc != NULL, ("tcp_maxmtu6 with NULL in_conninfo pointer"));
-#if 0
-	bzero(&sro6, sizeof(sro6));
-	if (!IN6_IS_ADDR_UNSPECIFIED(&inc->inc6_faddr)) {
-		sro6.ro_dst.sin6_family = OFP_AF_INET6;
-		sro6.ro_dst.sin6_len = sizeof(struct ofp_sockaddr_in6);
-		sro6.ro_dst.sin6_addr = inc->inc6_faddr;
-		in6_rtalloc_ign(&sro6, 0, inc->inc_fibnum);
-	}
-	if (sro6.ro_rt != NULL) {
-		ifp = sro6.ro_rt->rt_ifp;
-		if (sro6.ro_rt->rt_rmx.rmx_mtu == 0)
-			maxmtu = IN6_LINKMTU(sro6.ro_rt->rt_ifp);
-		else
-			maxmtu = min(sro6.ro_rt->rt_rmx.rmx_mtu,
-				     IN6_LINKMTU(sro6.ro_rt->rt_ifp));
+	KASSERT(inc != NULL, ("ofp_tcp_maxmtu6 with NULL in_conninfo pointer"));
 
-		/* Report additional interface capabilities. */
-		if (flags != NULL) {
-			if (ifp->if_capenable & IFCAP_TSO6 &&
-			    ifp->if_hwassist & CSUM_TSO)
-				*flags |= CSUM_TSO;
+	if (!OFP_IN6_IS_ADDR_UNSPECIFIED(&inc->inc6_faddr)) {
+		uint16_t vrf = inc->inc_fibnum;
+		uint32_t fl;
+		struct ofp_nh6_entry *nh = ofp_get_next_hop6(vrf, inc->inc6_faddr.ofp_s6_addr, &fl);
+		if (nh) {
+			struct ofp_ifnet *ifp = ofp_get_ifnet(nh->port, nh->vlan);
+			if (ifp) maxmtu = ifp->if_mtu;
 		}
-		RTFREE(sro6.ro_rt);
 	}
-#endif
+
 	return (maxmtu);
 }
 #endif /* INET6 */
