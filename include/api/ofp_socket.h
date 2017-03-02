@@ -398,6 +398,7 @@ struct ofp_sf_hdtr {
 #define OFP_EVENT_INVALID	0
 #define OFP_EVENT_ACCEPT	1
 #define OFP_EVENT_RECV	2
+#define OFP_EVENT_SEND		3
 
 struct ofp_sock_sigval {
 	int		sockfd;
