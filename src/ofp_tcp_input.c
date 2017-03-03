@@ -1385,9 +1385,16 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 	 * XXX: This should be done after segment
 	 * validation to ignore broken/spoofed segs.
 	 */
-	tp->t_rcvtime = ticks;
-	if (TCPS_HAVEESTABLISHED(tp->t_state))
-		ofp_tcp_timer_activate(tp, TT_KEEP, TP_KEEPIDLE(tp));
+	int cur_ticks = ticks;
+	/*
+	 * Restart keepalive timer at most once per second, or ten
+	 * times per keepalive interval, whichever is more frequent.
+	 */
+	if (cur_ticks > (int)(tp->t_rcvtime + min(HZ, TP_KEEPIDLE(tp)/10))) {
+		tp->t_rcvtime = cur_ticks;
+		if (TCPS_HAVEESTABLISHED(tp->t_state))
+			ofp_tcp_timer_activate(tp, TT_KEEP, TP_KEEPIDLE(tp));
+	}
 
 	/*
 	 * Unscale the window into a 32-bit value.
