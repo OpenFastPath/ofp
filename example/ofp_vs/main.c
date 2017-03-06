@@ -426,6 +426,7 @@ int main(int argc, char *argv[])
 	app_init_params.linux_core_id = 0;
 	app_init_params.burst_recv_mode = 1;
 	app_init_params.pkt_hook[OFP_HOOK_PREROUTING] = ofp_vs_in;
+	app_init_params.pkt_hook[OFP_HOOK_FWD_IPv4] = ofp_vs_out;
 
 	
 	if (!app_init_params.burst_recv_mode) {

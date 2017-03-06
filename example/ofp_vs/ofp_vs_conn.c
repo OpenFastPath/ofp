@@ -675,6 +675,59 @@ static struct ip_vs_laddr *ip_vs_get_laddr(struct ip_vs_service *svc)
 	return local;
 }
 
+ /*
+  * get a local address from given dest
+  */
+ static int
+ ip_vs_get_laddr_snat(struct ip_vs_conn *cp,
+ 		      struct ip_vs_laddr *local)
+ {
+	struct ip_vs_dest_snat *rule = (struct ip_vs_dest_snat *)cp->dest;
+	u32 minip, maxip, j;
+	u32 k2, k3;
+ 
+	if (cp->af != AF_INET)
+		return 1;
+ 
+	if (!rule || !local)
+		return 1;
+ 
+	local->port = cp->cport; 
+ 
+	if (rule->minip.ip == 0 || rule->maxip.ip == 0)
+		return 1;
+ 
+	if (rule->minip.ip == rule->maxip.ip) {
+		local->addr.ip = rule->minip.ip;
+		return 0;
+	}
+ 
+	switch (rule->ip_sel_algo) {
+	case IPVS_SNAT_IPS_PERSITENT:
+		k2 = 0;
+		k3 = 0;
+		break;
+ 
+	case IPVS_SNAT_IPS_RANDOM:
+		k2 = (u32)cp->vaddr.ip;
+		k3 = ((u32)cp->cport) << 16 | (u32)cp->vport;
+		break;
+ 
+	default:
+		k2 = (u32)cp->vaddr.ip;
+		k3 = 0;
+		break;
+	}
+ 
+	minip = ntohl(rule->minip.ip);
+	maxip = ntohl(rule->maxip.ip);
+ 
+	j = rte_jhash_3words((u32)cp->caddr.ip, k2, k3, 0);
+	j = ((u64)j * (maxip - minip + 1)) >> 32;
+	local->addr.ip = htonl(minip + j);
+	return 0;
+ }
+
 /*
  *	Bind a connection entry with a local address
  *	and hashed it in connection table.
@@ -686,6 +739,7 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 	struct ip_vs_dest *dest = cp->dest;
 	struct ip_vs_service *svc = dest->svc;
 	struct ip_vs_laddr *local;
+	struct ip_vs_laddr snat_local;
 	int ret = 0;
 	int remaining, i, tport, hit = 0;
 	unsigned ihash, ohash;
@@ -722,7 +776,14 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 	 * fwd methods: IP_VS_CONN_F_FULLNAT
 	 */
 	/* choose a local address by round-robin */
-	local = ip_vs_get_laddr(svc);
+	if (IS_SNAT_SVC(svc)) {
+		if (ip_vs_get_laddr_snat(cp, &snat_local) == 0)
+			local = &snat_local;
+		else
+			local = NULL;
+	} else
+		local = ip_vs_get_laddr(svc);
+
 	if (local != NULL) {
 		int cpu = cp->cpuid;
 
@@ -732,7 +793,8 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 				       &cp->vaddr, cp->vport);
 
 		/* increase the refcnt counter of the local address */
-		ip_vs_laddr_hold(local);
+		if (local != &snat_local)
+			ip_vs_laddr_hold(local);
 		ip_vs_addr_copy(cp->af, &cp->out_idx->d_addr, &local->addr);
 		ip_vs_addr_copy(cp->af, &cp->laddr, &local->addr);
 		remaining = sysctl_ip_vs_lport_max - sysctl_ip_vs_lport_min + 1;
@@ -741,7 +803,7 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 			tport =
 			    (sysctl_ip_vs_lport_min + local->port++) %
 			    remaining;
-			cp->out_idx->d_port = cp->lport = htons(tport);
+			cp->out_idx->d_port = cp->lport = (IPPROTO_ICMP != cp->protocol) ? htons(tport) : cp->cport;
 
 			/* init hit everytime before lookup the tuple */
 			hit = 0;
@@ -767,24 +829,30 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 				    && cp->lport == cidx->d_port
 				    && cp->protocol == cidx->protocol) {
 					/* HIT */
-					atomic64_inc(&local->port_conflict);
+					if (local != &snat_local)
+						atomic64_inc(&local->port_conflict);
 					hit = 1;
 					break;
 				}
 			}
 			if (hit == 0) {
-				cp->local = local;
+				if (local != &snat_local)
+					cp->local = local;
+				else
+					cp->local = NULL;
 				/* hashed */
 				__ip_vs_conn_hash(cp, ihash, ohash);
 				spin_unlock(&per_cpu(ip_vs_conn_tab_lock, cpu));
-				atomic_inc(&local->conn_counts);
+				if (local != &snat_local)
+					atomic_inc(&local->conn_counts);
 				ret = 1;
 				goto out;
 			}
 			spin_unlock(&per_cpu(ip_vs_conn_tab_lock, cpu));
 		}
 		if (ret == 0) {
-			ip_vs_laddr_put(local);
+			if (local != &snat_local)
+				ip_vs_laddr_put(local);
 		}
 	}
 	ret = 0;
@@ -1189,6 +1257,9 @@ struct ip_vs_conn *ip_vs_conn_new(int af, int proto,
 		/* Unset syn-proxy flag */
 		cp->flags &= ~IP_VS_CONN_F_SYNPROXY;
 	}
+
+	if (IS_SNAT_SVC(dest->svc))
+		cp->flags &= IP_VS_CONN_F_SNAT;
 
 	/*
 	 * bind the connection with a local address

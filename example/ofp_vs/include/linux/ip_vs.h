@@ -102,9 +102,17 @@
 #define IP_VS_CONN_F_TEMPLATE	0x1000	/* template, not connection */
 #define IP_VS_CONN_F_ONE_PACKET	0x2000	/* forward only one packet */
 #define IP_VS_CONN_F_SYNPROXY	0x8000	/* syn proxy flag */
+#define IP_VS_CONN_F_SNAT	0x4000	/* syn proxy flag */
 
 #define IP_VS_SCHEDNAME_MAXLEN	16
 #define IP_VS_IFNAME_MAXLEN	16
+
+/* SNAT ip pool select algorithm */
+enum {
+	IPVS_SNAT_IPS_NORMAL = 0, /* hash (src-ip,dst-ip) */
+	IPVS_SNAT_IPS_PERSITENT,  /* hash (src-ip) */
+	IPVS_SNAT_IPS_RANDOM,     /* hash (src-ip,dst-ip,src-port,dst-port) */
+};
 
 union nf_inet_addr {
         __u32           all[4];

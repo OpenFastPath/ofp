@@ -159,12 +159,22 @@ struct ip_vs_conn *ip_vs_schedule(struct ip_vs_service *svc,
 	/*
 	 *    Create a connection entry.
 	 */
-	cp = ip_vs_conn_new(svc->af, iph.protocol,
-			    &iph.saddr, pptr[0],
-			    &iph.daddr, pptr[1],
-			    &dest->addr, dest->port ? dest->port : pptr[1],
-			    ip_vs_onepacket_enabled(svc, &iph),
-			    dest, skb, is_synproxy_on);
+	if (IS_SNAT_SVC(svc))
+		cp = ip_vs_conn_new(svc->af, iph.protocol,
+				    &iph.saddr, pptr[0],
+				    &iph.daddr, pptr[1],
+				    &iph.daddr, pptr[1],
+				    ip_vs_onepacket_enabled(svc, &iph),
+				    dest, skb, is_synproxy_on);
+	else
+		cp = ip_vs_conn_new(svc->af, iph.protocol,
+				    &iph.saddr, pptr[0],
+				    &iph.daddr, pptr[1],
+				    &dest->addr,
+				    dest->port ? dest->port : pptr[1],
+				    ip_vs_onepacket_enabled(svc, &iph),
+				    dest, skb, is_synproxy_on);
+
 	if (cp == NULL)
 		return NULL;
 
@@ -289,7 +299,7 @@ enum ofp_return_code ofp_vs_in(odp_packet_t pkt, void *arg)
 		/* create a new connection */
 		int v;
 
-		if (!pp->conn_schedule(af, skb, pp, &v, &cp))
+		if (!pp->conn_schedule(af, skb, pp, &v, &cp, 0))
 			return v;
 	}
 
@@ -362,6 +372,85 @@ enum ofp_return_code ofp_vs_in(odp_packet_t pkt, void *arg)
 	return ret;
 }
 
+static unsigned int
+ip_vs_snat_out(int af, struct rte_mbuf *skb, struct ip_vs_protocol *pp,
+	int *v, struct ip_vs_conn *cp, struct ofp_nh_entry *nh)
+{
+	if (af != AF_INET)
+		return 1;
+
+	if (cp && NOT_SNAT_CP(cp))
+		return 1;
+
+	EnterFunction(1);
+	if (!cp) {
+		skb->userdata = nh;
+		if (!pp->conn_schedule(af, skb, pp, v, &cp, 1))
+			return 0;
+
+		if (unlikely(!cp)) {
+			IP_VS_DBG_PKT(12, pp, skb, 0,
+			              "packet continues traversal as normal");
+			*v = NF_ACCEPT;
+			return 0;
+		}
+	}
+
+	IP_VS_DBG_PKT(11, pp, skb, 0, "Forward packet");
+	ip_vs_in_stats(cp, skb);
+
+	ip_vs_set_state(cp, IP_VS_DIR_INPUT, skb, pp);
+
+	if (cp->packet_xmit)
+		*v = cp->packet_xmit(skb, cp, pp);
+		/* do not touch skb anymore */
+	else {
+		IP_VS_DBG_RL("warning: packet_xmit is null");
+		*v = NF_ACCEPT;
+	}
+
+	cp->old_state = cp->state;
+	ip_vs_conn_put(cp);
+	return 0;
+}
+
+enum ofp_return_code ofp_vs_out(odp_packet_t pkt, void *arg)
+{
+	struct ofp_nh_entry *nh = (struct ofp_nh_entry *)arg;
+	struct rte_mbuf *skb = (struct rte_mbuf *)pkt;
+	struct iphdr *iphdr;
+	struct ip_vs_iphdr iph;
+	struct ip_vs_protocol *pp;
+	struct ip_vs_conn *cp;
+	int af;
+	int res_dir;
+	int verdict;
+
+	/* Only support IPV4 */
+    	if(!RTE_ETH_IS_IPV4_HDR(skb->packet_type))
+		return NF_ACCEPT;	
+
+	af = AF_INET;
+	iphdr = rte_pktmbuf_mtod_offset(skb, struct iphdr *,
+					sizeof(struct ether_hdr));
+	ip_vs_fill_iphdr(af, iphdr, &iph);
+
+	pp = ip_vs_proto_get(iph.protocol);
+	if (unlikely(!pp))
+		return NF_ACCEPT;
+
+	/*
+	 * Check if the packet belongs to an existing entry
+	 */
+	cp = pp->conn_out_get(af, skb, pp, &iph, iph.len, 0, &res_dir);
+
+	if (0 == ip_vs_snat_out(af, skb, pp, &verdict, cp, nh)) {
+		return verdict;
+	}
+
+	return handle_response(af, skb, pp, cp, iph.len);
+}
+
 int ofp_vs_init(odp_instance_t instance, ofp_init_global_t *app_init_params)
 {
 	int ret;
@@ -392,6 +481,11 @@ int ofp_vs_init(odp_instance_t instance, ofp_init_global_t *app_init_params)
 		return ret;
 	}
 
+	if ((ret = ip_vs_snat_init()) < 0) {
+		OFP_ERR("ip_vs_snat_init failed %d\n", ret);
+		return ret;
+	}
+
 
 	return ret;
 }
@@ -399,6 +493,7 @@ int ofp_vs_init(odp_instance_t instance, ofp_init_global_t *app_init_params)
 void ofp_vs_finish(void)
 {
 	ip_vs_rr_cleanup();
+	ip_vs_snat_cleanup();
 	ip_vs_protocol_cleanup();
 	ip_vs_conn_cleanup();
 	ofp_vs_ctl_finish();

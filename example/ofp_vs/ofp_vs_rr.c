@@ -45,7 +45,7 @@ static struct ip_vs_dest *ip_vs_rr_schedule(struct ip_vs_service *svc,
 	struct list_head *p, *q;
 	struct ip_vs_dest *dest;
 
-  (void)skb;
+  	(void)skb;
 
 	IP_VS_DBG(6, "%s(): Scheduling...\n", __func__);
 

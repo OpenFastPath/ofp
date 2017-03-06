@@ -50,6 +50,8 @@ DEFINE_PER_CPU(spinlock_t, ip_vs_svc_lock);
 
 /* the service table hashed by <protocol, addr, port> */
 DEFINE_PER_CPU(struct list_head *, ip_vs_svc_tab_percpu);
+/* the service table hashed by fwmark */
+DEFINE_PER_CPU(struct list_head *, ip_vs_svc_fwm_tab_percpu);
 
 /*
  *	Trash for destinations
@@ -257,6 +259,14 @@ ip_vs_svc_hashkey(int af, unsigned proto, const union nf_inet_addr *addr)
 	return (proto ^ ntohl(addr_fold)) & IP_VS_SVC_TAB_MASK;
 }
 
+/*
+ *	Returns hash value of fwmark for virtual service lookup
+ */
+static __inline__ unsigned ip_vs_svc_fwm_hashkey(__u32 fwmark)
+{
+	return fwmark & IP_VS_SVC_TAB_MASK;
+}
+
 
 static int ip_vs_svc_hash_cpuid(struct ip_vs_service *svc, int cpu)
 {
@@ -277,7 +287,12 @@ static int ip_vs_svc_hash_cpuid(struct ip_vs_service *svc, int cpu)
 		ip_vs_svc_tab = per_cpu(ip_vs_svc_tab_percpu, cpu);
 		list_add(&svc->s_list, ip_vs_svc_tab + hash);
 	} else {
-		return 0;
+		/*
+		 *  Hash it by fwmark in ip_vs_svc_fwm_table
+		 */
+		hash = ip_vs_svc_fwm_hashkey(svc->fwmark);
+		ip_vs_svc_tab = per_cpu(ip_vs_svc_fwm_tab_percpu, cpu);
+		list_add(&svc->f_list, ip_vs_svc_tab + hash);
 	}
 
 	svc->flags |= IP_VS_SVC_F_HASHED;
@@ -346,8 +361,21 @@ static inline struct ip_vs_service *__ip_vs_service_get(int af, __u16 protocol,
  */
 static inline struct ip_vs_service *__ip_vs_svc_fwm_get(int af, __u32 fwmark)
 {
-	(void)af;
-	(void)fwmark;
+	unsigned hash;
+	struct ip_vs_service *svc;
+	struct list_head *ip_vs_svc_fwm_tab;
+
+	ip_vs_svc_fwm_tab = __get_cpu_var(ip_vs_svc_fwm_tab_percpu);
+	/* Check for fwmark addressed entries */
+	hash = ip_vs_svc_fwm_hashkey(fwmark);
+
+	list_for_each_entry(svc, ip_vs_svc_fwm_tab + hash, f_list) {
+		if (svc->fwmark == fwmark && svc->af == af) {
+			/* HIT */
+			return svc;
+		}
+	}
+
 	return NULL;
 }
 
@@ -2254,19 +2282,17 @@ static int ip_vs_genl_dump_services(struct genl_cmd *cmd,
 		}
 	}
 
-	/*
 	for (i = 0; i < IP_VS_SVC_TAB_SIZE; i++) {
 		ip_vs_svc_tab = __get_cpu_var(ip_vs_svc_fwm_tab_percpu);
 		list_for_each_entry(svc, ip_vs_svc_tab + i, f_list) {
 			if (++idx <= start)
 				continue;
-			if (ip_vs_genl_dump_service(msg, svc, cb) < 0) {
+			if (ip_vs_genl_dump_service(info, svc) < 0) {
 				idx--;
 				goto nla_put_failure;
 			}
 		}
 	}
-	*/
 
 nla_put_failure:
 	if (ret < 0)
@@ -2296,7 +2322,7 @@ static int ip_vs_flush(void)
 	int idx;
 	struct ip_vs_service *svc, *nxt;
 	struct list_head *ip_vs_svc_tab;
-	//struct list_head *ip_vs_svc_fwm_tab;
+	struct list_head *ip_vs_svc_fwm_tab;
 
 	/*
 	 * Flush the service table hashed by <protocol,addr,port>
@@ -2312,7 +2338,6 @@ static int ip_vs_flush(void)
 	/*
 	 * Flush the service table hashed by fwmark
 	 */
-	/*
 	for (idx = 0; idx < IP_VS_SVC_TAB_SIZE; idx++) {
 		ip_vs_svc_fwm_tab = __get_cpu_var(ip_vs_svc_fwm_tab_percpu);
 		list_for_each_entry_safe(svc, nxt,
@@ -2320,7 +2345,6 @@ static int ip_vs_flush(void)
 			ip_vs_del_service(svc);
 		}
 	}
-	*/
 
 	return 0;
 }
@@ -2580,6 +2604,83 @@ out:
 	return ret; 
 }
 
+static struct ip_vs_dest_snat *ofp_vs_snat_lookup_rule(
+		struct ip_vs_service *svc, __be32 saddr,
+		__be32 smask, __be32 daddr, __be32 dmask)
+{
+	struct ip_vs_dest *dest;
+
+	list_for_each_entry(dest, &svc->destinations, n_list) {
+		struct ip_vs_dest_snat *rule = (struct ip_vs_dest_snat *)dest;
+
+		if ((rule->saddr.ip == saddr)
+		    && (rule->daddr.ip == daddr)
+		    && (rule->smask.ip == smask)
+		    && (rule->dmask.ip == dmask)) {
+			return rule;
+		}
+	}
+
+	return NULL;
+}
+
+int ofp_vs_snat_add_rule(__be32 saddr, int smlen,
+			__be32 daddr, int dmlen, 
+			int out_port, __be32 snataddr_min,
+			__be32 snataddr_max)
+{
+	int ret;
+	struct ip_vs_service *svc;
+	struct ip_vs_dest_snat *rule;
+
+	mutex_lock(&__ip_vs_mutex);
+
+	svc = __ip_vs_svc_fwm_get(AF_INET, 1);
+	if (NULL == svc) {
+		ret = ESRCH;
+		goto out;
+	}
+
+	rule = ofp_vs_snat_lookup_rule(svc, saddr, inet_make_mask(smlen),
+		daddr, inet_make_mask(dmlen));
+	if (rule) {
+		ret = EEXIST;
+		goto out;
+	}
+
+
+	 
+out:
+	mutex_unlock(&__ip_vs_mutex);
+	return 0;
+}
+
+int ofp_vs_snat_enable(void)
+{
+	int ret = 0;
+	struct ip_vs_service *snat_svc;
+	struct ip_vs_service_user_kern usvc;
+
+	memset(&usvc, 0, sizeof(usvc));
+	usvc.af = AF_INET;
+	usvc.fwmark = 1;
+	usvc.sched_name = "snat_sched";
+
+	
+	mutex_lock(&__ip_vs_mutex);
+
+	snat_svc = __ip_vs_svc_fwm_get(usvc.af, usvc.fwmark);
+	if (NULL == snat_svc)
+		ret = ip_vs_add_service(&usvc, &snat_svc); 
+	else
+		ret = EEXIST;
+
+	mutex_unlock(&__ip_vs_mutex);
+	return ret;
+}
+
+
+
 
 static struct genl_cmd ip_vs_genl_cmds[] = {
 	{
@@ -2715,12 +2816,15 @@ static void free_svc_tab(void)
 {
 	int cpu;
 	struct list_head *ip_vs_svc_tab;
+	struct list_head *ip_vs_svc_fwm_tab;
 
 	for_each_possible_cpu(cpu) {
 		ip_vs_svc_tab = per_cpu(ip_vs_svc_tab_percpu, cpu);
+		ip_vs_svc_fwm_tab = per_cpu(ip_vs_svc_fwm_tab_percpu, cpu);
 
 		/* free NULL is OK  */
 		rte_free(ip_vs_svc_tab);
+		rte_free(ip_vs_svc_fwm_tab);
 	}
 }
 
@@ -2747,11 +2851,21 @@ static int alloc_svc_tab(void)
 		}
 
 		per_cpu(ip_vs_svc_tab_percpu, cpu) = tmp;
+
+		tmp = rte_malloc_socket("ip_vs_svc_fwm_tab",
+			sizeof(struct list_head) * IP_VS_SVC_TAB_SIZE,
+			0, socket_id);
+
+		if (!tmp) {
+			OFP_ERR("cannot allocate svc_fwm_tab.\n");
+			return -ENOMEM;
+		}
+
+		per_cpu(ip_vs_svc_fwm_tab_percpu, cpu) = tmp;
 	}
 
 	return 0;
 }
-
 
 static void *ofp_vs_ctl_thread(void *arg)
 {
@@ -2855,16 +2969,16 @@ int ofp_vs_ctl_init(odp_instance_t instance, ofp_init_global_t *app_init_params)
 	for_each_possible_cpu(cpu) {
 		int idx;
 		struct list_head *ip_vs_svc_tab;
-		//struct list_head *ip_vs_svc_fwm_tab;
+		struct list_head *ip_vs_svc_fwm_tab;
 
 		spin_lock_init(&per_cpu(ip_vs_svc_lock, cpu));
 		ip_vs_svc_tab = per_cpu(ip_vs_svc_tab_percpu, cpu);
-		//ip_vs_svc_fwm_tab = per_cpu(ip_vs_svc_fwm_tab_percpu, cpu);
+		ip_vs_svc_fwm_tab = per_cpu(ip_vs_svc_fwm_tab_percpu, cpu);
 
 		/* Initialize ip_vs_svc_table, ip_vs_svc_fwm_table */
 		for (idx = 0; idx < IP_VS_SVC_TAB_SIZE; idx++) {
 			INIT_LIST_HEAD(ip_vs_svc_tab + idx);
-			//INIT_LIST_HEAD(ip_vs_svc_fwm_tab + idx);
+			INIT_LIST_HEAD(ip_vs_svc_fwm_tab + idx);
 		}
 
 		INIT_LIST_HEAD(&per_cpu(ip_vs_dest_trash_percpu, cpu));

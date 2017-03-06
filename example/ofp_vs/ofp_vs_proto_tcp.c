@@ -75,7 +75,7 @@ static struct ip_vs_conn *tcp_conn_out_get(int af, const struct rte_mbuf *skb,
 
 static int
 tcp_conn_schedule(int af, struct rte_mbuf *skb, struct ip_vs_protocol *pp,
-		  int *verdict, struct ip_vs_conn **cpp)
+		  int *verdict, struct ip_vs_conn **cpp, int fwmark)
 {
 	struct ip_vs_service *svc;
 	struct iphdr *ih = ip_hdr(skb);
@@ -100,7 +100,7 @@ tcp_conn_schedule(int af, struct rte_mbuf *skb, struct ip_vs_protocol *pp,
 	*/
 
 	if (th->syn && !th->ack && !th->fin && !th->rst &&
-	    (svc = ip_vs_service_get(af, 0, iph.protocol, &iph.daddr,
+	    (svc = ip_vs_service_get(af, fwmark, iph.protocol, &iph.daddr,
 				     th->dest))) {
 		if (ip_vs_todrop()) {
 			/*

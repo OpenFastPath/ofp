@@ -375,6 +375,49 @@ static void fdir_flush(void *handle, const char *args)
 }
 
 
+static void snat_enable(void *handle, const char *args)
+{
+	struct cli_conn *conn = (struct cli_conn *)handle;
+	int fd = ofp_cli_get_fd(handle);
+	int ret = 0;
+	
+	if ((ret = ofp_vs_snat_enable())) {
+		ofp_sendf(fd, "snat enable error: (%s)\r\n", strerror(ret));
+	}
+	
+	sendcrlf((struct cli_conn *)handle);
+}
+
+static void snat_add(void *handle, const char *args)
+{
+	uint32_t saddr, daddr, snataddr_min, snataddr_max;
+	int a, b, c, d, e, f, g, h, port, smlen, dmlen;
+	int i, j, k, l, m, n, o, p, vlan;
+	char dev[16];
+	struct cli_conn *conn = (struct cli_conn *)handle;
+	int fd = ofp_cli_get_fd(handle);
+
+	if (sscanf(args, "%d.%d.%d.%d/%d %d.%d.%d.%d/%d %s %d.%d.%d.%d "
+		   "%d.%d.%d.%d", &a, &b, &c, &d, &smlen, &e, &f, &g, &h,
+		   &dmlen, dev, &i, &j, &k, &l, &m, &n, &o, &p) != 19)
+		return;
+
+	saddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
+	daddr = odp_cpu_to_be_32((e << 24) | (f << 16) | (g << 8) | h);
+	snataddr_min = odp_cpu_to_be_32((i << 24) | (j << 16) | (k << 8) | l);
+	snataddr_max = odp_cpu_to_be_32((m << 24) | (n << 16) | (o << 8) | p);
+
+	port = ofp_name_to_port_vlan(dev, &vlan);
+	if (port < 0 || port >= ofp_get_num_ports()) {
+		ofp_sendf(fd, "Invalid port!\r\n");
+		sendcrlf(conn);
+		return;
+	}
+
+	ofp_sendf(fd, "OK\r\n");
+	sendcrlf(conn);
+}
+
 void ofp_vs_cli_cmd_init(void)
 {
 	ofp_cli_add_command("fdir add DEV proto STRING src_ipv4 IP4ADDR "
@@ -395,4 +438,13 @@ void ofp_vs_cli_cmd_init(void)
 	ofp_cli_add_command("fdir flush DEV",
 			"Flush flow director entries of a network interface",
 			fdir_flush);
+
+	ofp_cli_add_command("snat enable",
+			"Enable snat service",
+			snat_enable);
+
+	ofp_cli_add_command("snat add from IP4NET to IP4NET "
+			"out_dev DEV source IP4ADDR - IP4ADDR",
+			"Add snat rule",
+			snat_add);
 }

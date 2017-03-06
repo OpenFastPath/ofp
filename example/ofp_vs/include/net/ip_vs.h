@@ -265,7 +265,8 @@ struct ip_vs_protocol {
 
 	int (*conn_schedule) (int af, struct rte_mbuf * skb,
 			      struct ip_vs_protocol * pp,
-			      int *verdict, struct ip_vs_conn ** cpp);
+			      int *verdict, struct ip_vs_conn ** cpp,
+			      int fwmask);
 
 	struct ip_vs_conn *
 	    (*conn_in_get) (int af,
@@ -572,6 +573,27 @@ struct ip_vs_dest {
 	__be16 vport;		/* virtual port number */
 	__u32 vfwmark;		/* firewall mark of service */
 };
+
+struct ip_vs_dest_snat {
+	struct ip_vs_dest dest;
+	union nf_inet_addr saddr;
+	union nf_inet_addr smask;
+	union nf_inet_addr daddr;
+	union nf_inet_addr dmask;
+	union nf_inet_addr minip, maxip;
+	union nf_inet_addr new_gateway;
+	char out_port;
+	__u8 ip_sel_algo;
+	struct list_head rule_list;
+};
+
+#define IS_SNAT_CP(cp) (cp->flags & IP_VS_CONN_F_SNAT)
+
+#define NOT_SNAT_CP(cp) !IS_SNAT_CP(cp) 
+
+#define IS_SNAT_SVC(svc) ((svc)->fwmark == 1)
+#define NOT_SNAT_SVC(svc) ((svc)->fwmark != 1)
+
 
 /*
  *	Local ip address object, now only used in FULL NAT model
