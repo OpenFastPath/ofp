@@ -59,9 +59,29 @@ static inline __be32 inet_make_mask(int logmask)
 }
 
 static inline unsigned int inet_mask_len(__be32 mask) {
-	uint8_t u8_mask = rte_be_to_cpu_32(mask);
-	return ofp_mask_length(32, (uint8_t *)&u8_mask);
+	uint32_t umask = rte_be_to_cpu_32(mask);
+	return ofp_mask_length(32, (uint8_t *)&umask);
 }
+
+struct snat_args {
+	__be32 saddr;
+	__be32 smask;
+	__be32 daddr;
+	__be32 dmask; 
+	int out_port;
+	__be32 minip;
+	__be32 maxip;
+	__u8 ip_sel_algo;
+};
+
+
+int ofp_vs_snat_add_rule(const struct snat_args *args);
+
+int ofp_vs_snat_del_rule(const struct snat_args *args);
+
+int ofp_vs_snat_dump_rules(struct snat_args *args, int cnt);
+
+#define MAX_SNAT_RULES 1024
 
 
 #endif

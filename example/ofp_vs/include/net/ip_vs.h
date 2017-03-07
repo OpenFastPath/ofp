@@ -468,7 +468,7 @@ struct ip_vs_service_user_kern {
 	u32 fwmark;		/* firwall mark of service */
 
 	/* virtual service options */
-	char *sched_name;
+	const char *sched_name;
 	unsigned flags;		/* virtual service flags */
 	unsigned timeout;	/* persistent timeout in sec */
 	u32 netmask;		/* persistent netmask */
@@ -581,8 +581,7 @@ struct ip_vs_dest_snat {
 	union nf_inet_addr daddr;
 	union nf_inet_addr dmask;
 	union nf_inet_addr minip, maxip;
-	union nf_inet_addr new_gateway;
-	char out_port;
+	int out_port;
 	__u8 ip_sel_algo;
 	struct list_head rule_list;
 };

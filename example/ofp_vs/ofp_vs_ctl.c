@@ -707,7 +707,10 @@ ip_vs_new_dest(struct ip_vs_service *svc, struct ip_vs_dest_user_kern *udest,
 	    */
 	}
 
-	dest = rte_zmalloc(NULL, sizeof(struct ip_vs_dest), 0);
+	if (IS_SNAT_SVC(svc))
+		dest = rte_zmalloc(NULL, sizeof(struct ip_vs_dest_snat), 0);
+	else
+		dest = rte_zmalloc(NULL, sizeof(struct ip_vs_dest), 0);
 	if (dest == NULL) {
 		pr_err("%s(): no memory.\n", __func__);
 		return -ENOMEM;
@@ -2605,18 +2608,17 @@ out:
 }
 
 static struct ip_vs_dest_snat *ofp_vs_snat_lookup_rule(
-		struct ip_vs_service *svc, __be32 saddr,
-		__be32 smask, __be32 daddr, __be32 dmask)
+		struct ip_vs_service *svc, const struct snat_args *args)
 {
 	struct ip_vs_dest *dest;
 
 	list_for_each_entry(dest, &svc->destinations, n_list) {
 		struct ip_vs_dest_snat *rule = (struct ip_vs_dest_snat *)dest;
 
-		if ((rule->saddr.ip == saddr)
-		    && (rule->daddr.ip == daddr)
-		    && (rule->smask.ip == smask)
-		    && (rule->dmask.ip == dmask)) {
+		if ((rule->saddr.ip == args->saddr)
+		    && (rule->daddr.ip == args->daddr)
+		    && (rule->smask.ip == args->smask)
+		    && (rule->dmask.ip == args->dmask)) {
 			return rule;
 		}
 	}
@@ -2624,35 +2626,151 @@ static struct ip_vs_dest_snat *ofp_vs_snat_lookup_rule(
 	return NULL;
 }
 
-int ofp_vs_snat_add_rule(__be32 saddr, int smlen,
-			__be32 daddr, int dmlen, 
-			int out_port, __be32 snataddr_min,
-			__be32 snataddr_max)
+int ofp_vs_snat_del_rule(const struct snat_args *args)
 {
-	int ret;
+	int ret = 0, cpu;
+	struct ip_vs_service *svc, *this_svc;
+	struct ip_vs_dest_snat *rule;
+	struct ip_vs_dest *dest;
+
+	mutex_lock(&__ip_vs_mutex);
+
+	svc = __ip_vs_svc_fwm_get(AF_INET, 1);
+	if (NULL == svc) {
+		ret = ENOENT;
+		goto out;
+	}
+
+	for_each_possible_cpu(cpu) {
+		this_svc = svc->svc0 + cpu;
+	
+		rule = ofp_vs_snat_lookup_rule(this_svc, args);
+		if (rule == NULL) {
+			ret = ENOENT;
+			break;
+		}
+
+		dest = (struct ip_vs_dest *)rule;
+
+		spin_lock_bh(&per_cpu(ip_vs_svc_lock, cpu));
+
+		/*
+		 *      Unlink dest from the service
+		 */
+		__ip_vs_unlink_dest(this_svc, dest, 1);
+
+		spin_unlock_bh(&per_cpu(ip_vs_svc_lock, cpu));
+
+		/*
+		 *      Delete the destination
+		 */
+		__ip_vs_del_dest(dest);
+	}
+
+out:
+	mutex_unlock(&__ip_vs_mutex);
+	return ret;
+}
+
+int ofp_vs_snat_add_rule(const struct snat_args *args)
+{
+	int ret = 0, cpu;
+	struct ip_vs_service *svc, *this_svc;
+	struct ip_vs_dest_snat *rule;
+	struct ip_vs_dest *dest;
+	struct ip_vs_dest_user_kern udest;
+
+	mutex_lock(&__ip_vs_mutex);
+
+	svc = __ip_vs_svc_fwm_get(AF_INET, 1);
+	if (NULL == svc) {
+		ret = ENOENT;
+		goto out;
+	}
+
+	rule = ofp_vs_snat_lookup_rule(svc, args);
+	if (rule) {
+		ret = EEXIST;
+		goto out;
+	}
+
+	memset(&udest, 0, sizeof(udest));
+
+	for_each_possible_cpu(cpu) {
+		this_svc = svc->svc0 + cpu;
+		ret = ip_vs_new_dest(this_svc, &udest, &dest);
+		if (ret) {
+			return ret;
+		}
+
+		rule = (struct ip_vs_dest_snat *)dest;
+		rule->saddr.ip = args->saddr;
+		rule->daddr.ip = args->daddr;
+		rule->smask.ip = args->smask;
+		rule->dmask.ip = args->dmask;
+		rule->minip.ip = args->minip;
+		rule->maxip.ip = args->maxip;
+		rule->out_port = args->out_port;
+		rule->ip_sel_algo = args->ip_sel_algo;
+		dest->addr.ip = args->saddr;
+		dest->port = rte_cpu_to_be_16(inet_mask_len(args->smask));
+		atomic_set(&dest->conn_flags, IP_VS_CONN_F_FULLNAT);
+
+		/*
+		 * Add the dest entry into the list
+		 */
+		atomic_inc(&dest->refcnt);
+
+		spin_lock_bh(&per_cpu(ip_vs_svc_lock, cpu));
+
+		list_add(&dest->n_list, &this_svc->destinations);
+		this_svc->num_dests++;
+
+		/* call the update_service function of its scheduler */
+		if (this_svc->scheduler->update_service)
+			this_svc->scheduler->update_service(this_svc);
+
+		spin_unlock_bh(&per_cpu(ip_vs_svc_lock, cpu));
+	}
+	 
+out:
+	mutex_unlock(&__ip_vs_mutex);
+	return ret;
+}
+
+int ofp_vs_snat_dump_rules(struct snat_args *args, int cnt)
+{
+	int ret = 0, idx = 0;
 	struct ip_vs_service *svc;
+	struct ip_vs_dest *dest;
 	struct ip_vs_dest_snat *rule;
 
 	mutex_lock(&__ip_vs_mutex);
 
 	svc = __ip_vs_svc_fwm_get(AF_INET, 1);
 	if (NULL == svc) {
-		ret = ESRCH;
+		ret = -ENOENT;
 		goto out;
 	}
 
-	rule = ofp_vs_snat_lookup_rule(svc, saddr, inet_make_mask(smlen),
-		daddr, inet_make_mask(dmlen));
-	if (rule) {
-		ret = EEXIST;
-		goto out;
+	list_for_each_entry(dest, &svc->destinations, n_list) {
+		if (idx >= cnt)
+			break;
+		
+		rule = (struct ip_vs_dest_snat *)dest;
+		args[idx].saddr = rule->saddr.ip;
+		args[idx].daddr = rule->daddr.ip;
+		args[idx].smask = rule->smask.ip;
+		args[idx].minip = rule->minip.ip;
+		args[idx].maxip = rule->maxip.ip;
+		args[idx].out_port = rule->out_port;
+		args[idx].ip_sel_algo = rule->ip_sel_algo;
 	}
 
-
-	 
+	ret = idx + 1;
 out:
 	mutex_unlock(&__ip_vs_mutex);
-	return 0;
+	return ret;
 }
 
 int ofp_vs_snat_enable(void)

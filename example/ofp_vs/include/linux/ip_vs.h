@@ -109,9 +109,9 @@
 
 /* SNAT ip pool select algorithm */
 enum {
-	IPVS_SNAT_IPS_NORMAL = 0, /* hash (src-ip,dst-ip) */
-	IPVS_SNAT_IPS_PERSITENT,  /* hash (src-ip) */
-	IPVS_SNAT_IPS_RANDOM,     /* hash (src-ip,dst-ip,src-port,dst-port) */
+	IPVS_SNAT_IPS_SDH = 0, /* hash (src-ip,dst-ip) */
+	IPVS_SNAT_IPS_SH,  /* hash (src-ip) */
+	IPVS_SNAT_IPS_SDFNH,     /* hash (src-ip,dst-ip,src-port,dst-port) */
 };
 
 union nf_inet_addr {

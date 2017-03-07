@@ -703,12 +703,12 @@ static struct ip_vs_laddr *ip_vs_get_laddr(struct ip_vs_service *svc)
 	}
  
 	switch (rule->ip_sel_algo) {
-	case IPVS_SNAT_IPS_PERSITENT:
+	case IPVS_SNAT_IPS_SH:
 		k2 = 0;
 		k3 = 0;
 		break;
  
-	case IPVS_SNAT_IPS_RANDOM:
+	case IPVS_SNAT_IPS_SDFNH:
 		k2 = (u32)cp->vaddr.ip;
 		k3 = ((u32)cp->cport) << 16 | (u32)cp->vport;
 		break;

@@ -114,11 +114,9 @@ static struct ip_vs_dest *ip_vs_snat_rule_find(struct list_head *head,
 out:
 	IP_VS_DBG(7,
 		  "SNAT rule_find gw:"PRINT_IP_FORMAT
-		  "rt_gw:"PRINT_IP_FORMAT
-		  "new_gw:"PRINT_IP_FORMAT,
+		  "rt_gw:"PRINT_IP_FORMAT,
 		  PRINT_NIP(dest->addr.ip),
-		  PRINT_NIP(rt_gateway),
-		  PRINT_NIP(rule->new_gateway.ip));
+		  PRINT_NIP(rt_gateway));
 	return dest;
 	
 }
@@ -411,12 +409,11 @@ ip_vs_snat_assign(struct ip_vs_snat_table *tbl, struct ip_vs_service *svc)
 			}
 
 			IP_VS_DBG(6, "SNAT rule %s s:%pI4/%d d:%pI4/%d g:%pI4 "
-			             "k:%pI4 new_gw:%pI4\n",
+			             "k:%pI4 \n",
 			          old_dest?"exists":"added", &rule->saddr.ip,
 				  smask_len, &rule->daddr.ip,
 				  inet_mask_len(rule->dmask.ip),
-				  &dest->addr.ip, &key,
-				  &rule->new_gateway.ip);
+				  &dest->addr.ip, &key);
 		}
 	}
 

@@ -377,9 +377,9 @@ static void fdir_flush(void *handle, const char *args)
 
 static void snat_enable(void *handle, const char *args)
 {
-	struct cli_conn *conn = (struct cli_conn *)handle;
 	int fd = ofp_cli_get_fd(handle);
 	int ret = 0;
+	(void)args;
 	
 	if ((ret = ofp_vs_snat_enable())) {
 		ofp_sendf(fd, "snat enable error: (%s)\r\n", strerror(ret));
@@ -388,24 +388,96 @@ static void snat_enable(void *handle, const char *args)
 	sendcrlf((struct cli_conn *)handle);
 }
 
-static void snat_add(void *handle, const char *args)
+static void snat_del(void *handle, const char *s)
 {
-	uint32_t saddr, daddr, snataddr_min, snataddr_max;
+	int a, b, c, d, e, f, g, h, smlen, dmlen, ret;
+	struct cli_conn *conn = (struct cli_conn *)handle;
+	int fd = ofp_cli_get_fd(handle);
+	char dev[16];
+	struct snat_args args;	
+
+	if (sscanf(s, "%d.%d.%d.%d/%d %d.%d.%d.%d/%d %s",
+	           &a, &b, &c, &d, &smlen, &e, &f, &g, &h,
+		   &dmlen, dev) != 11)
+		return;
+
+	args.saddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
+	args.daddr = odp_cpu_to_be_32((e << 24) | (f << 16) | (g << 8) | h);
+	args.smask = inet_make_mask(smlen);
+	args.dmask = inet_make_mask(dmlen);
+
+	ret = ofp_vs_snat_del_rule(&args);
+	if (ret) {
+		ofp_sendf(fd, "ofp_vs_snat_add_rule error %s\r\n",
+			strerror(ret));
+	} else
+		ofp_sendf(fd, "OK\r\n");
+
+	sendcrlf(conn);
+}
+
+struct snat_algo_str {
+	const char *name;
+	int algo;
+};
+static struct snat_algo_str snat_algo_table[] = {
+	{"s", IPVS_SNAT_IPS_SH},
+	{"sd", IPVS_SNAT_IPS_SDH},
+	{"sdfn", IPVS_SNAT_IPS_SDFNH},
+};
+
+static int snat_algo_str2int(const char *s)
+{
+	uint8_t i;
+	for (i = 0; i < RTE_DIM(snat_algo_table); i++) {
+		if (!strcmp(s, snat_algo_table[i].name))
+			return snat_algo_table[i].algo;
+	}
+
+	return IPVS_SNAT_IPS_SDH;	
+}
+
+static const char *snat_algo_int2str(int algo)
+{
+	uint8_t i;
+	for (i = 0; i < RTE_DIM(snat_algo_table); i++) {
+		if (algo == snat_algo_table[i].algo)
+			return snat_algo_table[i].name;
+	}
+
+	return "sd";
+}
+
+static void snat_add(void *handle, const char *s)
+{
+	struct snat_args args;	
 	int a, b, c, d, e, f, g, h, port, smlen, dmlen;
 	int i, j, k, l, m, n, o, p, vlan;
-	char dev[16];
+	int ret;
+	char dev[16], algo_str[16];
 	struct cli_conn *conn = (struct cli_conn *)handle;
 	int fd = ofp_cli_get_fd(handle);
 
-	if (sscanf(args, "%d.%d.%d.%d/%d %d.%d.%d.%d/%d %s %d.%d.%d.%d "
-		   "%d.%d.%d.%d", &a, &b, &c, &d, &smlen, &e, &f, &g, &h,
-		   &dmlen, dev, &i, &j, &k, &l, &m, &n, &o, &p) != 19)
+	if (sscanf(s, "%d.%d.%d.%d/%d "
+		   "%d.%d.%d.%d/%d "
+		   "%s "
+		   "%d.%d.%d.%d "
+		   "%d.%d.%d.%d "
+		   "%s",
+		   &a, &b, &c, &d, &smlen,
+		   &e, &f, &g, &h, &dmlen,
+		   dev,
+		   &i, &j, &k, &l,
+		   &m, &n, &o, &p,
+		   algo_str) != 20)
 		return;
 
-	saddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
-	daddr = odp_cpu_to_be_32((e << 24) | (f << 16) | (g << 8) | h);
-	snataddr_min = odp_cpu_to_be_32((i << 24) | (j << 16) | (k << 8) | l);
-	snataddr_max = odp_cpu_to_be_32((m << 24) | (n << 16) | (o << 8) | p);
+	args.saddr = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
+	args.daddr = odp_cpu_to_be_32((e << 24) | (f << 16) | (g << 8) | h);
+	args.minip =
+	      	odp_cpu_to_be_32((i << 24) | (j << 16) | (k << 8) | l);
+	args.maxip =
+		odp_cpu_to_be_32((m << 24) | (n << 16) | (o << 8) | p);
 
 	port = ofp_name_to_port_vlan(dev, &vlan);
 	if (port < 0 || port >= ofp_get_num_ports()) {
@@ -414,7 +486,48 @@ static void snat_add(void *handle, const char *args)
 		return;
 	}
 
-	ofp_sendf(fd, "OK\r\n");
+	args.out_port = port;
+	args.ip_sel_algo = snat_algo_str2int(algo_str);
+	args.smask = inet_make_mask(smlen);
+	args.dmask = inet_make_mask(dmlen);
+
+	ret = ofp_vs_snat_add_rule(&args);
+	if (ret) {
+		ofp_sendf(fd, "ofp_vs_snat_add_rule error %s\r\n",
+			strerror(ret));
+	} else
+		ofp_sendf(fd, "OK\r\n");
+
+	sendcrlf(conn);
+}
+
+static void snat_show(void *handle, const char *s)
+{
+	int fd = ofp_cli_get_fd(handle);
+	struct cli_conn *conn = (struct cli_conn *)handle;
+	int i, cnt;
+	struct snat_args args[MAX_SNAT_RULES];
+	(void)s;
+
+	ofp_sendf(fd, "from\tto\tdev\tsource\talgo\r\n");
+
+	cnt = ofp_vs_snat_dump_rules(args, MAX_SNAT_RULES); 	
+	for (i = 0; i < cnt; i++) {
+		ofp_sendf(fd, PRINT_IP_FORMAT"/%d\t"
+			PRINT_IP_FORMAT"/%d\t"
+			"%s\t"
+			PRINT_IP_FORMAT"-"PRINT_IP_FORMAT
+			"\t%s\r\n",
+			PRINT_NIP(args[i].saddr),
+			inet_mask_len(args[i].smask),
+			PRINT_NIP(args[i].daddr),
+			inet_mask_len(args[i].dmask),
+			ofp_port_vlan_to_ifnet_name(args[i].out_port, 0),
+			PRINT_NIP(args[i].minip),
+			PRINT_NIP(args[i].maxip),
+			snat_algo_int2str(args[i].ip_sel_algo));
+	}
+
 	sendcrlf(conn);
 }
 
@@ -444,7 +557,14 @@ void ofp_vs_cli_cmd_init(void)
 			snat_enable);
 
 	ofp_cli_add_command("snat add from IP4NET to IP4NET "
-			"out_dev DEV source IP4ADDR - IP4ADDR",
+			"out_dev DEV source IP4ADDR - IP4ADDR algo STRING",
 			"Add snat rule",
 			snat_add);
+
+	ofp_cli_add_command("snat del from IP4NET to IP4NET out_dev DEV",
+			"Del snat rule",
+			snat_del);
+	ofp_cli_add_command("snat show",
+			"Show snat rule",
+			snat_show);
 }
