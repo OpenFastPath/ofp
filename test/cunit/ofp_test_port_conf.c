@@ -280,7 +280,7 @@ static void test_queue(void)
 
 	odp_packet_t m = odp_packet_alloc(ofp_packet_pool, 0);
 
-	IF_ENQUEUE(&ifq, m) while (0);
+	IF_ENQUEUE(&ifq, m);
 	CU_ASSERT_PTR_NOT_NULL(ifq.ifq_head);
 	CU_ASSERT_PTR_EQUAL(ifq.ifq_head, ifq.ifq_tail);
 	CU_ASSERT_PTR_NULL(ifq.ifq_tail->next);
@@ -288,7 +288,7 @@ static void test_queue(void)
 
 	ifq.ifq_head = ifq.ifq_tail = &e;
 
-	IF_ENQUEUE(&ifq, m) while (0);
+	IF_ENQUEUE(&ifq, m);
 	CU_ASSERT_PTR_NOT_NULL(ifq.ifq_head);
 	CU_ASSERT_PTR_NOT_NULL(ifq.ifq_tail);
 	CU_ASSERT_PTR_NOT_EQUAL(ifq.ifq_head, ifq.ifq_tail);

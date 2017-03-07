@@ -231,7 +231,7 @@ static inline void _IF_ENQUEUE(struct ofp_ifqueue *ifq, odp_packet_t m)
 	IF_LOCK(ifq); 						\
 	_IF_ENQUEUE(ifq, m); 					\
 	IF_UNLOCK(ifq); 					\
-}
+} while (0)
 
 #define	_IF_PREPEND(ifq, m) do {				\
 	struct ifq_entry *e = odp_packet_head(m);		\
