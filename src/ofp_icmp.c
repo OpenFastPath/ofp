@@ -562,6 +562,7 @@ _ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
 	 * just fall through to send to raw listener.
 	 */
 	case OFP_ICMP_ECHOREPLY:
+		return OFP_PKT_CONTINUE;
 	case OFP_ICMP_ROUTERADVERT:
 	case OFP_ICMP_ROUTERSOLICIT:
 	case OFP_ICMP_TSTAMPREPLY:
