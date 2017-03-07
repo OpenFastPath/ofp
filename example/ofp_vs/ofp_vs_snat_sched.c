@@ -98,15 +98,17 @@ static struct ip_vs_dest *ip_vs_snat_rule_find(struct list_head *head,
 		if ((daddr & rule->dmask.ip) != rule->daddr.ip)
 			continue;
 
-		if ((port > 0) &&
+		if ((port >= 0) &&
 		    (port == rule->out_port)) {
 			goto out;
 		}
 	
+		/*
 		if (port < 0 &&
 		    (rt_gateway == dest->addr.ip || dest->addr.ip == 0)) {
 			goto out;
 		}
+		*/
 	}
 
  	return NULL;	
