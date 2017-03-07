@@ -1129,7 +1129,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 struct ofp_ifnet *ofp_get_ifnet(int port, uint16_t vlan)
 {
 	if (port < 0 || port >= shm->ofp_num_ports) {
-		OFP_ERR("port:%d is outside the valid interval", port);
+		OFP_DBG("port:%d is outside the valid interval", port);
 		return NULL;
 	}
 
