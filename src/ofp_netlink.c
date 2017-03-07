@@ -423,7 +423,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 
 	dev = ofp_get_ifnet_by_linux_ifindex(if_entry->ifa_index);
 	if (!dev) {
-		OFP_ERR(" ! Interface index %d not found", if_entry->ifa_index);
+		OFP_DBG(" ! Interface index %d not found", if_entry->ifa_index);
 		return -1;
 	}
 
