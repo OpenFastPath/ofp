@@ -47,8 +47,6 @@
 #include "ofpi_sysctl.h"
 #include "ofpi_socketvar.h"
 
-#define SYSCTL_DEBUG 1
-
 #define malloc(_a, _b, _c) malloc(_a)
 #define free(_a, _b) free(_a)
 
@@ -624,7 +622,6 @@ SYSINIT(sysctl, SI_SUB_KMEM, SI_ORDER_ANY, sysctl_register_all, 0);
  * {0,5,...}	return the description the "..." OID.
  */
 
-#ifdef SYSCTL_DEBUG
 #include <stdio.h>
 
 static void
@@ -706,7 +703,6 @@ sysctl_sysctl_debug(OFP_SYSCTL_HANDLER_ARGS)
 OFP_SYSCTL_PROC(_sysctl, 0, debug, OFP_CTLTYPE_STRING|OFP_CTLFLAG_RD,
 	0, 0, sysctl_sysctl_debug, "-", "");
 
-#endif
 #if 0
 static int
 sysctl_sysctl_name(OFP_SYSCTL_HANDLER_ARGS)
@@ -1703,7 +1699,9 @@ void
 ofp_register_sysctls(void)
 {
 	sysctl_register_all(NULL);
+#ifdef SYSCTL_DEBUG
 	sysctl_sysctl_debug(NULL, NULL,	0, NULL);
+#endif
 }
 
 int
