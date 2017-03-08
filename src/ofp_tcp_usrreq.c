@@ -1617,8 +1617,35 @@ ofp_tcp_ctloutput(struct socket *so, struct sockopt *sopt)
 	}
 	return (error);
 #else
-	(void)so;
-	(void)sopt;
+	int error, optval;
+	struct inpcb *inp = sotoinpcb(so);
+
+	if (sopt->sopt_level != OFP_IPPROTO_TCP)
+		return 0;
+
+	switch (sopt->sopt_dir) {
+	case SOPT_SET:
+		switch (sopt->sopt_name) {
+		case OFP_TCP_CORK:
+			error = ofp_sooptcopyin(sopt, &optval, sizeof(optval), sizeof(optval));
+			if (error) return error;
+
+			if (!optval) {
+				INP_WLOCK(inp);
+				struct tcpcb *tp = intotcpcb(inp);
+				if (TCPS_HAVEESTABLISHED(tp->t_state)) {
+					t_flags_or(tp->t_flags, TF_FORCEDATA);
+					ofp_tcp_output(tp);
+					t_flags_and(tp->t_flags, ~TF_FORCEDATA);
+				}
+				INP_WUNLOCK(inp);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+
 	return 0;
 #endif
 }
