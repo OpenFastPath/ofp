@@ -178,11 +178,12 @@ struct ip_vs_conn *ip_vs_schedule(struct ip_vs_service *svc,
 	if (cp == NULL)
 		return NULL;
 
-	IP_VS_DBG_BUF(6, "Schedule fwd:%c c:%s:%u v:%s:%u "
+	IP_VS_DBG_BUF(6, "Schedule fwd:%c c:%s:%u v:%s:%u l:%s:%u "
 		      "d:%s:%u conn->flags:%X conn->refcnt:%d cpu%d\n",
 		      ip_vs_fwd_tag(cp),
 		      IP_VS_DBG_ADDR(svc->af, &cp->caddr), ntohs(cp->cport),
 		      IP_VS_DBG_ADDR(svc->af, &cp->vaddr), ntohs(cp->vport),
+		      IP_VS_DBG_ADDR(svc->af, &cp->laddr), ntohs(cp->lport),
 		      IP_VS_DBG_ADDR(svc->af, &cp->daddr), ntohs(cp->dport),
 		      cp->flags, atomic_read(&cp->refcnt), cp->cpuid);
 

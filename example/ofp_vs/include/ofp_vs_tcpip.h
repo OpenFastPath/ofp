@@ -4,7 +4,9 @@
 #include <asm/byteorder.h>
 #include <rte_ip.h>
 #include <netinet/tcp.h>
+#include <netinet/udp.h>
 #include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 
 /*
 struct iphdr {
@@ -28,20 +30,6 @@ struct iphdr {
 	__be32	daddr;
 };
 */
-
-struct __iphdr {
-	uint8_t		ihl:4,
-			version:4;
-	uint8_t		tos;
-	uint16_t	tot_len;
-	uint16_t	id;
-	uint16_t	frag_off;
-	uint8_t		ttl;
-	uint8_t		protocol;
-	uint16_t	check;
-	uint32_t	saddr;
-	uint32_t	daddr;
-}__attribute__((__packed__));
 
 /*
 struct tcphdr {
@@ -121,7 +109,12 @@ struct __tcphdr {
 	
 #define tcp_hdr(iph) \
 	(struct tcphdr *)((unsigned char *)(iph) + ip_hdrlen((iph)))
-	
+
+#define udp_hdr(iph) \
+	(struct udphdr *)((unsigned char *)(iph) + ip_hdrlen((iph)))
+
+#define icmp_hdr(iph) \
+	(struct icmphdr *)((unsigned char *)(iph) + ip_hdrlen((iph)))
 
 static inline uint16_t
 ofp_vs_ipv4_udptcp_cksum(const struct iphdr *iphdr, const void *l4_hdr)

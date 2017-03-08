@@ -803,12 +803,15 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 			tport =
 			    (sysctl_ip_vs_lport_min + local->port++) %
 			    remaining;
-			cp->out_idx->d_port = cp->lport = (IPPROTO_ICMP != cp->protocol) ? htons(tport) : cp->cport;
+			cp->out_idx->d_port = cp->lport =
+				(IPPROTO_ICMP != cp->protocol)
+				? htons(tport) : cp->cport;
 
 			/* init hit everytime before lookup the tuple */
 			hit = 0;
 
-			/*INside2OUTside: hashed by destination address and port, local address and port */
+			/*INside2OUTside: hashed by destination address 
+			 * and port, local address and port */
 			ohash =
 			    ip_vs_conn_hashkey(cp->af, &cp->daddr, cp->dport,
 					       &cp->laddr, cp->lport);
@@ -1259,7 +1262,7 @@ struct ip_vs_conn *ip_vs_conn_new(int af, int proto,
 	}
 
 	if (IS_SNAT_SVC(dest->svc))
-		cp->flags &= IP_VS_CONN_F_SNAT;
+		cp->flags |= IP_VS_CONN_F_SNAT;
 
 	/*
 	 * bind the connection with a local address

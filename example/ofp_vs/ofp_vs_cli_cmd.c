@@ -1,5 +1,6 @@
 
 #include "ofp_vs.h"
+#include "ofpi_cli.h"
 
 extern odp_pktio_config_t default_pktio_config;
 
@@ -511,7 +512,7 @@ static void snat_show(void *handle, const char *s)
 
 	ofp_sendf(fd, "from\tto\tdev\tsource\talgo\r\n");
 
-	cnt = ofp_vs_snat_dump_rules(args, MAX_SNAT_RULES); 	
+	cnt = ofp_vs_snat_dump_rules(args, MAX_SNAT_RULES); 
 	for (i = 0; i < cnt; i++) {
 		ofp_sendf(fd, PRINT_IP_FORMAT"/%d\t"
 			PRINT_IP_FORMAT"/%d\t"

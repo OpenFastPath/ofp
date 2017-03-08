@@ -88,6 +88,7 @@ static struct ip_vs_dest *ip_vs_snat_rule_find(struct list_head *head,
 {
 	struct ip_vs_dest_snat *rule = NULL; 
 	struct ip_vs_dest *dest = NULL;
+	(void)rt_gateway;
 
 	list_for_each_entry(rule, head, rule_list) {
 		dest = (struct ip_vs_dest *)rule;
@@ -114,11 +115,6 @@ static struct ip_vs_dest *ip_vs_snat_rule_find(struct list_head *head,
  	return NULL;	
 
 out:
-	IP_VS_DBG(7,
-		  "SNAT rule_find gw:"PRINT_IP_FORMAT
-		  "rt_gw:"PRINT_IP_FORMAT,
-		  PRINT_NIP(dest->addr.ip),
-		  PRINT_NIP(rt_gateway));
 	return dest;
 	
 }
@@ -138,9 +134,9 @@ ip_vs_snat_rule_find_by_skb(struct list_head *head,
 	}
 
 	IP_VS_DBG(6, "SNAT lookup rule s:"PRINT_IP_FORMAT
-	             "d:"PRINT_IP_FORMAT
-		     "g:"PRINT_IP_FORMAT
-		     "oif:%d\n",
+	             " d:"PRINT_IP_FORMAT
+		     " g:"PRINT_IP_FORMAT
+		     " oif:%d\n",
 	          PRINT_NIP(iph->saddr),
 		  PRINT_NIP(iph->daddr), PRINT_NIP(rt_gateway), port); 
 	
@@ -157,8 +153,9 @@ ip_vs_snat_node_find(struct ip_vs_snat_zone *z, __be32 key)
 	struct ip_vs_snat_node *node;
 
 	hlist_for_each_entry(node, hnode, head, n_hash) {
-		IP_VS_DBG(6, "SNAT lookup node z:%d nk:%pI4 k:%pI4\n",
-			z->z_order, &node->n_key, &key);
+		IP_VS_DBG(6, "SNAT lookup node z:%d nk:"PRINT_IP_FORMAT
+			" k:"PRINT_IP_FORMAT"\n",
+			z->z_order, PRINT_NIP(node->n_key), PRINT_NIP(key));
 		if (node->n_key == key)
 			return node;
 	}
@@ -282,8 +279,11 @@ static struct ip_vs_dest *ip_vs_snat_get(int af,
 
 		node = ip_vs_snat_node_find(z, key);
 
-		IP_VS_DBG(6, "SNAT lookup zone i:%d mask:%pI4 k:%pI4 %s\n",
-			z->z_order, &z->z_mask, &key,
+		IP_VS_DBG(6, "SNAT lookup zone i:%d mask:"
+			PRINT_IP_FORMAT" k:"
+			PRINT_IP_FORMAT" %s\n",
+			z->z_order, PRINT_NIP(z->z_mask),
+			PRINT_NIP(key),
 			node?"hit":"not hit");
 
 		if (!node)
@@ -385,8 +385,10 @@ ip_vs_snat_assign(struct ip_vs_snat_table *tbl, struct ip_vs_service *svc)
 			struct ip_vs_dest *old_dest;
 
 			if (rule->saddr.ip & ~Z_MASK(z)) {
-				IP_VS_ERR_RL("SNAT rule saddr %pI4 not match zmask %pI4\n",
-					&rule->saddr.ip, &Z_MASK(z));
+				IP_VS_ERR_RL("SNAT rule saddr "PRINT_IP_FORMAT
+					" not match zmask "PRINT_IP_FORMAT"\n",
+					PRINT_NIP(rule->saddr.ip),
+					PRINT_NIP(Z_MASK(z)));
 				return -EINVAL;
 			}
 
@@ -410,12 +412,15 @@ ip_vs_snat_assign(struct ip_vs_snat_table *tbl, struct ip_vs_service *svc)
 				ip_vs_snat_rule_add(rule, node);
 			}
 
-			IP_VS_DBG(6, "SNAT rule %s s:%pI4/%d d:%pI4/%d g:%pI4 "
-			             "k:%pI4 \n",
-			          old_dest?"exists":"added", &rule->saddr.ip,
-				  smask_len, &rule->daddr.ip,
+			IP_VS_DBG(6, "SNAT rule %s s:"PRINT_IP_FORMAT"/%d"
+		 		  " d:"PRINT_IP_FORMAT"/%d "
+			          " k:"PRINT_IP_FORMAT"\n",
+			          old_dest?"exists":"added",
+				  PRINT_NIP(rule->saddr.ip),
+				  smask_len,
+				  PRINT_NIP(rule->daddr.ip),
 				  inet_mask_len(rule->dmask.ip),
-				  &dest->addr.ip, &key);
+				  PRINT_NIP(key));
 		}
 	}
 

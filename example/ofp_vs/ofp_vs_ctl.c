@@ -2695,6 +2695,7 @@ int ofp_vs_snat_add_rule(const struct snat_args *args)
 	}
 
 	memset(&udest, 0, sizeof(udest));
+	udest.conn_flags |= IP_VS_CONN_F_FULLNAT;
 
 	for_each_possible_cpu(cpu) {
 		this_svc = svc->svc0 + cpu;
@@ -2714,7 +2715,6 @@ int ofp_vs_snat_add_rule(const struct snat_args *args)
 		rule->ip_sel_algo = args->ip_sel_algo;
 		dest->addr.ip = args->saddr;
 		dest->port = rte_cpu_to_be_16(inet_mask_len(args->smask));
-		atomic_set(&dest->conn_flags, IP_VS_CONN_F_FULLNAT);
 
 		/*
 		 * Add the dest entry into the list
