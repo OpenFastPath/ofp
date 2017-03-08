@@ -169,6 +169,7 @@ struct ofp_tcphdr {
 #define OFP_TCP_KEEPINTVL	0x200	/* L,N interval between keepalives */
 #define OFP_TCP_KEEPCNT	0x400	/* L,N number of keepalives before close */
 #define OFP_TCP_REASSDL	0x800	/* wait this long for missing segments */
+#define OFP_TCP_CORK	0x1000	/* don't send partial messages */
 
 #define	OFP_TCP_CA_NAME_MAX	16	/* max congestion control name length */
 
