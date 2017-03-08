@@ -2765,9 +2765,10 @@ int ofp_vs_snat_dump_rules(struct snat_args *args, int cnt)
 		args[idx].maxip = rule->maxip.ip;
 		args[idx].out_port = rule->out_port;
 		args[idx].ip_sel_algo = rule->ip_sel_algo;
+		idx++;
 	}
 
-	ret = idx + 1;
+	ret = idx;
 out:
 	mutex_unlock(&__ip_vs_mutex);
 	return ret;
@@ -2783,6 +2784,7 @@ int ofp_vs_snat_enable(void)
 	usvc.af = AF_INET;
 	usvc.fwmark = 1;
 	usvc.sched_name = "snat_sched";
+	usvc.est_timeout = sysctl_ip_vs_tcp_timeouts[IP_VS_TCP_S_ESTABLISHED]/HZ; 
 
 	
 	mutex_lock(&__ip_vs_mutex);

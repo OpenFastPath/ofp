@@ -408,8 +408,10 @@ void ip_vs_conn_put(struct ip_vs_conn *cp)
 	unsigned long timeout = cp->timeout;
 	uint64_t ticks = ofp_timer_ticks(0);
 
+	/*
 	if (cp->flags & IP_VS_CONN_F_ONE_PACKET)
 		timeout = 0;
+	*/
 
 	/* reset it expire in its timeout */
 	if ((cp->expires == 0) ||
@@ -599,12 +601,13 @@ static inline void ip_vs_unbind_dest(struct ip_vs_conn *cp)
 	if (!dest)
 		return;
 
-	IP_VS_DBG_BUF(7, "Unbind-dest %s c:%s:%d v:%s:%d "
+	IP_VS_DBG_BUF(7, "Unbind-dest %s c:%s:%d v:%s:%d l:%s:%d "
 		      "d:%s:%d fwd:%c s:%u conn->flags:%X conn->refcnt:%d "
 		      "dest->refcnt:%d cpu%d\n",
 		      ip_vs_proto_name(cp->protocol),
 		      IP_VS_DBG_ADDR(cp->af, &cp->caddr), ntohs(cp->cport),
 		      IP_VS_DBG_ADDR(cp->af, &cp->vaddr), ntohs(cp->vport),
+		      IP_VS_DBG_ADDR(cp->af, &cp->laddr), ntohs(cp->lport),
 		      IP_VS_DBG_ADDR(cp->af, &cp->daddr), ntohs(cp->dport),
 		      ip_vs_fwd_tag(cp), cp->state,
 		      cp->flags, atomic_read(&cp->refcnt),
@@ -798,11 +801,31 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 		ip_vs_addr_copy(cp->af, &cp->out_idx->d_addr, &local->addr);
 		ip_vs_addr_copy(cp->af, &cp->laddr, &local->addr);
 		remaining = sysctl_ip_vs_lport_max - sysctl_ip_vs_lport_min + 1;
+
 		for (i = 0; i < sysctl_ip_vs_lport_tries; i++) {
 			/* choose a port */
-			tport =
-			    (sysctl_ip_vs_lport_min + local->port++) %
-			    remaining;
+			if (IS_SNAT_SVC(svc)) {
+				unsigned int port_mask;
+				int round_cpu_count = ofp_vs_num_workers;
+				int cpu_idx =
+				    cpu - odp_cpumask_first(&ofp_vs_workers_cpumask);
+
+				if (!powerof2(round_cpu_count))
+					round_cpu_count = roundup(round_cpu_count, 2);
+				port_mask = ~(round_cpu_count - 1);
+
+				tport =
+				    (sysctl_ip_vs_lport_min + local->port++) %
+				    remaining;		
+				tport &= port_mask;
+				tport += cpu_idx; 
+				local->port += round_cpu_count;
+			} else {
+				tport =
+				    (sysctl_ip_vs_lport_min + local->port++) %
+				    remaining;
+			}
+
 			cp->out_idx->d_port = cp->lport =
 				(IPPROTO_ICMP != cp->protocol)
 				? htons(tport) : cp->cport;
@@ -819,7 +842,8 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 			spin_lock(&per_cpu(ip_vs_conn_tab_lock, cpu));
 
 			/*
-			 * check local address and port is valid by lookup connection table
+			 * check local address and port is valid 
+			 * by lookup connection table
 			 */
 			list_for_each_entry(cidx, &per_cpu(ip_vs_conn_tab_percpu
 						,cpu)[ohash], c_list) {

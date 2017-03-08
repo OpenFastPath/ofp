@@ -68,9 +68,10 @@ void ofp_vs_mod_timer(struct ofp_vs_timer *timer, uint64_t expires)
 	
 #ifdef OFP_DEBUG
 	IP_VS_DBG(12, "expires:%lu timer.expires:%lu"
-		" ticks:%lu to_ticks:%lu cpu:%d\n",
+		" ticks:%lu to_ticks:%lu loopticks:%lu cpu:%d\n",
 		expires, timer->expires, ticks,
-		timeout_ticks, rte_lcore_id());
+		timeout_ticks, RTE_PER_LCORE(ofp_vs_ticks_per_loop),
+		rte_lcore_id());
 #endif
 
 	assert(timeout_ticks <= OFP_VS_MAX_TIMEOUT_TICKS);

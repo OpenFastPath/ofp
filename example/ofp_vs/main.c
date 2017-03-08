@@ -24,6 +24,8 @@ typedef struct {
 	int if_count;		/**< Number of interfaces to be used */
 	char **if_names;	/**< Array of pointers to interface names */
 	char *conf_file;
+	int inner_port;
+	int outer_port;
 } appl_args_t;
 
 /* helper funcs */
@@ -257,8 +259,6 @@ static void ofp_pktout_queue_param_init(
 }
 
 
-odp_pktio_config_t default_pktio_config;
-
 static int create_ifnet_and_bind_queues(odp_instance_t instance,
 					appl_args_t *params,
 					const odp_cpumask_t *cpumask)
@@ -273,6 +273,15 @@ static int create_ifnet_and_bind_queues(odp_instance_t instance,
 		odp_pktin_queue_param_t pktin_param;
 		odp_pktout_queue_param_t pktout_param;
 		odp_pktio_t pktio;
+		odp_pktio_config_t pktio_config;
+		unsigned short port_mask = 0x0;
+		unsigned int laddr_mask = 0x0;
+
+		if (i == params->outer_port)
+			port_mask = roundup(cpu_count, 2) - 1;
+
+		if (i == params->inner_port)
+			laddr_mask = 0xffffffff;
 
 		odp_pktio_param_init(&pktio_param);
 		pktio_param.in_mode = ODP_PKTIN_MODE_DIRECT;
@@ -286,18 +295,22 @@ static int create_ifnet_and_bind_queues(odp_instance_t instance,
 		ofp_pktout_queue_param_init(&pktout_param, cpu_count);
 
 		/* Configure fdir for FULLNAT local address */
-		odp_pktio_config_init(&default_pktio_config);
-		default_pktio_config.fdir_conf.fdir_mode = RTE_FDIR_MODE_PERFECT;
-		default_pktio_config.fdir_conf.src_ipv4_mask = 0x0;
-		default_pktio_config.fdir_conf.dst_ipv4_mask = 0xffffffff;
-		default_pktio_config.fdir_conf.src_port_mask = 0x0;
-		default_pktio_config.fdir_conf.dst_port_mask = 0x0;
+		odp_pktio_config_init(&pktio_config);
+		pktio_config.fdir_conf.fdir_mode = RTE_FDIR_MODE_PERFECT;
+		pktio_config.fdir_conf.src_ipv4_mask =
+			rte_cpu_to_be_32(0x00000000);
+		pktio_config.fdir_conf.dst_ipv4_mask =
+			rte_cpu_to_be_32(laddr_mask);
+		pktio_config.fdir_conf.src_port_mask =
+			rte_cpu_to_be_16(0x0000);
+		pktio_config.fdir_conf.dst_port_mask =
+			rte_cpu_to_be_16(port_mask);
 
 		if (ofp_ifnet_create(instance, params->if_names[i],
 				&pktio_param,
 				&pktin_param,
 				&pktout_param,
-				&default_pktio_config) < 0) {
+				&pktio_config) < 0) {
 			OFP_ERR("Failed to init interface %s",
 				params->if_names[i]);
 			return -1;
@@ -381,6 +394,8 @@ int main(int argc, char *argv[])
 	rlp.rlim_cur = 200000000;
 	printf("Setting to max: %d\n", setrlimit(RLIMIT_CORE, &rlp));
 
+	appl_params.inner_port = -1;
+	appl_params.outer_port = -1;
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &appl_params);
 
@@ -501,6 +516,8 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 	static struct option longopts[] = {
 		{"count", required_argument, NULL, 'c'},
 		{"interface", required_argument, NULL, 'i'},	/* return 'i' */
+		{"outer interface", required_argument, NULL, 'o'},	/* return 'i' */
+		{"inter interface", required_argument, NULL, 'p'},	/* return 'i' */
 		{"help", no_argument, NULL, 'h'},		/* return 'h' */
 		{"configuration file", required_argument,
 			NULL, 'f'},/* return 'f' */
@@ -510,7 +527,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 	memset(appl_args, 0, sizeof(*appl_args));
 
 	while (1) {
-		opt = getopt_long(argc, argv, "+c:i:hf:",
+		opt = getopt_long(argc, argv, "+c:i:o:p:hf:",
 				  longopts, &long_index);
 
 		if (opt == -1)
@@ -585,6 +602,14 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 			strcpy(appl_args->conf_file, optarg);
 			break;
 
+		case 'o':
+			appl_args->outer_port = atoi(optarg);
+			break;
+
+		case 'p':
+			appl_args->inner_port = atoi(optarg);
+			break;
+
 		default:
 			break;
 		}
@@ -642,6 +667,8 @@ static void usage(char *progname)
 		   "\n"
 		   "Mandatory OPTIONS:\n"
 		   "  -i, --interface Eth interfaces (comma-separated, no spaces)\n"
+		   "  -o, Outer interface to set snat fdir rules\n"
+		   "  -p, Inner interface to set fnat laddr fdir rules\n"
 		   "\n"
 		   "Optional OPTIONS\n"
 		   "  -c, --count <number> Core count.\n"
