@@ -48,7 +48,68 @@ str2flowtype(char *string)
 	return RTE_ETH_FLOW_UNKNOWN;
 }
 
-static void __fdir_ctrl(void *handle, const char *args, const char *op)
+int fdir_ctrl(int proto, __be32 src_ip, __be32 dst_ip,
+	      __be16 src_port, __be16 dst_port,
+	      int port, int queue_id, int op)
+{
+	int ret;
+	struct rte_eth_fdir_filter entry;
+	uint8_t flexbytes[RTE_ETH_FDIR_MAX_FLEXLEN];
+
+	OFP_DBG("args: port:%d p:%d s:"PRINT_IP_FORMAT":%d d:"
+		PRINT_IP_FORMAT":%d q:%d op:%d\n",
+	        port, proto, PRINT_NIP(src_ip), ntohs(src_port),
+		PRINT_NIP(dst_ip), ntohs(dst_port), queue_id, op);
+
+	memset(flexbytes, 0, sizeof(flexbytes));
+	memset(&entry, 0, sizeof(struct rte_eth_fdir_filter));
+
+	entry.input.flow_type = proto;
+	switch (entry.input.flow_type) {
+	//case RTE_ETH_FLOW_IPV4:
+	case RTE_ETH_FLOW_FRAG_IPV4:
+	case RTE_ETH_FLOW_NONFRAG_IPV4_OTHER:
+	case RTE_ETH_FLOW_NONFRAG_IPV4_UDP:
+	case RTE_ETH_FLOW_NONFRAG_IPV4_TCP:
+		entry.input.flow.ip4_flow.dst_ip = dst_ip;
+		entry.input.flow.ip4_flow.src_ip = src_ip;
+		/* need convert to big endian. */
+		entry.input.flow.udp4_flow.dst_port = dst_port;
+		entry.input.flow.udp4_flow.src_port = src_port;
+		break;
+	default:
+		OFP_ERR("Not support flow_type %d\r\n", entry.input.flow_type);
+		return -EINVAL;
+	}
+
+	
+	entry.action.flex_off = 0;  /*use 0 by default */
+	entry.action.behavior = RTE_ETH_FDIR_ACCEPT;
+	entry.action.report_status = RTE_ETH_FDIR_REPORT_ID;
+	entry.action.rx_queue = queue_id;
+
+	switch (op) {
+        case RTE_ETH_FILTER_ADD:	
+		ret = rte_eth_dev_filter_ctrl(port,
+			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_ADD, &entry);
+		break;
+	case RTE_ETH_FILTER_DELETE:	
+		ret = rte_eth_dev_filter_ctrl(port,
+			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_DELETE, &entry);
+		break;
+	case RTE_ETH_FILTER_UPDATE:	
+		ret = rte_eth_dev_filter_ctrl(port,
+			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_UPDATE, &entry);
+		break;
+	default:
+		OFP_ERR("Not support operation %d\r\n", op);
+		ret = -EINVAL;	
+	}
+
+	return ret;
+}
+
+static void fdir_handle(void *handle, const char *args, int op)
 {
 	int ret;
 	int sscanf_cnt;
@@ -57,8 +118,8 @@ static void __fdir_ctrl(void *handle, const char *args, const char *op)
 	int a, b, c, d, e, f, g, h, src_port, dst_port, queue_id, port, vlan;
 	char dev[16];
 	char proto[16];
-	struct rte_eth_fdir_filter entry;
-	uint8_t flexbytes[RTE_ETH_FDIR_MAX_FLEXLEN];
+	
+	OFP_DBG("args: %s", args);
 
 	if ((sscanf_cnt = sscanf(args,
 		"%s %s %d.%d.%d.%d %d %d.%d.%d.%d %d %d",
@@ -69,13 +130,11 @@ static void __fdir_ctrl(void *handle, const char *args, const char *op)
 		sendcrlf((struct cli_conn *)handle);
 		return;
 	}
-
-	OFP_DBG("args: %s %s %d.%d.%d.%d %d %d.%d.%d.%d %d %d",
-		dev, proto, a, b, c, d, src_port,
-		e, f, g, h, dst_port, queue_id);
 	
 	src_ip = odp_cpu_to_be_32((a << 24) | (b << 16) | (c << 8) | d);
 	dst_ip = odp_cpu_to_be_32((e << 24) | (f << 16) | (g << 8) | h);
+	src_port = odp_cpu_to_be_16(src_port);
+	dst_port = odp_cpu_to_be_16(dst_port);
 
 	port = ofp_name_to_port_vlan(dev, &vlan); 
 	if (port < 0 || port >= ofp_get_num_ports()) {
@@ -91,47 +150,8 @@ static void __fdir_ctrl(void *handle, const char *args, const char *op)
 		return;		
 	}
 
-	memset(flexbytes, 0, sizeof(flexbytes));
-	memset(&entry, 0, sizeof(struct rte_eth_fdir_filter));
-
-	entry.input.flow_type = str2flowtype(proto);
-	switch (entry.input.flow_type) {
-	//case RTE_ETH_FLOW_IPV4:
-	case RTE_ETH_FLOW_FRAG_IPV4:
-	case RTE_ETH_FLOW_NONFRAG_IPV4_OTHER:
-	case RTE_ETH_FLOW_NONFRAG_IPV4_UDP:
-	case RTE_ETH_FLOW_NONFRAG_IPV4_TCP:
-		entry.input.flow.ip4_flow.dst_ip = dst_ip;
-		entry.input.flow.ip4_flow.src_ip = src_ip;
-		/* need convert to big endian. */
-		entry.input.flow.udp4_flow.dst_port =
-				rte_cpu_to_be_16(dst_port);
-		entry.input.flow.udp4_flow.src_port =
-				rte_cpu_to_be_16(src_port);
-		break;
-	default:
-		ofp_sendf(fd, "Not support flow_type %d\r\n",
-		        entry.input.flow_type);
-		sendcrlf((struct cli_conn *)handle);
-		return;
-	}
-
-	
-	entry.action.flex_off = 0;  /*use 0 by default */
-	entry.action.behavior = RTE_ETH_FDIR_ACCEPT;
-	entry.action.report_status = RTE_ETH_FDIR_REPORT_ID;
-	entry.action.rx_queue = queue_id;
-
-	if (!strcmp(op, "add")) {
-		ret = rte_eth_dev_filter_ctrl(port,
-			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_ADD, &entry);
-	} else if (!strcmp(op, "del")) {
-		ret = rte_eth_dev_filter_ctrl(port,
-			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_DELETE, &entry);
-	} else {
-		ret = rte_eth_dev_filter_ctrl(port,
-			RTE_ETH_FILTER_FDIR, RTE_ETH_FILTER_UPDATE, &entry);
-	}
+	ret = fdir_ctrl(str2flowtype(proto), src_ip, dst_ip,
+		src_port, dst_port, port, queue_id, op);	
 
 	if (ret < 0) {
 		ofp_sendf(fd, "flow director programming error: (%s)\r\n",
@@ -140,18 +160,18 @@ static void __fdir_ctrl(void *handle, const char *args, const char *op)
 		return;
 	}
 
-	ofp_sendf(fd, "%s OK\r\n", op);
+	ofp_sendf(fd, "OK\r\n");
 	sendcrlf((struct cli_conn *)handle);
 }
 
 static void fdir_add(void *handle, const char *args)
 {
-	__fdir_ctrl(handle, args, "add");
+	fdir_handle(handle, args, RTE_ETH_FILTER_ADD);
 }
 
 static void fdir_del(void *handle, const char *args)
 {
-	__fdir_ctrl(handle, args, "del");
+	fdir_handle(handle, args, RTE_ETH_FILTER_DELETE);
 }
 
 static inline void
@@ -379,13 +399,31 @@ static void fdir_flush(void *handle, const char *args)
 static void snat_enable(void *handle, const char *args)
 {
 	int fd = ofp_cli_get_fd(handle);
-	int ret = 0;
+	int i, outer_port, ret = 0;
 	(void)args;
 	
 	if ((ret = ofp_vs_snat_enable())) {
 		ofp_sendf(fd, "snat enable error: (%s)\r\n", strerror(ret));
+		goto out;
 	}
 	
+	outer_port = ofp_vs_outer_port();
+	if (outer_port < 0 || ofp_vs_worker_count() == 1)
+		goto out;
+
+	for (i = 0; i < (int)ofp_vs_worker_count(); i++) {
+		__be32 dst_port = odp_cpu_to_be_16(i); 
+		ret = fdir_ctrl(RTE_ETH_FLOW_NONFRAG_IPV4_TCP, 0, 0, 0,
+			dst_port, outer_port, i, RTE_ETH_FILTER_ADD);
+		if (ret < 0) {
+			ofp_sendf(fd,
+			    "flow director programming error: (%s)\r\n",
+			    strerror(-ret));
+			break;
+		}
+	}
+
+out:
 	sendcrlf((struct cli_conn *)handle);
 }
 

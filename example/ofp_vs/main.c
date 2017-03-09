@@ -28,6 +28,9 @@ typedef struct {
 	int outer_port;
 } appl_args_t;
 
+static appl_args_t appl_params;
+
+
 /* helper funcs */
 static void parse_args(int argc, char *argv[], appl_args_t *appl_args);
 static void print_info(char *progname, appl_args_t *appl_args);
@@ -40,8 +43,23 @@ ofp_init_global_t app_init_params; /**< global OFP init parms */
 				strrchr((file_name), '/') + 1 : (file_name))
 
 
-unsigned ofp_vs_num_workers;
-odp_cpumask_t ofp_vs_workers_cpumask;
+static unsigned int ofp_vs_num_workers;
+odp_cpumask_t ofp_vs_worker_cpumask;
+
+unsigned int ofp_vs_worker_count(void)
+{
+	return ofp_vs_num_workers;
+}
+
+int ofp_vs_outer_port(void)
+{
+	return appl_params.outer_port;
+}
+
+int ofp_vs_inner_port(void)
+{
+	return appl_params.inner_port;
+}
 
 struct pktin_table_s {
 	int	num_in_queue;
@@ -278,7 +296,7 @@ static int create_ifnet_and_bind_queues(odp_instance_t instance,
 		unsigned int laddr_mask = 0x0;
 
 		if (i == params->outer_port)
-			port_mask = roundup(cpu_count, 2) - 1;
+			port_mask = __roundup_pow_of_two(cpu_count) - 1;
 
 		if (i == params->inner_port)
 			laddr_mask = 0xffffffff;
@@ -365,8 +383,6 @@ static int create_ifnet_and_bind_queues(odp_instance_t instance,
 #include <sys/time.h>
 #include <sys/resource.h>
 
-static appl_args_t appl_params;
-
 int main(int argc, char *argv[])
 {
 	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
@@ -394,8 +410,6 @@ int main(int argc, char *argv[])
 	rlp.rlim_cur = 200000000;
 	printf("Setting to max: %d\n", setrlimit(RLIMIT_CORE, &rlp));
 
-	appl_params.inner_port = -1;
-	appl_params.outer_port = -1;
 	/* Parse and store the application arguments */
 	parse_args(argc, argv, &appl_params);
 
@@ -424,7 +438,7 @@ int main(int argc, char *argv[])
 	odp_cpumask_to_str(&cpumask, cpumaskstr, sizeof(cpumaskstr));
 
 	ofp_vs_num_workers = num_workers;
-	odp_cpumask_copy(&ofp_vs_workers_cpumask, &cpumask);
+	odp_cpumask_copy(&ofp_vs_worker_cpumask, &cpumask);
 
 	printf("odp_cpu_count : %i\n", core_count);
 	printf("Num worker threads: %i\n", num_workers);
@@ -525,6 +539,8 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 	};
 
 	memset(appl_args, 0, sizeof(*appl_args));
+	appl_params.inner_port = -1;
+	appl_params.outer_port = -1;
 
 	while (1) {
 		opt = getopt_long(argc, argv, "+c:i:o:p:hf:",
@@ -638,10 +654,13 @@ static void print_info(char *progname, appl_args_t *appl_args)
 		   "CPU freq (hz):   %"PRIu64"\n"
 		   "Cache line size: %i\n"
 		   "Core count:      %i\n"
+		   "Outer port:      %i\n"
+		   "Inner port:      %i\n"
 		   "\n",
 		   odp_version_api_str(), odp_cpu_model_str(),
 		   odp_cpu_hz(), odp_sys_cache_line_size(),
-		   odp_cpu_count());
+		   odp_cpu_count(), appl_args->outer_port,
+		   appl_args->inner_port);
 
 	printf("Running ODP appl: \"%s\"\n"
 		   "-----------------\n"

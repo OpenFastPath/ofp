@@ -744,6 +744,7 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 	struct ip_vs_laddr *local;
 	struct ip_vs_laddr snat_local;
 	int ret = 0;
+	int cpu = cp->cpuid;
 	int remaining, i, tport, hit = 0;
 	unsigned ihash, ohash;
 	struct ip_vs_conn_idx *cidx;
@@ -787,102 +788,106 @@ static inline int ip_vs_hbind_laddr(struct ip_vs_conn *cp)
 	} else
 		local = ip_vs_get_laddr(svc);
 
-	if (local != NULL) {
-		int cpu = cp->cpuid;
-
-		/*OUTside2INside: hashed by client address and port, virtual address and port */
-		ihash =
-		    ip_vs_conn_hashkey(cp->af, &cp->caddr, cp->cport,
-				       &cp->vaddr, cp->vport);
-
-		/* increase the refcnt counter of the local address */
-		if (local != &snat_local)
-			ip_vs_laddr_hold(local);
-		ip_vs_addr_copy(cp->af, &cp->out_idx->d_addr, &local->addr);
-		ip_vs_addr_copy(cp->af, &cp->laddr, &local->addr);
-		remaining = sysctl_ip_vs_lport_max - sysctl_ip_vs_lport_min + 1;
-
-		for (i = 0; i < sysctl_ip_vs_lport_tries; i++) {
-			/* choose a port */
-			if (IS_SNAT_SVC(svc)) {
-				unsigned int port_mask;
-				int round_cpu_count = ofp_vs_num_workers;
-				int cpu_idx =
-				    cpu - odp_cpumask_first(&ofp_vs_workers_cpumask);
-
-				if (!powerof2(round_cpu_count))
-					round_cpu_count = roundup(round_cpu_count, 2);
-				port_mask = ~(round_cpu_count - 1);
-
-				tport =
-				    (sysctl_ip_vs_lport_min + local->port++) %
-				    remaining;		
-				tport &= port_mask;
-				tport += cpu_idx; 
-				local->port += round_cpu_count;
-			} else {
-				tport =
-				    (sysctl_ip_vs_lport_min + local->port++) %
-				    remaining;
-			}
-
-			cp->out_idx->d_port = cp->lport =
-				(IPPROTO_ICMP != cp->protocol)
-				? htons(tport) : cp->cport;
-
-			/* init hit everytime before lookup the tuple */
-			hit = 0;
-
-			/*INside2OUTside: hashed by destination address 
-			 * and port, local address and port */
-			ohash =
-			    ip_vs_conn_hashkey(cp->af, &cp->daddr, cp->dport,
-					       &cp->laddr, cp->lport);
-			/* lock the conntab of the current cpu */
-			spin_lock(&per_cpu(ip_vs_conn_tab_lock, cpu));
-
-			/*
-			 * check local address and port is valid 
-			 * by lookup connection table
-			 */
-			list_for_each_entry(cidx, &per_cpu(ip_vs_conn_tab_percpu
-						,cpu)[ohash], c_list) {
-				if (cidx->af == cp->af
-				    && ip_vs_addr_equal(cp->af, &cp->daddr,
-							&cidx->s_addr)
-				    && ip_vs_addr_equal(cp->af, &cp->laddr,
-							&cidx->d_addr)
-				    && cp->dport == cidx->s_port
-				    && cp->lport == cidx->d_port
-				    && cp->protocol == cidx->protocol) {
-					/* HIT */
-					if (local != &snat_local)
-						atomic64_inc(&local->port_conflict);
-					hit = 1;
-					break;
-				}
-			}
-			if (hit == 0) {
-				if (local != &snat_local)
-					cp->local = local;
-				else
-					cp->local = NULL;
-				/* hashed */
-				__ip_vs_conn_hash(cp, ihash, ohash);
-				spin_unlock(&per_cpu(ip_vs_conn_tab_lock, cpu));
-				if (local != &snat_local)
-					atomic_inc(&local->conn_counts);
-				ret = 1;
-				goto out;
-			}
-			spin_unlock(&per_cpu(ip_vs_conn_tab_lock, cpu));
-		}
-		if (ret == 0) {
-			if (local != &snat_local)
-				ip_vs_laddr_put(local);
-		}
+	if (local == NULL) {
+		ret = 0;
+		goto out;
 	}
-	ret = 0;
+
+
+	/*OUTside2INside: hashed by client address and port, virtual address and port */
+	ihash =
+	    ip_vs_conn_hashkey(cp->af, &cp->caddr, cp->cport,
+			       &cp->vaddr, cp->vport);
+
+	/* increase the refcnt counter of the local address */
+	if (local != &snat_local)
+		ip_vs_laddr_hold(local);
+	ip_vs_addr_copy(cp->af, &cp->out_idx->d_addr, &local->addr);
+	ip_vs_addr_copy(cp->af, &cp->laddr, &local->addr);
+	remaining = sysctl_ip_vs_lport_max - sysctl_ip_vs_lport_min + 1;
+
+	for (i = 0; i < sysctl_ip_vs_lport_tries; i++) {
+		/* choose a port */
+		if (IS_SNAT_SVC(svc)) {
+			unsigned int port_mask;
+			uint32_t round_cpu_count = ofp_vs_worker_count();
+			int cpu_idx =
+			    cpu - odp_cpumask_first(&ofp_vs_worker_cpumask);
+
+			if (!powerof2(round_cpu_count))
+				round_cpu_count =
+				    __roundup_pow_of_two(round_cpu_count);
+			port_mask = ~(round_cpu_count - 1);
+
+			tport =
+			    sysctl_ip_vs_lport_min + (local->port) %
+			    remaining;
+			
+			tport &= port_mask;
+			tport += cpu_idx; 
+			local->port += round_cpu_count;
+		} else {
+			tport =
+			    sysctl_ip_vs_lport_min + (local->port++) %
+			    remaining;
+		}
+
+		cp->out_idx->d_port = cp->lport =
+			(IPPROTO_ICMP != cp->protocol)
+			? htons(tport) : cp->cport;
+
+		/* init hit everytime before lookup the tuple */
+		hit = 0;
+
+		/*INside2OUTside: hashed by destination address 
+		 * and port, local address and port */
+		ohash =
+		    ip_vs_conn_hashkey(cp->af, &cp->daddr, cp->dport,
+				       &cp->laddr, cp->lport);
+		/* lock the conntab of the current cpu */
+		spin_lock(&per_cpu(ip_vs_conn_tab_lock, cpu));
+
+		/*
+		 * check local address and port is valid 
+		 * by lookup connection table
+		 */
+		list_for_each_entry(cidx, &per_cpu(ip_vs_conn_tab_percpu
+					,cpu)[ohash], c_list) {
+			if (cidx->af == cp->af
+			    && ip_vs_addr_equal(cp->af, &cp->daddr,
+						&cidx->s_addr)
+			    && ip_vs_addr_equal(cp->af, &cp->laddr,
+						&cidx->d_addr)
+			    && cp->dport == cidx->s_port
+			    && cp->lport == cidx->d_port
+			    && cp->protocol == cidx->protocol) {
+				/* HIT */
+				if (local != &snat_local)
+					atomic64_inc(&local->port_conflict);
+				hit = 1;
+				break;
+			}
+		}
+		if (hit == 0) {
+			if (local != &snat_local)
+				cp->local = local;
+			else
+				cp->local = NULL;
+			/* hashed */
+			__ip_vs_conn_hash(cp, ihash, ohash);
+			spin_unlock(&per_cpu(ip_vs_conn_tab_lock, cpu));
+			if (local != &snat_local)
+				atomic_inc(&local->conn_counts);
+			ret = 1;
+			goto out;
+		}
+		spin_unlock(&per_cpu(ip_vs_conn_tab_lock, cpu));
+	}
+
+	if (ret == 0) {
+		if (local != &snat_local)
+			ip_vs_laddr_put(local);
+	}
 
       out:
 	return ret;
@@ -1568,7 +1573,7 @@ static void ip_vs_conn_max_init(void)
 	sysctl_ip_vs_conn_max_num = (physmem_size >> 2) / conn_size;
 
 	/* the average length of hash chain must be less than 4 */
-	conn_tab_limit = (IP_VS_CONN_TAB_SIZE << 2) * ofp_vs_num_workers;
+	conn_tab_limit = (IP_VS_CONN_TAB_SIZE << 2) * ofp_vs_worker_count();
 
 	if ( sysctl_ip_vs_conn_max_num > conn_tab_limit )
 		sysctl_ip_vs_conn_max_num = conn_tab_limit;
@@ -1583,7 +1588,7 @@ int ip_vs_conn_init(void)
 	int cpu;
 
 	OFP_DBG("rte_lcore_count %d odp_cpu_count %d num_workers %d\n",
-		rte_lcore_count(), odp_cpu_count(), ofp_vs_num_workers);	
+		rte_lcore_count(), odp_cpu_count(), ofp_vs_worker_count());	
 	for_each_possible_cpu(cpu) {
 		void *tmp;
 		/*
@@ -1609,12 +1614,12 @@ int ip_vs_conn_init(void)
 		
 	ip_vs_conn_max_init();
 
-	for_each_odp_cpumask(cpu, &ofp_vs_workers_cpumask) {
+	for_each_odp_cpumask(cpu, &ofp_vs_worker_cpumask) {
 		int pool_size;
 		char mempool_name[RTE_MEMPOOL_NAMESIZE];
 		unsigned socket_id = rte_lcore_to_socket_id(cpu);
 
-		pool_size = sysctl_ip_vs_conn_max_num/ofp_vs_num_workers,
+		pool_size = sysctl_ip_vs_conn_max_num/ofp_vs_worker_count(),
 
 		sprintf(mempool_name, "ip_vs_conn_pool%d", cpu);
 		per_cpu(ip_vs_conn_cachep, cpu) =

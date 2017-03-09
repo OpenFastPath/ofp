@@ -177,7 +177,7 @@ int ofp_vs_timer_init(void)
 	}
 
 	
-	for_each_odp_cpumask(cpu, &ofp_vs_workers_cpumask) {
+	for_each_odp_cpumask(cpu, &ofp_vs_worker_cpumask) {
 		/*
 		per_cpu(odp_timer, cpu) =
 			ofp_timer_start_cpu_id(ofp_vs_us_per_tick,

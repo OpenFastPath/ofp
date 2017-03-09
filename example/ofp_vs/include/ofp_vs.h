@@ -26,8 +26,8 @@
 #include "kern_list.h"
 #include "net/ip_vs.h"
 
-extern unsigned ofp_vs_num_workers;
-extern odp_cpumask_t ofp_vs_workers_cpumask;
+extern odp_cpumask_t ofp_vs_worker_cpumask;
+unsigned int ofp_vs_worker_count(void);
 
 enum ofp_return_code ofp_vs_in(odp_packet_t pkt, void *arg);
 enum ofp_return_code ofp_vs_out(odp_packet_t pkt, void *arg);
@@ -80,6 +80,13 @@ int ofp_vs_snat_add_rule(const struct snat_args *args);
 int ofp_vs_snat_del_rule(const struct snat_args *args);
 
 int ofp_vs_snat_dump_rules(struct snat_args *args, int cnt);
+
+int fdir_ctrl(int proto, __be32 src_ip, __be32 dst_ip,
+	      __be16 src_port, __be16 dst_port,
+	      int port, int queue_id, int op);
+
+int ofp_vs_outer_port(void);
+int ofp_vs_inner_port(void);
 
 #define MAX_SNAT_RULES 1024
 

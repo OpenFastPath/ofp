@@ -1057,9 +1057,9 @@ static inline int laddr_to_cpuid(int af, const union nf_inet_addr *addr)
 	else
 		seed = rte_be_to_cpu_32(addr->ip) & LADDR_MASK;
 
-	pos = seed % ofp_vs_num_workers; 
+	pos = seed % ofp_vs_worker_count(); 
 
-	for_each_odp_cpumask(cpu, &ofp_vs_workers_cpumask) {
+	for_each_odp_cpumask(cpu, &ofp_vs_worker_cpumask) {
 		if (idx++ == pos)
 			break;
 	}
@@ -1136,8 +1136,8 @@ ip_vs_add_laddr(struct ip_vs_service *svc, struct ip_vs_laddr_user_kern *uladdr)
 {
 	struct ip_vs_laddr *laddr;
 	struct ip_vs_service *this_svc;
-	int cpu;
-	int ret;
+	int cpu, ret, inner_port;
+
 
 	IP_VS_DBG_BUF(0, "vip %s:%d add local address %s\n",
 		      IP_VS_DBG_ADDR(svc->af, &svc->addr), ntohs(svc->port),
@@ -1190,6 +1190,20 @@ ip_vs_add_laddr(struct ip_vs_service *svc, struct ip_vs_laddr_user_kern *uladdr)
 
 	spin_unlock_bh(&per_cpu(ip_vs_svc_lock, cpu));
 
+	if ((inner_port = ofp_vs_inner_port()) >= 0
+	    && ofp_vs_worker_count() > 1) {
+		int ret;
+		int queue_id =
+		    cpu - odp_cpumask_first(&ofp_vs_worker_cpumask);
+
+		ret = fdir_ctrl(RTE_ETH_FLOW_NONFRAG_IPV4_OTHER, 0,
+		    uladdr->addr.ip, 0, 0, inner_port, queue_id, 
+		    RTE_ETH_FILTER_ADD);
+		if (ret < 0)
+			OFP_ERR("flow director programming error: (%s)\r\n",
+				strerror(-ret));
+	}
+
 	return 0;
 }
 
@@ -1198,7 +1212,7 @@ ip_vs_del_laddr(struct ip_vs_service *svc, struct ip_vs_laddr_user_kern *uladdr)
 {
 	struct ip_vs_laddr *laddr;
 	struct ip_vs_service *this_svc;
-	int cpu;
+	int cpu, inner_port;
 
 	IP_VS_DBG_BUF(0, "vip %s:%d del local address %s\n",
 		      IP_VS_DBG_ADDR(svc->af, &svc->addr), ntohs(svc->port),
@@ -1239,6 +1253,19 @@ ip_vs_del_laddr(struct ip_vs_service *svc, struct ip_vs_laddr_user_kern *uladdr)
 	ip_vs_laddr_put(laddr);
 
 	spin_unlock_bh(&per_cpu(ip_vs_svc_lock, cpu));
+
+	if ((inner_port = ofp_vs_inner_port()) >= 0
+	    && ofp_vs_worker_count() > 1) {
+		int ret;
+		int queue_id =
+		    cpu - odp_cpumask_first(&ofp_vs_worker_cpumask);
+		ret = fdir_ctrl(RTE_ETH_FLOW_NONFRAG_IPV4_OTHER, 0,
+		    uladdr->addr.ip, 0, 0, inner_port, queue_id, 
+		    RTE_ETH_FILTER_DELETE);
+		if (ret < 0)
+			OFP_ERR("flow director programming error: (%s)\r\n",
+				strerror(-ret));
+	}
 
 	return 0;
 }
