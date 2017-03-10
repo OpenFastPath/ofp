@@ -207,7 +207,7 @@ int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
 
 	for (i = 0; i < params->if_count; ++i)
 		HANDLE_ERROR(ofp_ifnet_create(instance, params->if_names[i],
-			&pktio_param, &pktin_param, NULL, NULL));
+			&pktio_param, &pktin_param, NULL));
 
 #ifdef SP
 	/* Start Netlink server process */

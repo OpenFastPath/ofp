@@ -201,6 +201,16 @@ int ofp_ifnet_create(odp_instance_t instance,
 	char *if_name,
 	odp_pktio_param_t *pktio_param,
 	odp_pktin_queue_param_t *pktin_param,
+	odp_pktout_queue_param_t *pktout_param)
+{
+	return ofp_ifnet_create2(instance, if_name, pktio_param,
+		pktin_param, pktout_param, NULL);
+}
+
+int ofp_ifnet_create2(odp_instance_t instance,
+	char *if_name,
+	odp_pktio_param_t *pktio_param,
+	odp_pktin_queue_param_t *pktin_param,
 	odp_pktout_queue_param_t *pktout_param,
 	odp_pktio_config_t *pktio_config)
 {
