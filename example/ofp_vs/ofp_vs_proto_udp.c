@@ -123,12 +123,12 @@ udp_snat_handler(struct rte_mbuf *skb,
 	udph->source = cp->vport;
 	udph->dest = cp->cport;
 
+	udph->check = 0;
 	if (sysctl_ip_vs_csum_offload) {
-		skb->ol_flags |= PKT_TX_TCP_CKSUM;
+		skb->ol_flags |= PKT_TX_UDP_CKSUM;
 		udph->check = rte_ipv4_phdr_cksum((struct ipv4_hdr *)iph,
 						skb->ol_flags);	
 	} else {
-		udph->check = 0;
 		udph->check = ofp_vs_ipv4_udptcp_cksum(iph, udph);
 	}
 
@@ -145,13 +145,13 @@ udp_dnat_handler(struct rte_mbuf *skb,
 
 	udph->source = cp->lport;
 	udph->dest = cp->dport;
-
+	
+	udph->check = 0;
 	if (sysctl_ip_vs_csum_offload) {
-		skb->ol_flags |= PKT_TX_TCP_CKSUM;
+		skb->ol_flags |= PKT_TX_UDP_CKSUM;
 		udph->check = rte_ipv4_phdr_cksum((struct ipv4_hdr *)iph,
 						skb->ol_flags);	
 	} else {
-		udph->check = 0;
 		udph->check = ofp_vs_ipv4_udptcp_cksum(iph, udph);
 	}
 	return 1;

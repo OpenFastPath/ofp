@@ -21,27 +21,26 @@
 static inline void
 ipv4_cksum(struct iphdr *iphdr, struct rte_mbuf *skb)
 {
-	struct ether_hdr *eth_hdr = rte_pktmbuf_mtod(skb, struct ether_hdr *);
-	uint16_t ethertype;
+	//struct ether_hdr *eth_hdr = rte_pktmbuf_mtod(skb, struct ether_hdr *);
+	//uint16_t ethertype;
 
 	iphdr->check = 0;
 	if (sysctl_ip_vs_csum_offload) {
 		/* Use hardware csum offload */
-		//skb->ol_flags |= PKT_TX_OUTER_IP_CKSUM;
-		//skb->ol_flags |= PKT_TX_OUTER_IPV4;
-		skb->ol_flags |= PKT_TX_IPV4;
+#ifdef OFP_PERFORMANCE
 		skb->ol_flags |= PKT_TX_IP_CKSUM;
-		skb->l3_len = ip_hdrlen(iphdr);
-		skb->l2_len = sizeof(struct ether_hdr);
-		ethertype = rte_be_to_cpu_16(eth_hdr->ether_type);
-		//skb->outer_l3_len = ip_hdrlen(iphdr);
-		//skb->outer_l2_len = sizeof(struct ether_hdr);
+#endif
+		//skb->l3_len = ip_hdrlen(iphdr);
+		//skb->l2_len = sizeof(struct ether_hdr);
+		//ethertype = rte_be_to_cpu_16(eth_hdr->ether_type);
 
-		if (ethertype == ETHER_TYPE_VLAN) {
-			skb->l2_len  += sizeof(struct vlan_hdr);
-		}
+		//if (ethertype == ETHER_TYPE_VLAN) {
+		//	skb->l2_len  += sizeof(struct vlan_hdr);
+		//}
 	} else {
+#ifdef OFP_PERFORMANCE
 		iphdr->check = ofp_vs_ipv4_cksum(iphdr);
+#endif
 	}
 }
 

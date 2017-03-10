@@ -317,9 +317,8 @@ static int ip_vs_svc_unhash(struct ip_vs_service *svc)
 		/* Remove it from the ip_vs_svc_table table */
 		list_del(&svc->s_list);
 	} else {
-		return 0;
 		/* Remove it from the ip_vs_svc_fwm_table table */
-		//list_del(&svc->f_list);
+		list_del(&svc->f_list);
 	}
 
 	svc->flags &= ~IP_VS_SVC_F_HASHED;
@@ -2983,6 +2982,7 @@ static int alloc_svc_tab(void)
 	/* clear percpu svc_tab */
 	for_each_possible_cpu(cpu) {
 		per_cpu(ip_vs_svc_tab_percpu, cpu) = NULL;
+		per_cpu(ip_vs_svc_fwm_tab_percpu, cpu) = NULL;
 	}
 
 	for_each_possible_cpu(cpu) {
