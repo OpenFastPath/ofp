@@ -164,8 +164,7 @@ static int create_interfaces_direct_rss(odp_instance_t instance,
 		if (ofp_ifnet_create(instance, if_names[i],
 				&pktio_param,
 				&pktin_param,
-				&pktout_param,
-				NULL) < 0) {
+				&pktout_param) < 0) {
 			OFP_ERR("Failed to init interface %s",
 				if_names[i]);
 			return -1;

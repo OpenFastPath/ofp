@@ -324,7 +324,7 @@ static int create_ifnet_and_bind_queues(odp_instance_t instance,
 		pktio_config.fdir_conf.dst_port_mask =
 			rte_cpu_to_be_16(port_mask);
 
-		if (ofp_ifnet_create(instance, params->if_names[i],
+		if (ofp_ifnet_create2(instance, params->if_names[i],
 				&pktio_param,
 				&pktin_param,
 				&pktout_param,
