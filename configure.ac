@@ -188,7 +188,8 @@ PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= $ODP_VERSION_SUPPORTED], [], check_odp)
 AC_SUBST([ODP_CFLAGS])
 AC_SUBST([ODP_LIBS])
 
-PKG_CHECK_MODULES([ODPHELPER], [libodphelper-linux],[],[ODPHELPER_LIBS="-lodphelper-linux"])
+PKG_CHECK_MODULES([ODPHELPER], [libodphelper], [],
+				  [ODPHELPER_LIBS="-lodphelper-linux"])
 AC_SUBST([ODPHELPER_CFLAGS])
 AC_SUBST([ODPHELPER_LIBS])
 
