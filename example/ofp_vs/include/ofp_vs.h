@@ -20,6 +20,7 @@
 #include <rte_mbuf.h>
 #include <rte_cycles.h>
 #include <rte_hash_crc.h>
+#include <rte_common.h>
 
 #include "ofp_vs_kern_compat.h"
 #include "ofp_vs_tcpip.h"

@@ -4,12 +4,12 @@ noinst_PROGRAMS = ofp_vs
 
 AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api
-AM_CFLAGS +=  -I/usr/local/include/libnl3
+AM_CFLAGS +=  -I/usr/include/libnl3
 AM_CFLAGS +=  -I$(RTE_SDK)/$(RTE_TARGET)/include
 AM_CFLAGS +=  -I./include
 AM_CFLAGS +=  -msse4.2
 
-ofp_vs_LDFLAGS = $(AM_LDFLAGS) -static -L/usr/local/lib -lnl-3 -lnl-genl-3 -lnl-cli-3
+ofp_vs_LDFLAGS = $(AM_LDFLAGS) -static -lnl-3 -lnl-genl-3 -lnl-cli-3
 ofp_vs_CFLAGS = $(AM_CFLAGS) -Woverride-init 
 ofp_vs_CFLAGS += -DCONFIG_IP_VS_PROTO_TCP
 ofp_vs_CFLAGS += -DCONFIG_IP_VS_PROTO_UDP 
