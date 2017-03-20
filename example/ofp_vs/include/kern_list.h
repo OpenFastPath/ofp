@@ -336,10 +336,10 @@ static inline void list_splice_tail_init(struct list_head *list,
 	}
 }
 
-/*
+#ifndef container_of
 #define container_of(ptr, type, member) \
   ((type *) ((char *) (ptr) - (unsigned long) (&((type *) 0)->member)))
-*/
+#endif
 
 /**
  * list_entry - get the struct for this entry

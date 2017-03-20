@@ -560,6 +560,7 @@ ofp_tcp_input(odp_packet_t m, int off0)
 	int thflags;
 	int rstreason = 0;	/* For badport_bandlim accounting purposes */
 	uint8_t iptos = 0;
+	int l2off, l3off;
 #ifdef INET6
 	struct ofp_ip6_hdr *ip6 = NULL;
 	int isipv6;
@@ -579,7 +580,9 @@ ofp_tcp_input(odp_packet_t m, int off0)
 	short ostate = 0;
 #endif
 	/* HJo: remove vlan hdr */
-	odp_packet_pull_head(m, odp_packet_l3_offset(m));
+	l2off = odp_packet_l2_offset(m);
+	l3off = odp_packet_l3_offset(m);
+	odp_packet_pull_head(m, l3off);
 	odp_packet_l2_offset_set(m, 0);
 	odp_packet_l3_offset_set(m, 0);
 
@@ -817,6 +820,10 @@ findpcb:
 			ti_locked = TI_UNLOCKED;
 		}
 
+		/* reverse vlan hdr */
+		odp_packet_push_head(m, l3off);
+		//odp_packet_l2_offset_set(m, l2off);
+		odp_packet_l3_offset_set(m, l3off);
 		return OFP_PKT_CONTINUE;	/* process it on slow path */
 	}
 
