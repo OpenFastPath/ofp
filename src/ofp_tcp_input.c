@@ -2577,6 +2577,7 @@ process_ACK:
 		/* HJo: FIX
 		cc_ack_received(tp, th, CC_ACK);
 		*/
+		if (tp->snd_cwnd < tp->snd_wnd) tp->snd_cwnd = tp->snd_wnd;
 		SOCKBUF_LOCK(&so->so_snd);
 		if (acked > (int)so->so_snd.sb_cc) {
 			tp->snd_wnd -= so->so_snd.sb_cc;
