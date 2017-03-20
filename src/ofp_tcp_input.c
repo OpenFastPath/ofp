@@ -186,8 +186,8 @@ static void	 tcp_pulloutofband(struct socket *,
 static void	 tcp_xmit_timer(struct tcpcb *, int);
 static void	 tcp_newreno_partial_ack(struct tcpcb *, struct ofp_tcphdr *);
 inline static void 	tcp_fields_to_host(struct ofp_tcphdr *);
-#ifdef TCP_SIGNATURE
 inline static void 	tcp_fields_to_net(struct ofp_tcphdr *);
+#ifdef TCP_SIGNATURE
 inline static int	tcp_signature_verify_input(odp_packet_t , int, int,
 			    int, struct tcpopt *, struct ofp_tcphdr *, uint32_t);
 #endif
@@ -447,7 +447,6 @@ tcp_fields_to_host(struct ofp_tcphdr *th)
 	th->th_urp = odp_be_to_cpu_16(th->th_urp);
 }
 
-#ifdef TCP_SIGNATURE
 static inline void
 tcp_fields_to_net(struct ofp_tcphdr *th)
 {
@@ -457,6 +456,7 @@ tcp_fields_to_net(struct ofp_tcphdr *th)
 	th->th_urp = odp_cpu_to_be_16(th->th_urp);
 }
 
+#ifdef TCP_SIGNATURE
 static inline int
 tcp_signature_verify_input(odp_packet_t m, int off0, int tlen, int optlen,
     struct tcpopt *to, struct ofp_tcphdr *th, uint32_t tcpbflag)
@@ -820,10 +820,17 @@ findpcb:
 			ti_locked = TI_UNLOCKED;
 		}
 
-		/* reverse vlan hdr */
-		odp_packet_push_head(m, l3off);
-		//odp_packet_l2_offset_set(m, l2off);
-		odp_packet_l3_offset_set(m, l3off);
+		if (!isipv6) {
+			/* reverse vlan hdr */
+			tcp_fields_to_net(th);
+			odp_packet_push_head(m, l3off);
+			odp_packet_l2_offset_set(m, l2off);
+			odp_packet_l3_offset_set(m, l3off);
+			ip->ip_len += ip->ip_hl << 2;
+			ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
+			ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
+		}
+
 		return OFP_PKT_CONTINUE;	/* process it on slow path */
 	}
 
