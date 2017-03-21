@@ -171,8 +171,9 @@ An OFP release consists of the following source code and documentation:
 
 * General Availability stage lasts for at least five months.
 
-* OFP aims to adapt to new ODP releases within one month of the ODP
-  release. This usually necessitates a new OFP release.
+* OFP aims to adapt to new ODP Long Term Support (LTS) releases within
+  one month of the ODP release. This usually necessitates a new OFP
+  release.
 
 * Stage transitions are communicated on the announcements page and
   mailing list at least one week beforehand, End of Life at least one
