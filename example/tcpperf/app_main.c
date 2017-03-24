@@ -215,6 +215,22 @@ static inline int wait_for_client(int server_fd)
 	return fd;
 }
 
+static inline int rx_burst(odp_pktin_queue_t pktin)
+{
+	odp_packet_t pkt_tbl[PKT_BURST_SIZE];
+	int pkts, i;
+
+	pkts = odp_pktin_recv(pktin, pkt_tbl, PKT_BURST_SIZE);
+
+	for (i = 0; i < pkts; i++) {
+		update_pkt_stats(pkt_tbl[i], &gbl_args->pkts);
+		ofp_packet_input(pkt_tbl[i], ODP_QUEUE_INVALID,
+				 ofp_eth_vlan_processing);
+	}
+
+	return pkts;
+}
+
 /**
  * Receive packets directly from the NIC and pass them to OFP stack
  */
@@ -223,7 +239,6 @@ static void *pktio_recv(void *arg)
 	thread_args_t *thr_args = arg;
 	odp_pktin_queue_t pktin = thr_args->pktin;
 	int timer_count = 0;
-	uint64_t tmo = odp_pktin_wait_time(RECV_TMO);
 
 	printf("PKTIO thread starting on CPU: %i\n", odp_cpu_id());
 
@@ -233,26 +248,20 @@ static void *pktio_recv(void *arg)
 	}
 
 	while (!exit_threads) {
-		odp_packet_t pkt_tbl[PKT_BURST_SIZE];
 		int pkts;
-		int i;
 
 		timer_count++;
 		if (odp_unlikely(timer_count > TIMER_SCHED_INT)) {
 			timer_count = 0;
 			handle_timeouts();
 		}
-		pkts = odp_pktin_recv_tmo(pktin, pkt_tbl, PKT_BURST_SIZE, tmo);
+		pkts = rx_burst(pktin);
 		if (odp_unlikely(pkts < 0)) {
 			OFP_ERR("Error: odp_pktin_recv failed\n");
 			goto exit;
 		}
+		if (pkts == PKT_BURST_SIZE) continue;
 
-		for (i = 0; i < pkts; i++) {
-			update_pkt_stats(pkt_tbl[i], &gbl_args->pkts);
-			ofp_packet_input(pkt_tbl[i], ODP_QUEUE_INVALID,
-					 ofp_eth_vlan_processing);
-		}
 		/* NOP unless OFP_PKT_TX_BURST_SIZE > 1 */
 		ofp_send_pending_pkt();
 	}
@@ -384,7 +393,6 @@ static void *run_server_single(void *arg)
 	thread_args_t *thr_args = arg;
 	odp_pktin_queue_t pktin = thr_args->pktin;
 	uint64_t timer_count = 0;
-	uint64_t tmo = odp_pktin_wait_time(RECV_TMO);
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed\n");
@@ -393,11 +401,9 @@ static void *run_server_single(void *arg)
 	}
 
 	while (!exit_threads) {
-		odp_packet_t pkt_tbl[PKT_BURST_SIZE];
 		uint8_t pkt_buf[SOCKET_RX_BUF_LEN];
 		int bytes;
 		int pkts;
-		int i;
 
 		timer_count++;
 		if (odp_unlikely(timer_count > TIMER_SCHED_INT)) {
@@ -405,19 +411,12 @@ static void *run_server_single(void *arg)
 			handle_timeouts();
 		}
 
-		pkts = odp_pktin_recv_tmo(pktin, pkt_tbl, PKT_BURST_SIZE, tmo);
+		pkts = rx_burst(pktin);
 		if (odp_unlikely(pkts < 0)) {
 			OFP_ERR("Error: odp_pktin_recv failed\n");
 			exit_threads = 1;
 			return NULL;
-		}
-		if (pkts == 0)
-			continue;
-
-		for (i = 0; i < pkts; i++) {
-			update_pkt_stats(pkt_tbl[i], &gbl_args->pkts);
-			ofp_packet_input(pkt_tbl[i], ODP_QUEUE_INVALID,
-					 ofp_eth_vlan_processing);
+		if (pkts == PKT_BURST_SIZE) continue;
 		}
 
 		/* Server thread takes care of accepting incoming connections */
