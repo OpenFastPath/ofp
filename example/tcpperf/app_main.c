@@ -548,6 +548,97 @@ static void *run_client(void *arg ODP_UNUSED)
 	return NULL;
 }
 
+static void *run_client_single(void *arg ODP_UNUSED)
+{
+	struct ofp_sockaddr_in addr = {0};
+	int ret = -1;
+	int retry = 0;
+
+	thread_args_t *thr_args = arg;
+	int timer_count = 0;
+
+	if (ofp_init_local()) {
+		OFP_ERR("Error: OFP local init failed\n");
+		exit_threads = 1;
+		return NULL;
+	}
+
+	printf("Client thread starting on CPU: %i\n", odp_cpu_id());
+
+	addr.sin_len = sizeof(struct ofp_sockaddr_in);
+	addr.sin_family = OFP_AF_INET;
+	addr.sin_port = odp_cpu_to_be_16(gbl_args->appl.lport);
+	addr.sin_addr.s_addr = gbl_args->s_addr;
+
+	if (ofp_connect(gbl_args->client_fd, (struct ofp_sockaddr *)&addr,
+			sizeof(addr)) == -1) {
+		OFP_ERR("Error: Failed to connect (errno = %d)\n", ofp_errno);
+		exit_threads = 1;
+		return NULL;
+	}
+	sleep(2);
+
+	/* ToFix: ofp_connect() is not blocking as it should, so spin here
+	 * until send succeeds. */
+	do {
+		uint8_t pkt_buf;
+
+		rx_burst(thr_args->pktin);
+		ofp_send_pending_pkt();
+
+		if (retry > 10) {
+			OFP_ERR("Error: Failed to connect (errno = %d)\n",
+				ofp_errno);
+			exit_threads = 1;
+			return NULL;
+		}
+		ret = ofp_send(gbl_args->client_fd, &pkt_buf, 1, 0);
+		retry++;
+		sleep(1);
+	} while (ret < 0 && !exit_threads);
+	gbl_args->con_status = 1;
+	printf("\nConnected to server\n\n");
+
+	while (!exit_threads) {
+		timer_count++;
+		if (odp_unlikely(timer_count > TIMER_SCHED_INT)) {
+			timer_count = 0;
+			handle_timeouts();
+		}
+		int pkts = rx_burst(thr_args->pktin);
+		if (odp_unlikely(pkts < 0)) {
+			OFP_ERR("Error: odp_pktin_recv failed\n");
+			break;
+		}
+		if (pkts == PKT_BURST_SIZE) continue;
+
+		uint8_t pkt_buf[SOCKET_TX_BUF_LEN] ODP_ALIGNED_CACHE;
+
+		ret = ofp_send(gbl_args->client_fd, pkt_buf,
+			       SOCKET_TX_BUF_LEN, OFP_MSG_NBIO);
+		if (ret < 0) {
+			if (ofp_errno != OFP_EAGAIN) {
+				OFP_ERR("Failed to send (errno = %d)\n", ofp_errno);
+				exit_threads = 1;
+				ret = 0;
+				break;
+			}
+		} else {
+			gbl_args->send_bytes += ret;
+			gbl_args->send_calls++;
+		}
+
+		/* NOP unless OFP_PKT_TX_BURST_SIZE > 1 */
+		ofp_send_pending_pkt();
+	}
+	printf("\nServer disconnected\n\n");
+
+	if (ofp_term_local())
+		OFP_ERR("Error: ofp_term_local failed\n");
+
+	return NULL;
+}
+
 /**
  * Get pktio device capability
  */
@@ -845,10 +936,6 @@ static void parse_args(int argc, char *argv[], appl_args_t *args)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Single thread client mode not supported */
-	if (args->mode == MODE_CLIENT)
-		args->single_thread = 0;
-
 	optind = 1; /* reset 'extern optind' from the getopt lib */
 }
 
@@ -1035,23 +1122,33 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 	}
-	/* Create pktio thread */
-	if (gbl_args->appl.single_thread == 0)
+
+	/*
+	 * We don't need a second thread iff we are a single thread
+	 * client.
+	 */
+	if (!(gbl_args->appl.single_thread == 1 && gbl_args->appl.mode == MODE_CLIENT)) {
 		thr_params.start = pktio_recv;
-	else
-		thr_params.start = run_server;
-	thr_params.arg = &thr_args;
-	thr_params.thr_type = ODP_THREAD_WORKER;
-	thr_params.instance = instance;
-	odp_cpumask_zero(&cpu_mask);
-	odp_cpumask_set(&cpu_mask, next_worker);
-	odph_linux_pthread_create(&thread_tbl[0], &cpu_mask, &thr_params);
+		/*
+		 * If single thread server, then we need a separate
+		 * run_server thread to call blocking ofp_accept().
+		 */
+		if (gbl_args->appl.single_thread == 1 && gbl_args->appl.mode == MODE_SERVER)
+			thr_params.start = run_server;
+		thr_params.arg = &thr_args;
+		thr_params.thr_type = ODP_THREAD_WORKER;
+		thr_params.instance = instance;
+		odp_cpumask_zero(&cpu_mask);
+		odp_cpumask_set(&cpu_mask, next_worker);
+		odph_linux_pthread_create(&thread_tbl[0], &cpu_mask, &thr_params);
+		next_worker++;
+	}
 
 	/* Create server/client thread */
 	if (gbl_args->appl.single_thread) {
-		thr_params.start = run_server_single;
+		thr_params.start = (gbl_args->appl.mode == MODE_SERVER) ?
+			run_server_single : run_client_single;
 	} else {
-		next_worker++;
 		thr_params.start = (gbl_args->appl.mode == MODE_SERVER) ?
 			run_server : run_client;
 	}
@@ -1060,11 +1157,11 @@ int main(int argc, char *argv[])
 	thr_params.instance = instance;
 	odp_cpumask_zero(&cpu_mask);
 	odp_cpumask_set(&cpu_mask, next_worker);
-	odph_linux_pthread_create(&thread_tbl[1], &cpu_mask, &thr_params);
+	odph_linux_pthread_create(&thread_tbl[next_worker-1], &cpu_mask, &thr_params);
 
 	print_global_stats();
 
-	odph_linux_pthread_join(thread_tbl, NUM_WORKERS);
+	odph_linux_pthread_join(thread_tbl, num_workers);
 
 	if (gbl_args->client_fd >= 0)
 		ofp_close(gbl_args->client_fd);
