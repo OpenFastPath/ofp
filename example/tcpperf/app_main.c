@@ -39,7 +39,7 @@
 #define SOCKET_RX_BUF_LEN	(32 * 1024)
 
 /** Socket transmit buffer length */
-#define SOCKET_TX_BUF_LEN	1400
+#define SOCKET_TX_BUF_LEN	(32 * 1024)
 
 /** Interval to schedule timers */
 #define TIMER_SCHED_INT 10
