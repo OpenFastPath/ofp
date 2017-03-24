@@ -351,7 +351,7 @@ static void *run_server(void *arg ODP_UNUSED)
 		int ret;
 
 		ret = ofp_recv(gbl_args->client_fd, pkt_buf, SOCKET_RX_BUF_LEN,
-			       OFP_MSG_DONTWAIT);
+			       OFP_MSG_NBIO);
 		if (ret < 0 && ofp_errno == OFP_EWOULDBLOCK)
 			continue;
 
@@ -425,7 +425,7 @@ static void *run_server_single(void *arg)
 			continue;
 
 		bytes = ofp_recv(gbl_args->client_fd, pkt_buf,
-				 SOCKET_RX_BUF_LEN, OFP_MSG_DONTWAIT);
+				 SOCKET_RX_BUF_LEN, OFP_MSG_NBIO);
 		if (bytes < 0 && ofp_errno == OFP_EWOULDBLOCK)
 			continue;
 
