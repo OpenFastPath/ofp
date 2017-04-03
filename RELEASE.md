@@ -1,44 +1,47 @@
-OpenFastPath AngelFish 2.0.0 release
+# OpenFastPath Angelfish 2.0.1
 
-Highlights of this release include:
+Repository                          | Branch    | Tag
+------------------------------------|-----------|------
+https://github.com/OpenFastPath/ofp | angelfish | 2.0.1
 
-  - Support for ODP Monarch LTS v1.11.0.0
+## Dependencies
 
-  - Support for multicast, IGMP, VXLAN
+OpenDataPlane v1.11.0.0 Monarch.
 
-  - New static socket configuration for performance
+## Changes (since 2.0.0)
 
-  - New netwrap environment for overloading POSIX symbols
+### Highlights
 
-  - Improved multiprocess support
+* Various TCP fixes and performance improvements.
 
-  - Improved unit test coverage
+### Resolved Issues
 
-  - Support for deb packaging
+* #85 Adding new rules is inefficient
+* #93 Data corruption - tcp packets dropped in the receive path
+* #98 TCP timers problems
+* #101 Wrong netmask when configuring interface address through CLI
+* #112 OFP TCP crash with sigevent
+* #114 ofp_rt_rule_find_prefix_match mix use of big-endian data
+* #115 ofp_rt_rule_find_prefix_match use incorrect masklen to
+* #116 ofp_rtl_remove will re-insert the route it just
+* #118 NODEALLOC does not reset next pointer and lead to
+* #119 Left bit shift result in UB
+* #142 fpm command line option -c doesn't work
+* #144 Hard coded TCP MSS value to 960 bytes
+* #146 mcasttest thread terminate once startup
 
-  - Numerous bug, stability, and performance improvements
+### API and ABI Changes
 
-Unit and manual testing performed across multiple platforms.
+#### Library Version Changes
 
-Contributors in this release:
+* libofp.so: 2.0.0 -> 2.0.1
 
-  Anders Roxell
-  Andras Berger
-  Antero Nousiainen
-  Bogdan Pricope
-  Brian Brooks
-  David Nystrom
-  Fathi Boudra
-  Hannu Jokinen
-  Hemant Agrawal
-  Ivan Koveshnikov
-  Jianbo Liu
-  Jose Pekkarinen
-  Matias Elo
-  Sorin Vultureanu
+## Unit Testing
 
-For more information on OFP, see:
-  http://www.openfastpath.org/
+Environment | ODP Variant | Test Cases Total | Pass | Fail
+------------|-------------|------------------|------|-----
+x86-64      | odp-linux   | 105              | 105  | 0
 
-For access to source code repository, see:
-  https://github.com/OpenFastPath/ofp
+## For More Information
+
+See project home page http://www.openfastpath.org
