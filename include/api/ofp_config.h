@@ -169,7 +169,7 @@
 /**Enable IPv4 UDP checksum validation mechanism on input
  * packets. If enabled, validation is performed on input
  * packets. */
-/*#define OFP_IPv4_UDP_CSUM_VALIDATE*/
+#define OFP_IPv4_UDP_CSUM_VALIDATE
 
 /**Enable IPv4 UDP checksum computation mechanism for outgoing
  * packets. If enabled, computation is performed based on
@@ -180,6 +180,6 @@
 /**Enable IPv4 TCP checksum validation mechanism on input
  * packets. If enabled, validation is performed on input
  * packets. */
-/*#define OFP_IPv4_TCP_CSUM_VALIDATE*/
+#define OFP_IPv4_TCP_CSUM_VALIDATE
 
 #endif
