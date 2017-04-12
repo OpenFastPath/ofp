@@ -498,8 +498,10 @@ static void *run_client(void *arg ODP_UNUSED)
 	addr.sin_port = odp_cpu_to_be_16(gbl_args->appl.lport);
 	addr.sin_addr.s_addr = gbl_args->s_addr;
 
-	if (ofp_connect(gbl_args->client_fd, (struct ofp_sockaddr *)&addr,
-			sizeof(addr)) == -1) {
+	ret = ofp_connect(gbl_args->client_fd, (struct ofp_sockaddr *)&addr,
+		sizeof(addr));
+
+	if ((ret == -1) && (ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Error: Failed to connect (errno = %d)\n", ofp_errno);
 		exit_threads = 1;
 		return NULL;
@@ -570,8 +572,10 @@ static void *run_client_single(void *arg ODP_UNUSED)
 	addr.sin_port = odp_cpu_to_be_16(gbl_args->appl.lport);
 	addr.sin_addr.s_addr = gbl_args->s_addr;
 
-	if (ofp_connect(gbl_args->client_fd, (struct ofp_sockaddr *)&addr,
-			sizeof(addr)) == -1) {
+	ret = ofp_connect(gbl_args->client_fd, (struct ofp_sockaddr *)&addr,
+		sizeof(addr));
+
+	if ((ret == -1) && (ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Error: Failed to connect (errno = %d)\n", ofp_errno);
 		exit_threads = 1;
 		return NULL;

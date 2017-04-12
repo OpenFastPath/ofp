@@ -18,8 +18,9 @@ int connect_udp4(int fd)
 	addr.sin_port = odp_cpu_to_be_16(TEST_PORT + 2);
 	addr.sin_addr.s_addr = IP4(192, 168, 100, 1);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -49,8 +50,9 @@ int connect_bind_udp4(int fd)
 	addr.sin_port = odp_cpu_to_be_16(TEST_PORT + 3);
 	addr.sin_addr.s_addr = IP4(192, 168, 100, 1);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -69,8 +71,9 @@ int connect_shutdown_udp4(int fd)
 	addr.sin_port = odp_cpu_to_be_16(TEST_PORT + 2);
 	addr.sin_addr.s_addr = IP4(192, 168, 100, 1);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -107,8 +110,9 @@ int connect_shutdown_bind_udp4(int fd)
 	addr.sin_port = odp_cpu_to_be_16(TEST_PORT + 3);
 	addr.sin_addr.s_addr = IP4(192, 168, 100, 1);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -135,8 +139,9 @@ int connect_udp6(int fd)
 	addr.sin6_port = odp_cpu_to_be_16(TEST_PORT + 2);
 	inet_pton(AF_INET6, "fd00:1baf::1", (void *)&addr.sin6_addr);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in6)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in6)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -167,8 +172,9 @@ int connect_bind_udp6(int fd)
 	addr.sin6_port = odp_cpu_to_be_16(TEST_PORT + 3);
 	inet_pton(AF_INET6, "fd00:1baf::1", (void *)&addr.sin6_addr);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in6)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in6)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -187,8 +193,9 @@ int connect_shutdown_udp6(int fd)
 	addr.sin6_port = odp_cpu_to_be_16(TEST_PORT + 2);
 	inet_pton(AF_INET6, "fd00:1baf::1", (void *)&addr.sin6_addr);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in6)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in6)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -225,8 +232,9 @@ int connect_shutdown_bind_udp6(int fd)
 	addr.sin6_port = odp_cpu_to_be_16(TEST_PORT + 3);
 	inet_pton(AF_INET6, "fd00:1baf::1", (void *)&addr.sin6_addr);
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in6)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in6)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -251,8 +259,9 @@ int connect_shutdown_udp6_any(int fd)
 	addr.sin6_port = odp_cpu_to_be_16(TEST_PORT + 2);
 	addr.sin6_addr = ofp_in6addr_any;
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in6)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in6)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;
@@ -289,8 +298,9 @@ int connect_shutdown_bind_udp6_any(int fd)
 	addr.sin6_port = odp_cpu_to_be_16(TEST_PORT + 3);
 	addr.sin6_addr = ofp_in6addr_any;
 
-	if (ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
-		sizeof(struct ofp_sockaddr_in6)) == -1) {
+	if ((ofp_connect(fd, (const struct ofp_sockaddr *)&addr,
+		sizeof(struct ofp_sockaddr_in6)) == -1) &&
+		(ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Faild to connect socket (errno = %d)\n",
 			ofp_errno);
 		return -1;

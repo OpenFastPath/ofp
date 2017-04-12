@@ -470,7 +470,9 @@ tcp_usr_connect(struct socket *so, struct ofp_sockaddr *nam, struct thread *td)
 	TCPDEBUG1();
 	if ((error = tcp_connect(tp, nam, td)) != 0)
 		goto out;
-	error = tcp_output_connect(so, nam);
+	if ((error = tcp_output_connect(so, nam)) != 0)
+		goto out;
+	error = OFP_EINPROGRESS;
 out:
 	TCPDEBUG2(OFP_PRU_CONNECT);
 	INP_WUNLOCK(inp);
@@ -534,7 +536,9 @@ tcp6_usr_connect(struct socket *so, struct ofp_sockaddr *nam, struct thread *td)
 #endif
 		if ((error = tcp_connect(tp, (struct ofp_sockaddr *)&sin, td)) != 0)
 			goto out;
-		error = tcp_output_connect(so, nam);
+		if ((error = tcp_output_connect(so, nam)) != 0)
+			goto out;
+		error = OFP_EINPROGRESS;
 		goto out;
 	}
 #endif
@@ -547,7 +551,9 @@ tcp6_usr_connect(struct socket *so, struct ofp_sockaddr *nam, struct thread *td)
 #endif
 	if ((error = tcp6_connect(tp, nam, td)) != 0)
 		goto out;
-	error = tcp_output_connect(so, nam);
+	if ((error = tcp_output_connect(so, nam)) != 0)
+		goto out;
+	error = OFP_EINPROGRESS;
 out:
 	TCPDEBUG2(OFP_PRU_CONNECT);
 	INP_WUNLOCK(inp);
