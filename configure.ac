@@ -75,7 +75,7 @@ OFP_CFLAGS="$OFP_CFLAGS -Wmissing-declarations -Wold-style-definition -Wpointer-
 OFP_CFLAGS="$OFP_CFLAGS -Wcast-align -Wnested-externs -Wcast-qual -Wformat-nonliteral"
 OFP_CFLAGS="$OFP_CFLAGS -Wformat-security -Wundef -Wwrite-strings"
 ## OFP_CFLAGS="$OFP_CFLAGS -Werror"
-OFP_CFLAGS="$OFP_CFLAGS -std=c99 -D_DEFAULT_SOURCE"
+OFP_CFLAGS="$OFP_CFLAGS -std=c99 -D_DEFAULT_SOURCE -D_POSIX_SOURCE=1 -D_POSIX_C_SOURCE=200809L -D_BSD_SOURCE"
 
 OFP_CXXFLAGS="-std=c++11 $OFP_CXXFLAGS"
 OFP_CXXFLAGS="-fno-strict-aliasing $OFP_CXXFLAGS"
