@@ -83,7 +83,8 @@ int select(int nfds, fd_set *readfds, fd_set *writefds,
 				if (FD_ISSET(i, readfds) &&
 					!OFP_FD_ISSET(i, &ofp_readfds))
 						FD_CLR(i, readfds);
-		}
+		} else if (select_value == 0)
+			FD_ZERO(readfds);
 
 		if (!ofp_errno && timeout) {
 			timeout->tv_sec = ofp_timeout_local.tv_sec;
