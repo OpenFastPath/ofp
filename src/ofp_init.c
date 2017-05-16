@@ -100,6 +100,12 @@ odp_bool_t *ofp_get_processing_state(void)
 	return &shm->is_running;
 }
 
+void ofp_init_global_param(ofp_init_global_t *params)
+{
+	memset(params, 0, sizeof(*params));
+	params->sched_group = ODP_SCHED_GROUP_ALL;
+}
+
 int ofp_init_pre_global(const char *pool_name_unused,
 			odp_pool_param_t *pool_params_unused,
 			ofp_pkt_hook hooks[], odp_pool_t *pool_unused,
