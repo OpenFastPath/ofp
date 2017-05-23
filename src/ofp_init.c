@@ -151,6 +151,8 @@ int ofp_init_pre_global(const char *pool_name_unused,
 
 	HANDLE_ERROR(ofp_portconf_init_global());
 
+	HANDLE_ERROR(ofp_vlan_init_global());
+
 	HANDLE_ERROR(ofp_vxlan_init_global());
 
 	odp_pool_param_t pool_params;
@@ -242,6 +244,7 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_uma_lookup_shared_memory());
 	HANDLE_ERROR(ofp_global_config_lookup_shared_memory());
 	HANDLE_ERROR(ofp_portconf_lookup_shared_memory());
+	HANDLE_ERROR(ofp_vlan_lookup_shared_memory());
 	HANDLE_ERROR(ofp_route_lookup_shared_memory());
 	HANDLE_ERROR(ofp_avl_lookup_shared_memory());
 	HANDLE_ERROR(ofp_reassembly_lookup_shared_memory());
@@ -376,6 +379,7 @@ int ofp_term_post_global(const char *pool_name)
 	CHECK_ERROR(ofp_vxlan_term_global(), rc);
 
 	/* Cleanup interface related objects */
+	CHECK_ERROR(ofp_vlan_term_global(), rc);
 	CHECK_ERROR(ofp_portconf_term_global(), rc);
 
 	/* Cleanup routes */

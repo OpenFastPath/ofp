@@ -112,6 +112,9 @@
  * For each fastpath interface a PKTIO in opened by OFP.*/
 #define OFP_FP_INTERFACE_MAX 8
 
+/* Maximum numbers of VLANs */
+#define OFP_NUM_VLAN_MAX 256
+
 /**Maximum number of input queues that can be configured for an
    * OFP interface*/
 #define OFP_PKTIN_QUEUE_MAX 64

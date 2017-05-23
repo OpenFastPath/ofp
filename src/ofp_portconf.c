@@ -30,6 +30,8 @@
 
 #define SHM_NAME_PORTS "OfpPortconfShMem"
 #define SHM_NAME_PORT_LOCKS "OfpPortconfLocksShMem"
+#define SHM_NAME_VLAN "OfpVlanconfShMem"
+
 
 #ifdef SP
 #define NUM_LINUX_INTERFACES 512
@@ -58,12 +60,19 @@ struct ofp_portconf_mem {
 #endif /* SP */
 };
 
+struct ofp_vlan_mem {
+	struct ofp_ifnet *free_ifnet_list;
+	odp_rwlock_t vlan_mtx;
+	struct ofp_ifnet vlan_ifnet[0];
+};
 
 /*
  * Data per core
  */
 static __thread struct ofp_portconf_mem *shm;
 struct ofp_ifnet_locks_str  *ofp_ifnet_locks_shm;
+
+static __thread struct ofp_vlan_mem *vlan_shm;
 
 /*Wrapper functions over AVL tree*/
 static void *new_vlan(
@@ -139,6 +148,31 @@ int ofp_free_port_alloc(void)
 		return -1;
 	}
 	return port;
+}
+
+struct ofp_ifnet *ofp_vlan_alloc(void)
+{
+	odp_rwlock_write_lock(&vlan_shm->vlan_mtx);
+	struct ofp_ifnet *vlan = vlan_shm->free_ifnet_list;
+	if (vlan_shm->free_ifnet_list) {
+		vlan_shm->free_ifnet_list = vlan_shm->free_ifnet_list->next;
+	}
+	odp_rwlock_write_unlock(&vlan_shm->vlan_mtx);
+
+	if (vlan == NULL) {
+		OFP_ERR("Cannot allocate vlan!");
+		return (NULL);
+	}
+
+	return vlan;
+}
+
+static void ofp_vlan_free(struct ofp_ifnet *vlan)
+{
+	odp_rwlock_write_lock(&vlan_shm->vlan_mtx);
+	vlan->next = vlan_shm->free_ifnet_list;
+	vlan_shm->free_ifnet_list = vlan;
+	odp_rwlock_write_unlock(&vlan_shm->vlan_mtx);
 }
 
 static int iter_vlan(void *key, void *iter_arg)
@@ -355,7 +389,7 @@ void ofp_show_interfaces(int fd)
 
 int free_key(void *key)
 {
-	free(key);
+	ofp_vlan_free(key);
 	return 1;
 }
 
@@ -1162,7 +1196,7 @@ struct ofp_ifnet *ofp_get_create_ifnet(int port, uint16_t vlan)
 				shm->ofp_ifnet_data[port].vlan_structs,
 				&key,
 				(void *)&data)) {
-			data = malloc(sizeof(*data));
+			data = ofp_vlan_alloc();
 			memset(data, 0, sizeof(*data));
 			data->port = port;
 			data->vlan = vlan;
@@ -1499,6 +1533,16 @@ static int ofp_portconf_alloc_shared_memory(void)
 	return 0;
 }
 
+static int ofp_vlan_alloc_shared_memory(void)
+{
+	vlan_shm = ofp_shared_memory_alloc(SHM_NAME_VLAN, sizeof(struct ofp_vlan_mem) + sizeof(struct ofp_ifnet)*OFP_NUM_VLAN_MAX);
+	if (vlan_shm == NULL) {
+		OFP_ERR("ofp_shared_memory_alloc failed");
+		return -1;
+	}
+	return 0;
+}
+
 static int ofp_portconf_free_shared_memory(void)
 {
 	int rc = 0;
@@ -1517,6 +1561,20 @@ static int ofp_portconf_free_shared_memory(void)
 	return rc;
 }
 
+
+static int ofp_vlan_free_shared_memory(void)
+{
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_VLAN) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+	vlan_shm = NULL;
+	return rc;
+}
+
+
 int ofp_portconf_lookup_shared_memory(void)
 {
 	shm = ofp_shared_memory_lookup(SHM_NAME_PORTS);
@@ -1531,6 +1589,17 @@ int ofp_portconf_lookup_shared_memory(void)
 		return -1;
 	}
 
+	return 0;
+}
+
+
+int ofp_vlan_lookup_shared_memory(void)
+{
+	vlan_shm = ofp_shared_memory_lookup(SHM_NAME_VLAN);
+	if (vlan_shm == NULL) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		return -1;
+	}
 	return 0;
 }
 
@@ -1616,6 +1685,23 @@ int ofp_portconf_init_global(void)
 	return 0;
 }
 
+int ofp_vlan_init_global(void)
+{
+	int i;
+
+	/* init vlan shared memory */
+	HANDLE_ERROR(ofp_vlan_alloc_shared_memory());
+	memset(vlan_shm, 0, sizeof(*vlan_shm));
+	for (i = 0; i < OFP_NUM_VLAN_MAX; i++) {
+		vlan_shm->vlan_ifnet[i].next = (i == OFP_NUM_VLAN_MAX - 1) ?
+			NULL : &(vlan_shm->vlan_ifnet[i+1]);
+	}
+	vlan_shm->free_ifnet_list = &(vlan_shm->vlan_ifnet[0]);
+	odp_rwlock_init(&vlan_shm->vlan_mtx);
+
+	return 0;
+}
+
 int ofp_portconf_term_global(void)
 {
 	int i;
@@ -1635,6 +1721,22 @@ int ofp_portconf_term_global(void)
 
 	return rc;
 }
+
+
+int ofp_vlan_term_global(void)
+{
+	int rc = 0;
+
+	vlan_shm = ofp_shared_memory_lookup(SHM_NAME_VLAN);
+	if (vlan_shm == NULL) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		rc = -1;
+	}
+	CHECK_ERROR(ofp_vlan_free_shared_memory(), rc);
+
+	return rc;
+}
+
 
 struct ofp_in_ifaddrhead *ofp_get_ifaddrhead(void)
 {

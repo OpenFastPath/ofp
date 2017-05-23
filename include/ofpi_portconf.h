@@ -197,6 +197,7 @@ struct ofp_ifnet {
 	struct ofp_in_ifinfo ii_inet;
 	void	*if_afdata[OFP_AF_MAX];
 	struct	ofp_ifmultihead if_multiaddrs; /* multicast addresses configured */
+	struct ofp_ifnet *next;	/* next in the free list */
 };
 
 #define outq_def out_queue_queue[0]
@@ -346,6 +347,9 @@ int ofp_free_port_alloc(void);
 int ofp_portconf_lookup_shared_memory(void);
 int ofp_portconf_init_global(void);
 int ofp_portconf_term_global(void);
+int ofp_vlan_lookup_shared_memory(void);
+int ofp_vlan_init_global(void);
+int ofp_vlan_term_global(void);
 
 #ifdef SP
 void ofp_update_ifindex_lookup_tab(struct ofp_ifnet *ifnet);

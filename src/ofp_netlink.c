@@ -491,7 +491,7 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 			&key,
 			(void **)&dev)) {
 
-			dev = malloc(sizeof(struct ofp_ifnet));
+			dev = ofp_vlan_alloc();
 			memset(dev, 0, sizeof(struct ofp_ifnet));
 			dev->port = dev_root->port;
 			dev->vlan = vlan;
