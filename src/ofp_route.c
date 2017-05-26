@@ -22,6 +22,7 @@
 
 #define SHM_NAME_ROUTE "OfpRouteShMem"
 #define SHM_NAME_ROUTE_LK "OfpLocksShMem"
+#define SHM_NAME_VRF_ROUTE "OfpVrfRouteShMem"
 
 /* number of saved packets waiting for Neighbor Advertisement */
 #define NUM_PKTS 2048
@@ -32,6 +33,7 @@
 struct routes_by_vrf {
 	uint16_t vrf;
 	struct ofp_rtl_tree routes;
+	struct routes_by_vrf *next; /* next in the free list */
 };
 
 struct pkt6_entry {
@@ -57,11 +59,19 @@ struct ofp_route_mem {
 	struct _pkt6 pkt6;
 };
 
+struct vrf_route_mem {
+	struct routes_by_vrf *free_routes;
+	odp_rwlock_t vrf_mtx;
+	struct routes_by_vrf routes[0];
+};
+
 /*
  * Data per core
  */
 
 static __thread struct ofp_route_mem *shm;
+static __thread struct vrf_route_mem *vrf_shm;
+
 struct ofp_locks_str *ofp_locks_shm;
 
 static int free_data(void *data);
@@ -104,6 +114,30 @@ static inline void pkt6_entry_free(struct pkt6_entry *pktentry)
 	odp_rwlock_write_unlock(&shm->pkt6.fr_ent_rwlock);
 }
 
+static struct routes_by_vrf *ofp_vrf_route_alloc(void)
+{
+	odp_rwlock_write_lock(&vrf_shm->vrf_mtx);
+	struct routes_by_vrf *rt = vrf_shm->free_routes;
+	if (vrf_shm->free_routes) {
+		vrf_shm->free_routes = vrf_shm->free_routes->next;
+	}
+	odp_rwlock_write_unlock(&vrf_shm->vrf_mtx);
+
+	if (rt == NULL) {
+		OFP_ERR("Cannot allocate vlan!");
+		return (NULL);
+	}
+
+	return rt;
+}
+
+static void ofp_vrf_route_free(struct routes_by_vrf *vrf)
+{
+	odp_rwlock_write_lock(&vrf_shm->vrf_mtx);
+	vrf->next = vrf_shm->free_routes;
+	vrf_shm->free_routes = vrf;
+	odp_rwlock_write_unlock(&vrf_shm->vrf_mtx);
+}
 
 /* ARP related functions */
 int ofp_add_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
@@ -206,7 +240,7 @@ static int add_route(struct ofp_route_msg *msg)
 		key.vrf = msg->vrf;
 		if (avl_get_by_key(shm->vrf_routes, &key, (void *)&data)) {
 			OFP_DBG("Vrf does not exist");
-			data = malloc(sizeof(*data));
+			data = ofp_vrf_route_alloc();
 			memset(data, 0, sizeof(*data));
 			data->vrf = msg->vrf;
 			ofp_rtl_root_init(&(data->routes), msg->vrf);
@@ -598,6 +632,44 @@ int ofp_route_lookup_shared_memory(void)
 
 	return 0;
 }
+
+static int ofp_vrf_route_alloc_shared_memory(void)
+{
+	vrf_shm = ofp_shared_memory_alloc(SHM_NAME_VRF_ROUTE, sizeof(struct vrf_route_mem) +
+		sizeof(struct routes_by_vrf) * VRF_ROUTES);
+	if (vrf_shm == NULL) {
+		OFP_ERR("ofp_shared_memory_alloc failed");
+		return -1;
+	}
+	return 0;
+}
+
+static int ofp_vrf_route_free_shared_memory(void)
+{
+	int rc = 0;
+
+	if (ofp_shared_memory_free(SHM_NAME_VRF_ROUTE) == -1) {
+		OFP_ERR("ofp_shared_memory_free failed");
+		rc = -1;
+	}
+	shm = NULL;
+
+	return rc;
+}
+
+int ofp_vrf_route_lookup_shared_memory(void)
+{
+	HANDLE_ERROR(ofp_rt_lookup_lookup_shared_memory());
+
+	vrf_shm = ofp_shared_memory_lookup(SHM_NAME_VRF_ROUTE);
+	if (vrf_shm == NULL) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		return -1;
+	}
+
+	return 0;
+}
+
 int ofp_route_init_global(void)
 {
 	int i;
@@ -605,6 +677,8 @@ int ofp_route_init_global(void)
 	HANDLE_ERROR(ofp_rt_lookup_init_global());
 
 	HANDLE_ERROR(ofp_route_alloc_shared_memory());
+
+	HANDLE_ERROR(ofp_vrf_route_alloc_shared_memory());
 
 	memset(shm, 0, sizeof(*shm));
 	for (i = 0; i < NUM_PKTS; i++)
@@ -629,6 +703,14 @@ int ofp_route_init_global(void)
 	for (i = NUM_PKTS - 1; i >= 0; --i)
 		OFP_SLIST_INSERT_HEAD(&shm->pkt6.free_entries,
 			&shm->pkt6.entries[i], next);
+
+	memset(vrf_shm, 0, sizeof(*vrf_shm));
+	for (i = 0; i < VRF_ROUTES; i++) {
+		vrf_shm->routes[i].next = (i == VRF_ROUTES - 1) ?
+			NULL : &(vrf_shm->routes[i+1]);
+	}
+	vrf_shm->free_routes = &(vrf_shm->routes[0]);
+	odp_rwlock_init(&vrf_shm->vrf_mtx);
 
 	return 0;
 }
@@ -656,12 +738,19 @@ int ofp_route_term_global(void)
 
 	CHECK_ERROR(ofp_rt_lookup_term_global(), rc);
 
+	vrf_shm = ofp_shared_memory_lookup(SHM_NAME_VRF_ROUTE);
+	if (vrf_shm == NULL) {
+		OFP_ERR("ofp_shared_memory_lookup failed");
+		rc = -1;
+	}
+	CHECK_ERROR(ofp_vrf_route_free_shared_memory(), rc);
+
 	return rc;
 }
 
 static int free_data(void *data)
 {
-	free(data);
+	ofp_vrf_route_free(data);
 	return 1;
 }
 

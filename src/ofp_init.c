@@ -246,6 +246,7 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_portconf_lookup_shared_memory());
 	HANDLE_ERROR(ofp_vlan_lookup_shared_memory());
 	HANDLE_ERROR(ofp_route_lookup_shared_memory());
+	HANDLE_ERROR(ofp_vrf_route_lookup_shared_memory());
 	HANDLE_ERROR(ofp_avl_lookup_shared_memory());
 	HANDLE_ERROR(ofp_reassembly_lookup_shared_memory());
 	HANDLE_ERROR(ofp_pcap_lookup_shared_memory());
