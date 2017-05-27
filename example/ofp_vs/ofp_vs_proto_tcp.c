@@ -519,9 +519,81 @@ static int tcp_opt_add_toa(struct ip_vs_conn *cp,
 		       struct rte_mbuf *skb,
 		       struct tcphdr **tcph)
 {
-	(void)cp;
-	(void)skb;
-	(void)tcph;
+    __u16 mtu;
+	struct ip_vs_tcpo_addr *toa;
+    struct iphdr *iph;
+	struct tcphdr *th;
+	__u8 *p, *q;
+
+
+    iph = ip_hdr(skb);
+	th = tcp_hdr(iph);
+
+	/* now only process IPV4 */
+	if (cp->af != AF_INET) {
+		IP_VS_INC_ESTATS(ip_vs_esmib, FULLNAT_ADD_TOA_FAIL_PROTO);
+		return 1;
+	}
+
+	/* skb length and tcp option length checking */
+    rte_eth_dev_get_mtu(skb->port, &mtu);
+
+	if (rte_pktmbuf_data_len(skb) > (mtu - sizeof(struct ip_vs_tcpo_addr))) {
+		IP_VS_INC_ESTATS(ip_vs_esmib, FULLNAT_ADD_TOA_FAIL_LEN);
+		return 1;
+	}
+
+	/* the maximum length of TCP head is 60 bytes, so only 40 bytes for options */
+	if ((60 - (th->doff << 2)) < (int)sizeof(struct ip_vs_tcpo_addr)) {
+		IP_VS_INC_ESTATS(ip_vs_esmib, FULLNAT_ADD_TOA_HEAD_FULL);
+		return 1;
+	}
+
+	/* expand skb if needed */
+	if ((sizeof(struct ip_vs_tcpo_addr) > rte_pktmbuf_tailroom(skb)) &&
+			rte_pktmbuf_append(skb, sizeof(struct ip_vs_tcpo_addr))){
+		IP_VS_INC_ESTATS(ip_vs_esmib, FULLNAT_ADD_TOA_FAIL_MEM);
+		return 1;
+	}
+
+	/*
+	 * add client ip
+	 */
+    iph = ip_hdr(skb);
+	*tcph = th = tcp_hdr(iph);
+
+	/* ptr to old opts */
+	p = (__u8 *)iph + iph->tot_len;
+	q = (__u8 *)p + sizeof(struct ip_vs_tcpo_addr);
+
+	/* move data down, offset is sizeof(struct ip_vs_tcpo_addr) */
+	while (p >= ((__u8 *) th + sizeof(struct tcphdr))) {
+		*q = *p;
+		p--;
+		q--;
+	}
+
+	/* put client ip opt , ptr point to opts */
+	toa = (struct ip_vs_tcpo_addr *)(th + 1);
+	toa->opcode = TCPOPT_ADDR;
+	toa->opsize = TCPOLEN_ADDR;
+	toa->port = cp->cport;
+	toa->addr = cp->caddr.ip;
+
+	/* reset tcp header length */
+	th->doff += sizeof(struct ip_vs_tcpo_addr) / 4;
+	/* reset ip header totoal length */
+	iph->tot_len =
+	    htons(ntohs(iph->tot_len) +
+		  sizeof(struct ip_vs_tcpo_addr));
+	/* reset skb length */
+	skb->data_len += sizeof(struct ip_vs_tcpo_addr);
+	skb->pkt_len += sizeof(struct ip_vs_tcpo_addr);
+
+
+
+
+	IP_VS_INC_ESTATS(ip_vs_esmib, FULLNAT_ADD_TOA_OK);
 	return 0;
 }
 
