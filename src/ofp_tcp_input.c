@@ -2849,6 +2849,7 @@ dodata:							/* XXX */
 		} else {
 			odp_packet_free(m);
 			t_flags_or(tp->t_flags, TF_ACKNOW);
+			thflags &= ~OFP_TH_FIN;
 		}
 	} else {
 		odp_packet_free(m);
