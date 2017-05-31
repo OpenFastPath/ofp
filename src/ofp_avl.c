@@ -422,8 +422,11 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
     avl_node *x, *y, *p, *q, *r, *top, *x_child;
     int shortened_side, shorter;
 
+    odp_rwlock_write_lock(&tree->lock_rw);
+
     x = tree->root->right;
     if (!x) {
+        odp_rwlock_write_unlock(&tree->lock_rw);
         return -1;
     }
     while (1) {
@@ -447,6 +450,7 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
                     }
                     x = x->parent;
                 }
+                odp_rwlock_write_unlock(&tree->lock_rw);
                 return -1;        /* key not in tree */
             }
         } else if (compare_result > 0) {
@@ -461,6 +465,7 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
                     }
                     x = x->parent;
                 }
+                odp_rwlock_write_unlock(&tree->lock_rw);
                 return -1;        /* key not in tree */
             }
         } else {
@@ -689,6 +694,7 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
     } /* end while(shorter) */
     /* when we're all done, we're one shorter */
     tree->length = tree->length - 1;
+    odp_rwlock_write_unlock(&tree->lock_rw);
     return (0);
 }
 
