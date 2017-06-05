@@ -107,6 +107,8 @@ void ofp_init_global_param(ofp_init_global_t *params)
 #ifdef SP
 	params->enable_nl_thread = 1;
 #endif /* SP */
+	params->arp.age_interval = ARP_AGE_INTERVAL;
+	params->arp.entry_timeout = ARP_ENTRY_TIMEOUT;
 }
 
 int ofp_init_pre_global(const char *pool_name_unused,
@@ -194,7 +196,7 @@ int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
 
 	HANDLE_ERROR(ofp_init_pre_global(NULL, NULL,
 					 params->pkt_hook, NULL,
-					 ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT,
+					 params->arp.age_interval, params->arp.entry_timeout,
 					 params->sched_group));
 
 	/* cpu mask for slow path threads */

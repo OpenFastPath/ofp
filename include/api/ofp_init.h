@@ -64,6 +64,13 @@ typedef struct ofp_init_global_t {
 	/** Create netlink listener thread. If slow path is enabled,
 	 *  then default is TRUE, otherwise default is FALSE. */
 	odp_bool_t enable_nl_thread;
+
+	struct {
+		/// ARP aging timer interval in seconds. Default is ARP_AGE_INTERVAL.
+		int age_interval;
+		/// ARP entry timeout in seconds. Default is ARP_ENTRY_TIMEOUT.
+		int entry_timeout;
+	} arp;
 } ofp_init_global_t;
 
 /**
