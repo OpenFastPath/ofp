@@ -88,7 +88,7 @@ test_global_resources_init_cleanup(void)
 static void
 test_global_init_cleanup(void)
 {
-	static ofp_init_global_t oig;
+	static ofp_global_param_t oig;
 
 	CU_ASSERT_EQUAL(ofp_init_global(instance, &oig), 0);
 

@@ -8,7 +8,7 @@
 
 // Test for successful compile & link.
 int main() {
-	static ofp_init_global_t oig;
+	static ofp_global_param_t oig;
 	odp_instance_t instance;
 
 	if (odp_init_global(&instance, NULL, NULL)) {

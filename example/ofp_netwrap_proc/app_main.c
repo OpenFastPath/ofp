@@ -36,7 +36,7 @@ static void usage(char *progname);
  /**
   * global OFP init parms
   */
-ofp_init_global_t app_init_params;
+ofp_global_param_t app_init_params;
 
 /**
  * Get rid of path in filename - only for unix-type paths using '/'

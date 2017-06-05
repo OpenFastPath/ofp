@@ -122,7 +122,7 @@ static args_t *gbl_args;
 static int exit_threads;
 
 /** Global OFP init parms */
-ofp_init_global_t app_init_params;
+ofp_global_param_t app_init_params;
 
 /** Get rid of path in filename - only for unix-type paths using '/' */
 #define NO_PATH(file_name) (strrchr((file_name), '/') ? \

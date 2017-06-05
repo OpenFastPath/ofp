@@ -39,7 +39,7 @@ static int start_performance(odp_instance_t instance, int core_id);
  /**
   * global OFP init parms
   */
-ofp_init_global_t app_init_params;
+ofp_global_param_t app_init_params;
 
 /**
  * Get rid of path in filename - only for unix-type paths using '/'

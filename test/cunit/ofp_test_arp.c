@@ -39,7 +39,7 @@ void *pp_thread(void *arg);
 
 static int init_suite(void)
 {
-	ofp_init_global_t params;
+	ofp_global_param_t params;
 	odph_linux_thr_params_t thr_params;
 	odp_instance_t instance;
 

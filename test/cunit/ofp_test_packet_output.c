@@ -190,7 +190,7 @@ static enum ofp_return_code fastpath_hook_out_IPv6(odp_packet_t pkt,
 static int
 init_suite(void)
 {
-	ofp_init_global_t params;
+	ofp_global_param_t params;
 	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */

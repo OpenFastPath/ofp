@@ -32,7 +32,7 @@ static void print_info(char *progname, appl_args_t *appl_args);
 static void usage(char *progname);
 static void *app_dispatcher_thread(void *arg);
 
-ofp_init_global_t app_init_params; /**< global OFP init parms */
+ofp_global_param_t app_init_params; /**< global OFP init parms */
 
 /** Get rid of path in filename - only for unix-type paths using '/' */
 #define NO_PATH(file_name) (strrchr((file_name), '/') ? \

@@ -34,7 +34,7 @@
  *
  * @see ofp_init_global_param()
  */
-typedef struct ofp_init_global_t {
+typedef struct ofp_global_param_t {
 	/** Count of interfaces to be initialized. The default value is 0. */
 	uint16_t if_count;
 
@@ -71,10 +71,10 @@ typedef struct ofp_init_global_t {
 		/// ARP entry timeout in seconds. Default is ARP_ENTRY_TIMEOUT.
 		int entry_timeout;
 	} arp;
-} ofp_init_global_t;
+} ofp_global_param_t;
 
 /**
- * Initialize ofp_init_global_t to its default values.
+ * Initialize ofp_global_param_t to its default values.
  *
  * This function should be called to initialize the supplied parameter
  * structure to default values before setting application specific values
@@ -88,7 +88,7 @@ typedef struct ofp_init_global_t {
  *
  * @see ofp_init_global()
  */
-void ofp_init_global_param(ofp_init_global_t *params);
+void ofp_init_global_param(ofp_global_param_t *params);
 
 /**
  * OFP global initialization
@@ -103,7 +103,7 @@ void ofp_init_global_param(ofp_init_global_t *params);
  *
  * @see ofp_init_local() which is required per thread before use.
  */
-int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params);
+int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params);
 
 /**
  * Thread local OFP initialization

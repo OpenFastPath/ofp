@@ -52,7 +52,7 @@ odp_instance_t instance;
 static int
 init_suite(void)
 {
-	ofp_init_global_t params;
+	ofp_global_param_t params;
 	struct ofp_ifnet *dev;
 
 	/* Init ODP before calling anything else */

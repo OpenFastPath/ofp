@@ -38,7 +38,7 @@ static odp_cos_t build_cos_set_queue(const char *name, odp_queue_t queue_cos);
 static odp_pmr_t build_udp_prm(odp_cos_t cos_src, odp_cos_t cos_dst);
 static void app_processing(void);
 
-ofp_init_global_t app_init_params; /**< global OFP init parms */
+ofp_global_param_t app_init_params; /**< global OFP init parms */
 
 /** Get rid of path in filename - only for unix-type paths using '/' */
 #define NO_PATH(file_name) (strrchr((file_name), '/') ? \

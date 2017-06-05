@@ -100,7 +100,7 @@ odp_bool_t *ofp_get_processing_state(void)
 	return &shm->is_running;
 }
 
-void ofp_init_global_param(ofp_init_global_t *params)
+void ofp_init_global_param(ofp_global_param_t *params)
 {
 	memset(params, 0, sizeof(*params));
 	params->sched_group = ODP_SCHED_GROUP_ALL;
@@ -185,7 +185,7 @@ odp_pool_t ofp_packet_pool;
 odp_cpumask_t cpumask;
 int ofp_init_global_called = 0;
 
-int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
+int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 {
 	int i;
 	odp_pktio_param_t pktio_param;

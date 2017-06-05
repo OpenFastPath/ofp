@@ -87,7 +87,7 @@ static void init_ifnet(void)
 static int
 init_suite(void)
 {
-	ofp_init_global_t params;
+	ofp_global_param_t params;
 	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
