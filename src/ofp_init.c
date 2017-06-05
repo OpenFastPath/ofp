@@ -104,6 +104,9 @@ void ofp_init_global_param(ofp_init_global_t *params)
 {
 	memset(params, 0, sizeof(*params));
 	params->sched_group = ODP_SCHED_GROUP_ALL;
+#ifdef SP
+	params->enable_nl_thread = 1;
+#endif /* SP */
 }
 
 int ofp_init_pre_global(const char *pool_name_unused,
@@ -185,9 +188,7 @@ int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
 	int i;
 	odp_pktio_param_t pktio_param;
 	odp_pktin_queue_param_t pktin_param;
-#ifdef SP
 	odph_linux_thr_params_t thr_params;
-#endif /* SP */
 
 	ofp_init_global_called = 1;
 
@@ -217,21 +218,18 @@ int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
 		HANDLE_ERROR(ofp_ifnet_create(instance, params->if_names[i],
 			&pktio_param, &pktin_param, NULL));
 
-#ifdef SP
-	/* Start Netlink server process */
-	thr_params.start = START_NL_SERVER;
-	thr_params.arg = NULL;
-	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	if (!odph_linux_pthread_create(&shm->nl_thread,
-				  &cpumask,
-				  &thr_params)) {
-
-		OFP_ERR("Failed to start Netlink thread.");
-		return -1;
+	if (params->enable_nl_thread) {
+		/* Start Netlink server process */
+		thr_params.start = START_NL_SERVER;
+		thr_params.arg = NULL;
+		thr_params.thr_type = ODP_THREAD_CONTROL;
+		thr_params.instance = instance;
+		if (!odph_linux_pthread_create(&shm->nl_thread, &cpumask, &thr_params)) {
+			OFP_ERR("Failed to start Netlink thread.");
+			return -1;
+		}
+		shm->nl_thread_is_running = 1;
 	}
-	shm->nl_thread_is_running = 1;
-#endif /* SP */
 
 	odp_schedule_resume();
 	return 0;

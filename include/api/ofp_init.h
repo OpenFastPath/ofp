@@ -60,6 +60,10 @@ typedef struct ofp_init_global_t {
 	/** Use direct input mode for all interfaces if set. Otherwise use
 	 *  scheduled input mode. Default value is 0 (i.e. scheduled mode). */
 	uint8_t burst_recv_mode;
+
+	/** Create netlink listener thread. If slow path is enabled,
+	 *  then default is TRUE, otherwise default is FALSE. */
+	odp_bool_t enable_nl_thread;
 } ofp_init_global_t;
 
 /**
