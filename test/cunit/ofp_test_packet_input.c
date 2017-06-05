@@ -250,8 +250,7 @@ test_init_ifnet(void)
 static int
 init_suite(void)
 {
-	odp_pool_param_t pool_params;
-	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
+	ofp_init_global_t params;
 	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
@@ -266,23 +265,17 @@ init_suite(void)
 		return -1;
 	}
 
-	memset(pkt_hook, 0, sizeof(pkt_hook));
-	pkt_hook[OFP_HOOK_LOCAL]    = fastpath_local_hook;
-	pkt_hook[OFP_HOOK_LOCAL_IPv4]    = fastpath_local_IPv4_hook;
-	pkt_hook[OFP_HOOK_LOCAL_UDPv4]    = fastpath_local_UDPv4_hook;
-	pkt_hook[OFP_HOOK_FWD_IPv4] = fastpath_ip4_forward_hook;
-	pkt_hook[OFP_HOOK_FWD_IPv6] = fastpath_ip6_forward_hook;
-	pkt_hook[OFP_HOOK_GRE]	    = fastpath_gre_hook;
+	ofp_init_global_param(&params);
+	params.enable_nl_thread = 0;
+	memset(params.pkt_hook, 0, sizeof(params.pkt_hook));
+	params.pkt_hook[OFP_HOOK_LOCAL]    = fastpath_local_hook;
+	params.pkt_hook[OFP_HOOK_LOCAL_IPv4]    = fastpath_local_IPv4_hook;
+	params.pkt_hook[OFP_HOOK_LOCAL_UDPv4]    = fastpath_local_UDPv4_hook;
+	params.pkt_hook[OFP_HOOK_FWD_IPv4] = fastpath_ip4_forward_hook;
+	params.pkt_hook[OFP_HOOK_FWD_IPv6] = fastpath_ip6_forward_hook;
+	params.pkt_hook[OFP_HOOK_GRE]	    = fastpath_gre_hook;
 
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_NB_PKTS;
-	pool_params.type        = ODP_POOL_PACKET;
-
-	(void) ofp_init_pre_global("packet_pool", &pool_params,
-				   pkt_hook, &ofp_packet_pool,
-				   ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT,
-				   ODP_SCHED_GROUP_ALL);
+	(void) ofp_init_global(instance, &params);
 
 	ofp_arp_init_local();
 

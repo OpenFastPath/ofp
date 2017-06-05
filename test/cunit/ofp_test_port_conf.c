@@ -33,6 +33,7 @@
 #include <ofpi_hook.h>
 #include <ofpi_util.h>
 #include <ofpi_debug.h>
+#include "api/ofp_init.h"
 
 /*
  * Test data
@@ -51,10 +52,8 @@ odp_instance_t instance;
 static int
 init_suite(void)
 {
-	odp_pool_param_t pool_params;
-	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
+	ofp_init_global_t params;
 	struct ofp_ifnet *dev;
-	odp_pool_t pool;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
@@ -68,16 +67,9 @@ init_suite(void)
 		return -1;
 	}
 
-	memset(pkt_hook, 0, sizeof(pkt_hook));
-
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_NB_PKTS;
-	pool_params.type	= ODP_POOL_PACKET;
-
-	(void) ofp_init_pre_global("packet_pool", &pool_params, pkt_hook, &pool,
-				   ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT,
-				   ODP_SCHED_GROUP_ALL);
+	ofp_init_global_param(&params);
+	params.enable_nl_thread = 0;
+	(void) ofp_init_global(instance, &params);
 
 	ofp_arp_init_local();
 

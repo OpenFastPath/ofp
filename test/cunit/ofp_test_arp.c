@@ -33,17 +33,13 @@
 
 #define ALLOW_UNUSED_LOCAL(x) false ? (void)x : (void)0
 
-static const char *pool_name = "packet_pool";
-
 static odp_atomic_u32_t still_running;
 static odph_linux_pthread_t pp_thread_handle;
 void *pp_thread(void *arg);
 
 static int init_suite(void)
 {
-	odp_pool_param_t pool_params;
-	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
-	odp_pool_t pool;
+	ofp_init_global_t params;
 	odph_linux_thr_params_t thr_params;
 	odp_instance_t instance;
 
@@ -59,16 +55,11 @@ static int init_suite(void)
 		return -1;
 	}
 
-	memset(pkt_hook, 0, sizeof(pkt_hook));
-
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_NB_PKTS;
-	pool_params.type        = ODP_POOL_PACKET;
-
-	(void) ofp_init_pre_global(pool_name, &pool_params, pkt_hook, &pool,
-				   ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT,
-				   ODP_SCHED_GROUP_ALL);
+	ofp_init_global_param(&params);
+	params.enable_nl_thread = 0;
+	params.arp.age_interval = ARP_AGE_INTERVAL;
+	params.arp.entry_timeout = ARP_ENTRY_TIMEOUT;
+	(void) ofp_init_global(instance, &params);
 
 	/*
 	 * Start a packet processing thread to service timer events.
