@@ -24,9 +24,9 @@ int ofp_stat_term_global(void);
 extern unsigned long int ofp_stat_flags;
 
 #define _UPDATE_LATENCY(_core, _current_cycle, _n) do {\
-	if (odp_time_to_u64(st->per_core[_core].last_input_cycles)) \
+	if (odp_time_to_ns(st->per_core[_core].last_input_cycles)) \
 		st->per_core[_core].input_latency[\
-			ilog2(odp_time_to_u64(odp_time_diff(\
+			ilog2(odp_time_to_ns(odp_time_diff(\
 				_current_cycle, \
 				st->per_core[_core]\
 				.last_input_cycles)))]\
