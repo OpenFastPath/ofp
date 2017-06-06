@@ -6,13 +6,15 @@
  */
 
 #include "ofpi_shared_mem.h"
+#include "ofpi_odp_compat.h"
 
 static void *allocate_shared_memory(const char *name, uint64_t size)
 {
 	odp_shm_t shm_h;
 	void *shm;
 
-	shm_h = odp_shm_reserve(name, size, ODP_CACHE_LINE_SIZE, 0);
+	shm_h = odp_shm_reserve(name, size, ODP_CACHE_LINE_SIZE,
+				OFP_SHM_SINGLE_VA);
 	if (shm_h == ODP_SHM_INVALID)
 		return NULL;
 
