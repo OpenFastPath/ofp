@@ -3586,8 +3586,6 @@ igmp_rec_type_to_str(const int type)
 void
 ofp_igmp_init(void)
 {
-	ofp_loglevel = 10;
-
 	CTR1(KTR_IGMPV3, "%s: initializing", __func__);
 
 	IGMP_LOCK_INIT();

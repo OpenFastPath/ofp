@@ -14,10 +14,11 @@
 #include "ofpi_util.h"
 
 const char *loglevel_descript[] = {
-	"abort",
-	"error",
-	"info",
-	"debug"
+        [OFP_LOG_DISABLED] = "disabled",
+        [OFP_LOG_ERROR]    = "error",
+        [OFP_LOG_WARNING]  = "warning",
+        [OFP_LOG_INFO]     = "info",
+        [OFP_LOG_DEBUG]    = "debug"
 };
 
 /* loglevel help */
@@ -27,10 +28,13 @@ void f_help_loglevel(struct cli_conn *conn, const char *s)
 	(void)s;
 
 	ofp_sendf(conn->fd, "Show log level\r\n"
-		"  loglevel show\r\n");
+		"  loglevel show\r\n\r\n");
 	ofp_sendf(conn->fd, "Set log level\r\n"
-		"  loglevel set <debug|info|error|abort>\r\n"
-		"  Example: loglevel set debug\r\n");
+		"  loglevel set <debug|info|warning|error|disabled>\r\n"
+                "  Note:\r\n"
+                "    Debug level logs require --enable-debug configuration option\r\n"
+                "  Example: Set log level to generate warning and error logs:\r\n"
+		"    loglevel set warning\r\n\r\n");
 	ofp_sendf(conn->fd, "Show log level help (this help)\r\n"
 		"  loglevel help\r\n");
 
@@ -48,7 +52,7 @@ void f_loglevel_show(struct cli_conn *conn, const char *s)
 	sendcrlf(conn);
 }
 
-/* loglevel <debug|info|error|abort> */
+/* loglevel set */
 void f_loglevel(struct cli_conn *conn, const char *s)
 {
 	int i;
