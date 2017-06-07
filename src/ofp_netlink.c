@@ -51,6 +51,7 @@ static struct {
 	int fd;
 } ns_sockets[NUM_NS_SOCKETS];
 static int sock_cnt = 0;
+#define ALLVRF ((int)0xffffffff)
 
 #define BUFFER_SIZE 4096
 static char buffer[BUFFER_SIZE];
@@ -423,7 +424,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 
 	dev = ofp_get_ifnet_by_linux_ifindex(if_entry->ifa_index);
 	if (!dev) {
-		OFP_ERR(" ! Interface index %d not found", if_entry->ifa_index);
+		OFP_DBG(" ! Interface index %d not found", if_entry->ifa_index);
 		return -1;
 	}
 
@@ -490,7 +491,7 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 			&key,
 			(void **)&dev)) {
 
-			dev = malloc(sizeof(struct ofp_ifnet));
+			dev = ofp_vlan_alloc();
 			memset(dev, 0, sizeof(struct ofp_ifnet));
 			dev->port = dev_root->port;
 			dev->vlan = vlan;
@@ -858,8 +859,6 @@ void *start_netlink_nl_server(void *arg)
 	int i, r;
 	fd_set fds;
 	struct timeval timeout;
-	DIR *dir;
-	struct dirent *entry;
 	struct ofp_global_config_mem *ofp_global_cfg = NULL;
 
 	(void)arg;
@@ -877,23 +876,7 @@ void *start_netlink_nl_server(void *arg)
 
 	FD_ZERO(&read_fd);
 
-	ofp_create_ns_socket(0);
-
-	dir = opendir(NETNS_RUN_DIR);
-	if (dir) {
-		while ((entry = readdir(dir)) != NULL &&
-			sock_cnt < NUM_NS_SOCKETS) {
-			if (strncmp(entry->d_name, "vrf", 3))
-				continue;
-
-			int vrf = atoi(entry->d_name + 3);
-			if (vrf == 0)
-				continue;
-
-			ofp_create_ns_socket(vrf);
-		}
-		closedir(dir);
-	}
+	ofp_create_ns_socket(ALLVRF);
 
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
@@ -936,13 +919,9 @@ extern int clone (int (*__fn) (void *__arg), void *__child_stack,
 #define STACK_SIZE (128 * 1024)
 static char child_stack[STACK_SIZE];    /* Space for child's stack */
 
-/* arg is pointer to int.
- * in: vrf.
- * out: socket file descriptor.
- */
-static int get_ns_socket_child(void *arg)
+
+static int open_nl_socket(int vrf)
 {
-	int vrf = (int)(uintptr_t)arg;
 	int fd = -1;
 	char net_path[PATH_MAX];
 	int netns;
@@ -993,6 +972,42 @@ static int get_ns_socket_child(void *arg)
 
 	return 0;
 }
+/* arg is pointer to int.
+ * in: vrf.
+ * out: socket file descriptor.
+ */
+static int get_ns_socket_child(void *arg)
+{
+	int vrf = (int)(uintptr_t)arg;
+	DIR *dir;
+	struct dirent *entry;
+	int rc = 0;
+
+	if (vrf == ALLVRF) {
+		// create nl sockets for all vrf including default
+		if ((rc = open_nl_socket(0)) != 0)
+			return rc;
+		dir = opendir(NETNS_RUN_DIR);
+		if (dir) {
+			while ((entry = readdir(dir)) != NULL &&
+			       sock_cnt < NUM_NS_SOCKETS) {
+				if(strncmp(entry->d_name, "vrf", 3))
+					continue;
+
+				int vrf = atoi(entry->d_name + 3);
+				if ((rc = open_nl_socket(vrf)) != 0)
+					break;
+			}
+			closedir(dir);
+		} else
+			rc = -1;
+	} else {
+		// create nl socket for a specific vrf
+		rc = open_nl_socket(vrf);
+	}
+
+	return rc;
+}
 
 int ofp_create_ns_socket(int vrf)
 {
@@ -1001,22 +1016,18 @@ int ofp_create_ns_socket(int vrf)
 	if (sock_cnt >= NUM_NS_SOCKETS)
 		return -1;
 
-	if (vrf) {
-		child_pid = clone(get_ns_socket_child, child_stack + STACK_SIZE,
-				  CLONE_NEWNET | CLONE_FILES | CLONE_IO | CLONE_FS | CLONE_VM | SIGCHLD,
-				  (void *)(uintptr_t)vrf);
+	child_pid = clone(get_ns_socket_child, child_stack + STACK_SIZE,
+			  CLONE_FILES | CLONE_IO | CLONE_FS | CLONE_VM | SIGCHLD,
+			  (void *)(uintptr_t)vrf);
 
-		if (child_pid == -1) {
-			OFP_ERR("NS: open_ns_sock failed: %s\n",
-				strerror(errno));
-			return -1;
-		}
-
-		if (waitpid(child_pid, NULL, 0) == -1)      /* Wait for child */
-			OFP_ERR("NS: waitpid error");
-	} else {
-		get_ns_socket_child((void *)0);
+	if (child_pid == -1) {
+		OFP_ERR("NS: open_ns_sock failed: %s\n",
+			strerror(errno));
+		return -1;
 	}
+
+	if (waitpid(child_pid, NULL, 0) == -1)      /* Wait for child */
+		OFP_ERR("NS: waitpid error");
 
 	return 0;
 }

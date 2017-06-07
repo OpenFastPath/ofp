@@ -33,5 +33,5 @@ noinst_HEADERS = \
 		${srcdir}/suite_framework.h \
 		${srcdir}/socket_send_recv_tcp.h
 if OFP_IPv6
-socket_CFLAGS =  -DINET6
+socket_CFLAGS = $(AM_CFLAGS) -DINET6
 endif

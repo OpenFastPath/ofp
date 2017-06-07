@@ -144,10 +144,14 @@ int main(int argc, char *argv[])
 	 * will be created per core.
 	 */
 	core_count = odp_cpu_count();
-	num_workers = core_count;
 
 	if (params.core_count)
 		num_workers = params.core_count;
+	else {
+		num_workers = core_count;
+		if (core_count > 1)
+			num_workers--;
+	}
 	if (num_workers > MAX_WORKERS)
 		num_workers = MAX_WORKERS;
 
@@ -159,9 +163,6 @@ int main(int argc, char *argv[])
 	memset(&app_init_params, 0, sizeof(app_init_params));
 
 	app_init_params.linux_core_id = 0;
-
-	if (core_count > 1)
-		num_workers--;
 
 	/*
 	 * Initializes cpumask with CPUs available for worker threads.

@@ -1,3 +1,3 @@
-SUBDIRS = fpm fpm_burstmode socket classifier webserver webserver2 udpecho \
-       ioctl_test sysctl multicast udp_fwd_socket ofp_netwrap_proc ofp_netwrap_crt \
-       ofp_vs
+SUBDIRS = classifier fpm fpm_burstmode ioctl_test multicast ofp_netwrap_crt \
+        ofp_netwrap_proc socket sysctl tcpperf udp_fwd_socket udpecho \
+        webserver webserver2 ofp_vs

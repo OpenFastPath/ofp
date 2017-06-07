@@ -227,8 +227,14 @@ int _ofp_epoll_wait(struct socket *epoll, struct ofp_epoll_event *events, int ma
 	if (!events)
 		return failure(OFP_EFAULT);
 
-	if (timeout && none_of_ready(epoll))
+	if (timeout < 0 && timeout != -1)
+		return failure(OFP_EINVAL);
+
+	if (timeout && none_of_ready(epoll)) {
+		if (timeout == -1)
+			timeout = 0; /* wait forver */
 		msleep(timeout);
+	}
 
 	return available_events(epoll, events, maxevents);
 }

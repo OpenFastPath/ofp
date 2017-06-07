@@ -31,18 +31,53 @@
 
 /**
  * OFP API initialization data
+ *
+ * @see ofp_init_global_param()
  */
 typedef struct ofp_init_global_t {
-	uint16_t if_count;	/**< Interface count that needs init */
-	uint16_t linux_core_id;	/**< Core index that is reserved for Linux */
-	char **if_names;	/**< Interface names in relation to #if_count */
-	odp_schedule_group_t sched_group;	/**< Thread schedule group */
-	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];	/**< @see ofp_hook.h */
-	uint8_t burst_recv_mode;		/**< Interfaces use polling
-						when value set is 1.
-						Interfaces use scheduling
-						when value set is 0. */
+	/** Count of interfaces to be initialized. The default value is 0. */
+	uint16_t if_count;
+
+	/** CPU core to which internal OFP control threads are pinned.
+	 *  The default value is 0. */
+	uint16_t linux_core_id;
+
+	/** Names of the interfaces to be initialized. The naming convention
+	 *  depends on the operating system and the ODP implementation.
+	 *  Must point to an array of at least if_count zero terminated
+	 *  strings. */
+	char **if_names;
+
+	/** ODP event scheduling group for all scheduled event queues
+	 *  (pktio queues, timer queues and other queues) created in OFP
+	 *  initialization. The default value is ODP_SCHED_GROUP_ALL. */
+	odp_schedule_group_t sched_group;
+
+	/** Packet processing hooks. @see ofp_hook.h
+	 *  The default value is NULL for every hook. */
+	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
+
+	/** Use direct input mode for all interfaces if set. Otherwise use
+	 *  scheduled input mode. Default value is 0 (i.e. scheduled mode). */
+	uint8_t burst_recv_mode;
 } ofp_init_global_t;
+
+/**
+ * Initialize ofp_init_global_t to its default values.
+ *
+ * This function should be called to initialize the supplied parameter
+ * structure to default values before setting application specific values
+ * and before passing the parameter structure to ofp_init_global().
+ *
+ * Using this function makes the application to some extent forward
+ * compatible with future versions of OFP that may add new fields in
+ * the parameter structure.
+ *
+ * @params parameter structure to initialize
+ *
+ * @see ofp_init_global()
+ */
+void ofp_init_global_param(ofp_init_global_t *params);
 
 /**
  * OFP global initialization

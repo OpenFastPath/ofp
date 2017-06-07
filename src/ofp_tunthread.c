@@ -262,11 +262,6 @@ void *sp_tx_thread(void *ifnet_void)
 	struct timeval timeout;
 	fd_set read_fd;
 
-	timeout.tv_sec = 1;
-	timeout.tv_usec = 0;
-
-	FD_ZERO(&read_fd);
-
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
 		return NULL;
@@ -295,7 +290,10 @@ void *sp_tx_thread(void *ifnet_void)
 
 		/* Blocking read */
 drop_pkg:
+		FD_ZERO(&read_fd);
 		FD_SET(ifnet->fd, &read_fd);
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
 		r = select(ifnet->fd + 1, &read_fd, NULL, NULL, &timeout);
 		if (!ofp_global_cfg->is_running) {
 			odp_packet_free(pkt);

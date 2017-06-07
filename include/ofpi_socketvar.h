@@ -290,6 +290,7 @@ struct xsocket {
 
 #define	sowwakeup_locked(so) do {					\
 	SOCKBUF_LOCK_ASSERT(&(so)->so_snd);				\
+	ofp_send_sock_event(so, so, OFP_EVENT_SEND);			\
 	if (sb_notify(&(so)->so_snd))					\
 		ofp_sowakeup((so), &(so)->so_snd);				\
 	else								\

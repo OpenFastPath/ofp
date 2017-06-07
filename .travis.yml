@@ -1,0 +1,24 @@
+language: c
+
+dist: trusty
+sudo: false
+
+git:
+    depth: 1
+
+install:
+    - curl -sSL https://github.com/Linaro/libcunit/releases/download/2.1-3/CUnit-2.1-3.tar.bz2 | tar jx
+    - cd CUnit-2.1-3
+    - ./bootstrap
+    - ./configure --prefix=$(pwd)/install
+    - make install
+    - export CPPFLAGS="-I$(pwd)/install/include $CPPFLAGS"
+    - export LDFLAGS="-L$(pwd)/install/lib $LDFLAGS"
+    - cd ..
+
+script: ./scripts/travis.sh
+
+notifications:
+    email:
+        recipients:
+            - openfastpath@list.openfastpath.org

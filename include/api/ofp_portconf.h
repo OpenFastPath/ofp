@@ -46,6 +46,7 @@ int ofp_get_num_ports(void);
 struct ofp_ifnet *ofp_get_ifnet(int port, uint16_t vlan);
 struct ofp_ifnet *ofp_get_create_ifnet(int port, uint16_t vlan);
 int ofp_delete_ifnet(int port, uint16_t vlan);
+struct ofp_ifnet *ofp_vlan_alloc(void);
 
 odp_pktio_t ofp_port_pktio_get(int port);
 

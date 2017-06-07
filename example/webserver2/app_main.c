@@ -22,7 +22,8 @@
 enum execution_mode {
 	EXEC_MODE_SCHEDULER = 0,
 	EXEC_MODE_DIRECT_RSS,
-	EXEC_MODE_MAX = EXEC_MODE_DIRECT_RSS
+	EXEC_MODE_SCHEDULER_RSS,
+	EXEC_MODE_MAX = EXEC_MODE_SCHEDULER_RSS
 };
 
 /**
@@ -214,6 +215,67 @@ static int configure_workers_arg_direct_rss(int num_workers,
 	return 0;
 }
 
+
+/** create_interfaces_sched_rss() Create OFP interfaces with
+ * pktios open in  scheduler mode and using RSS
+ * with hashing by IPv4 addresses and TCP ports
+ *
+ * @param if_count int  Interface count
+ * @param if_names char** Interface names
+ * @param tx_queue int Number of requested transmision queues
+ *    per interface
+ * @param rx_queue int Number of requested reciver queues per
+ *    interface
+ * @return int 0 on success, -1 on error
+ *
+ */
+static int create_interfaces_sched_rss(odp_instance_t instance,
+	int if_count, char **if_names,
+	int tx_queues, int rx_queues)
+{
+	odp_pktio_param_t pktio_param;
+	odp_pktin_queue_param_t pktin_param;
+	odp_pktout_queue_param_t pktout_param;
+	int i;
+
+	odp_pktio_param_init(&pktio_param);
+	pktio_param.in_mode = ODP_PKTIN_MODE_SCHED;
+	pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
+
+	odp_pktin_queue_param_init(&pktin_param);
+	pktin_param.op_mode = ODP_PKTIO_OP_MT;
+	pktin_param.classifier_enable = 0;
+	pktin_param.hash_enable = 1;
+	pktin_param.hash_proto.proto.ipv4_tcp = 1;
+	pktin_param.num_queues = rx_queues;
+	pktin_param.queue_param.type = ODP_QUEUE_TYPE_SCHED;
+	pktin_param.queue_param.enq_mode = ODP_QUEUE_OP_MT;
+	pktin_param.queue_param.deq_mode = ODP_QUEUE_OP_MT;
+	pktin_param.queue_param.context = NULL;
+	pktin_param.queue_param.context_len = 0;
+	pktin_param.queue_param.sched.prio = ODP_SCHED_PRIO_DEFAULT;
+	pktin_param.queue_param.sched.sync = ODP_SCHED_SYNC_ATOMIC;
+	pktin_param.queue_param.sched.group = ODP_SCHED_GROUP_ALL;
+	pktin_param.queue_param.sched.lock_count = 0;
+
+	odp_pktout_queue_param_init(&pktout_param);
+	pktout_param.op_mode    = ODP_PKTIO_OP_MT_UNSAFE;
+	pktout_param.num_queues = tx_queues;
+
+	for (i = 0; i < if_count; i++)
+		if (ofp_ifnet_create(instance, if_names[i],
+				&pktio_param,
+				&pktin_param,
+				&pktout_param) < 0) {
+			OFP_ERR("Failed to init interface %s",
+				if_names[i]);
+			return -1;
+		}
+
+	return 0;
+}
+
+
 /**
  * main() Application entry point
  *
@@ -307,6 +369,13 @@ int main(int argc, char *argv[])
 			workers_arg_direct_rss,
 			params.if_count, params.if_names)) {
 			OFP_ERR("Failed to initialize workers arguments.");
+			exit(EXIT_FAILURE);
+		}
+	} else if (params.mode == EXEC_MODE_SCHEDULER_RSS) {
+		if (create_interfaces_sched_rss(instance,
+			params.if_count, params.if_names,
+			num_workers, num_workers)) {
+			OFP_ERR("Failed to initialize interfaces.");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -621,10 +690,18 @@ static void print_info(char *progname, appl_args_t *appl_args)
 		printf(" %s", appl_args->if_names[i]);
 	printf("\n");
 
-	printf("Execution mode:  %s\n",
-		appl_args->mode == EXEC_MODE_DIRECT_RSS ?
-		"direct_rss" : "scheduler");
-	printf("\n");
+	printf("Execution mode: ");
+	switch (appl_args->mode) {
+	case EXEC_MODE_DIRECT_RSS:
+		printf("direct_rss");
+		break;
+	case EXEC_MODE_SCHEDULER_RSS:
+		printf("sched_rss");
+		break;
+	default:
+		printf("scheduler");
+	}
+	printf("\n\n");
 	fflush(NULL);
 }
 
@@ -643,7 +720,10 @@ static void usage(char *progname)
 		   "  -i, --interface Eth interfaces (comma-separated, no spaces)\n"
 		   "\n"
 		   "Optional OPTIONS\n"
-		   "  -m, --mode <number> Execution mode: 0 scheduler mode, 1 direct_rss mode. Default 0.\n"
+		   "  -m, --mode <number> Execution mode:\n"
+		   "          0 scheduler mode (single input queue),\n"
+		   "          1 direct_rss mode (multiple input queue),\n"
+		   "          2 sched_rss (multiple input queue). Default 0.\n"
 		   "  -c, --core_count <number> Core count. Default 0: all above core start\n"
 		   "  -s, --core_start <number> Core start. Default 1.\n"
 		   "  -r, --root <web root folder> Webserver root folder.\n"

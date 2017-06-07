@@ -1399,9 +1399,16 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 	 * XXX: This should be done after segment
 	 * validation to ignore broken/spoofed segs.
 	 */
-	tp->t_rcvtime = ticks;
-	if (TCPS_HAVEESTABLISHED(tp->t_state))
-		ofp_tcp_timer_activate(tp, TT_KEEP, TP_KEEPIDLE(tp));
+	int cur_ticks = ticks;
+	/*
+	 * Restart keepalive timer at most once per second, or ten
+	 * times per keepalive interval, whichever is more frequent.
+	 */
+	if (cur_ticks > (int)(tp->t_rcvtime + min(HZ, TP_KEEPIDLE(tp)/10))) {
+		tp->t_rcvtime = cur_ticks;
+		if (TCPS_HAVEESTABLISHED(tp->t_state))
+			ofp_tcp_timer_activate(tp, TT_KEEP, TP_KEEPIDLE(tp));
+	}
 
 	/*
 	 * Unscale the window into a 32-bit value.
@@ -2412,7 +2419,7 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 					*/
 					ofp_tcp_timer_activate(tp, TT_REXMT, 0);
 					tp->t_rtttime = 0;
-					if (tp->t_flags & TF_SACK_PERMIT) {
+					if (0 && tp->t_flags & TF_SACK_PERMIT) {
 						TCPSTAT_INC(
 						    tcps_sack_recovery_episode);
 						tp->sack_newdata = tp->snd_nxt;
@@ -2422,6 +2429,8 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 					}
 					tp->snd_nxt = th->th_ack;
 					tp->snd_cwnd = tp->t_maxseg;
+					tp->snd_recover = tp->snd_max;
+					t_flags_or(tp->t_flags, TF_FASTRECOVERY);
 					(void) ofp_tcp_output(tp);
 					KASSERT(tp->snd_limited <= 2,
 					    ("%s: tp->snd_limited too big",
@@ -2582,6 +2591,7 @@ process_ACK:
 		/* HJo: FIX
 		cc_ack_received(tp, th, CC_ACK);
 		*/
+		if (tp->snd_cwnd < tp->snd_wnd) tp->snd_cwnd = tp->snd_wnd;
 		SOCKBUF_LOCK(&so->so_snd);
 		if (acked > (int)so->so_snd.sb_cc) {
 			tp->snd_wnd -= so->so_snd.sb_cc;
@@ -2853,6 +2863,7 @@ dodata:							/* XXX */
 		} else {
 			odp_packet_free(m);
 			t_flags_or(tp->t_flags, TF_ACKNOW);
+			thflags &= ~OFP_TH_FIN;
 		}
 	} else {
 		odp_packet_free(m);

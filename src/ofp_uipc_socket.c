@@ -1189,6 +1189,7 @@ restart:
 		SOCKBUF_UNLOCK(&so->so_snd);
 		space -= clen;
 		do {
+			int cancopy = 0;
 
 			if (uio == NULL) {
 
@@ -1205,7 +1206,7 @@ restart:
 				if (top == ODP_PACKET_INVALID)
 					goto release;
 
-				int cancopy = resid;
+				cancopy = resid;
 				if (cancopy > SHM_PKT_POOL_BUFFER_SIZE)
 					cancopy = SHM_PKT_POOL_BUFFER_SIZE;
 				if (cancopy > space)
@@ -1216,9 +1217,8 @@ restart:
 				memcpy(p, uio->uio_iov->iov_base, cancopy);
 				uio->uio_iov->iov_base = cancopy +
 					(uint8_t *)uio->uio_iov->iov_base;
-				uio->uio_resid -= cancopy;
-				space -= resid - uio->uio_resid;
-				resid = uio->uio_resid;
+				space -= cancopy;
+				resid -= cancopy;
 			}
 			if (dontroute) {
 				OFP_SOCK_LOCK(so);
@@ -1260,6 +1260,8 @@ restart:
 
 			if (error)
 				goto release;
+
+			uio->uio_resid -= cancopy;
 		} while (resid && space > 0);
 	} while (resid);
 

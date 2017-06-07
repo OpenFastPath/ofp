@@ -470,7 +470,9 @@ tcp_usr_connect(struct socket *so, struct ofp_sockaddr *nam, struct thread *td)
 	TCPDEBUG1();
 	if ((error = tcp_connect(tp, nam, td)) != 0)
 		goto out;
-	error = tcp_output_connect(so, nam);
+	if ((error = tcp_output_connect(so, nam)) != 0)
+		goto out;
+	error = OFP_EINPROGRESS;
 out:
 	TCPDEBUG2(OFP_PRU_CONNECT);
 	INP_WUNLOCK(inp);
@@ -534,7 +536,9 @@ tcp6_usr_connect(struct socket *so, struct ofp_sockaddr *nam, struct thread *td)
 #endif
 		if ((error = tcp_connect(tp, (struct ofp_sockaddr *)&sin, td)) != 0)
 			goto out;
-		error = tcp_output_connect(so, nam);
+		if ((error = tcp_output_connect(so, nam)) != 0)
+			goto out;
+		error = OFP_EINPROGRESS;
 		goto out;
 	}
 #endif
@@ -547,7 +551,9 @@ tcp6_usr_connect(struct socket *so, struct ofp_sockaddr *nam, struct thread *td)
 #endif
 	if ((error = tcp6_connect(tp, nam, td)) != 0)
 		goto out;
-	error = tcp_output_connect(so, nam);
+	if ((error = tcp_output_connect(so, nam)) != 0)
+		goto out;
+	error = OFP_EINPROGRESS;
 out:
 	TCPDEBUG2(OFP_PRU_CONNECT);
 	INP_WUNLOCK(inp);
@@ -1617,8 +1623,35 @@ ofp_tcp_ctloutput(struct socket *so, struct sockopt *sopt)
 	}
 	return (error);
 #else
-	(void)so;
-	(void)sopt;
+	int error, optval;
+	struct inpcb *inp = sotoinpcb(so);
+
+	if (sopt->sopt_level != OFP_IPPROTO_TCP)
+		return 0;
+
+	switch (sopt->sopt_dir) {
+	case SOPT_SET:
+		switch (sopt->sopt_name) {
+		case OFP_TCP_CORK:
+			error = ofp_sooptcopyin(sopt, &optval, sizeof(optval), sizeof(optval));
+			if (error) return error;
+
+			if (!optval) {
+				INP_WLOCK(inp);
+				struct tcpcb *tp = intotcpcb(inp);
+				if (TCPS_HAVEESTABLISHED(tp->t_state)) {
+					t_flags_or(tp->t_flags, TF_FORCEDATA);
+					ofp_tcp_output(tp);
+					t_flags_and(tp->t_flags, ~TF_FORCEDATA);
+				}
+				INP_WUNLOCK(inp);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+
 	return 0;
 #endif
 }

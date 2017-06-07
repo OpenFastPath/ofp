@@ -158,10 +158,9 @@ ofp_sendto(int sockfd, const void *buf, size_t len, int flags,
 	 (dest_addr && addrlen)? (struct ofp_sockaddr *)&nonconstaddr : NULL,
 	 &uio, ODP_PACKET_INVALID, ODP_PACKET_INVALID, flags, &td);
 
-	if (ofp_errno)
-		return -1;
+	if ((ssize_t)len != uio.uio_resid) ofp_errno = 0;
 
-	return len - uio.uio_resid;
+	return ofp_errno ? -1 : ((ssize_t)len - uio.uio_resid);
 }
 
 ofp_ssize_t

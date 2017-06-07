@@ -1569,7 +1569,7 @@ static void ip_vs_conn_max_init(void)
 
 	pr_info("conn size:%d, phymem size: %lu\n", conn_size, physmem_size);
 
-	/* half of memory for ip_vs_conn */
+	/* 1/4 memory for ip_vs_conn */
 	sysctl_ip_vs_conn_max_num = (physmem_size >> 2) / conn_size;
 
 	/* the average length of hash chain must be less than 4 */

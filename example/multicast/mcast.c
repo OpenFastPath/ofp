@@ -15,6 +15,7 @@
 #define IP4(a, b, c, d) (a|(b<<8)|(c<<16)|(d<<24))
 
 static uint32_t myaddr;
+static odph_linux_pthread_t test_linux_pthread;
 
 static void *mcasttest(void *arg)
 {
@@ -133,7 +134,6 @@ static void *mcasttest(void *arg)
 
 void ofp_multicast_thread(odp_instance_t instance, int core_id)
 {
-	odph_linux_pthread_t test_linux_pthread;
 	odp_cpumask_t cpumask;
 	odph_linux_thr_params_t thr_params;
 

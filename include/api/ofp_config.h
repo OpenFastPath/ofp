@@ -112,6 +112,9 @@
  * For each fastpath interface a PKTIO in opened by OFP.*/
 #define OFP_FP_INTERFACE_MAX 8
 
+/* Maximum numbers of VLANs */
+#define OFP_NUM_VLAN_MAX 256
+
 /**Maximum number of input queues that can be configured for an
    * OFP interface*/
 #define OFP_PKTIN_QUEUE_MAX 64
@@ -172,7 +175,7 @@
 /**Enable IPv4 UDP checksum validation mechanism on input
  * packets. If enabled, validation is performed on input
  * packets. */
-/*#define OFP_IPv4_UDP_CSUM_VALIDATE*/
+#define OFP_IPv4_UDP_CSUM_VALIDATE
 
 /**Enable IPv4 UDP checksum computation mechanism for outgoing
  * packets. If enabled, computation is performed based on
@@ -183,6 +186,6 @@
 /**Enable IPv4 TCP checksum validation mechanism on input
  * packets. If enabled, validation is performed on input
  * packets. */
-/*#define OFP_IPv4_TCP_CSUM_VALIDATE*/
+#define OFP_IPv4_TCP_CSUM_VALIDATE
 
 #endif

@@ -75,6 +75,7 @@ OFP_CFLAGS="$OFP_CFLAGS -Wmissing-declarations -Wold-style-definition -Wpointer-
 OFP_CFLAGS="$OFP_CFLAGS -Wcast-align -Wnested-externs -Wcast-qual -Wformat-nonliteral"
 OFP_CFLAGS="$OFP_CFLAGS -Wformat-security -Wundef -Wwrite-strings"
 ## OFP_CFLAGS="$OFP_CFLAGS -Werror"
+OFP_CFLAGS="$OFP_CFLAGS -std=c99 -D_DEFAULT_SOURCE -D_POSIX_SOURCE=1 -D_POSIX_C_SOURCE=200809L -D_BSD_SOURCE"
 
 OFP_CXXFLAGS="-std=c++11 $OFP_CXXFLAGS"
 OFP_CXXFLAGS="-fno-strict-aliasing $OFP_CXXFLAGS"
@@ -97,19 +98,20 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	example/Makefile
+	example/classifier/Makefile
 	example/fpm/Makefile
 	example/fpm_burstmode/Makefile
+	example/ioctl_test/Makefile
+	example/multicast/Makefile
+	example/ofp_netwrap_crt/Makefile
+	example/ofp_netwrap_proc/Makefile
 	example/socket/Makefile
-	example/classifier/Makefile
+	example/sysctl/Makefile
+	example/tcpperf/Makefile
+	example/udp_fwd_socket/Makefile
+	example/udpecho/Makefile
 	example/webserver/Makefile
 	example/webserver2/Makefile
-	example/udpecho/Makefile
-	example/ioctl_test/Makefile
-	example/sysctl/Makefile
-	example/multicast/Makefile
-	example/udp_fwd_socket/Makefile
-	example/ofp_netwrap_proc/Makefile
-	example/ofp_netwrap_crt/Makefile
 	example/ofp_vs/Makefile
 	pkgconfig/libofp.pc
 	scripts/Makefile
@@ -188,7 +190,8 @@ PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= $ODP_VERSION_SUPPORTED], [], check_odp)
 AC_SUBST([ODP_CFLAGS])
 AC_SUBST([ODP_LIBS])
 
-PKG_CHECK_MODULES([ODPHELPER], [libodphelper-linux],[],[ODPHELPER_LIBS="-lodphelper-linux"])
+PKG_CHECK_MODULES([ODPHELPER], [libodphelper], [],
+				  [ODPHELPER_LIBS="-lodphelper-linux"])
 AC_SUBST([ODPHELPER_CFLAGS])
 AC_SUBST([ODPHELPER_LIBS])
 

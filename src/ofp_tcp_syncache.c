@@ -1470,7 +1470,7 @@ syncookie_generate(struct syncache_head *sch, struct syncache *sc,
 		data |= md5_buffer[2] << 10;		/* more digest bits */
 		data ^= md5_buffer[3];
 		sc->sc_ts = data;
-		sc->sc_tsoff = data - ofp_timer_ticks(0);	/* after XOR */
+		sc->sc_tsoff = data - tcp_ts_getticks();	/* after XOR */
 	}
 
 	TCPSTAT_INC(tcps_sc_sendcookie);
