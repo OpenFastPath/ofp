@@ -261,7 +261,8 @@ int main(int argc, char *argv[])
 		linux_sp_core, first_worker, num_workers);
 
 	/* Initialize OFP*/
-	memset(&app_init_params, 0, sizeof(app_init_params));
+	ofp_init_global_param(&app_init_params);
+
 	app_init_params.linux_core_id = linux_sp_core;
 
 	if (ofp_init_global(instance, &app_init_params)) {

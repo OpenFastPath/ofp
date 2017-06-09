@@ -101,8 +101,7 @@ int main(int argc, char *argv[])
 	printf("first CPU:          %i\n", odp_cpumask_first(&cpumask));
 	printf("cpu mask:           %s\n", cpumaskstr);
 
-	memset(&app_init_params, 0, sizeof(app_init_params));
-	app_init_params.linux_core_id = 0;
+	ofp_init_global_param(&app_init_params);
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
 

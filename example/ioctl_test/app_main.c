@@ -168,9 +168,7 @@ int main(int argc, char *argv[])
 	 * By default core #0 runs Linux kernel background tasks.
 	 * Start mapping thread from core #1
 	 */
-	memset(&app_init_params, 0, sizeof(app_init_params));
-
-	app_init_params.linux_core_id = 0;
+	ofp_init_global_param(&app_init_params);
 
 	if (core_count > 1)
 		num_workers--;
