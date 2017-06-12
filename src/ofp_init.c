@@ -111,16 +111,8 @@ void ofp_init_global_param(ofp_global_param_t *params)
 	params->arp.entry_timeout = ARP_ENTRY_TIMEOUT;
 }
 
-int ofp_init_pre_global(const char *pool_name_unused,
-			odp_pool_param_t *pool_params_unused,
-			ofp_pkt_hook hooks[], odp_pool_t *pool_unused,
-			int arp_age_interval, int arp_entry_timeout,
-			odp_schedule_group_t sched_group)
+static int ofp_init_pre_global(ofp_global_param_t *params)
 {
-	(void)pool_name_unused;
-	(void)pool_params_unused;
-	(void)pool_unused;
-
 	/* Init shared memories */
 	HANDLE_ERROR(ofp_uma_init_global());
 
@@ -146,11 +138,12 @@ int ofp_init_pre_global(const char *pool_name_unused,
 			OFP_TIMER_MIN_US,
 			OFP_TIMER_MAX_US,
 			OFP_TIMER_TMO_COUNT,
-			sched_group));
+			params->sched_group));
 
-	HANDLE_ERROR(ofp_hook_init_global(hooks));
+	HANDLE_ERROR(ofp_hook_init_global(params->pkt_hook));
 
-	HANDLE_ERROR(ofp_arp_init_global(arp_age_interval, arp_entry_timeout));
+	HANDLE_ERROR(ofp_arp_init_global(params->arp.age_interval,
+			params->arp.entry_timeout));
 
 	HANDLE_ERROR(ofp_route_init_global());
 
@@ -194,10 +187,7 @@ int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 
 	ofp_init_global_called = 1;
 
-	HANDLE_ERROR(ofp_init_pre_global(NULL, NULL,
-					 params->pkt_hook, NULL,
-					 params->arp.age_interval, params->arp.entry_timeout,
-					 params->sched_group));
+	HANDLE_ERROR(ofp_init_pre_global(params));
 
 	/* cpu mask for slow path threads */
 	odp_cpumask_zero(&cpumask);

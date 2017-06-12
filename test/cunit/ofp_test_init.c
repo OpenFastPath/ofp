@@ -65,27 +65,6 @@ clean_suite(void)
 }
 
 static void
-test_global_resources_init_cleanup(void)
-{
-	odp_pool_param_t pool_params;
-	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
-	odp_pool_t pool;
-
-	memset(pkt_hook, 0, sizeof(pkt_hook));
-	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.len     = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num     = SHM_PKT_POOL_NB_PKTS;
-	pool_params.type        = ODP_POOL_PACKET;
-
-	CU_ASSERT_EQUAL(ofp_init_pre_global(
-				"packet_pool", &pool_params, pkt_hook, &pool,
-				ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT,
-				ODP_SCHED_GROUP_ALL), 0);
-
-	CU_ASSERT_EQUAL(ofp_term_post_global("packet_pool"), 0);
-}
-
-static void
 test_global_init_cleanup(void)
 {
 	static ofp_global_param_t oig;
@@ -114,12 +93,6 @@ main(void)
 	/* add a suite to the registry */
 	ptr_suite = CU_add_suite("ofp packet input", init_suite, clean_suite);
 	if (NULL == ptr_suite) {
-		CU_cleanup_registry();
-		return CU_get_error();
-	}
-
-	if (NULL == CU_ADD_TEST(ptr_suite,
-				test_global_resources_init_cleanup)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
