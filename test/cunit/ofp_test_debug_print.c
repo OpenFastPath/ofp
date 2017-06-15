@@ -67,7 +67,7 @@ init_suite(void)
 		return -1;
 	}
 
-
+	odp_pool_param_init(&pool_params);
 	pool_params.pkt.seg_len = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.num = SHM_PKT_POOL_NB_PKTS;

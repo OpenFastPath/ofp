@@ -174,7 +174,7 @@ int ofp_timer_init_global(int resolution_us,
 	ofp_timer_shm_init();
 
 	/* Timout pool */
-	memset(&pool_params, 0, sizeof(pool_params));
+	odp_pool_param_init(&pool_params);
 	pool_params.tmo.num  = TIMER_NUM_TIMERS;
 	pool_params.type  = ODP_POOL_TIMEOUT;
 
@@ -186,7 +186,7 @@ int ofp_timer_init_global(int resolution_us,
 	}
 
 	/* Buffer pool */
-	memset(&pool_params, 0, sizeof(pool_params));
+	odp_pool_param_init(&pool_params);
 	pool_params.buf.size  = sizeof(struct ofp_timer_internal);
 	pool_params.buf.align = 0;
 	pool_params.buf.num  = TIMER_NUM_TIMERS;

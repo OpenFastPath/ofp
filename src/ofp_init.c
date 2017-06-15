@@ -160,6 +160,7 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	HANDLE_ERROR(ofp_vxlan_init_global());
 
 	odp_pool_param_t pool_params;
+	odp_pool_param_init(&pool_params);
 	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
 	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
