@@ -114,6 +114,7 @@ void ofp_init_global_param(ofp_global_param_t *params)
 	params->arp.age_interval = ARP_AGE_INTERVAL;
 	params->arp.entry_timeout = ARP_ENTRY_TIMEOUT;
 	params->evt_rx_burst_size = OFP_EVT_RX_BURST_SIZE;
+	params->pcb_tcp_max = OFP_NUM_PCB_TCP_MAX;
 }
 
 static int ofp_init_pre_global(ofp_global_param_t *params)

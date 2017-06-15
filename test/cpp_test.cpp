@@ -19,7 +19,7 @@ int main() {
 		OFP_ERR("Error: ODP local init failed.\n");
 		exit(EXIT_FAILURE);
 	}
-
+	ofp_init_global_param(&oig);
 	if (ofp_init_global(instance, &oig)) {
 		OFP_ERR("Error: OFP global init failed.\n");
 		exit(EXIT_FAILURE);

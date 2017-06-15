@@ -69,6 +69,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
+	ofp_init_global_param(&oig);
 	if (ofp_init_global(instance, &oig)) {
 		OFP_ERR("Error: OFP global init failed.\n");
 		exit(EXIT_FAILURE);

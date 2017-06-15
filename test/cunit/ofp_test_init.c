@@ -69,6 +69,7 @@ test_global_init_cleanup(void)
 {
 	static ofp_global_param_t oig;
 
+	ofp_init_global_param(&oig);
 	CU_ASSERT_EQUAL(ofp_init_global(instance, &oig), 0);
 
 	ofp_start_cli_thread(instance, oig.linux_core_id, NULL);

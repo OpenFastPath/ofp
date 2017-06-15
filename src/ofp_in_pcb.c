@@ -42,6 +42,7 @@
 #include <stddef.h>
 
 #include "ofpi_errno.h"
+#include "ofpi_init.h"
 #include "ofpi_in.h"
 #include "ofpi_in_pcb.h"
 #include "ofpi_protosw.h"
@@ -132,7 +133,7 @@ void ofp_tcp_rss_in_pcbinfo_init( int hash_nelements, int porthash_nelements,
 
 		sprintf (name_cpu, "tcp_inpcb_%u", cpu_id);
 		pcbinfo->ipi_zone = uma_zcreate(name_cpu,
-			OFP_NUM_PCB_TCP_MAX, sizeof(struct inpcb),
+			global_param->pcb_tcp_max, sizeof(struct inpcb),
 			NULL, NULL, inpcbzone_init, inpcbzone_fini,
 			UMA_ALIGN_PTR, inpcbzone_flags);
 
@@ -177,7 +178,7 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
 		pcbinfo->ipi_porthashbase = shm_tcp->ofp_porthashtbl;
 		ofp_tcp_hashinit(porthash_nelements, &pcbinfo->ipi_hashmask,
                         pcbinfo->ipi_porthashbase);
-		pcb_size = OFP_NUM_PCB_TCP_MAX;
+		pcb_size = global_param->pcb_tcp_max;
 	} else {
 		pcbinfo->ipi_hashbase = ofp_hashinit(hash_nelements, 0,
 		    &pcbinfo->ipi_hashmask);

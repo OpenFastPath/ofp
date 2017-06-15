@@ -34,6 +34,7 @@
 
 #include "odp.h"
 
+#include "ofpi_init.h"
 #include "ofpi_pkt_processing.h"
 #include "ofpi_errno.h"
 #include "ofpi_sysctl.h"
@@ -75,7 +76,7 @@ static int
 tcptw_auto_size(void)
 {
 #ifdef OFP_TCP_MAX_CONNECTION_RATE
-	return OFP_NUM_PCB_TCP_MAX;
+	return global_param->pcb_tcp_max;
 #else
 	int halfrange;
 
@@ -88,7 +89,7 @@ tcptw_auto_size(void)
 	else
 		halfrange = (V_ipport_firstauto - V_ipport_lastauto) / 2;
 	/* Protect against goofy port ranges smaller than 32. */
-	return (imin(imax(halfrange, 32), OFP_NUM_PCB_TCP_MAX / 5));
+	return (imin(imax(halfrange, 32), global_param->pcb_tcp_max / 5));
 #endif /* OFP_TCP_MAX_CONNECTION_RATE*/
 }
 

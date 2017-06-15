@@ -99,6 +99,9 @@ typedef struct ofp_global_param_t {
 	 * OFP_EVT_RX_BURST_SIZE.
 	 */
 	int evt_rx_burst_size;
+
+	/** Maximum number of TCP PCBs. Default value is OFP_NUM_PCB_TCP_MAX */
+	int pcb_tcp_max;
 } ofp_global_param_t;
 
 /**
