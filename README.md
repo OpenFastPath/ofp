@@ -1,4 +1,4 @@
-Open IP Fast Path general info
+Open IP Fast Path general info [![Build Status](https://travis-ci.org/OpenFastPath/ofp.svg?branch=master)](https://travis-ci.org/OpenFastPath/ofp)
 ===============================================================================
 
 
