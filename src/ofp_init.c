@@ -45,6 +45,8 @@
 
 static __thread struct ofp_global_config_mem *shm;
 
+__thread ofp_global_param_t *global_param = NULL;
+
 static void schedule_shutdown(void);
 static void cleanup_pkt_queue(odp_queue_t pkt_queue);
 
@@ -55,6 +57,7 @@ static int ofp_global_config_alloc_shared_memory(void)
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
 	}
+	global_param = &shm->global_param;
 	return 0;
 }
 
@@ -77,6 +80,7 @@ static int ofp_global_config_lookup_shared_memory(void)
 		OFP_ERR("ofp_shared_memory_lookup failed");
 		return -1;
 	}
+	global_param = &shm->global_param;
 
 	return 0;
 }
@@ -123,6 +127,8 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	shm->nl_thread_is_running = 0;
 #endif /* SP */
 	shm->cli_thread_is_running = 0;
+
+	*global_param = *params;
 
 	ofp_register_sysctls();
 

@@ -27,7 +27,11 @@ struct ofp_global_config_mem {
 
 	odph_linux_pthread_t cli_thread;
 	odp_bool_t cli_thread_is_running;
+
+	ofp_global_param_t global_param;
 };
+
+extern __thread ofp_global_param_t *global_param;
 
 struct ofp_global_config_mem *ofp_get_global_config(void);
 
