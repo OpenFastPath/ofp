@@ -115,6 +115,7 @@ void ofp_init_global_param(ofp_global_param_t *params)
 	params->arp.entry_timeout = ARP_ENTRY_TIMEOUT;
 	params->evt_rx_burst_size = OFP_EVT_RX_BURST_SIZE;
 	params->pcb_tcp_max = OFP_NUM_PCB_TCP_MAX;
+	params->pkt_pool_nb_pkts = SHM_PKT_POOL_NB_PKTS;
 }
 
 static int ofp_init_pre_global(ofp_global_param_t *params)
@@ -166,7 +167,7 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	/* Define pkt.seg_len so that l2/l3/l4 offset fits in first segment */
 	pool_params.pkt.seg_len    = SHM_PKT_POOL_BUFFER_SIZE;
 	pool_params.pkt.len        = SHM_PKT_POOL_BUFFER_SIZE;
-	pool_params.pkt.num        = SHM_PKT_POOL_NB_PKTS;
+	pool_params.pkt.num        = params->pkt_pool_nb_pkts;
 	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
 	pool_params.type           = ODP_POOL_PACKET;
 
