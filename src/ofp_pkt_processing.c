@@ -50,6 +50,7 @@
 #include "ofpi_reass.h"
 #include "ofpi_if_vxlan.h"
 #include "ofpi_vxlan.h"
+#include "ofpi_gre.h"
 #include "api/ofp_init.h"
 
 extern odp_pool_t ofp_packet_pool;
@@ -859,59 +860,6 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 	return OFP_PKT_PROCESSED;
 }
 
-static enum ofp_return_code ofp_output_ipv4_to_gre(
-	odp_packet_t pkt, struct ofp_ifnet *dev_gre,
-	uint16_t vrfid,	struct ofp_nh_entry **nh_new)
-{
-	struct ofp_ip	*ip;
-	struct ofp_greip *greip;
-	uint32_t flags;
-	uint8_t	l2_size = 0;
-	int32_t	offset;
-
-	*nh_new = ofp_get_next_hop(vrfid, dev_gre->ip_remote, &flags);
-
-	if (*nh_new == NULL)
-		return OFP_PKT_DROP;
-
-	ip = odp_packet_l3_ptr(pkt, NULL);
-
-	/* Remove eth header, prepend gre + ip */
-	if (odp_packet_has_l2(pkt))
-		l2_size = odp_packet_l3_offset(pkt) - odp_packet_l2_offset(pkt);
-
-	offset = sizeof(*greip) - l2_size;
-	if (offset >= 0)
-		greip = odp_packet_push_head(pkt, offset);
-	else
-		greip = odp_packet_pull_head(pkt, -offset);
-
-	odp_packet_has_l2_set(pkt, 0);
-	odp_packet_l3_offset_set(pkt, 0);
-
-	if (!greip)
-		return OFP_PKT_DROP;
-
-	greip->gi_flags = 0;
-	greip->gi_ptype = odp_cpu_to_be_16(OFP_GREPROTO_IP);
-
-	greip->gi_i.ip_hl = 5;
-	greip->gi_i.ip_v = OFP_IPVERSION;
-	greip->gi_i.ip_tos = ip->ip_tos;
-	greip->gi_i.ip_len =
-		odp_cpu_to_be_16(odp_be_to_cpu_16(ip->ip_len) +
-				 sizeof(*greip));
-	greip->gi_i.ip_id = ip->ip_id;
-	greip->gi_i.ip_off = 0;
-	greip->gi_i.ip_ttl = ip->ip_ttl;
-	greip->gi_i.ip_p = OFP_IPPROTO_GRE;
-	greip->gi_i.ip_sum = 0;
-	greip->gi_i.ip_src.s_addr = dev_gre->ip_local;
-	greip->gi_i.ip_dst.s_addr = dev_gre->ip_remote;
-
-	return OFP_PKT_CONTINUE;
-}
-
 static enum ofp_return_code ofp_gre_update_target(odp_packet_t pkt,
 						  struct ip_out *odata)
 {
@@ -1201,62 +1149,6 @@ enum ofp_return_code  ofp_ip_output_opt(odp_packet_t pkt, odp_packet_t opt,
 }
 
 #ifdef INET6
-static enum ofp_return_code ofp_output_ipv6_to_gre(
-	odp_packet_t pkt, struct ofp_ifnet *dev_gre,
-	uint16_t vrfid,	struct ofp_nh_entry **nh_new)
-{
-	struct ofp_ip6_hdr *ip6;
-	struct ofp_greip *greip;
-	uint32_t flags;
-	uint8_t	l2_size = 0;
-	int32_t	offset;
-	static uint16_t	id = 0;
-
-	*nh_new = ofp_get_next_hop(vrfid, dev_gre->ip_remote, &flags);
-
-	if (*nh_new == NULL)
-		return OFP_PKT_DROP;
-
-	ip6 = odp_packet_l3_ptr(pkt, NULL);
-
-	/* Remove eth header, prepend gre + ip */
-	if (odp_packet_has_l2(pkt))
-		l2_size = odp_packet_l3_offset(pkt) - odp_packet_l2_offset(pkt);
-
-	offset = sizeof(*greip) - l2_size;
-	if (offset >= 0)
-		greip = odp_packet_push_head(pkt, offset);
-	else
-		greip = odp_packet_pull_head(pkt, -offset);
-
-	odp_packet_has_l2_set(pkt, 0);
-	odp_packet_l3_offset_set(pkt, 0);
-
-	if (!greip)
-		return OFP_PKT_DROP;
-
-	greip->gi_flags = 0;
-	greip->gi_ptype = odp_cpu_to_be_16(OFP_ETHERTYPE_IPV6);
-
-	greip->gi_i.ip_hl = 5;
-	greip->gi_i.ip_v = OFP_IPVERSION;
-	greip->gi_i.ip_tos = 0;
-	greip->gi_i.ip_len = odp_cpu_to_be_16(
-		odp_be_to_cpu_16(ip6->ofp_ip6_plen) +
-		sizeof(*ip6) + sizeof(*greip));
-	greip->gi_i.ip_id = odp_cpu_to_be_16(id++);
-	greip->gi_i.ip_off = 0;
-	greip->gi_i.ip_ttl = ip6->ofp_ip6_hlim;
-	greip->gi_i.ip_p = OFP_IPPROTO_GRE;
-	greip->gi_i.ip_sum = 0;
-	greip->gi_i.ip_src.s_addr = dev_gre->ip_local;
-	greip->gi_i.ip_dst.s_addr = dev_gre->ip_remote;
-
-	odp_packet_has_ipv6_set(pkt, 0);
-	odp_packet_has_ipv4_set(pkt, 1);
-
-	return OFP_PKT_CONTINUE;
-}
 
 enum ofp_return_code ofp_ip6_send(odp_packet_t pkt,
 				  struct ofp_nh6_entry *nh_param)
