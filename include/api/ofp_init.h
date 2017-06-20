@@ -93,6 +93,12 @@ typedef struct ofp_global_param_t {
 		/** Entry timeout in seconds. Default is ARP_ENTRY_TIMEOUT. */
 		int entry_timeout;
 	} arp;
+
+	/**
+	 * Maximum number of events received at once. Default is
+	 * OFP_EVT_RX_BURST_SIZE.
+	 */
+	int evt_rx_burst_size;
 } ofp_global_param_t;
 
 /**

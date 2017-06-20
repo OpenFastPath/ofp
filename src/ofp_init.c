@@ -113,6 +113,7 @@ void ofp_init_global_param(ofp_global_param_t *params)
 #endif /* SP */
 	params->arp.age_interval = ARP_AGE_INTERVAL;
 	params->arp.entry_timeout = ARP_ENTRY_TIMEOUT;
+	params->evt_rx_burst_size = OFP_EVT_RX_BURST_SIZE;
 }
 
 static int ofp_init_pre_global(ofp_global_param_t *params)
