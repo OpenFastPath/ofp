@@ -1032,10 +1032,9 @@ static enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
 		return ofp_fragment_pkt(pkt, odata->dev_out, odata->is_local_address);
 	}
 
-#ifndef OFP_PERFORMANCE
 	odata->ip->ip_sum = 0;
 	odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *)odata->ip, odata->ip->ip_hl<<2);
-#endif
+
 	if (odata->is_local_address) {
 		return send_pkt_loop(odata->dev_out, pkt);
 	} else {
