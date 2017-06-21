@@ -120,8 +120,6 @@ struct ofp_nh_entry *ofp_get_next_hop(uint16_t vrf,
 struct ofp_nh6_entry *ofp_get_next_hop6(uint16_t vrf,
 		uint8_t *addr, uint32_t *flags);
 
-uint16_t ofp_get_probable_vlan(int port, uint32_t addr);
-
 /* ARP */
 struct ofp_ifnet;
 int ofp_add_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac);

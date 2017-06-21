@@ -534,41 +534,6 @@ TODO hash implementation for OFP_MOBILE_ROUTE_ADD,OFP_MOBILE_ROUTE_DEL
 		return -1;
 }
 
-struct find_vlan_data {
-	uint32_t addr;
-	uint16_t vlan;
-};
-
-static int iter_vrfs(void *key, void *iter_arg)
-{
-	struct routes_by_vrf *rbv = key;
-	struct find_vlan_data *data = iter_arg;
-	struct ofp_nh_entry *node = ofp_rtl_search(&(rbv->routes), data->addr);
-
-	if (node) {
-		data->vlan = node->vlan;
-		return 1;
-	}
-	return 0;
-}
-
-uint16_t ofp_get_probable_vlan(int port, uint32_t addr)
-{
-	(void) port;
-	struct ofp_nh_entry *node;
-	struct find_vlan_data data;
-
-	node = ofp_rtl_search(&shm->default_routes, addr);
-	if (node)
-		return node->vlan;
-
-	data.addr = addr;
-	data.vlan = 0;
-
-	avl_iterate_inorder(shm->vrf_routes, iter_vrfs, &data);
-	return data.vlan;
-}
-
 static int ofp_route_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_ROUTE, sizeof(*shm));
