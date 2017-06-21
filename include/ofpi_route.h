@@ -31,7 +31,6 @@ int ofp_vrf_route_lookup_shared_memory(void);
 int ofp_route_init_global(void);
 int ofp_route_term_global(void);
 
-int32_t ofp_is_mobile(uint32_t addr);
 enum ofp_return_code ofp_route_save_ipv6_pkt(odp_packet_t pkt, uint8_t *addr,
 		struct ofp_ifnet *dev);
 

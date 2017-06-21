@@ -534,14 +534,6 @@ TODO hash implementation for OFP_MOBILE_ROUTE_ADD,OFP_MOBILE_ROUTE_DEL
 		return -1;
 }
 
-int32_t ofp_is_mobile(uint32_t addr)
-{
-	(void) addr;
-		/* TODO find other hash implementation
-		*/
-		return 0;
-}
-
 struct find_vlan_data {
 	uint32_t addr;
 	uint16_t vlan;
