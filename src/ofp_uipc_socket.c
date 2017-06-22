@@ -203,7 +203,7 @@ void f_sockets(struct cli_conn *conn, const char *s)
 #endif
 
 
-odp_packet_t ofp_packet_alloc(uint32_t len)
+odp_packet_t ofp_socket_packet_alloc(uint32_t len)
 {
 	return odp_packet_alloc(shm->pool, len);
 }
@@ -993,7 +993,7 @@ ofp_sosend_dgram(struct socket *so, struct ofp_sockaddr *addr, struct uio *uio,
 		uint8_t *p;
 		error = OFP_ENOBUFS;
 
-		top = ofp_packet_alloc(resid);
+		top = ofp_socket_packet_alloc(resid);
 
 		if (top == ODP_PACKET_INVALID)
 			goto out;

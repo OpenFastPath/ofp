@@ -1175,7 +1175,7 @@ syncache_respond(struct syncache *sc)
 		mssopt = max( min(sc->sc_peer_mss, mssopt), V_tcp_minmss);
 
 	/* Create the IP+TCP header from scratch. */
-	m = ofp_packet_alloc(tlen);
+	m = ofp_socket_packet_alloc(tlen);
 
 	if (m == ODP_PACKET_INVALID)
 		return OFP_ENOBUFS;

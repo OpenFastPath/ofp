@@ -806,7 +806,7 @@ send:
 			TCPSTAT_ADD(tcps_sndbyte, len);
 		}
 
-		m = ofp_packet_alloc(hdrlen + len);
+		m = ofp_socket_packet_alloc(hdrlen + len);
 
 		if (m == ODP_PACKET_INVALID) {
 			SOCKBUF_UNLOCK(&so->so_snd);
@@ -858,7 +858,7 @@ send:
 		else
 			TCPSTAT_INC(tcps_sndwinup);
 
-		m = ofp_packet_alloc(hdrlen);
+		m = ofp_socket_packet_alloc(hdrlen);
 
 		if (m == ODP_PACKET_INVALID) {
 			SOCKBUF_UNLOCK(&so->so_snd);

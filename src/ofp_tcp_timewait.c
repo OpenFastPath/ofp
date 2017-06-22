@@ -439,7 +439,7 @@ ofp_tcp_twrespond(struct tcptw *tw, int flags)
 	if (isipv6) {
 		hdrlen = sizeof(struct ofp_ip6_hdr) + sizeof(struct ofp_tcphdr);
 
-		m = ofp_packet_alloc(hdrlen);
+		m = ofp_socket_packet_alloc(hdrlen);
 
 		if (m == ODP_PACKET_INVALID)
 			return (OFP_ENOBUFS);
@@ -456,7 +456,7 @@ ofp_tcp_twrespond(struct tcptw *tw, int flags)
 	{
 		hdrlen = sizeof(struct tcpiphdr);
 
-		m = ofp_packet_alloc(hdrlen);
+		m = ofp_socket_packet_alloc(hdrlen);
 
 		if (m == ODP_PACKET_INVALID)
 			return (OFP_ENOBUFS);

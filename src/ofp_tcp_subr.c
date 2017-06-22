@@ -540,8 +540,8 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 	if (!valid_m) {
 #ifdef INET6
 		if (isipv6) {
-			m = ofp_packet_alloc(sizeof(struct ofp_ip6_hdr) +
-				       sizeof(struct ofp_tcphdr));
+			m = ofp_socket_packet_alloc(sizeof(struct ofp_ip6_hdr) +
+						    sizeof(struct ofp_tcphdr));
 
 			if (m == ODP_PACKET_INVALID)
 				return;
@@ -551,8 +551,8 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 		} else
 #endif
 		{
-			m = ofp_packet_alloc(sizeof(struct ofp_ip) +
-				       sizeof(struct ofp_tcphdr));
+			m = ofp_socket_packet_alloc(sizeof(struct ofp_ip) +
+						    sizeof(struct ofp_tcphdr));
 
 			if (m == ODP_PACKET_INVALID)
 				return;

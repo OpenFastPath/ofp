@@ -419,7 +419,7 @@ SYSCTL_DECL(_net_inet_accf);
 int	accept_filt_generic_mod_event(module_t mod, int event, void *data);
 #endif
 
-odp_packet_t ofp_packet_alloc(uint32_t len);
+odp_packet_t ofp_socket_packet_alloc(uint32_t len);
 odp_rwlock_t *ofp_accept_mtx(void);
 void ofp_accept_lock(void);
 void ofp_accept_unlock(void);
