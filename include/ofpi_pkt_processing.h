@@ -12,6 +12,7 @@
 #include "api/ofp_types.h"
 #include "api/ofp_pkt_processing.h"
 #include "ofpi_in.h"
+#include "ofpi_init.h"
 
 struct ip_out {
 	struct ofp_ifnet *dev_out;
@@ -24,6 +25,18 @@ struct ip_out {
 	uint16_t vrf;
 	uint8_t is_local_address;
 };
+
+static inline odp_packet_t ofp_packet_alloc_from_pool(odp_pool_t pool,
+						      uint32_t len)
+{
+	odp_packet_t pkt = odp_packet_alloc(pool, len);
+	return pkt;
+}
+
+static inline odp_packet_t ofp_packet_alloc(uint32_t len)
+{
+	return ofp_packet_alloc_from_pool(ofp_packet_pool, len);
+}
 
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 			odp_packet_t pkt);

@@ -132,6 +132,7 @@
 #include "ofpi_tcp_timer.h"
 #include "ofpi_callout.h"
 #include "ofpi_log.h"
+#include "ofpi_pkt_processing.h"
 
 #define SHM_NAME_SOCKET "OfpSocketShMem"
 
@@ -205,7 +206,7 @@ void f_sockets(struct cli_conn *conn, const char *s)
 
 odp_packet_t ofp_socket_packet_alloc(uint32_t len)
 {
-	return odp_packet_alloc(shm->pool, len);
+	return ofp_packet_alloc_from_pool(shm->pool, len);
 }
 
 odp_rwlock_t *ofp_accept_mtx(void)
@@ -1200,7 +1201,7 @@ restart:
 				*/
 			} else {
 
-				top = odp_packet_alloc(shm->pool, 1);
+				top = ofp_socket_packet_alloc(1);
 				error = OFP_ENOBUFS;
 
 				if (top == ODP_PACKET_INVALID)

@@ -276,12 +276,12 @@ void *sp_tx_thread(void *ifnet_void)
 	while (ofp_global_cfg->is_running) {
 		/* FIXME: coalese syscalls and speed this up */
 
-		pkt = odp_packet_alloc(ifnet->pkt_pool,
-				       ifnet->if_mtu + OFP_ETHER_HDR_LEN +
-				       OFP_ETHER_VLAN_ENCAP_LEN);
+		uint32_t pkt_len = ifnet->if_mtu + OFP_ETHER_HDR_LEN +
+			       OFP_ETHER_VLAN_ENCAP_LEN;
+		pkt = ofp_packet_alloc_from_pool(ifnet->pkt_pool, pkt_len);
 
 		if (pkt == ODP_PACKET_INVALID) {
-			OFP_ERR("odp_packet_alloc failed");
+			OFP_ERR("ofp_packet_alloc failed");
 			usleep(1000);
 			continue;
 		}

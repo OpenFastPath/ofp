@@ -77,8 +77,7 @@
 #include "ofpi_icmp.h"
 #include "ofp_log.h"
 #include "ofp_pkt_processing.h"
-
-extern odp_pool_t ofp_packet_pool;
+#include "ofpi_pkt_processing.h"
 
 #ifndef KTR_IGMPV3
 #define KTR_IGMPV3 0x00200000 /* KTR_INET */
@@ -615,7 +614,7 @@ igmp_ra_alloc(void)
 	odp_packet_t m;
 	struct ofp_ipoption *p;
 
-	m = odp_packet_alloc(ofp_packet_pool, sizeof(p->ipopt_dst) + 0x04);
+	m = ofp_packet_alloc(sizeof(p->ipopt_dst) + 0x04);
 	if (m == ODP_PACKET_INVALID)
 		return m;
 	p = (struct ofp_ipoption *)odp_packet_data(m);
@@ -2250,8 +2249,7 @@ igmp_v1v2_queue_report(struct ofp_in_multi *inm, const int type)
 
 	ifp = inm->inm_ifp;
 
-	m = odp_packet_alloc(ofp_packet_pool,
-			     sizeof(struct ofp_ip) + sizeof(struct igmp));
+	m = ofp_packet_alloc(sizeof(struct ofp_ip) + sizeof(struct igmp));
 	if (m == ODP_PACKET_INVALID)
 		return (OFP_ENOMEM);
 
@@ -2845,7 +2843,7 @@ igmp_v3_enqueue_group_record(struct ofp_ifqueue *ifq, struct ofp_in_multi *inm,
 		}
 		m0srcs = (ifp->if_mtu - IGMP_LEADINGSPACE -
 		    sizeof(struct igmp_grouprec)) / sizeof(ofp_in_addr_t);
-		m = odp_packet_alloc(ofp_packet_pool, 0);
+		m = ofp_packet_alloc(0);
 		if (m == ODP_PACKET_INVALID)
 			return (-OFP_ENOMEM);
 
@@ -2955,7 +2953,7 @@ igmp_v3_enqueue_group_record(struct ofp_ifqueue *ifq, struct ofp_in_multi *inm,
 			CTR1(KTR_IGMPV3, "%s: outbound queue full", __func__);
 			return (-OFP_ENOMEM);
 		}
-		m = odp_packet_alloc(ofp_packet_pool, 0);
+		m = ofp_packet_alloc(0);
 		// HJo: to do: alloc IGMP_LEADINGSPACE
 		if (m == ODP_PACKET_INVALID)
 			return (-OFP_ENOMEM);
@@ -3105,7 +3103,7 @@ igmp_v3_enqueue_filter_change(struct ofp_ifqueue *ifq, struct ofp_in_multi *inm)
 				CTR1(KTR_IGMPV3,
 				    "%s: use previous packet", __func__);
 			} else {
-				m = odp_packet_alloc(ofp_packet_pool, 0);
+				m = ofp_packet_alloc(0);
 				if (m == ODP_PACKET_INVALID) {
 					CTR1(KTR_IGMPV3,
 					    "%s: m_get*() failed", __func__);

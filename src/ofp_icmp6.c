@@ -369,7 +369,7 @@ ofp_icmp6_error(odp_packet_t m, int type, int code, int param)
 	if (oip6_cpy_len > OFP_ICMPV6_PLD_MAXLEN)
 		oip6_cpy_len = OFP_ICMPV6_PLD_MAXLEN;
 
-	pkt  = odp_packet_alloc(odp_packet_pool(m),
+	pkt  = ofp_packet_alloc_from_pool(odp_packet_pool(m),
 		odp_packet_l3_offset(m) + preplen + oip6_cpy_len);
 	if (pkt == ODP_PACKET_INVALID)
 		goto freeit;

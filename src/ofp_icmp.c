@@ -237,7 +237,7 @@ stdreply:	icmpelen = max(8, min(V_icmp_quotelen, ip_in->ip_len - ip_hlen));
 	mac_netinet_icmp_reply(n, m);
 #endif
 */
-	odp_packet_t pkt = odp_packet_alloc(odp_packet_pool(pkt_in),
+	odp_packet_t pkt = ofp_packet_alloc_from_pool(odp_packet_pool(pkt_in),
 				icmp_len + odp_packet_l3_offset(pkt_in) -
 				odp_packet_l2_offset(pkt_in));
 	if (pkt == ODP_PACKET_INVALID)

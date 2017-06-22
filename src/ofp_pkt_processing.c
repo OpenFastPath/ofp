@@ -652,9 +652,9 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 	memcpy(arp->eth_dst, e1->ether_dhost, OFP_ETHER_ADDR_LEN);
 	arp->ip_dst = gw;
 
-	pkt = odp_packet_alloc(ofp_packet_pool, size);
+	pkt = ofp_packet_alloc(size);
 	if (pkt == ODP_PACKET_INVALID) {
-		OFP_ERR("odp_packet_alloc falied");
+		OFP_ERR("ofp_packet_alloc failed");
 		return;
 	}
 
@@ -760,7 +760,6 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 	uint16_t frag, frag_new;
 	uint8_t *payload_new;
 	uint32_t payload_offset;
-	odp_pool_t pkt_pool;
 	odp_packet_t pkt_new;
 	struct ofp_ether_header *eth, *eth_new;
 	struct ofp_ether_vlan_header *eth_vlan, *eth_new_vlan;
@@ -774,7 +773,6 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	pkt_pool = ofp_packet_pool;
 	tot_len = odp_be_to_cpu_16(ip->ip_len);
 	pl_len = tot_len - (ip->ip_hl<<2);
 	seg_len = (dev_out->if_mtu - sizeof(struct ofp_ip)) & 0xfff8;
@@ -791,9 +789,9 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 			(vlan ? sizeof(struct ofp_ether_vlan_header) :
 			 sizeof(struct ofp_ether_header));
 
-		pkt_new = odp_packet_alloc(pkt_pool, hwlen);
+		pkt_new = ofp_packet_alloc(hwlen);
 		if (pkt_new == ODP_PACKET_INVALID) {
-			OFP_ERR("odp_packet_alloc failed");
+			OFP_ERR("ofp_packet_alloc failed");
 			return OFP_PKT_DROP;
 		}
 		odp_packet_user_ptr_set(pkt_new, odp_packet_user_ptr(pkt));
