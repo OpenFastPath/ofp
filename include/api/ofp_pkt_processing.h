@@ -21,6 +21,12 @@ struct ofp_ifnet;
 
 void *default_event_dispatcher(void *arg);
 
+/**
+ * Return the minimum size of the user area that must be present in all
+ * ODP packets passed to OFP.
+ */
+uint32_t ofp_packet_min_user_area(void);
+
 enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	odp_queue_t in_queue, ofp_pkt_processing_func pkt_func);
 

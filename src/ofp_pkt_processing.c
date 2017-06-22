@@ -130,6 +130,11 @@ void *default_event_dispatcher(void *arg)
 	return NULL;
 }
 
+uint32_t ofp_packet_min_user_area(void)
+{
+	return sizeof(struct ofp_packet_user_area);
+}
+
 enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 {
 	uint16_t vlan = 0, ethtype;
@@ -297,9 +302,11 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 			/* Doesn't happen. */
 			break;
 		case VXLAN_PORTS: {
+			struct ofp_packet_user_area *ua;
+
 			/* Look for the correct device. */
-			struct vxlan_user_data *saved = odp_packet_user_area(pkt);
-			dev = ofp_get_ifnet(VXLAN_PORTS, saved->vni);
+			ua = ofp_packet_user_area(pkt);
+			dev = ofp_get_ifnet(VXLAN_PORTS, ua->vxlan.vni);
 			if (!dev)
 				return OFP_PKT_DROP;
 			break;

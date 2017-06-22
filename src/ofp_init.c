@@ -169,7 +169,7 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	pool_params.pkt.seg_len    = global_param->pkt_pool.buffer_size;
 	pool_params.pkt.len        = global_param->pkt_pool.buffer_size;
 	pool_params.pkt.num        = params->pkt_pool.nb_pkts;
-	pool_params.pkt.uarea_size = SHM_PKT_POOL_USER_AREA_SIZE;
+	pool_params.pkt.uarea_size = ofp_packet_min_user_area();
 	pool_params.type           = ODP_POOL_PACKET;
 
 	ofp_packet_pool = ofp_pool_create(SHM_PKT_POOL_NAME, &pool_params);

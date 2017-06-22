@@ -13,6 +13,7 @@
 #include "api/ofp_pkt_processing.h"
 #include "ofpi_in.h"
 #include "ofpi_init.h"
+#include "ofpi_vxlan.h"
 
 struct ip_out {
 	struct ofp_ifnet *dev_out;
@@ -25,6 +26,15 @@ struct ip_out {
 	uint16_t vrf;
 	uint8_t is_local_address;
 };
+
+struct ofp_packet_user_area {
+	struct vxlan_user_data vxlan;
+};
+
+static inline struct ofp_packet_user_area *ofp_packet_user_area(odp_packet_t pkt)
+{
+	return odp_packet_user_area(pkt);
+}
 
 static inline odp_packet_t ofp_packet_alloc_from_pool(odp_pool_t pool,
 						      uint32_t len)

@@ -206,7 +206,7 @@ enum ofp_return_code ofp_vxlan_input(odp_packet_t pkt)
 		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_header));
 
 	/* save data to user area */
-	struct vxlan_user_data *saved = odp_packet_user_area(pkt);
+	struct vxlan_user_data *saved = &ofp_packet_user_area(pkt)->vxlan;
 	saved->hdrlen = vxlen;
 	saved->vni = vni;
 
@@ -419,7 +419,7 @@ void ofp_vxlan_update_devices(odp_packet_t pkt, struct ofp_arphdr *arp, uint16_t
 			      uint8_t *save_space)
 {
 	/* Find the vxlan device this message is destined to. */
-	struct vxlan_user_data *saved = odp_packet_user_area(pkt);
+	struct vxlan_user_data *saved = &ofp_packet_user_area(pkt)->vxlan;
 	struct ofp_ifnet *vxdev = ofp_get_ifnet(VXLAN_PORTS, saved->vni);
 
 	/* Sanity check. */
@@ -444,7 +444,7 @@ void ofp_vxlan_restore_and_update_header(odp_packet_t pkt,
 	struct ofp_ip *ip;
 
 	/* Vxlan header pull length is saved in packet's user area. */
-	struct vxlan_user_data *saved = odp_packet_user_area(pkt);
+	struct vxlan_user_data *saved = &ofp_packet_user_area(pkt)->vxlan;
 	/* Restore the original header. */
 	eth = odp_packet_push_head(pkt, saved->hdrlen);
 
