@@ -100,16 +100,21 @@ typedef struct ofp_global_param_t {
 	 */
 	int evt_rx_burst_size;
 
-	/** Maximum number of TCP PCBs. Default value is OFP_NUM_PCB_TCP_MAX */
+	/** Maximum number of TCP PCBs.
+	 * Default value is OFP_NUM_PCB_TCP_MAX
+	 */
 	int pcb_tcp_max;
 
-	/** Packet pool size; Default value is SHM_PKT_POOL_NB_PKTS */
-	int pkt_pool_nb_pkts;
+	struct pkt_pool_s {
+		/** Packet pool size; Default value is SHM_PKT_POOL_NB_PKTS */
+		int nb_pkts;
 
-	/**
-	 * Packet pool buffer size; default value is SHM_PKT_POOL_BUFFER_SIZE
-	 */
-	unsigned long pkt_pool_buffer_size;
+		/**
+		 * Packet pool buffer size;
+		 * Default value is SHM_PKT_POOL_BUFFER_SIZE
+		 */
+		unsigned long buffer_size;
+	} pkt_pool;
 } ofp_global_param_t;
 
 /**

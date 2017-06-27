@@ -1207,8 +1207,8 @@ restart:
 					goto release;
 
 				cancopy = resid;
-				if (cancopy > (long) global_param->pkt_pool_buffer_size)
-					cancopy = global_param->pkt_pool_buffer_size;
+				if (cancopy > (long) global_param->pkt_pool.buffer_size)
+					cancopy = global_param->pkt_pool.buffer_size;
 				if (cancopy > space)
 					cancopy = space;
 				odp_packet_reset(top, cancopy);

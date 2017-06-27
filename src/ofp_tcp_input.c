@@ -3362,7 +3362,7 @@ ofp_tcp_mss_update(struct tcpcb *tp, int offer, int mtuoffer,
 	const size_t min_protoh = sizeof(struct tcpiphdr);
 #endif
 	(void)mtuflags;
-	long mclbytes = global_param->pkt_pool_buffer_size;
+	long mclbytes = global_param->pkt_pool.buffer_size;
 
 	INP_WLOCK_ASSERT(tp->t_inpcb);
 
