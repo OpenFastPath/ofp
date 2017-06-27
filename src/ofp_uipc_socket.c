@@ -1189,7 +1189,7 @@ restart:
 		SOCKBUF_UNLOCK(&so->so_snd);
 		space -= clen;
 		do {
-			int cancopy = 0;
+			long cancopy = 0;
 
 			if (uio == NULL) {
 
@@ -1207,8 +1207,8 @@ restart:
 					goto release;
 
 				cancopy = resid;
-				if (cancopy > SHM_PKT_POOL_BUFFER_SIZE)
-					cancopy = SHM_PKT_POOL_BUFFER_SIZE;
+				if (cancopy > (long) global_param->pkt_pool_buffer_size)
+					cancopy = global_param->pkt_pool_buffer_size;
 				if (cancopy > space)
 					cancopy = space;
 				odp_packet_reset(top, cancopy);

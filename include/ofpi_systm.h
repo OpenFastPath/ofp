@@ -11,8 +11,8 @@
 #include "odp.h"
 #include "ofpi_config.h"
 #include "ofpi_socket.h"
+#include "ofpi_init.h"
 
-#define MCLBYTES SHM_PKT_POOL_BUFFER_SIZE
 #define	RLIM_INFINITY	((uint64_t)(((uint64_t)1 << 63) - 1))
 
 /*

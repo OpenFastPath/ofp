@@ -63,8 +63,6 @@
 #endif
 
 uint64_t ofp_sb_max = SB_MAX;
-uint64_t ofp_sb_max_adj =
-       (int64_t)SB_MAX * MCLBYTES / (MSIZE + MCLBYTES); /* adjusted ofp_sb_max */
 
 static uint64_t sb_efficiency = 8;	/* parameter for ofp_sbreserve() */
 
@@ -495,7 +493,7 @@ ofp_sbreserve_locked(struct sockbuf *sb, uint64_t cc, struct socket *so,
 	(void)so;
 	(void)td;
 	SOCKBUF_LOCK_ASSERT(sb);
-
+	long mclbytes = global_param->pkt_pool_buffer_size;
 	/*
 	 * When a thread is passed, we take into account the thread's socket
 	 * buffer size limit.  The caller will generally pass curthread, but
@@ -503,6 +501,9 @@ ofp_sbreserve_locked(struct sockbuf *sb, uint64_t cc, struct socket *so,
 	 * appropriate thread resource limits are available.  In that case,
 	 * we don't apply a process limit.
 	 */
+
+	uint64_t ofp_sb_max_adj =
+		(int64_t)SB_MAX * global_param->pkt_pool_buffer_size / (MSIZE + mclbytes); /* adjusted ofp_sb_max */
 	if (cc > ofp_sb_max_adj)
 		return (0);
 	sb->sb_hiwat = cc;
@@ -569,7 +570,7 @@ ofp_soreserve(struct socket *so, uint64_t sndcc, uint64_t rcvcc)
 	if (so->so_rcv.sb_lowat == 0)
 		so->so_rcv.sb_lowat = 1;
 	if (so->so_snd.sb_lowat == 0)
-		so->so_snd.sb_lowat = MCLBYTES;
+		so->so_snd.sb_lowat = global_param->pkt_pool_buffer_size;
 	if (so->so_snd.sb_lowat > (int)so->so_snd.sb_hiwat)
 		so->so_snd.sb_lowat = so->so_snd.sb_hiwat;
 	SOCKBUF_UNLOCK(&so->so_rcv);

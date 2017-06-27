@@ -105,6 +105,11 @@ typedef struct ofp_global_param_t {
 
 	/** Packet pool size; Default value is SHM_PKT_POOL_NB_PKTS */
 	int pkt_pool_nb_pkts;
+
+	/**
+	 * Packet pool buffer size; default value is SHM_PKT_POOL_BUFFER_SIZE
+	 */
+	unsigned long pkt_pool_buffer_size;
 } ofp_global_param_t;
 
 /**
