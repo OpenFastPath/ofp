@@ -33,7 +33,7 @@
 #define NUM_WORKERS 2
 
 /** Maximum number of packet in a burst */
-#define PKT_BURST_SIZE  OFP_PKT_RX_BURST_SIZE
+#define PKT_BURST_SIZE  16
 
 /** Socket receive buffer length */
 #define SOCKET_RX_BUF_LEN	(32 * 1024)

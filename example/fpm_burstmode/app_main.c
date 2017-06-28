@@ -44,7 +44,7 @@ ofp_global_param_t app_init_params; /**< global OFP init parms */
 				strrchr((file_name), '/') + 1 : (file_name))
 
 
-#define PKT_BURST_SIZE OFP_PKT_RX_BURST_SIZE
+#define PKT_BURST_SIZE 16
 
 /** pkt_io_recv() Custom event dispatcher
  *

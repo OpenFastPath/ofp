@@ -48,7 +48,7 @@ ofp_global_param_t app_init_params; /**< global OFP init parms */
 #define NO_PATH(file_name) (strrchr((file_name), '/') ? \
 				strrchr((file_name), '/') + 1 : (file_name))
 
-#define PKT_BURST_SIZE OFP_PKT_RX_BURST_SIZE
+#define PKT_BURST_SIZE 16
 
 static void *pkt_io_recv(void *arg)
 {

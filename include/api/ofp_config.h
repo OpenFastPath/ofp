@@ -121,10 +121,6 @@
  * OFP interface*/
 #define OFP_PKTOUT_QUEUE_MAX 64
 
-/**Maximum number of packets received at once in direct mode in
- * example applications - default value.*/
-#define OFP_PKT_RX_BURST_SIZE 16
-
 /**Maximum number of events received at once in scheduling mode
  * in default_event_dispatcher().*/
 #define OFP_EVT_RX_BURST_SIZE 16
