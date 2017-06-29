@@ -693,6 +693,8 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 		return OFP_PKT_DROP;
 	}
 
+	ofp_packet_user_area_reset(pkt);
+
 	/* Contsruct ethernet header */
 	eth = odp_packet_l2_ptr(pkt, NULL);
 	eth_vlan = odp_packet_l2_ptr(pkt, NULL);
@@ -802,6 +804,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 			return OFP_PKT_DROP;
 		}
 		odp_packet_user_ptr_set(pkt_new, odp_packet_user_ptr(pkt));
+		*ofp_packet_user_area(pkt_new) = *ofp_packet_user_area(pkt);
 
 		odp_packet_l2_offset_set(pkt_new, 0);
 		if (vlan) {
@@ -1087,6 +1090,7 @@ static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
 enum ofp_return_code ofp_ip_send(odp_packet_t pkt,
 				 struct ofp_nh_entry *nh_param)
 {
+	ofp_packet_user_area_reset(pkt);
 	return ofp_ip_output(pkt, nh_param);
 }
 
@@ -1257,6 +1261,7 @@ static enum ofp_return_code ofp_output_ipv6_to_gre(
 enum ofp_return_code ofp_ip6_send(odp_packet_t pkt,
 				  struct ofp_nh6_entry *nh_param)
 {
+	ofp_packet_user_area_reset(pkt);
 	return ofp_ip6_output(pkt, nh_param);
 }
 
@@ -1425,6 +1430,14 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	}
 
 	odp_packet_user_ptr_set(pkt, ifnet);
+
+	/*
+	 * Packets from VXLAN_PORTS are looped from OFP and have
+	 * data stored in the user area.
+	 */
+	if (ifnet->port != VXLAN_PORTS) {
+		ofp_packet_user_area_reset(pkt);
+	}
 
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_RECV_NIC, pkt, ifnet->port);
 

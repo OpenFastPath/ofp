@@ -32,6 +32,7 @@
 #include "ofpi_route.h"
 #include "api/ofp_types.h"
 #include "ofpi_syscalls.h"
+#include "ofpi_pkt_processing.h"
 
 int
 ofp_socket(int domain, int type, int protocol)
@@ -472,6 +473,8 @@ ofp_udp_pkt_sendto(int sockfd, odp_packet_t pkt,
 		ofp_errno = OFP_EBADF;
 		return -1;
 	}
+
+	ofp_packet_user_area_reset(pkt);
 
 	td.td_proc.p_fibnum = so->so_fibnum;
 	td.td_ucred = NULL;
