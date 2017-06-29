@@ -157,8 +157,8 @@
 #define ARP_ENTRY_TABLE_SIZE 2048
 /**Total number of arp entries that can be stored. */
 #define ARP_ENTRIES_SIZE (NUM_SETS * 4)
-/**Default ARP age interval (in seconds) */
-#define ARP_AGE_INTERVAL 60
+/**Default ARP age interval (in seconds). If set to 0, then age interval is half of ARP_ENTRY_TIMEOUT. */
+#define ARP_AGE_INTERVAL 0
 /**Default ARP entry timeout (in seconds) */
 #define ARP_ENTRY_TIMEOUT 1200
 /**Timer trigger(s) to scan for old arp entries.*/

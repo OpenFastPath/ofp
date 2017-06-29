@@ -25,11 +25,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#undef ARP_AGE_INTERVAL
-#define ARP_AGE_INTERVAL 1
-
-#undef ARP_ENTRY_TIMEOUT
-#define ARP_ENTRY_TIMEOUT 2
+#define ENTRY_TIMEOUT 2
 
 #define ALLOW_UNUSED_LOCAL(x) false ? (void)x : (void)0
 
@@ -57,8 +53,7 @@ static int init_suite(void)
 
 	ofp_init_global_param(&params);
 	params.enable_nl_thread = 0;
-	params.arp.age_interval = ARP_AGE_INTERVAL;
-	params.arp.entry_timeout = ARP_ENTRY_TIMEOUT;
+	params.arp.entry_timeout = ENTRY_TIMEOUT;
 	(void) ofp_init_global(instance, &params);
 
 	/*
@@ -145,17 +140,17 @@ static void test_arp(void)
 	/* Test entry is aged out. */
 	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
 	OFP_INFO("Inserted ARP entry");
-	sleep(ARP_AGE_INTERVAL + ARP_ENTRY_TIMEOUT);
+	sleep(ENTRY_TIMEOUT*2);
 	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 
-	/* Test entry is aged out after a few hits. */
+	/* New entry. */
 	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
 	OFP_INFO("Inserted ARP entry");
-	sleep(ARP_AGE_INTERVAL);
+	/* Less than entry timeout passed, entry has not aged. */
+	sleep(ENTRY_TIMEOUT/2);
 	CU_ASSERT(0 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
-	sleep(ARP_AGE_INTERVAL);
-	CU_ASSERT(0 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
-	sleep(ARP_AGE_INTERVAL + ARP_ENTRY_TIMEOUT);
+	/* More than entry timeout passed, entry has aged. */
+	sleep(ENTRY_TIMEOUT*2);
 	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 }
 

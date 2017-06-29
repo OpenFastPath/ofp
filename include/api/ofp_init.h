@@ -88,8 +88,6 @@ typedef struct ofp_global_param_t {
 	 * Global ARP parameters.
 	 */
 	struct arp_s {
-		/** Aging timer interval in seconds. Default is ARP_AGE_INTERVAL. */
-		int age_interval;
 		/** Entry timeout in seconds. Default is ARP_ENTRY_TIMEOUT. */
 		int entry_timeout;
 	} arp;

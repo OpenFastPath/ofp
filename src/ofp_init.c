@@ -111,7 +111,6 @@ void ofp_init_global_param(ofp_global_param_t *params)
 #ifdef SP
 	params->enable_nl_thread = 1;
 #endif /* SP */
-	params->arp.age_interval = ARP_AGE_INTERVAL;
 	params->arp.entry_timeout = ARP_ENTRY_TIMEOUT;
 	params->evt_rx_burst_size = OFP_EVT_RX_BURST_SIZE;
 	params->pcb_tcp_max = OFP_NUM_PCB_TCP_MAX;
@@ -152,7 +151,7 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 
 	HANDLE_ERROR(ofp_hook_init_global(params->pkt_hook));
 
-	HANDLE_ERROR(ofp_arp_init_global(params->arp.age_interval,
+	HANDLE_ERROR(ofp_arp_init_global(ARP_AGE_INTERVAL,
 			params->arp.entry_timeout));
 
 	HANDLE_ERROR(ofp_route_init_global());
