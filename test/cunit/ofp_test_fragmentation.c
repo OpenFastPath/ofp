@@ -216,7 +216,7 @@ static void test_packet_size_is_less_then_mtu(void)
 		return;
 	}
 
-	res = ofp_ip_output(pkt_orig, &nexthop);
+	res = ofp_ip_send(pkt_orig, &nexthop);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 	res = ofp_send_pending_pkt();
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
@@ -258,7 +258,7 @@ static void test_dont_fragment_set_pkt_dropped(void)
 	ip = odp_packet_l3_ptr(pkt, NULL);
 	ip->ip_off |= odp_cpu_to_be_16(OFP_IP_DF);
 
-	res = ofp_ip_output(pkt, &nexthop);
+	res = ofp_ip_send(pkt, &nexthop);
 	CU_ASSERT_EQUAL(res, OFP_PKT_DROP);
 
 	ev = odp_queue_deq(dev->outq_def);
@@ -283,7 +283,7 @@ static void test_packet_to_two_fragments(void)
 		return;
 	}
 
-	res = ofp_ip_output(pkt_orig, &nexthop);
+	res = ofp_ip_send(pkt_orig, &nexthop);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	res = ofp_send_pending_pkt();
@@ -370,7 +370,7 @@ static void test_packet_to_many_fragments(void)
 		return;
 	}
 
-	res = ofp_ip_output(pkt_orig, &nexthop);
+	res = ofp_ip_send(pkt_orig, &nexthop);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	res = ofp_send_pending_pkt();
@@ -521,7 +521,7 @@ static void test_fragment_fragmented_to_two(void)
 		return;
 	}
 
-	res = ofp_ip_output(pkt_orig, &nexthop);
+	res = ofp_ip_send(pkt_orig, &nexthop);
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 
 	res = ofp_send_pending_pkt();

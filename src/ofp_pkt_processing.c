@@ -1077,6 +1077,12 @@ static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
 	return OFP_PKT_CONTINUE;
 }
 
+enum ofp_return_code ofp_ip_send(odp_packet_t pkt,
+				 struct ofp_nh_entry *nh_param)
+{
+	return ofp_ip_output(pkt, nh_param);
+}
+
 enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	struct ofp_nh_entry *nh_param)
 {
@@ -1239,6 +1245,12 @@ static enum ofp_return_code ofp_output_ipv6_to_gre(
 	odp_packet_has_ipv4_set(pkt, 1);
 
 	return OFP_PKT_CONTINUE;
+}
+
+enum ofp_return_code ofp_ip6_send(odp_packet_t pkt,
+				  struct ofp_nh6_entry *nh_param)
+{
+	return ofp_ip6_output(pkt, nh_param);
 }
 
 enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
