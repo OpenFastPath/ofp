@@ -860,28 +860,6 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 	return OFP_PKT_PROCESSED;
 }
 
-static enum ofp_return_code ofp_gre_update_target(odp_packet_t pkt,
-						  struct ip_out *odata)
-{
-	struct ofp_nh_entry *nh_new = NULL;
-
-	if (ofp_output_ipv4_to_gre(pkt, odata->dev_out, odata->vrf,
-				   &nh_new) == OFP_PKT_DROP)
-		return OFP_PKT_DROP;
-
-	odata->nh = nh_new;
-	odata->gw = odata->nh->gw;
-	odata->vlan = odata->nh->vlan;
-	odata->out_port = odata->nh->port;
-	odata->ip = odp_packet_l3_ptr(pkt, NULL);
-
-	odata->dev_out = ofp_get_ifnet(odata->out_port, odata->vlan);
-	if (!odata->dev_out)
-		return OFP_PKT_DROP;
-
-	return OFP_PKT_CONTINUE;
-}
-
 static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 						  struct ip_out *odata)
 {
@@ -1065,8 +1043,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 
 	switch (odata.out_port) {
 	case GRE_PORTS:
-		if ((ret = ofp_gre_update_target(pkt, &odata)) != OFP_PKT_CONTINUE)
-			return ret;
+		return ofp_output_ipv4_to_gre(pkt, odata.dev_out);
 		break;
 	case VXLAN_PORTS:
 		if ((ret = ofp_ip_output_add_eth(pkt, &odata)) != OFP_PKT_CONTINUE)

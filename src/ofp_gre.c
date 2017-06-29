@@ -8,9 +8,9 @@
 
 #include <odp.h>
 #include "api/ofp_types.h"
-#include "api/ofp_pkt_processing.h"
 #include "api/ofp_route_arp.h"
 #include "api/ofp_ip6.h"
+#include "ofpi_pkt_processing.h"
 #include "ofpi_in.h"
 #include "ofpi_ip.h"
 #include "ofpi_gre.h"
@@ -116,20 +116,13 @@ enum ofp_return_code ofp_gre_input(odp_packet_t pkt, int off0)
 	return OFP_PKT_CONTINUE;
 }
 
-enum ofp_return_code ofp_output_ipv4_to_gre(
-	odp_packet_t pkt, struct ofp_ifnet *dev_gre,
-	uint16_t vrfid,	struct ofp_nh_entry **nh_new)
+enum ofp_return_code ofp_output_ipv4_to_gre(odp_packet_t pkt,
+					    struct ofp_ifnet *dev_gre)
 {
 	struct ofp_ip	*ip;
 	struct ofp_greip *greip;
-	uint32_t flags;
 	uint8_t	l2_size = 0;
 	int32_t	offset;
-
-	*nh_new = ofp_get_next_hop(vrfid, dev_gre->ip_remote, &flags);
-
-	if (*nh_new == NULL)
-		return OFP_PKT_DROP;
 
 	ip = odp_packet_l3_ptr(pkt, NULL);
 
@@ -166,7 +159,7 @@ enum ofp_return_code ofp_output_ipv4_to_gre(
 	greip->gi_i.ip_src.s_addr = dev_gre->ip_local;
 	greip->gi_i.ip_dst.s_addr = dev_gre->ip_remote;
 
-	return OFP_PKT_CONTINUE;
+	return ofp_ip_output(pkt, NULL);
 }
 
 #ifdef INET6
