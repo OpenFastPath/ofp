@@ -1141,7 +1141,6 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 	uint8_t l2_size;
 	void *l2_addr;
 	uint32_t flags;
-	struct ofp_nh_entry *nh4 = NULL;
 	struct ofp_nh6_entry *nh;
 	uint16_t vlan;
 	int out_port;
@@ -1185,13 +1184,8 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 		return OFP_PKT_DROP;
 
 	/* GRE */
-	if (out_port == GRE_PORTS) {
-		if (ofp_output_ipv6_to_gre(pkt, dev_out, vrf,
-					     &nh4) == OFP_PKT_DROP)
-			return OFP_PKT_DROP;
-
-		return ofp_ip_output(pkt, nh4);
-	}
+	if (out_port == GRE_PORTS)
+		return ofp_output_ipv6_to_gre(pkt, dev_out);
 
 	if (!vlan)
 		l2_size = sizeof(struct ofp_ether_header);

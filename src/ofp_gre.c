@@ -163,21 +163,14 @@ enum ofp_return_code ofp_output_ipv4_to_gre(odp_packet_t pkt,
 }
 
 #ifdef INET6
-enum ofp_return_code ofp_output_ipv6_to_gre(
-	odp_packet_t pkt, struct ofp_ifnet *dev_gre,
-	uint16_t vrfid,	struct ofp_nh_entry **nh_new)
+enum ofp_return_code ofp_output_ipv6_to_gre(odp_packet_t pkt,
+					    struct ofp_ifnet *dev_gre)
 {
 	struct ofp_ip6_hdr *ip6;
 	struct ofp_greip *greip;
-	uint32_t flags;
 	uint8_t	l2_size = 0;
 	int32_t	offset;
 	static uint16_t	id = 0;
-
-	*nh_new = ofp_get_next_hop(vrfid, dev_gre->ip_remote, &flags);
-
-	if (*nh_new == NULL)
-		return OFP_PKT_DROP;
 
 	ip6 = odp_packet_l3_ptr(pkt, NULL);
 
@@ -217,6 +210,6 @@ enum ofp_return_code ofp_output_ipv6_to_gre(
 	odp_packet_has_ipv6_set(pkt, 0);
 	odp_packet_has_ipv4_set(pkt, 1);
 
-	return OFP_PKT_CONTINUE;
+	return ofp_ip_output(pkt, NULL);
 }
 #endif
