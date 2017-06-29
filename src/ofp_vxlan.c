@@ -482,18 +482,19 @@ void ofp_vxlan_send_arp_request(odp_packet_t pkt, struct ofp_ifnet *dev)
 }
 
 enum ofp_return_code ofp_ip_output_vxlan(odp_packet_t pkt,
-					 struct ip_out *odata)
+					 struct ofp_ifnet *dev_out)
 {
+	struct ofp_nh_entry nh;
+	struct ofp_nh_entry *nhp = NULL;
+
 	/* Prepend packet with vxlan header */
-	if (ofp_vxlan_prepend_hdr(pkt, odata->dev_out, &odata->nh_vxlan) == OFP_PKT_DROP) {
+	if (ofp_vxlan_prepend_hdr(pkt, dev_out, &nh) == OFP_PKT_DROP) {
 		OFP_ERR("VXLAN: cannot prepend!");
 		return OFP_PKT_DROP;
 	}
 
-	if (odata->nh_vxlan.gw)
-		odata->nh = &odata->nh_vxlan;
-	else
-		odata->nh = NULL;
+	if (nh.gw)
+		nhp = &nh;
 
-	return OFP_PKT_CONTINUE;
+	return ofp_ip_output(pkt, nhp);
 }

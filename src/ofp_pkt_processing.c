@@ -1048,11 +1048,7 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	case VXLAN_PORTS:
 		if ((ret = ofp_ip_output_add_eth(pkt, &odata)) != OFP_PKT_CONTINUE)
 			return ret;
-		if ((ret = ofp_ip_output_vxlan(pkt, &odata)) != OFP_PKT_CONTINUE)
-			return ret;
-		if ((ret = ofp_ip_output_find_route(pkt, &odata)) != OFP_PKT_CONTINUE)
-			return ret;
-		break;
+		return ofp_ip_output_vxlan(pkt, odata.dev_out);
 	}
 
 	if ((ret = ofp_ip_output_add_eth(pkt, &odata)) != OFP_PKT_CONTINUE)

@@ -35,7 +35,7 @@ void ofp_vxlan_restore_and_update_header(odp_packet_t pkt,
 					 struct ofp_ifnet *outdev,
 					 uint8_t *saved_mac);
 void ofp_vxlan_send_arp_request(odp_packet_t pkt, struct ofp_ifnet *dev);
-enum ofp_return_code ofp_ip_output_vxlan(odp_packet_t pkt, struct ip_out *xxx);
-
+enum ofp_return_code ofp_ip_output_vxlan(odp_packet_t pkt,
+					 struct ofp_ifnet *dev_out);
 
 #endif /*__OFPI_VXLAN_H__*/

@@ -20,7 +20,6 @@ struct ip_out {
 	struct ofp_ifnet *dev_out;
 	struct ofp_nh_entry *nh;
 	struct ofp_ip *ip;
-	struct ofp_nh_entry nh_vxlan;
 	int out_port;
 	uint32_t gw;
 	uint16_t vlan;
