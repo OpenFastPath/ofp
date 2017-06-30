@@ -181,11 +181,11 @@
  * packets. If enabled, computation is performed based on
  * sysctl() option net.inet.udp.checksum (default: compute
  * checksum). */
-#define OFP_IPv4_UDP_CSUM_COMPUTE
+/* #define OFP_IPv4_UDP_CSUM_COMPUTE */
 
 /**Enable IPv4 TCP checksum validation mechanism on input
  * packets. If enabled, validation is performed on input
  * packets. */
-#define OFP_IPv4_TCP_CSUM_VALIDATE
+/* #define OFP_IPv4_TCP_CSUM_VALIDATE */
 
 #endif
