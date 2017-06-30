@@ -61,20 +61,6 @@ struct cli_command {
 	void (*func)(struct cli_conn *, const char *);
 };
 
-#define NODE(NAME, TEXT, NEXT, ALT) do {	\
-	NAME.nextword = &NEXT;			\
-	NAME.nextpossibility = &ALT;		\
-	NAME.word = TEXT;			\
-	NAME.func = 0;				\
-	NAME.help = 0;				\
-	} while (0)
-
-#define HELP(NAME, TEXT) NAME.help = TEXT
-
-#define FUNC(NAME, F) NAME.func = F
-
-#define MAX_CONNECTIONS 5
-
 /* status bits */
 #define CONNECTION_ON		1
 #define DO_ECHO			2 /* telnet */
