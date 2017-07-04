@@ -203,6 +203,17 @@ int ofp_ifnet_create(odp_instance_t instance,
 	odp_pktin_queue_param_t *pktin_param,
 	odp_pktout_queue_param_t *pktout_param)
 {
+	return ofp_ifnet_create2(instance, if_name, pktio_param,
+		pktin_param, pktout_param, NULL);
+}
+
+int ofp_ifnet_create2(odp_instance_t instance,
+	char *if_name,
+	odp_pktio_param_t *pktio_param,
+	odp_pktin_queue_param_t *pktin_param,
+	odp_pktout_queue_param_t *pktout_param,
+	odp_pktio_config_t *pktio_config)
+{
 	int port;
 	struct ofp_ifnet *ifnet;
 	odp_pktio_param_t pktio_param_local;
@@ -281,6 +292,14 @@ int ofp_ifnet_create(odp_instance_t instance,
 #endif /* INET6 */
 
 #endif /* SP */
+
+	/* Configure pktio */
+	if (pktio_config &&
+	    (odp_pktio_config(ifnet->pktio, pktio_config) != 0)) {
+		OFP_ERR("Failed to config pktio.");
+		return -1;
+	}
+
 	/* Start packet receiver or transmitter */
 	if (odp_pktio_start(ifnet->pktio) != 0) {
 		OFP_ERR("Failed to start pktio.");

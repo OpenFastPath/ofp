@@ -112,6 +112,7 @@ AC_CONFIG_FILES([
 	example/udpecho/Makefile
 	example/webserver/Makefile
 	example/webserver2/Makefile
+	example/ofp_vs/Makefile
 	pkgconfig/libofp.pc
 	scripts/Makefile
 	test/Makefile

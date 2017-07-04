@@ -40,6 +40,13 @@ int ofp_ifnet_create(odp_instance_t instance, char *if_name,
 	odp_pktio_param_t *pktio_param,
 	odp_pktin_queue_param_t *pktin_param,
 	odp_pktout_queue_param_t *pktout_param);
+
+int ofp_ifnet_create2(odp_instance_t instance, char *if_name,
+	odp_pktio_param_t *pktio_param,
+	odp_pktin_queue_param_t *pktin_param,
+	odp_pktout_queue_param_t *pktout_param,
+	odp_pktio_config_t *pktio_config);
+
 #if __GNUC__ >= 4
 #pragma GCC visibility pop
 #endif
