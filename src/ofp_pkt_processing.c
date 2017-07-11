@@ -53,6 +53,9 @@
 #include "ofpi_gre.h"
 #include "api/ofp_init.h"
 
+static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
+						   struct ip_out *odata);
+
 extern odp_pool_t ofp_packet_pool;
 
 void *default_event_dispatcher(void *arg)
@@ -761,31 +764,21 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 }
 
 static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
-			      struct ofp_ifnet *dev_out,
-			      uint8_t is_local_address)
+					     struct ip_out *odata)
 {
 	struct ofp_ip *ip, *ip_new;
-	uint16_t vlan = dev_out->vlan;
 	int tot_len, pl_len, seg_len, pl_pos, flen, hwlen;
 	uint16_t frag, frag_new;
 	uint8_t *payload_new;
 	uint32_t payload_offset;
 	odp_packet_t pkt_new;
-	struct ofp_ether_header *eth, *eth_new;
-	struct ofp_ether_vlan_header *eth_vlan, *eth_new_vlan;
 	int ret = OFP_PKT_PROCESSED;
-
-
-	if (!vlan)
-		eth = odp_packet_l2_ptr(pkt, NULL);
-	else
-		eth_vlan = odp_packet_l2_ptr(pkt, NULL);
 
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
 	tot_len = odp_be_to_cpu_16(ip->ip_len);
 	pl_len = tot_len - (ip->ip_hl<<2);
-	seg_len = (dev_out->if_mtu - sizeof(struct ofp_ip)) & 0xfff8;
+	seg_len = (odata->dev_out->if_mtu - sizeof(struct ofp_ip)) & 0xfff8;
 	pl_pos = 0;
 	frag = odp_be_to_cpu_16(ip->ip_off);
 	payload_offset = odp_packet_l3_offset(pkt) + (ip->ip_hl<<2);
@@ -795,9 +788,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 	while (pl_pos < pl_len) {
 		flen = (pl_len - pl_pos) > seg_len ?
 			seg_len : (pl_len - pl_pos);
-		hwlen = flen + sizeof(struct ofp_ip) +
-			(vlan ? sizeof(struct ofp_ether_vlan_header) :
-			 sizeof(struct ofp_ether_header));
+		hwlen = flen + sizeof(struct ofp_ip);
 
 		pkt_new = ofp_packet_alloc(hwlen);
 		if (pkt_new == ODP_PACKET_INVALID) {
@@ -808,20 +799,8 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 		*ofp_packet_user_area(pkt_new) = *ofp_packet_user_area(pkt);
 
 		odp_packet_l2_offset_set(pkt_new, 0);
-		if (vlan) {
-			eth_new_vlan = odp_packet_l2_ptr(pkt_new, NULL);
-			*eth_new_vlan = *eth_vlan;
-			ip_new = (struct ofp_ip *)(eth_new_vlan + 1);
-			odp_packet_l3_offset_set(pkt_new,
-						 OFP_ETHER_HDR_LEN +
-						 OFP_ETHER_VLAN_ENCAP_LEN);
-		} else {
-			eth_new = odp_packet_l2_ptr(pkt_new, NULL);
-			*eth_new = *eth;
-			ip_new = (struct ofp_ip *)(eth_new + 1);
-			odp_packet_l3_offset_set(pkt_new,
-						 OFP_ETHER_HDR_LEN);
-		}
+		odp_packet_l3_offset_set(pkt_new, 0);
+		ip_new = odp_packet_l3_ptr(pkt_new, NULL);
 
 		*ip_new = *ip;
 
@@ -845,11 +824,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 		ip_new->ip_sum = ofp_cksum_buffer((uint16_t *)ip_new,
 					       sizeof(*ip_new));
 
-		if (is_local_address)
-			ret  = send_pkt_loop(dev_out, pkt_new);
-		else
-			ret = send_pkt_out(dev_out, pkt_new);
-
+		ret = ofp_ip_output_continue(pkt_new, odata);
 		if (ret == OFP_PKT_DROP) {
 			odp_packet_free(pkt_new);
 			return OFP_PKT_DROP;
@@ -954,18 +929,6 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 static enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
 					       struct ip_out *odata)
 {
-	/* Fragmentation */
-	if (odp_be_to_cpu_16(odata->ip->ip_len) > odata->dev_out->if_mtu) {
-		OFP_DBG("Fragmentation required");
-		if (odp_be_to_cpu_16(odata->ip->ip_off) & OFP_IP_DF) {
-			ofp_icmp_error(pkt, OFP_ICMP_UNREACH,
-					OFP_ICMP_UNREACH_NEEDFRAG,
-					0, odata->dev_out->if_mtu);
-			return OFP_PKT_DROP;
-		}
-		return ofp_fragment_pkt(pkt, odata->dev_out, odata->is_local_address);
-	}
-
 	odata->ip->ip_sum = 0;
 	odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *)odata->ip, odata->ip->ip_hl<<2);
 
@@ -1041,20 +1004,39 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	if ((ret = ofp_ip_output_find_route(pkt, &odata)) != OFP_PKT_CONTINUE)
 		return ret;
 
-	switch (odata.out_port) {
+	/* Fragmentation */
+	if (odp_be_to_cpu_16(odata.ip->ip_len) > odata.dev_out->if_mtu) {
+		OFP_DBG("Fragmentation required");
+		if (odp_be_to_cpu_16(odata.ip->ip_off) & OFP_IP_DF) {
+			ofp_icmp_error(pkt, OFP_ICMP_UNREACH,
+				       OFP_ICMP_UNREACH_NEEDFRAG,
+				       0, odata.dev_out->if_mtu);
+			return OFP_PKT_DROP;
+		}
+		return ofp_fragment_pkt(pkt, &odata);
+	}
+	return ofp_ip_output_continue(pkt, &odata);
+}
+
+static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
+						   struct ip_out *odata)
+{
+	enum ofp_return_code ret;
+
+	switch (odata->out_port) {
 	case GRE_PORTS:
-		return ofp_output_ipv4_to_gre(pkt, odata.dev_out);
+		return ofp_output_ipv4_to_gre(pkt, odata->dev_out);
 		break;
 	case VXLAN_PORTS:
-		if ((ret = ofp_ip_output_add_eth(pkt, &odata)) != OFP_PKT_CONTINUE)
+		if ((ret = ofp_ip_output_add_eth(pkt, odata)) != OFP_PKT_CONTINUE)
 			return ret;
-		return ofp_ip_output_vxlan(pkt, odata.dev_out);
+		return ofp_ip_output_vxlan(pkt, odata->dev_out);
 	}
 
-	if ((ret = ofp_ip_output_add_eth(pkt, &odata)) != OFP_PKT_CONTINUE)
-			return ret;
+	if ((ret = ofp_ip_output_add_eth(pkt, odata)) != OFP_PKT_CONTINUE)
+		return ret;
 
-	return ofp_ip_output_send(pkt, &odata);
+	return ofp_ip_output_send(pkt, odata);
 }
 
 enum ofp_return_code  ofp_ip_output_opt(odp_packet_t pkt, odp_packet_t opt,
