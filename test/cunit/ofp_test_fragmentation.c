@@ -106,7 +106,7 @@ init_suite(void)
 	params.enable_nl_thread = 0;
 	(void) ofp_init_global(instance, &params);
 
-	ofp_arp_init_local();
+	ofp_init_local();
 
 	init_ifnet();
 
@@ -122,6 +122,7 @@ init_suite(void)
 static int
 clean_suite(void)
 {
+	ofp_term_local();
 	return 0;
 }
 

@@ -277,9 +277,7 @@ init_suite(void)
 
 	(void) ofp_init_global(instance, &params);
 
-	ofp_arp_init_local();
-
-	ofp_ip_init();
+	ofp_init_local();
 
 	return 0;
 }
@@ -886,6 +884,8 @@ main(void)
 	nr_of_failed_tests = CU_get_number_of_tests_failed();
 	nr_of_failed_suites = CU_get_number_of_suites_failed();
 	CU_cleanup_registry();
+
+	ofp_term_local();
 
 	return (nr_of_failed_suites > 0 ?
 		nr_of_failed_suites : nr_of_failed_tests);
