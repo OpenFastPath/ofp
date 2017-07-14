@@ -14,7 +14,7 @@
 
 
 static __thread struct burst_send {
-	odp_packet_t pkt_tbl[OFP_PKT_TX_BURST_SIZE];
+	odp_packet_t *pkt_tbl;
 	uint32_t pkt_tbl_cnt;
 } send_pkt_tbl[NUM_PORTS] __attribute__((__aligned__(ODP_CACHE_LINE_SIZE)));
 
@@ -60,7 +60,7 @@ enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
 
-	if ((*pkt_tbl_cnt) == OFP_PKT_TX_BURST_SIZE)
+	if ((*pkt_tbl_cnt) == global_param->pkt_tx_burst_size)
 		return send_table(ofp_get_ifnet(dev->port, 0),
 				pkt_tbl,
 				pkt_tbl_cnt);
@@ -68,10 +68,8 @@ enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 	return OFP_PKT_PROCESSED;
 }
 
-
-enum ofp_return_code ofp_send_pending_pkt(void)
+static enum ofp_return_code ofp_send_pending_pkt_nocheck(void)
 {
-#if OFP_PKT_TX_BURST_SIZE > 1
 	uint32_t i;
 	uint32_t *pkt_tbl_cnt;
 	odp_packet_t *pkt_tbl;
@@ -93,9 +91,13 @@ enum ofp_return_code ofp_send_pending_pkt(void)
 	}
 
 	return ret;
-#else
+}
+
+enum ofp_return_code ofp_send_pending_pkt(void)
+{
+	if (global_param->pkt_tx_burst_size > 1)
+		return ofp_send_pending_pkt_nocheck();
 	return OFP_PKT_PROCESSED;
-#endif /* OFP_PKT_TX_BURST_SIZE > 1 */
 }
 
 int ofp_send_pkt_out_init_local(void)
@@ -103,9 +105,16 @@ int ofp_send_pkt_out_init_local(void)
 	uint32_t i, j;
 
 	for (i = 0; i < NUM_PORTS; i++) {
-		for (j = 0; j < OFP_PKT_TX_BURST_SIZE; j++)
-			send_pkt_tbl[i].pkt_tbl[j] = ODP_PACKET_INVALID;
 		send_pkt_tbl[i].pkt_tbl_cnt = 0;
+		send_pkt_tbl[i].pkt_tbl = malloc(global_param->pkt_tx_burst_size
+				* sizeof(odp_packet_t));
+		if (!send_pkt_tbl[i].pkt_tbl) {
+			OFP_ERR("Packet table allocation failed\n");
+			ofp_send_pkt_out_term_local();
+			return -1;
+		}
+		for (j = 0; j < global_param->pkt_tx_burst_size; j++)
+			send_pkt_tbl[i].pkt_tbl[j] = ODP_PACKET_INVALID;
 	}
 
 	return 0;
@@ -116,12 +125,11 @@ int ofp_send_pkt_out_term_local(void)
 	uint32_t i, j;
 
 	for (i = 0; i < NUM_PORTS; i++) {
-		if (!send_pkt_tbl[i].pkt_tbl_cnt)
-			continue;
 
 		for (j = 0; j < send_pkt_tbl[i].pkt_tbl_cnt; j++)
 			odp_packet_free(send_pkt_tbl[i].pkt_tbl[j]);
 
+		free(send_pkt_tbl[i].pkt_tbl);
 		send_pkt_tbl[i].pkt_tbl_cnt = 0;
 	}
 

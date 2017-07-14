@@ -116,6 +116,7 @@ void ofp_init_global_param(ofp_global_param_t *params)
 	params->pcb_tcp_max = OFP_NUM_PCB_TCP_MAX;
 	params->pkt_pool.nb_pkts = SHM_PKT_POOL_NB_PKTS;
 	params->pkt_pool.buffer_size = SHM_PKT_POOL_BUFFER_SIZE;
+	params->pkt_tx_burst_size = OFP_PKT_TX_BURST_SIZE;
 }
 
 static int ofp_init_pre_global(ofp_global_param_t *params)

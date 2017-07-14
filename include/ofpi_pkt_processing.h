@@ -83,7 +83,7 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 			pkt_tbl, pkt_tbl_cnt);
 	} else {
 		uint32_t i;
-		odp_event_t ev_tbl[OFP_PKT_TX_BURST_SIZE];
+		odp_event_t ev_tbl[pkt_tbl_cnt];
 
 		for (i = 0; i < pkt_tbl_cnt; i++)
 			ev_tbl[i] = odp_packet_to_event(pkt_tbl[i]);
