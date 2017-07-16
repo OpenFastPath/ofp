@@ -27,7 +27,15 @@ struct ip_out {
 	uint8_t is_local_address;
 };
 
+/*
+ * Limit for IP output recursion that occurs with nested tunneling.
+ * Other resource limits, such as the available headroom in the
+ * packet, may limit the nesting before this limit is reached.
+ */
+#define OFP_IP_OUTPUT_MAX_RECURSION 8
+
 struct ofp_packet_user_area {
+	uint8_t recursion_count;
 	struct vxlan_user_data vxlan;
 };
 
@@ -95,6 +103,10 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 
 enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 				   struct ofp_nh_entry *nh_param);
+
+enum ofp_return_code ofp_ip_output_recurse(odp_packet_t pkt,
+					   struct ofp_nh_entry *nh);
+
 struct ofp_ip_moptions;
 struct inpcb;
 enum ofp_return_code ofp_ip_output_opt(odp_packet_t pkt,

@@ -977,6 +977,18 @@ enum ofp_return_code ofp_ip_send(odp_packet_t pkt,
 	return ofp_ip_output(pkt, nh_param);
 }
 
+enum ofp_return_code ofp_ip_output_recurse(odp_packet_t pkt,
+					   struct ofp_nh_entry *nh)
+{
+	struct ofp_packet_user_area *ua = ofp_packet_user_area(pkt);
+
+	if (odp_likely(ua->recursion_count++ < OFP_IP_OUTPUT_MAX_RECURSION))
+		return ofp_ip_output(pkt, nh);
+
+	OFP_DBG("Too many nested tunnels. Dropping outbound packet.");
+	return OFP_PKT_DROP;
+}
+
 enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 	struct ofp_nh_entry *nh_param)
 {

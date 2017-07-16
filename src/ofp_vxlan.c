@@ -496,5 +496,5 @@ enum ofp_return_code ofp_ip_output_vxlan(odp_packet_t pkt,
 	if (nh.gw)
 		nhp = &nh;
 
-	return ofp_ip_output(pkt, nhp);
+	return ofp_ip_output_recurse(pkt, nhp);
 }

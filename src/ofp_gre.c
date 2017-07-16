@@ -159,7 +159,7 @@ enum ofp_return_code ofp_output_ipv4_to_gre(odp_packet_t pkt,
 	greip->gi_i.ip_src.s_addr = dev_gre->ip_local;
 	greip->gi_i.ip_dst.s_addr = dev_gre->ip_remote;
 
-	return ofp_ip_output(pkt, NULL);
+	return ofp_ip_output_recurse(pkt, NULL);
 }
 
 #ifdef INET6
@@ -210,6 +210,6 @@ enum ofp_return_code ofp_output_ipv6_to_gre(odp_packet_t pkt,
 	odp_packet_has_ipv6_set(pkt, 0);
 	odp_packet_has_ipv4_set(pkt, 1);
 
-	return ofp_ip_output(pkt, NULL);
+	return ofp_ip_output_recurse(pkt, NULL);
 }
 #endif
