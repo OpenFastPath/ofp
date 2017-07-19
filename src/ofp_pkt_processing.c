@@ -824,6 +824,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 		ip_new->ip_off = odp_cpu_to_be_16(frag_new);
 
 		odata->ip = ip_new;
+		odata->insert_checksum = 1;
 		ret = ofp_ip_output_continue(pkt_new, odata);
 		if (ret == OFP_PKT_DROP) {
 			odp_packet_free(pkt_new);
@@ -1010,6 +1011,7 @@ enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 	odata.vrf = send_ctx ? send_ctx->vrf : 0;
 	odata.is_local_address = 0;
 	odata.nh = nh_param;
+	odata.insert_checksum = is_local_out;
 
 	if ((ret = ofp_ip_output_find_route(pkt, &odata)) != OFP_PKT_CONTINUE)
 		return ret;
@@ -1036,9 +1038,11 @@ static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 {
 	enum ofp_return_code ret;
 
-	odata->ip->ip_sum = 0;
-	odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *) odata->ip,
-					     odata->ip->ip_hl * 4);
+	if (odata->insert_checksum) {
+		odata->ip->ip_sum = 0;
+		odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *) odata->ip,
+						     odata->ip->ip_hl * 4);
+	}
 
 	switch (odata->out_port) {
 	case GRE_PORTS:

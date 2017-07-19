@@ -25,6 +25,7 @@ struct ip_out {
 	uint16_t vlan;
 	uint16_t vrf;
 	uint8_t is_local_address;
+	uint8_t insert_checksum;
 };
 
 /*
