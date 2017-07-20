@@ -30,7 +30,7 @@
 #include "ofpi_cli.h"
 #include "ofpi_pkt_processing.h"
 #include "ofpi_ifnet.h"
-
+#include "ofpi_ip.h"
 #include "ofpi_tcp_var.h"
 #include "ofpi_socketvar.h"
 #include "ofpi_socket.h"
@@ -181,6 +181,7 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	HANDLE_ERROR(ofp_socket_init_global(ofp_packet_pool));
 	HANDLE_ERROR(ofp_tcp_var_init_global());
 	HANDLE_ERROR(ofp_inet_init());
+	HANDLE_ERROR(ofp_ip_init_global());
 
 	return 0;
 }
@@ -263,6 +264,7 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_arp_init_local());
 	HANDLE_ERROR(ofp_tcp_var_lookup_shared_memory());
 	HANDLE_ERROR(ofp_send_pkt_out_init_local());
+	HANDLE_ERROR(ofp_ip_init_local());
 
 	return 0;
 }
@@ -374,6 +376,8 @@ int ofp_term_post_global(const char *pool_name)
 
 	ofp_igmp_uninit(NULL);
 
+	CHECK_ERROR(ofp_ip_term_global(), rc);
+
 	/* Cleanup sockets */
 	CHECK_ERROR(ofp_socket_term_global(), rc);
 
@@ -440,6 +444,7 @@ int ofp_term_local(void)
 {
 	int rc = 0;
 
+	CHECK_ERROR(ofp_ip_term_local(), rc);
 	CHECK_ERROR(ofp_send_pkt_out_term_local(), rc);
 
 	return rc;

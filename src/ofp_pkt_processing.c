@@ -51,12 +51,15 @@
 #include "ofpi_if_vxlan.h"
 #include "ofpi_vxlan.h"
 #include "ofpi_gre.h"
+#include "ofpi_ip.h"
 #include "api/ofp_init.h"
 
 static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 						   struct ip_out *odata);
 
 extern odp_pool_t ofp_packet_pool;
+
+__thread struct ofp_global_ip_state *ofp_ip_shm;
 
 void *default_event_dispatcher(void *arg)
 {
