@@ -151,7 +151,6 @@ enum ofp_return_code ofp_output_ipv4_to_gre(odp_packet_t pkt,
 	greip->gi_i.ip_len =
 		odp_cpu_to_be_16(odp_be_to_cpu_16(ip->ip_len) +
 				 sizeof(*greip));
-	greip->gi_i.ip_id = ip->ip_id;
 	greip->gi_i.ip_off = 0;
 	greip->gi_i.ip_ttl = ip->ip_ttl;
 	greip->gi_i.ip_p = OFP_IPPROTO_GRE;
@@ -170,7 +169,6 @@ enum ofp_return_code ofp_output_ipv6_to_gre(odp_packet_t pkt,
 	struct ofp_greip *greip;
 	uint8_t	l2_size = 0;
 	int32_t	offset;
-	static uint16_t	id = 0;
 
 	ip6 = odp_packet_l3_ptr(pkt, NULL);
 
@@ -199,7 +197,6 @@ enum ofp_return_code ofp_output_ipv6_to_gre(odp_packet_t pkt,
 	greip->gi_i.ip_len = odp_cpu_to_be_16(
 		odp_be_to_cpu_16(ip6->ofp_ip6_plen) +
 		sizeof(*ip6) + sizeof(*greip));
-	greip->gi_i.ip_id = odp_cpu_to_be_16(id++);
 	greip->gi_i.ip_off = 0;
 	greip->gi_i.ip_ttl = ip6->ofp_ip6_hlim;
 	greip->gi_i.ip_p = OFP_IPPROTO_GRE;

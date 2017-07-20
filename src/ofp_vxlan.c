@@ -226,7 +226,6 @@ enum ofp_return_code ofp_vxlan_input(odp_packet_t pkt)
 enum ofp_return_code ofp_vxlan_prepend_hdr(odp_packet_t pkt, struct ofp_ifnet *vxdev,
 			  struct ofp_nh_entry *nh)
 {
-	static uint16_t id = 0;
 	struct ofp_vxlan_udp_ip *ip_udp_vxlan;
 	size_t size;
 
@@ -269,7 +268,6 @@ enum ofp_return_code ofp_vxlan_prepend_hdr(odp_packet_t pkt, struct ofp_ifnet *v
 	ip_udp_vxlan->ip.ip_tos = 0;
 	ip_udp_vxlan->ip.ip_len = odp_cpu_to_be_16(
 		size + sizeof(struct ofp_vxlan_udp_ip));
-	ip_udp_vxlan->ip.ip_id = odp_cpu_to_be_16(id++);
 	ip_udp_vxlan->ip.ip_off = 0;
 	ip_udp_vxlan->ip.ip_ttl = 2;
 	ip_udp_vxlan->ip.ip_p = OFP_IPPROTO_UDP;

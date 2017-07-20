@@ -1102,14 +1102,12 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 	odp_packet_l4_offset_set(m, sizeof(struct ofp_ip));
 
 	struct ofp_udphdr *udp = (struct ofp_udphdr *) (ip + 1);
-	static uint16_t id = 0;
 
 	ip->ip_hl = 5;
 	ip->ip_v = OFP_IPVERSION;
 	ip->ip_tos = tos;
 	ip->ip_len = odp_cpu_to_be_16(len + sizeof(struct ofp_ip) +
 				      sizeof(struct ofp_udphdr));
-	ip->ip_id = odp_cpu_to_be_16(id++);
 	ip->ip_off = 0;
 	ip->ip_ttl = inp->inp_ip_ttl;
 	ip->ip_p = OFP_IPPROTO_UDP;

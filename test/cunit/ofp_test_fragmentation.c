@@ -202,7 +202,11 @@ static void assert_ip_header(struct ofp_ip *ip, struct ofp_ip *ip_orig,
 
 static enum ofp_return_code send_packet(odp_packet_t pkt)
 {
-	return ofp_ip_send(pkt, &nexthop);
+	/*
+	 * Send packets as if they were forwarded to avoid the stack
+	 * touching the ID field of the IP header.
+	 */
+	return ofp_ip_output_common(pkt, &nexthop, 0);
 }
 
 static void send_packet_and_check(odp_packet_t pkt)

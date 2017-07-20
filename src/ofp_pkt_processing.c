@@ -422,7 +422,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 	}
 #endif
 
-	return ofp_ip_output(pkt, nh);
+	return ofp_ip_output_common(pkt, nh, 0);
 }
 
 #ifdef INET6
@@ -992,8 +992,9 @@ enum ofp_return_code ofp_ip_output_recurse(odp_packet_t pkt,
 	return OFP_PKT_DROP;
 }
 
-enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
-	struct ofp_nh_entry *nh_param)
+enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
+					  struct ofp_nh_entry *nh_param,
+					  int is_local_out)
 {
 	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
 	struct ip_out odata;
@@ -1012,6 +1013,9 @@ enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
 
 	if ((ret = ofp_ip_output_find_route(pkt, &odata)) != OFP_PKT_CONTINUE)
 		return ret;
+
+	if (is_local_out)
+		ofp_ip_id_assign(odata.ip);
 
 	/* Fragmentation */
 	if (odp_be_to_cpu_16(odata.ip->ip_len) > odata.dev_out->if_mtu) {
@@ -1060,13 +1064,11 @@ enum ofp_return_code  ofp_ip_output_opt(odp_packet_t pkt, odp_packet_t opt,
 	(void)inp;
 	struct ofp_nh_entry nh;
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_data(pkt), ip0;
-	static uint16_t ip_newid = 0;
 
 	ip->ip_v = OFP_IPVERSION;
 	ip->ip_hl = sizeof(*ip) >> 2;
 	ip->ip_ttl = 255;
 	ip->ip_off = 0;
-	ip->ip_id = ip_newid++;
 
 	if (opt != ODP_PACKET_INVALID) {
 		struct ofp_ipoption *p = (struct ofp_ipoption *)odp_packet_data(opt);

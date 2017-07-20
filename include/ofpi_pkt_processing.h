@@ -101,8 +101,15 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 	}
 }
 
-enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
-				   struct ofp_nh_entry *nh_param);
+enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
+					  struct ofp_nh_entry *nh,
+					  int is_local_out);
+
+static inline enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
+						 struct ofp_nh_entry *nh)
+{
+	return ofp_ip_output_common(pkt, nh, 1);
+}
 
 enum ofp_return_code ofp_ip_output_recurse(odp_packet_t pkt,
 					   struct ofp_nh_entry *nh);
