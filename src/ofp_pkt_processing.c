@@ -54,11 +54,16 @@
 #include "ofpi_ip.h"
 #include "api/ofp_init.h"
 
+<<<<<<< HEAD
 /* this is a test*/
 
 
 static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 						   struct ip_out *odata);
+=======
+
+/*test*/
+>>>>>>> ofp_v1.x
 
 extern odp_pool_t ofp_packet_pool;
 
