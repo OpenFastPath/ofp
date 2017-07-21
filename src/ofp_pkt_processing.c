@@ -52,6 +52,9 @@
 #include "ofpi_vxlan.h"
 #include "api/ofp_init.h"
 
+
+/*test*/
+
 extern odp_pool_t ofp_packet_pool;
 
 void *default_event_dispatcher(void *arg)
