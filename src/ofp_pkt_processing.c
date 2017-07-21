@@ -56,11 +56,6 @@
 
 /* this is a test*/
 
-
-//sdf
-
-//asdf
-
 static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 						   struct ip_out *odata);
 
