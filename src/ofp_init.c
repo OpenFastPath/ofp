@@ -119,11 +119,26 @@ void ofp_init_global_param(ofp_global_param_t *params)
 	params->pkt_tx_burst_size = OFP_PKT_TX_BURST_SIZE;
 }
 
+static void ofp_init_prepare(void)
+{
+	/*
+	 * Shared memory preallocations or other preparations before
+	 * actual global initializations can be done here.
+	 *
+	 * ODP has been fully initialized but OFP not yet. At this point
+	 * global_param can be accessed and ofp_shared_memory_prealloc()
+	 * can be called.
+	 */
+}
+
 static int ofp_init_pre_global(ofp_global_param_t *params)
 {
 	/* Init shared memories */
 	HANDLE_ERROR(ofp_uma_init_global());
-
+        /*
+	 * Allocate and initialize global config memory first so that it
+	 * is available to later init phases.
+	 */
 	HANDLE_ERROR(ofp_global_config_alloc_shared_memory());
 	memset(shm, 0, sizeof(*shm));
 	shm->is_running = 1;
@@ -133,6 +148,13 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	shm->cli_thread_is_running = 0;
 
 	*global_param = *params;
+
+	/* Initialize shared memory infra before preallocations */
+	HANDLE_ERROR(ofp_shared_memory_init_global());
+	/* Let different code modules preallocate shared memory */
+	ofp_init_prepare();
+	/* Finish preallocation phase before the corresponding allocations */
+	HANDLE_ERROR(ofp_shared_memory_prealloc_finish());
 
 	ofp_register_sysctls();
 
@@ -245,6 +267,9 @@ int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 
 int ofp_init_local(void)
 {
+	/* This must be done first */
+	HANDLE_ERROR(ofp_shared_memory_init_local());
+
 	/* Lookup shared memories */
 	HANDLE_ERROR(ofp_uma_lookup_shared_memory());
 	HANDLE_ERROR(ofp_global_config_lookup_shared_memory());
@@ -365,6 +390,9 @@ int ofp_term_global(void)
 		OFP_ERR("Failed to cleanup resources\n");
 		rc = -1;
 	}
+
+	/* Terminate shared memory now that all blocks have been freed. */
+	CHECK_ERROR(ofp_shared_memory_term_global(), rc);
 
 	return rc;
 }
