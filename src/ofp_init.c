@@ -129,12 +129,25 @@ static void ofp_init_prepare(void)
 	 * global_param can be accessed and ofp_shared_memory_prealloc()
 	 * can be called.
 	 */
+        ofp_uma_init_prepare();
+	ofp_avl_init_prepare();
+	ofp_reassembly_init_prepare();
+	ofp_pcap_init_prepare();
+	ofp_stat_init_prepare();
+	ofp_timer_init_prepare();
+	ofp_hook_init_prepare();
+	ofp_arp_init_prepare();
+	ofp_route_init_prepare();
+	ofp_portconf_init_prepare();
+	ofp_vlan_init_prepare();
+	ofp_vxlan_init_prepare();
+	ofp_socket_init_prepare();
+	ofp_tcp_var_init_prepare();
+	ofp_ip_init_prepare();
 }
 
 static int ofp_init_pre_global(ofp_global_param_t *params)
 {
-	/* Init shared memories */
-	HANDLE_ERROR(ofp_uma_init_global());
         /*
 	 * Allocate and initialize global config memory first so that it
 	 * is available to later init phases.
@@ -155,6 +168,9 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	ofp_init_prepare();
 	/* Finish preallocation phase before the corresponding allocations */
 	HANDLE_ERROR(ofp_shared_memory_prealloc_finish());
+
+        /* Initialize the UM allocator before doing other inits */
+	HANDLE_ERROR(ofp_uma_init_global());
 
 	ofp_register_sysctls();
 

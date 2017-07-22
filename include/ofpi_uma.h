@@ -51,6 +51,7 @@ void ofp_uma_pool_free(void *item);
 
 
 int ofp_uma_lookup_shared_memory(void);
+void ofp_uma_init_prepare(void);
 int ofp_uma_init_global(void);
 int ofp_uma_term_global(void);
 

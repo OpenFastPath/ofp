@@ -143,6 +143,11 @@ int ofp_uma_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_uma_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_UMA, sizeof(*shm));
+}
+
 int ofp_uma_init_global(void)
 {
 	uint32_t i;

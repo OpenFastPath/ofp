@@ -173,6 +173,7 @@ static __inline struct ofp_nh6_entry *ofp_rtl_search6(struct ofp_rtl6_tree *tree
 }
 
 int ofp_rt_lookup_lookup_shared_memory(void);
+void ofp_rt_lookup_init_prepare(void);
 int ofp_rt_lookup_init_global(void);
 int ofp_rt_lookup_term_global(void);
 

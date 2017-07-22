@@ -3684,6 +3684,11 @@ int ofp_tcp_var_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_tcp_var_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_TCP_VAR, sizeof(*shm_tcp));
+}
+
 int ofp_tcp_var_init_global(void)
 {
 	HANDLE_ERROR(ofp_tcp_var_alloc_shared_memory());

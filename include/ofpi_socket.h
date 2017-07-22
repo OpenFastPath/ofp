@@ -13,6 +13,7 @@
 #include "ofpi_queue.h"
 
 int ofp_socket_lookup_shared_memory(void);
+void ofp_socket_init_prepare(void);
 int ofp_socket_init_global(odp_pool_t);
 int ofp_socket_term_global(void);
 

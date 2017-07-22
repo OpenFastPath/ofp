@@ -118,6 +118,11 @@ static int ofp_timer_free_shared_memory(void)
 	return rc;
 }
 
+void ofp_timer_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_TIMER, sizeof(*shm));
+}
+
 static int ofp_timer_create_queues(odp_schedule_group_t sched_group)
 {
 	odp_queue_param_t param;

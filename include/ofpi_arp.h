@@ -82,6 +82,7 @@ struct arp_cache {
 } while (0)
 
 int ofp_arp_lookup_shared_memory(void);
+void ofp_arp_init_prepare(void);
 int ofp_arp_init_global(int age_interval, int entry_timeout);
 int ofp_arp_term_global(void);
 int ofp_arp_init_local(void);

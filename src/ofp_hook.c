@@ -62,6 +62,10 @@ int ofp_hook_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_hook_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_HOOK, sizeof(*shm_hook));
+}
 
 int ofp_hook_init_global(ofp_pkt_hook *pkt_hook_init)
 {

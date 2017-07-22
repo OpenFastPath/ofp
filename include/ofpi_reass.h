@@ -28,6 +28,7 @@
 #define _OFPI_REASSEMBLY_H_
 
 int ofp_reassembly_lookup_shared_memory(void);
+void ofp_reassembly_init_prepare(void);
 int ofp_reassembly_init_global(void);
 int ofp_reassembly_term_global(void);
 

@@ -19,6 +19,7 @@ struct ip_out;
 enum ofp_return_code ofp_vxlan_input(odp_packet_t pkt);
 enum ofp_return_code ofp_vxlan_prepend_hdr(odp_packet_t pkt, struct ofp_ifnet *vxdev,
 			  struct ofp_nh_entry *nh);
+void ofp_vxlan_init_prepare(void);
 int ofp_vxlan_init_global(void);
 int ofp_vxlan_term_global(void);
 void ofp_vxlan_init_local(void);

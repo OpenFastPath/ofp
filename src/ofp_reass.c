@@ -135,6 +135,11 @@ int ofp_reassembly_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_reassembly_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_REASSEMBLY, sizeof(*shm));
+}
+
 int ofp_reassembly_init_global(void)
 {
 	HANDLE_ERROR(ofp_reassembly_alloc_shared_memory());

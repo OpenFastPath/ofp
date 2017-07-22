@@ -32,6 +32,11 @@ static inline void ofp_ip_id_assign(struct ofp_ip *ip)
 	ip->ip_id = odp_cpu_to_be_16(id);
 }
 
+static inline void ofp_ip_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_IP, sizeof(*ofp_ip_shm));
+}
+
 static inline int ofp_ip_init_global(void)
 {
 	ofp_ip_shm = ofp_shared_memory_alloc(SHM_NAME_IP, sizeof(*ofp_ip_shm));

@@ -1317,6 +1317,11 @@ int ofp_avl_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_avl_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_AVL, sizeof(*shm));
+}
+
 int ofp_avl_init_global(void)
 {
 	uint32_t i;

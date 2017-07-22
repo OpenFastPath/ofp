@@ -611,6 +611,11 @@ static int ofp_arp_free_shared_memory(void)
 	return rc;
 }
 
+void ofp_arp_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_ARP, sizeof(*shm));
+}
+
 int ofp_arp_init_global(int age_interval, int entry_timeout)
 {
 	int i;

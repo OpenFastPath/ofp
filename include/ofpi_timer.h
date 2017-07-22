@@ -33,6 +33,7 @@
 #define OFP_TIMER_SOCKET 0
 
 int ofp_timer_lookup_shared_memory(void);
+void ofp_timer_init_prepare(void);
 int ofp_timer_init_global(int resolution_us,
 	int min_us, int max_us,
 	int tmo_count,

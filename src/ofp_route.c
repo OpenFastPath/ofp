@@ -590,10 +590,13 @@ int ofp_route_lookup_shared_memory(void)
 	return 0;
 }
 
+#define SHM_SIZE_VRF_ROUTE  (sizeof(struct vrf_route_mem) + \
+			     sizeof(struct routes_by_vrf) * VRF_ROUTES)
+
 static int ofp_vrf_route_alloc_shared_memory(void)
 {
-	vrf_shm = ofp_shared_memory_alloc(SHM_NAME_VRF_ROUTE, sizeof(struct vrf_route_mem) +
-		sizeof(struct routes_by_vrf) * VRF_ROUTES);
+	vrf_shm = ofp_shared_memory_alloc(SHM_NAME_VRF_ROUTE,
+					  SHM_SIZE_VRF_ROUTE);
 	if (vrf_shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
@@ -625,6 +628,14 @@ int ofp_vrf_route_lookup_shared_memory(void)
 	}
 
 	return 0;
+}
+
+void ofp_route_init_prepare(void)
+{
+	ofp_rt_lookup_init_prepare();
+	ofp_shared_memory_prealloc(SHM_NAME_ROUTE, sizeof(*shm));
+	ofp_shared_memory_prealloc(SHM_NAME_ROUTE_LK, sizeof(*ofp_locks_shm));
+	ofp_shared_memory_prealloc(SHM_NAME_VRF_ROUTE, SHM_SIZE_VRF_ROUTE);
 }
 
 int ofp_route_init_global(void)

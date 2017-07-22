@@ -712,6 +712,7 @@ u_long	 tcp_seq_subtract(uint64_t, uint64_t );
 void	ofp_cc_cong_signal(struct tcpcb *tp, struct ofp_tcphdr *th, uint32_t type);
 
 int ofp_tcp_var_lookup_shared_memory(void);
+void ofp_tcp_var_init_prepare(void);
 int ofp_tcp_var_init_global(void);
 int ofp_tcp_var_term_global(void);
 #endif /* _NETINET_TCP_VAR_H_ */

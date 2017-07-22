@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 		num_workers = params.core_count;
 	if (num_workers > MAX_WORKERS)
 		num_workers = MAX_WORKERS;
-	tx_queues = num_workers + 1;
+	tx_queues = num_workers;
 
 	if (num_workers < 1) {
 		OFP_ERR("ERROR: At least 2 cores required.\n");
@@ -207,13 +207,13 @@ int main(int argc, char *argv[])
 	pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
 
 	odp_pktin_queue_param_init(&pktin_param);
-	pktin_param.op_mode = ODP_PKTIO_OP_MT_UNSAFE;
+	pktin_param.op_mode = ODP_PKTIO_OP_MT;
 	pktin_param.hash_enable = 0;
 	pktin_param.hash_proto.proto.ipv4_udp = 0;
 	pktin_param.num_queues = num_workers;
 
 	odp_pktout_queue_param_init(&pktout_param);
-	pktout_param.op_mode = ODP_PKTIO_OP_MT_UNSAFE;
+	pktout_param.op_mode = ODP_PKTIO_OP_MT;
 	pktout_param.num_queues = tx_queues;
 
 	memset(pktio_thr_args, 0, sizeof(pktio_thr_args));

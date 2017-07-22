@@ -345,9 +345,11 @@ int sp_setup_device(struct ofp_ifnet *ifnet);
 int ofp_free_port_alloc(void);
 
 int ofp_portconf_lookup_shared_memory(void);
+void ofp_portconf_init_prepare(void);
 int ofp_portconf_init_global(void);
 int ofp_portconf_term_global(void);
 int ofp_vlan_lookup_shared_memory(void);
+void ofp_vlan_init_prepare(void);
 int ofp_vlan_init_global(void);
 int ofp_vlan_term_global(void);
 

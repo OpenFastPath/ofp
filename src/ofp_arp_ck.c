@@ -283,6 +283,11 @@ int ofp_arp_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_arp_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_ARP_CK, sizeof(*shm));
+}
+
 int ofp_arp_init_global(void)
 {
 	HANDLE_ERROR(ofp_arp_alloc_shared_memory());

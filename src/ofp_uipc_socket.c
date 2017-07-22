@@ -257,6 +257,11 @@ int ofp_socket_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_socket_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_SOCKET, sizeof(*shm));
+}
+
 int ofp_socket_init_global(odp_pool_t pool)
 {
 	uint32_t i;

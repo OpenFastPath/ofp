@@ -197,6 +197,11 @@ int ofp_pcap_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_pcap_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_PCAP, sizeof(*shm));
+}
+
 int ofp_pcap_init_global(void)
 {
 	HANDLE_ERROR(ofp_pcap_alloc_shared_memory());

@@ -12,6 +12,7 @@
 #include "ofpi_timer.h"
 
 int ofp_stat_lookup_shared_memory(void);
+void ofp_stat_init_prepare(void);
 int ofp_stat_init_global(void);
 int ofp_stat_term_global(void);
 

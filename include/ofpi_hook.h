@@ -22,6 +22,7 @@
 ofp_pkt_hook *ofp_get_packet_hooks(void);
 
 int ofp_hook_lookup_shared_memory(void);
+void ofp_hook_init_prepare(void);
 int ofp_hook_init_global(ofp_pkt_hook *pkt_hook_init);
 int ofp_hook_term_global(void);
 

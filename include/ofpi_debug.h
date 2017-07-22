@@ -34,6 +34,7 @@ extern int ofp_debug_capture_ports;
 #define DEFAULT_DEBUG_PCAP_FILE_NAME "/root/packets.pcap"
 
 int ofp_pcap_lookup_shared_memory(void);
+void ofp_pcap_init_prepare(void);
 int ofp_pcap_init_global(void);
 int ofp_pcap_term_global(void);
 

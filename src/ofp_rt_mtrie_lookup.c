@@ -825,6 +825,11 @@ int ofp_rt_lookup_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_rt_lookup_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
+}
+
 int ofp_rt_lookup_init_global(void)
 {
 	int i;

@@ -108,6 +108,11 @@ int ofp_stat_lookup_shared_memory(void)
 	return 0;
 }
 
+void ofp_stat_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_STAT, sizeof(*shm_stat));
+}
+
 int ofp_stat_init_global(void)
 {
 	HANDLE_ERROR(ofp_stat_alloc_shared_memory());

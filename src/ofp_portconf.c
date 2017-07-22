@@ -1515,6 +1515,13 @@ odp_pktio_t ofp_port_pktio_get(int port)
 	return ifnet->pktio;
 }
 
+void ofp_portconf_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_PORTS, sizeof(*shm));
+	ofp_shared_memory_prealloc(SHM_NAME_PORT_LOCKS,
+				   sizeof(*ofp_ifnet_locks_shm));
+}
+
 static int ofp_portconf_alloc_shared_memory(void)
 {
 	shm = ofp_shared_memory_alloc(SHM_NAME_PORTS, sizeof(*shm));
@@ -1533,14 +1540,22 @@ static int ofp_portconf_alloc_shared_memory(void)
 	return 0;
 }
 
+#define SHM_SIZE_VLAN (sizeof(struct ofp_vlan_mem) + \
+		       sizeof(struct ofp_ifnet) * OFP_NUM_VLAN_MAX)
+
 static int ofp_vlan_alloc_shared_memory(void)
 {
-	vlan_shm = ofp_shared_memory_alloc(SHM_NAME_VLAN, sizeof(struct ofp_vlan_mem) + sizeof(struct ofp_ifnet)*OFP_NUM_VLAN_MAX);
+	vlan_shm = ofp_shared_memory_alloc(SHM_NAME_VLAN, SHM_SIZE_VLAN);
 	if (vlan_shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
 	}
 	return 0;
+}
+
+void ofp_vlan_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_VLAN, SHM_SIZE_VLAN);
 }
 
 static int ofp_portconf_free_shared_memory(void)

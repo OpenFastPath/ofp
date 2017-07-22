@@ -177,6 +177,7 @@ void avl_node_wlock(avl_node *node);
 void avl_node_unlock(avl_node *node);
 
 int ofp_avl_lookup_shared_memory(void);
+void ofp_avl_init_prepare(void);
 int ofp_avl_init_global(void);
 int ofp_avl_term_global(void);
 

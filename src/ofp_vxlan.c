@@ -306,6 +306,11 @@ static int ofp_vxlan_free_shared_memory(void)
 	return rc;
 }
 
+void ofp_vxlan_init_prepare(void)
+{
+	ofp_shared_memory_prealloc(SHM_NAME_VXLAN, sizeof(*shm));
+}
+
 int ofp_vxlan_init_global(void)
 {
 	HANDLE_ERROR(ofp_vxlan_alloc_shared_memory());
