@@ -1558,8 +1558,6 @@ static void cli_sa_accept(int fd)
 
 #define OFP_SERVER_PORT 2345
 
-#define UFP_SERVER_PORT 2345
-
 static int cli_serv_fd = -1, cli_tmp_fd = -1;
 
 /** CLI server thread

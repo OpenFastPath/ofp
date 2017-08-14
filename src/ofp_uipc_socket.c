@@ -136,8 +136,6 @@
 
 #define SHM_NAME_SOCKET "OfpSocketShMem"
 
-#define OFP_NUM_SOCKET_POOLS 32
-
 /*
  * Shared data
  */

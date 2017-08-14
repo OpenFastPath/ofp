@@ -77,7 +77,6 @@
 extern odp_pool_t ofp_packet_pool;
 
 #define UDPSTAT_INC(x)
-#define log(...)
 
 #ifndef UDBHASHSIZE
 #define	UDBHASHSIZE	128
