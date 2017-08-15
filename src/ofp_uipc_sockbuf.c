@@ -427,7 +427,7 @@ ofp_sblock(struct sockbuf *sb, int flags)
 		return 0;
 		/* HJo: What is this?  (sx_xlock_sig(&sb->sb_sx));*/
 	} else {
-		if (odp_spinlock_is_locked(&sb->sb_sx))
+		if (!odp_spinlock_trylock(&sb->sb_sx))
 			return (OFP_EWOULDBLOCK);
 		return (0);
 	}
