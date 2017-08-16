@@ -310,6 +310,8 @@ int ofp_ifnet_create(odp_instance_t instance,
 		}
 	}
 
+	odp_pktio_stats_reset(ifnet->pktio);
+
 #ifdef SP
 	/* Start VIF slowpath receiver thread */
 	thr_params.start = sp_rx_thread;
