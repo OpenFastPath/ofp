@@ -99,7 +99,7 @@ OFP_SYSCTL_INT(_net_inet_tcp, OFP_OID_AUTO, blackhole, OFP_CTLFLAG_RW,
 	   &ofp_blackhole, 0,
 	   "Do not send RST on segments to closed ports");
 
-VNET_DEFINE(int, ofp_tcp_delack_enabled) = 0;
+VNET_DEFINE(int, ofp_tcp_delack_enabled) = 1;
 OFP_SYSCTL_INT(_net_inet_tcp, OFP_OID_AUTO, delayed_ack, OFP_CTLFLAG_RW,
 	   &ofp_tcp_delack_enabled, 0,
 	   "Delay ACK to try and piggyback it onto a data packet");
