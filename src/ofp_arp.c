@@ -192,7 +192,7 @@ static inline void show_arp_entry(int fd, struct arp_entry *entry)
 {
 	odp_time_t t, time_diff;
 
-	t = odp_time_local();
+	t = odp_time_global();
 	time_diff = odp_time_diff(t, entry->usetime);
 	ofp_sendf(fd, "%3d  %-15s %-17s %4u\r\n",
 		    entry->key.vrf,
@@ -253,7 +253,7 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	}
 
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
-	tnow = odp_time_local();
+	tnow = odp_time_global();
 	new->usetime = tnow;
 
 	OFP_SLIST_SWAP(&send_list, &new->pkt_list_head, pkt_entry);
@@ -364,7 +364,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 	if (odp_unlikely(entry->usetime_upd_tmo == ODP_TIMER_INVALID)) {
 		odp_rwlock_write_lock(&entry->usetime_rwlock);
 		if (entry->usetime_upd_tmo == ODP_TIMER_INVALID) {
-			tnew = odp_time_local();
+			tnew = odp_time_global();
 			entry->usetime = tnew;
 
 			entry_idx = entry - &shm->arp.entries[0];
@@ -481,7 +481,7 @@ void ofp_arp_age_cb(void *arg)
 	odp_time_t now;
 
 	cli =  *(int *)arg;
-	now = odp_time_local();
+	now = odp_time_global();
 
 	for (i = 0; i < NUM_SETS; ++i) {
 		odp_rwlock_write_lock(&shm->arp.table_rwlock[i]);
@@ -657,7 +657,7 @@ int ofp_arp_init_global(int age_interval, int entry_timeout)
 		age_interval = entry_timeout;
 	}
 	shm->entry_timeout =
-		odp_time_local_from_ns(entry_timeout * NS_PER_SEC);
+		odp_time_global_from_ns(entry_timeout * NS_PER_SEC);
 	shm->age_interval = age_interval;
 	shm->age_timer = ofp_timer_start(
 		shm->age_interval * US_PER_SEC, ofp_arp_age_cb, &cli, sizeof(cli));
