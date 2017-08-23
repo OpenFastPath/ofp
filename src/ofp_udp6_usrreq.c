@@ -429,7 +429,7 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 			 */
 			inp = in6_pcblookup(&V_udbinfo, &ip6->ip6_src,
 			    uh->uh_sport, &next_hop6->sin6_addr,
-			    next_hop6->sin6_port ? htons(next_hop6->sin6_port) :
+			    next_hop6->sin6_port ? odp_cpu_to_be_16(next_hop6->sin6_port) :
 			    uh->uh_dport, INPLOOKUP_WILDCARD |
 			    INPLOOKUP_RLOCKPCB, m->m_pkthdr.rcvif);
 		}

@@ -1058,7 +1058,7 @@ notify:
 		m_addr_changed(m);
 
 		if (icmp6type == ICMP6_PACKET_TOO_BIG) {
-			notifymtu = ntohl(icmp6->icmp6_mtu);
+			notifymtu = odp_be_to_cpu_32(icmp6->icmp6_mtu);
 			ip6cp.ip6c_cmdarg = (void *)&notifymtu;
 			icmp6_mtudisc_update(&ip6cp, 1);	/*XXX*/
 		}
@@ -1084,7 +1084,7 @@ icmp6_mtudisc_update(struct ip6ctlparam *ip6cp, int validated)
 	struct in6_addr *dst = ip6cp->ip6c_finaldst;
 	struct icmp6_hdr *icmp6 = ip6cp->ip6c_icmp6;
 	struct mbuf *m = ip6cp->ip6c_m;	/* will be necessary for scope issue */
-	u_int mtu = ntohl(icmp6->icmp6_mtu);
+	u_int mtu = odp_be_to_cpu_32(icmp6->icmp6_mtu);
 	struct in_conninfo inc;
 
 #if 0
@@ -1217,7 +1217,7 @@ ni6_input(struct mbuf *m, int off)
 	}
 
 	/* validate query Subject field. */
-	qtype = ntohs(ni6->ni_qtype);
+	qtype = odp_be_to_cpu_16(ni6->ni_qtype);
 	subjlen = m->m_pkthdr.len - off - sizeof(struct icmp6_nodeinfo);
 	switch (qtype) {
 	case NI_QTYPE_NOOP:
@@ -1411,9 +1411,9 @@ ni6_input(struct mbuf *m, int off)
 	{
 		uint32_t v;
 		nni6->ni_code = ICMP6_NI_SUCCESS;
-		nni6->ni_flags = htons(0x0000);	/* raw bitmap */
+		nni6->ni_flags = odp_cpu_to_be_16(0x0000);	/* raw bitmap */
 		/* supports NOOP, SUPTYPES, FQDN, and NODEADDR */
-		v = (uint32_t)htonl(0x0000000f);
+		v = (uint32_t)odp_cpu_to_be_32(0x0000000f);
 		bcopy(&v, nni6 + 1, sizeof(uint32_t));
 		break;
 	}
@@ -1831,7 +1831,7 @@ ni6_store_addrs(struct icmp6_nodeinfo *ni6, struct icmp6_nodeinfo *nni6,
 			else {
 				if (ifa6->ia6_lifetime.ia6t_expire >
 				    time_second)
-					ltime = htonl(ifa6->ia6_lifetime.ia6t_expire - time_second);
+					ltime = odp_cpu_to_be_32(ifa6->ia6_lifetime.ia6t_expire - time_second);
 				else
 					ltime = 0;
 			}
@@ -2183,7 +2183,7 @@ icmp6_redirect_input(struct mbuf *m, int off)
 	struct ifnet *ifp;
 	struct ip6_hdr *ip6 = mtod(m, struct ip6_hdr *);
 	struct nd_redirect *nd_rd;
-	int icmp6len = ntohs(ip6->ip6_plen);
+	int icmp6len = odp_be_to_cpu_16(ip6->ip6_plen);
 	char *lladdr = NULL;
 	int lladdrlen = 0;
 	struct rtentry *rt = NULL;
@@ -2638,11 +2638,11 @@ noredhdropt:;
 	in6_clearscope(&nd_rd->nd_rd_target);
 	in6_clearscope(&nd_rd->nd_rd_dst);
 
-	ip6->ip6_plen = htons(m->m_pkthdr.len - sizeof(struct ip6_hdr));
+	ip6->ip6_plen = odp_cpu_to_be_16(m->m_pkthdr.len - sizeof(struct ip6_hdr));
 
 	nd_rd->nd_rd_cksum = 0;
 	nd_rd->nd_rd_cksum = in6_cksum(m, IPPROTO_ICMPV6,
-	    sizeof(*ip6), ntohs(ip6->ip6_plen));
+	    sizeof(*ip6), odp_be_to_cpu_16(ip6->ip6_plen));
 
         if (send_sendso_input_hook != NULL) {
 		mtag = m_tag_get(PACKET_TAG_ND_OUTGOING, sizeof(unsigned short),

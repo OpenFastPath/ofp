@@ -835,7 +835,7 @@ in6_update_ifa_join_mc(struct ifnet *ifp, struct in6_aliasreq *ifra,
 	bzero(&llsol, sizeof(struct in6_addr));
 	llsol.s6_addr32[0] = IPV6_ADDR_INT32_MLL;
 	llsol.s6_addr32[1] = 0;
-	llsol.s6_addr32[2] = htonl(1);
+	llsol.s6_addr32[2] = odp_cpu_to_be_32(1);
 	llsol.s6_addr32[3] = ifra->ifra_addr.sin6_addr.s6_addr32[3];
 	llsol.s6_addr8[12] = 0xff;
 	if ((error = in6_setscope(&llsol, ifp, NULL)) != 0) {

@@ -590,9 +590,9 @@ icmp_reflect(odp_packet_t pkt)
 	struct ofp_nh_entry *nh = NULL;
 	struct ofp_ifnet *dev_out, *ifp = odp_packet_user_ptr(pkt);
 
-/*	if (IN_MULTICAST(ntohl(ip->ip_src.s_addr)) ||
-	    IN_EXPERIMENTAL(ntohl(ip->ip_src.s_addr)) ||
-	    IN_ZERONET(ntohl(ip->ip_src.s_addr)) ) {
+/*	if (IN_MULTICAST(odp_be_to_cpu_32(ip->ip_src.s_addr)) ||
+	    IN_EXPERIMENTAL(odp_be_to_cpu_32(ip->ip_src.s_addr)) ||
+	    IN_ZERONET(odp_be_to_cpu_32(ip->ip_src.s_addr)) ) {
 		MPSTAT_INC(icps_badaddr);
 		goto done;
 * Ip_output() will check for broadcast

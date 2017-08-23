@@ -217,7 +217,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 
 	/*printf("Binding socket '%d' to the address '%x:%d' returns:%d\n",
 		sockfd,	((const struct sockaddr_in *)addr)->sin_addr.s_addr,
-		ntohs(((const struct sockaddr_in *)addr)->sin_port),
+		odp_be_to_cpu_16(((const struct sockaddr_in *)addr)->sin_port),
 		bind_value);*/
 	return bind_value;
 }

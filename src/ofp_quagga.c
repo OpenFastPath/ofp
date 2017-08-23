@@ -97,8 +97,8 @@ static int create_listen_sock (int port, int *sock_p)
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = odp_cpu_to_be_32(INADDR_ANY);
+	addr.sin_port = odp_cpu_to_be_16(port);
 
 	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
 		err_msg("Failed to bind to port %d: %s", port, strerror(errno));
@@ -576,7 +576,7 @@ static void parse_netlink_msg (char *buf, size_t buf_len)
 static void process_fpm_msg (fpm_msg_hdr_t *hdr)
 {
 	trace(1, "FPM message - Type: %d, Length %d", hdr->msg_type,
-	      ntohs(hdr->msg_len));
+	      odp_be_to_cpu_16(hdr->msg_len));
 
 	if (hdr->msg_type != FPM_MSG_TYPE_NETLINK) {
 		warn("Unknown fpm message type %u", hdr->msg_type);
