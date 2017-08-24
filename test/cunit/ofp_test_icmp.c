@@ -55,14 +55,6 @@ static void test_icmp_packet_too_short(void)
 }
 
 static void set_packet_minimum_length(void);
-static int icmp_dropped_for_bad_type(uint8_t icmp_type);
-static void test_invalid_icmp_type(void)
-{
-	set_packet_minimum_length();
-
-	CU_ASSERT_TRUE(icmp_dropped_for_bad_type(OFP_ICMP_MAXTYPE));
-	CU_ASSERT_TRUE(icmp_dropped_for_bad_type(OFP_ICMP_MAXTYPE + 1));
-}
 
 static void set_icmp_type(uint8_t icmp_type);
 static int icmp_dropped_for_bad_code(uint8_t icmp_code);
@@ -203,8 +195,6 @@ int main(void)
 	CU_TestInfo test[] = {
 		{ const_cast("Packet too short"),
 		  test_icmp_packet_too_short },
-		{ const_cast("Invalid ICMP type"),
-		  test_invalid_icmp_type },
 		{ const_cast("Destination unreachable with invalid code"),
 		  test_icmp_destination_unreachable_with_invalid_code },
 		{ const_cast("Destination unreachable packet is too short"),
@@ -297,12 +287,6 @@ void set_packet_minimum_length(void)
 int icmp_dropped(void)
 {
 	return _ofp_icmp_input(icmp, &ip, &icp, NULL) == OFP_PKT_DROP;
-}
-
-int icmp_dropped_for_bad_type(uint8_t icmp_type)
-{
-	set_icmp_type(icmp_type);
-	return icmp_dropped();
 }
 
 void set_icmp_type(uint8_t icmp_type)

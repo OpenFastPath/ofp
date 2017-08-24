@@ -526,9 +526,6 @@ _ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
 	/*
 	 * Message type specific processing.
 	 */
-	if (icp->icmp_type > OFP_ICMP_MAXTYPE)
-		return OFP_PKT_DROP;
-
 /*TODO ICMP stats
 	ICMPSTAT_INC(icps_inhist[icp->icmp_type]);*/
 	switch (icp->icmp_type) {
@@ -557,26 +554,14 @@ _ofp_icmp_input(odp_packet_t pkt, struct ofp_ip *ip, struct ofp_icmp *icp,
 	case OFP_ICMP_REDIRECT:
 		return icmp_shorter_route(ip, icp);
 
-	/*
-	 * No kernel processing for the following;
-	 * just fall through to send to raw listener.
-	 */
-	case OFP_ICMP_ECHOREPLY:
-		return OFP_PKT_CONTINUE;
-	case OFP_ICMP_ROUTERADVERT:
-	case OFP_ICMP_ROUTERSOLICIT:
-	case OFP_ICMP_TSTAMPREPLY:
-	case OFP_ICMP_IREQREPLY:
-	case OFP_ICMP_MASKREPLY:
 	default:
 		break;
 	}
 
-/*TODO pas to ip raw listener. What processing is done in raw listener?
-	rip_input(m, off);
-	return;
-*/
-	return OFP_PKT_DROP;
+	/*
+	 * Anything we didn't process is forwarded to slow path.
+	 */
+	return OFP_PKT_CONTINUE;
 }
 
 /*
