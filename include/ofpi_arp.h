@@ -59,27 +59,22 @@ struct arp_entry {
 #endif /* OFP_USE_LIBCK */
 
 struct arp_cache {
-	struct arp_key key;
-	uint16_t entry_idx;
+	odp_atomic_u32_t entry_idx;
 };
 
-#define ARP_IN_CACHE(_cache, _key) \
-	(((_key)->vrf == (_cache)->key.vrf) && \
-	((_key)->ipv4_addr == (_cache)->key.ipv4_addr))
+#define ARP_IS_CACHE_HIT(_entry, _key) \
+	(((_key)->vrf == (_entry)->key.vrf) && \
+	 ((_key)->ipv4_addr == (_entry)->key.ipv4_addr))
 
-#define ARP_GET_CACHE(_cache) (&(shm->arp.entries[(_cache)->entry_idx]))
+#define ARP_GET_CACHE(_cache) \
+	(&(shm->arp.entries[odp_atomic_load_u32(&(_cache)->entry_idx)]))
 
-#define ARP_SET_CACHE(_cache, _key, _entry) do {\
-	(_cache)->key.vrf = (_key)->vrf;\
-	(_cache)->key.ipv4_addr = (_key)->ipv4_addr;\
-	(_cache)->entry_idx = (_entry) - &(shm->arp.entries[0]);\
-} while (0)
+#define ARP_SET_CACHE(_cache, _entry) \
+	odp_atomic_store_u32(&(_cache)->entry_idx, \
+			     (_entry) - &(shm->arp.entries[0]))
 
-#define ARP_DEL_CACHE(_cache) do {\
-	(_cache)->key.vrf = 0;\
-	(_cache)->key.ipv4_addr = 0;\
-	(_cache)->entry_idx = 0;\
-} while (0)
+#define ARP_DEL_CACHE(_cache) \
+	odp_atomic_store_u32(&(_cache)->entry_idx, 0)
 
 int ofp_arp_lookup_shared_memory(void);
 void ofp_arp_init_prepare(void);

@@ -24,7 +24,8 @@
 #define SHM_NAME_ARP "OfpArpShMem"
 
 #define NUM_SETS ARP_ENTRY_TABLE_SIZE
-#define NUM_ARPS ARP_ENTRIES_SIZE
+/*ARP_ENTRIES_SIZE + 1: Zeroth entry used as the invalid entry*/
+#define NUM_ARPS ARP_ENTRIES_SIZE + 1
 #define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * US_PER_SEC)
 #define SAVED_PKT_TIMEOUT (ARP_SAVED_PKT_TIMEOUT * US_PER_SEC)
 #define AGE_DIVISOR 2
@@ -155,16 +156,19 @@ static inline void *insert_new_entry(int set, struct arp_key *key)
 static inline int remove_entry(int set, struct arp_entry *entry)
 {
 	struct arp_cache *cache;
+	struct arp_entry *cache_entry;
 	int rc = 0;
-
-	/* remove from set */
-	OFP_SLIST_REMOVE(&shm->arp.table[set], entry, arp_entry, next);
 
 	/* remove from set's cache */
 	cache = &shm->arp.cache[set];
 
-	if (ARP_IN_CACHE(cache, &entry->key))
+	cache_entry = ARP_GET_CACHE(cache);
+
+	if (ARP_IS_CACHE_HIT(cache_entry, &entry->key))
 		ARP_DEL_CACHE(cache);
+
+	/* remove from set */
+	OFP_SLIST_REMOVE(&shm->arp.table[set], entry, arp_entry, next);
 
 	/* kill update timer*/
 	odp_rwlock_write_lock(&entry->usetime_rwlock);
@@ -334,9 +338,9 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 
 	cache = &shm->arp.cache[set];
 
-	if (ARP_IN_CACHE(cache, &key))
-		entry = ARP_GET_CACHE(cache);
-	else {
+	entry = ARP_GET_CACHE(cache);
+
+	if (!ARP_IS_CACHE_HIT(entry, &key)) {
 		odp_rwlock_write_lock(&shm->arp.table_rwlock[set]);
 
 		entry = arp_lookup(set, &key);
@@ -347,7 +351,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 			return -1;
 		}
 
-		ARP_SET_CACHE(cache, &key, entry);
+		ARP_SET_CACHE(cache, entry);
 
 		odp_rwlock_write_unlock(&shm->arp.table_rwlock[set]);
 	}
@@ -572,7 +576,7 @@ int ofp_arp_init_tables(void)
 	OFP_SLIST_INIT(&shm->arp.free_entries);
 	OFP_SLIST_INIT(&shm->pkt.free_entries);
 
-	for (i = NUM_ARPS - 1; i >= 0; --i)
+	for (i = NUM_ARPS; i > 0; --i)
 		OFP_SLIST_INSERT_HEAD(&shm->arp.free_entries, &shm->arp.entries[i],
 				  next);
 
