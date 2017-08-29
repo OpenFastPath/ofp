@@ -43,7 +43,7 @@ send_table(struct ofp_ifnet *ifnet, odp_packet_t *pkt_tbl,
 		for (; pkts_sent < pkt_cnt; pkts_sent++)
 			odp_packet_free(pkt_tbl[pkts_sent]);
 
-		ret = OFP_PKT_DROP;
+		ret = OFP_PKT_PROCESSED;
 	}
 
 	*pkt_tbl_cnt = 0;
