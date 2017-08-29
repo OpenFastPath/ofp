@@ -19,12 +19,11 @@ static __thread struct burst_send {
 } send_pkt_tbl[NUM_PORTS] __attribute__((__aligned__(ODP_CACHE_LINE_SIZE)));
 
 
-static inline enum ofp_return_code
+static inline void
 send_table(struct ofp_ifnet *ifnet, odp_packet_t *pkt_tbl,
 		uint32_t *pkt_tbl_cnt)
 {
 	int pkts_sent;
-	enum ofp_return_code ret = OFP_PKT_PROCESSED;
 
 	pkts_sent = ofp_send_pkt_multi(ifnet, pkt_tbl, *pkt_tbl_cnt,
 			odp_cpu_id());
@@ -42,12 +41,9 @@ send_table(struct ofp_ifnet *ifnet, odp_packet_t *pkt_tbl,
 
 		for (; pkts_sent < pkt_cnt; pkts_sent++)
 			odp_packet_free(pkt_tbl[pkts_sent]);
-
-		ret = OFP_PKT_PROCESSED;
 	}
 
 	*pkt_tbl_cnt = 0;
-	return ret;
 }
 
 enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
@@ -61,20 +57,18 @@ enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
 
 	if ((*pkt_tbl_cnt) == global_param->pkt_tx_burst_size)
-		return send_table(ofp_get_ifnet(dev->port, 0),
-				pkt_tbl,
-				pkt_tbl_cnt);
+		send_table(ofp_get_ifnet(dev->port, 0),
+			   pkt_tbl,
+			   pkt_tbl_cnt);
 
 	return OFP_PKT_PROCESSED;
 }
 
-static enum ofp_return_code ofp_send_pending_pkt_nocheck(void)
+static void ofp_send_pending_pkt_nocheck(void)
 {
 	uint32_t i;
 	uint32_t *pkt_tbl_cnt;
 	odp_packet_t *pkt_tbl;
-	enum ofp_return_code ret = OFP_PKT_PROCESSED;
-	enum ofp_return_code ret_send = OFP_PKT_PROCESSED;
 
 	for (i = 0; i < NUM_PORTS; i++) {
 		pkt_tbl_cnt = &send_pkt_tbl[i].pkt_tbl_cnt;
@@ -84,19 +78,14 @@ static enum ofp_return_code ofp_send_pending_pkt_nocheck(void)
 
 		pkt_tbl = (odp_packet_t *)send_pkt_tbl[i].pkt_tbl;
 
-		ret_send = send_table(ofp_get_ifnet(i, 0), pkt_tbl,
-			pkt_tbl_cnt);
-		if (ret_send != OFP_PKT_PROCESSED)
-			ret = ret_send;
+		send_table(ofp_get_ifnet(i, 0), pkt_tbl, pkt_tbl_cnt);
 	}
-
-	return ret;
 }
 
 enum ofp_return_code ofp_send_pending_pkt(void)
 {
 	if (global_param->pkt_tx_burst_size > 1)
-		return ofp_send_pending_pkt_nocheck();
+		ofp_send_pending_pkt_nocheck();
 	return OFP_PKT_PROCESSED;
 }
 
