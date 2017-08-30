@@ -510,22 +510,8 @@ static void schedule_shutdown(void)
 				ofp_timer_evt_cleanup(evt);
 				break;
 			}
-		case ODP_EVENT_PACKET:
-			{
-				odp_packet_free(odp_packet_from_event(evt));
-				break;
-			}
-		case ODP_EVENT_BUFFER:
-			{
-				odp_buffer_free(odp_buffer_from_event(evt));
-				break;
-			}
-		case ODP_EVENT_CRYPTO_COMPL:
-			{
-				odp_crypto_compl_free(
-					odp_crypto_compl_from_event(evt));
-				break;
-			}
+		default:
+			odp_event_free(evt);
 		}
 	}
 
