@@ -474,9 +474,10 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 #ifdef SP
 	char cmd[200];
 	int ret = 0;
+	uint32_t mask_t;
 #endif /* SP */
 	struct ofp_ifnet *data;
-	uint32_t mask, mask_t;
+	uint32_t mask;
 
 #ifdef SP
 	(void)ret;
