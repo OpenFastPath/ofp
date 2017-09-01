@@ -288,7 +288,6 @@ stdreply:	icmpelen = max(8, min(V_icmp_quotelen, ip_in->ip_len - ip_hlen));
 
 	ip->ip_len = odp_cpu_to_be_16(icmp_len);
 	ip->ip_v = OFP_IPVERSION;
-	ip->ip_hl = 5;
 	ip->ip_p = OFP_IPPROTO_ICMP;
 	ip->ip_tos = 0;
 
@@ -574,6 +573,7 @@ icmp_reflect(odp_packet_t pkt)
 	struct ofp_in_addr t;
 	struct ofp_nh_entry *nh = NULL;
 	struct ofp_ifnet *dev_out, *ifp = odp_packet_user_ptr(pkt);
+	int optlen = (ip->ip_hl << 2) - sizeof(*ip);
 
 /*	if (IN_MULTICAST(odp_be_to_cpu_32(ip->ip_src.s_addr)) ||
 	    IN_EXPERIMENTAL(odp_be_to_cpu_32(ip->ip_src.s_addr)) ||
@@ -656,8 +656,8 @@ match:
 	ip->ip_src = t;
 	ip->ip_ttl = 64; /*default ttl, from RFC 1340*/
 
-/*TODO IP header optlen handling
 	if (optlen > 0) {
+		/*TODO Uncomment and adapt this code once option processing has been implemented.
 		register u_char *cp;
 		int opt, cnt;
 		u_int len;
@@ -722,8 +722,28 @@ match:
 		optlen += sizeof(struct ip);
 		bcopy((caddr_t)ip + optlen, (caddr_t)(ip + 1),
 			 (unsigned)(m->m_len - sizeof(struct ip)));
+		*/
+
+		/*
+		 * Since we don't have IP option processing (yet),
+		 * it's best to just remove all options.
+		 */
+		uint32_t optpos = odp_packet_l3_offset(pkt) + sizeof(struct ofp_ip);
+
+		/* Move packet data back, overwriting IP options. */
+		if (odp_packet_move_data(pkt, optpos, optpos + optlen,
+					 odp_packet_len(pkt) - (optpos + optlen)))
+			goto drop;
+		if (!odp_packet_pull_tail(pkt, optlen))
+			goto drop;
+
+		ip->ip_v = OFP_IPVERSION;
+		ip->ip_hl = 5;
+		uint16_t ip_len = odp_be_to_cpu_16(ip->ip_len);
+		ip_len -= optlen;
+		ip->ip_len = odp_cpu_to_be_16(ip_len);
 	}
-*/
+
 	icmp_send(pkt, nh/*, opts*/);
 	return OFP_PKT_PROCESSED;
 drop:
