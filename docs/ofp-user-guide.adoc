@@ -1,0 +1,974 @@
+= OpenFastPath User Guide
+:toc:
+
+== Introduction
+
+<<OpenFastPath>> is an open source implementation of a high performance user
+space TCP/IP stack built on top of <<OpenDataPlane>> APIs. The purpose of this
+document is to provide basic guidelines for developers of OpenFastPath (OFP)
+applications. Note that OFP code base in <<GitHub>> contains few example
+applications in "example" folder so that you can check them in parallel with
+reading this document.
+
+== Overview of OFP features and supported protocols
+
+OpenFastPath functionality is provided as a library to the applications that use
+OpenDataPlane (ODP) "run to completion" execution model and framework.
+
+Currently OFP can be used on top of:
+
+- linux-generic implementation of ODP
+- DPDK-based platforms (ODP DPDK)
+- ThunderX platform (ODP ThunderX)
+
+Support for other operating systems (like BSD) is planned in the future.
+
+OFP includes the following main features:
+
+- TCP and UDP termination
+- ICMP
+- ARP/NDP
+- IPv4 and IPv6 forwarding and routing
+- IPv4 fragmentation and reassembly
+- IPsec
+- VRF for IPv4
+- IGMP and multicast
+- VLAN
+- VXLAN and GRE tunneling
+
+Integration with OS networking stack (slowpath) is done through the TAP
+interfaces. Unsupported functionality is provided by the slowpath.
+
+OFP command line interface (CLI) provides following functions:
+
+- Packet dumping and setting debug levels
+- Showing statistics, ARP table, routes and interfaces
+- Configuration of routes and interfaces with VRF support
+
+See OFP technical <<overview>> for more details about OFP design and features.
+
+== Quick start guide
+
+This chapter provides step-by-step instructions for installing OFP and running
+an example application. The instructions were verified with CentOS 7
+distribution of Linux OS; other distributions may require slightly different
+tools and commands.
+
+=== Installing ODP/OFP
+
+Ensure first that needed SW and testing tools are installed in your environment:
+
+ yum install -y git libtool openssl-devel gcc-c++ telnet psmisc libpcap-devel CUnit-devel
+
+Download and install ODP:
+
+ git clone https://git.linaro.org/lng/odp.git
+ cd odp
+ git checkout v1.11.0.0_monarch
+ ./bootstrap
+ ./configure --prefix=/usr/local
+ make install
+
+Download and install OFP:
+
+ git clone https://github.com/OpenFastPath/ofp
+ cd ofp
+ git checkout 2.0.1
+ ./bootstrap
+ ./configure --prefix=/usr/local --with-odp=/usr/local
+ make install
+
+Check output of `./configure --help` command for available configuration
+options. For example, `--with-config-flv=webserver` option can be used for
+optimizing OFP for webserver-like applications.
+
+=== Starting an example application
+
+This chapter will guide you through the steps needed for starting one of the
+example OFP applications. Simple webserver (located at example/webserver/
+directory) is used as an example.
+
+Choose which interface(s) in your system will be assigned for fastpath
+processing, e.g. ens1f0:
+
+ [root@overcloud-novacompute-0 ofp]# ip a
+ ...
+ 4: ens1f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP qlen 1000
+     link/ether 90:e2:ba:b3:71:e8 brd ff:ff:ff:ff:ff:ff
+     inet6 fe80::92e2:baff:feb3:71e8/64 scope link
+        valid_lft forever preferred_lft forever
+ ...
+
+Check how many processor cores are available:
+
+ nproc
+
+Set IP address for the interface into ./example/webserver/ofp.conf configuration
+file:
+
+ [root@overcloud-novacompute-0 ofp]# cat ./example/webserver/ofp.conf
+ debug 0
+ loglevel set error
+ ifconfig fp0 10.0.0.10/24
+
+Define web root directory, e.g.:
+
+ export www_dir=/var/www
+
+Check usage and available options with command:
+
+ ./example/webserver/webserver --help
+
+Start the application with command like:
+
+ ./example/webserver/webserver -i ens1f0 -c 4 -f ./example/webserver/ofp.conf &
+
+Here the number of fastpath processing cores is 4 which means that the
+application will start 1 control and 3 working threads for processing incoming
+packets. Below is an example of startup output:
+
+----
+[root@overcloud-novacompute-0 ofp]# example/webserver/webserver -i ens1f0 -c 4 -f ./example/webserver/ofp.conf &
+[1] 842322
+[root@overcloud-novacompute-0 ofp]# RLIMIT_CORE: 0/-1
+Setting to max: 0
+ PKTIO: initialized loop interface.
+ PKTIO: initialized pcap interface.
+ PKTIO: initialized socket mmap, use export ODP_PKTIO_DISABLE_SOCKET_MMAP=1 to disable.
+ PKTIO: initialized socket mmsg,use export ODP_PKTIO_DISABLE_SOCKET_MMSG=1 to disable.
+
+ODP system info
+---------------
+ODP API version: 1.11.0
+CPU model:       Intel(R) Xeon(R) CPU E5-2680 v3
+CPU freq (hz):   3005664000
+Cache line size: 64
+Core count:      48
+
+Running ODP appl: "webserver"
+-----------------
+IF-count:        1
+Using IFs:       ens1f0
+
+Num worker threads: 3
+first CPU:          45
+cpu mask:           0xE00000000000
+I 1 25:3886323968 ofp_uma.c:44] Creating pool 'udp_inpcb', nitems=1024 size=904 total=925696
+I 1 25:3886323968 ofp_uma.c:44] Creating pool 'tcp_inpcb', nitems=2048 size=904 total=1851392
+I 1 25:3886323968 ofp_uma.c:44] Creating pool 'tcpcb', nitems=2048 size=784 total=1605632
+I 1 25:3886323968 ofp_uma.c:44] Creating pool 'tcptw', nitems=409 size=80 total=32720
+I 1 25:3886323968 ofp_uma.c:44] Creating pool 'syncache', nitems=30720 size=168 total=5160960
+I 2 25:3886323968 ofp_uma.c:44] Creating pool 'tcpreass', nitems=320 size=48 total=15360
+I 2 25:3886323968 ofp_uma.c:44] Creating pool 'sackhole', nitems=65536 size=40 total=2621440
+I 2 25:3886323968 ofp_init.c:191] Slow path threads on core 0
+I 8 25:3886323968 ofp_ifnet.c:143] Device 'ens1f0' addr  90:e2:ba:b3:71:e8
+I 8 25:3886323968 ofp_ifnet.c:152] Device 'ens1f0' MTU=1500
+I 0 0:3600140032 ofp_cli.c:1599] CLI server started on core 0
+
+CONFIGURATION LINE: debug 0
+
+
+CONFIGURATION LINE: loglevel set error
+
+
+CONFIGURATION LINE: ifconfig fp0 10.0.0.10/24
+----
+
+In this example network interface used for fastpath processing (ens1f0) is
+disconnected from Linux and related 'fp0' TUN/TAP interface is created by the
+application. Packets sent from Linux on fp0 interface are forwarded to ens1f0.
+Packets received by ens1f0 are captured by ODP and forwarded to the application.
+If no fastpath operations are applicable for some packets, they are forwarded
+to the slowpath.
+
+By default webserver will listen port 2048 so you can verify its functionality
+e.g. with following command (assuming that the subnet in question is reachable
+from the client machine):
+
+ curl -i -XGET http://10.0.0.10:2048/index.html
+
+Use `killall webserver` command in order to terminate the application.
+
+Note that ./scripts directory contains some bash scripts that can be used for
+starting and terminating example OFP applications. See ./example/README file for
+more details about available example applications and scripts.
+
+=== Using OFP CLI
+
+Telnet based Command line interface (CLI) can be used for configuring and
+debugging OFP. Basic CLI commands provide following functions:
+
+- setting debug level
+- dumping traffic to the console or to a PCAP file
+- showing ARP table
+- showing and configuring interfaces and tunnels
+- showing and configuring routes
+- showing and clearing statistics
+
+Once an OFP application has started its CLI thread with ofp_start_cli_thread()
+routine, it starts to listen on port 2345 and the CLI can be accessed locally
+with `telnet 127.0.0.1 2345` (or `telnet 0 2345` for short) command:
+
+----
+[root@overcloud-novacompute-0 ofp]# telnet 0 2345
+Trying 0.0.0.0...
+Connected to 0.
+Escape character is '^]'.
+
+--==--==--==--==--==--==--
+-- WELCOME to OFP CLI --
+--==--==--==--==--==--==--
+
+> help
+Display help information for CLI commands:
+  help <command>
+    command: alias, arp, debug, exit, ifconfig, loglevel, route, show, stat
+
+>
+----
+
+For example, current IP configuration can be shown with `ifconfig` command:
+
+----
+> ifconfig
+fp0     (105) (ens1f0) slowpath: on
+  Link encap:Ethernet     HWaddr:  90:e2:ba:b3:71:e8
+  inet addr:10.0.0.10     Bcast:10.0.0.255        Mask:255.255.255.0
+  inet6 addr: fe80:0000:0000:0000:92e2:baff:feb3:71e8 Scope:Link
+  MTU: 1500
+
+fp1     (0) () slowpath: off
+ Link encap:Ethernet     HWaddr:  02:01:95:1a:e9:23
+ inet6 addr: 0000:0000:0000:0000:0000:0000:0000:0000 Scope:Link
+ MTU: 1500
+ ...
+----
+
+CLI commands can also be read from a file and executed during application
+startup.
+
+=== Starting applications with OFP netwrap
+
+Some native Linux applications which use TCP/IP socket API can be run as such on
+top of OFP. This requires that the applications include ofp_netwrap_proc and
+ofp_netwrap_crt libraries into LD_PRELOAD list. ofp_netwrap_proc library
+implements ODP/OFP configuration and startup of processing threads whereas
+ofp_netwrap_crt implements symbol overloading and argument conversion for the
+following native calls: socket(), close(), shutdown(), bind(), accept(),
+accept4(), listen(), connect(), read(), write(), recv(), send(), getsockopt(),
+setsockopt(), writev(), sendfile64(), select(), ioctl() and fork().
+
+A script (./scripts/ofp_netwrap.sh) is provided in order to make utilization of
+this feature in more friendly way.
+
+Note that utilizing ofp_netwrap has some restrictions:
+
+ - application needs to run as superuser
+
+ - slow path support needs to be disabled (use --enable-sp=no in configuration
+line)
+
+ - specific socket configuration needs to be activated (use
+--with-config-flv=netwrap-webserver option in configuration line)
+
+In the following example we start release-1.9.10 version of native nginx server
+on top of OFP (assuming that nginx is available in /root/install_dir/nginx_dir/
+directory).
+
+First, compile and install OFP with the needed options:
+
+ ./configure --prefix=/usr/local --with-odp=/usr/local --with-config-flv=netwrap-webserver --enable-sp=no
+ make install
+
+Secondly, update interface name into the ./scripts/ofp_netwrap.sh script
+(default name is eth1) and IP address into ./scripts/ofp_netwrap.conf
+configuration file (default address is 192.168.100.1/24).
+
+Ensure that ofp_netwrap_proc and ofp_netwrap_crt libraries are accessible:
+
+ export LD_LIBRARY_PATH=/usr/local/lib
+
+Now nginx can be started with command like:
+
+----
+[root@overcloud-novacompute-0 ofp]# ./scripts/ofp_netwrap.sh /root/install_dir/nginx_dir/sbin/nginx -c /opt/nginx/conf/nginx.conf
+  PKTIO: initialized loop interface.
+  PKTIO: initialized pcap interface.
+  PKTIO: initialized socket mmap, use export ODP_PKTIO_DISABLE_SOCKET_MMAP=1 to disable.
+  PKTIO: initialized socket mmsg,use export ODP_PKTIO_DISABLE_SOCKET_MMSG=1 to disable.
+
+ODP system info
+---------------
+ODP API version: 1.11.0
+CPU model:       Intel(R) Xeon(R) CPU E5-2680 v3
+CPU freq (hz):   2900000000
+Cache line size: 64
+Core count:      48
+
+Running ODP appl: "ofp_netwrap"
+-----------------
+IF-count:        1
+Using IFs:       ens1f0
+
+Num worker threads: 31
+first CPU:          17
+cpu mask:           0xFFFFFFFE0000
+I 2 25:4036192512 ofp_uma.c:45] Creating pool 'udp_inpcb', nitems=1000 size=904 total=904000
+I 2 25:4036192512 ofp_uma.c:45] Creating pool 'tcp_inpcb', nitems=65534 size=904 total=59242736
+I 4 25:4036192512 ofp_uma.c:45] Creating pool 'tcpcb', nitems=65534 size=784 total=51378656
+I 5 25:4036192512 ofp_uma.c:45] Creating pool 'tcptw', nitems=65534 size=80 total=5242720
+I 6 25:4036192512 ofp_uma.c:45] Creating pool 'syncache', nitems=30720 size=168 total=5160960
+I 7 25:4036192512 ofp_uma.c:45] Creating pool 'tcpreass', nitems=320 size=48 total=15360
+I 7 25:4036192512 ofp_uma.c:45] Creating pool 'sackhole', nitems=65536 size=40 total=2621440
+I 7 25:4036192512 ofp_init.c:202] Slow path threads on core 0
+I 159 25:4036192512 ofp_ifnet.c:143] Device 'ens1f0' addr  90:e2:ba:b3:71:e8
+I 159 25:4036192512 ofp_ifnet.c:152] Device 'ens1f0' MTU=1500
+I 0 0:3982997248 ofp_cli.c:1599] CLI server started on core 0
+
+CONFIGURATION LINE: debug 0
+
+
+CONFIGURATION LINE: loglevel set error
+
+
+CONFIGURATION LINE: ifconfig fp0 10.0.0.10/24
+----
+
+== Overview of OFP API
+
+OFP public API header files can be found from ./include/api/ folder at the
+<<GitHub>> project page.
+
+OFP provides following user application APIs:
+
+- initiation and termination OpenFastPath (ofp_init.h)
+- creating PktIo interfaces (ofp_ifnet.h)
+- creating, configuration and deleting interfaces (ofp_portconf.h)
+- handling routing and ARP tables (ofp_route_arp.h)
+- packet Ingress and Egress processing (ofp_pkt_processing.h)
+- hooks for IP local, IP forwarding and GRE (ofp_hook.h)
+- OFP socket API (ofp_socket.h)
+- timer callbacks (ofp_timer.h)
+- packet and performance statistics (ofp_stat.h)
+- debugging and packet dumping (ofp_debug.h)
+- logging utilities (ofp_log.h)
+- customizing CLI commands (ofp_cli.h)
+- handling Management Information Base entries (ofp_sysctl.h)
+
+In addition API folder contains number of protocol specific header files
+containing data structures, macros and constants for accessing and manipulating
+packet headers and data.
+
+On UDP and TCP level OFP uses an optimized callback based zero-copy socket API
+which enables the usage of the complete packet, including metadata, in user
+space. This is done without copy operations typically used by the traditional
+BSD sockets. Termination of protocols with BSD socket interface for legacy
+applications is also supported.
+
+== Designing OFP applications
+
+=== Application structure
+
+In an OFP application one instance of OFP runs across all the assigned data
+plane cores. Separate dispatcher threads may be used in order to allow different
+packet dispatchers on different cores.
+
+On the cores allocated to fastpath processing ODP starts only one thread where
+the dispatcher, OFP and the user application code runs. If legacy BSD socket
+APIs are used, they need to run on a separate core or cores in order to not
+interfere with the OFP worker threads.
+
+==== Packet input modes
+
+Incoming packets can be received by an OFP application either directly or via a
+scheduled receive queues.
+
+===== Direct mode
+
+Direct mode is designed to support poll-based packet processing. In direct mode,
+received packets are stored by ODP into one or more PktIO queues and can be
+retrieved by worker threads with odp_pktin_recv() call. Note that applications
+cannot perform enqueues to these queues. Packets can be transmitted to the PktIO
+by calling odp_pktout_send().
+
+In case of direct mode OFP applications are responsible for creating and
+configuring PktIO interfaces so as for possibly needed synchronizing when
+handling queues associated with different PktIO interfaces.
+
+Optional RSS hashing functionality can be enabled for distributing packets to
+different input queues.
+
+===== Scheduled mode
+
+Scheduled mode integrates RX packet processing with the ODP event model. In case
+of scheduled mode incoming packets are distributed by ODP scheduler to multiple
+scheduled queues which have associated scheduling attributes like priority,
+scheduler group and synchronization mode (parallel, atomic, ordered).
+Information about scheduled packets is then provided to requesting threads as
+events.
+
+Worker threads of an OFP application can then use either default or their own
+event dispatchers for consuming incoming events with odp_schedule() or
+odp_schedule_multi() function call and processing them further.
+
+See ODP <<Users-Guide>> for more details about packet input/output modes.
+
+=== Initialization and startup
+
+==== Initializing ODP
+
+The first ODP API that must be called by an ODP/OFP application is
+odp_init_global(). Calling odp_init_global() establishes the ODP API framework
+and should be called only once per application. Following the global
+initialization, each thread in turn calls odp_init_local(). This establishes the
+local ODP thread context for that thread. The sole argument to this call is the
+thread type, which is either ODP_THREAD_WORKER or ODP_THREAD_CONTROL.
+
+==== Initializing OFP
+
+The first OFP API that must be called by an ODP/OFP application is
+ofp_init_global_param(). It initializes the supplied OFP initialization
+parameter structure to default values. The structure contains such global
+parameters as interface count, interface names, packet processing hooks, packet
+input mode etc. These parameters can, if necessary, be updated by the
+application before passing them to the next function to be called,
+ofp_init_global(). Following the global OFP initialization, each thread in turn
+must call ofp_init_local().
+
+Shutdown is the logical reverse of the initialization procedure when
+ofp_term_local(), ofp_term_global(), odp_term_local() and odp_term_global()
+functions are called by respective threads in order to free ODP/OFP resources
+properly.
+
+==== Assigning processor cores
+
+OFP application is responsible for mapping processor cores to its worker
+threads. Number of available cores can be checked with odp_cpu_count() call. By
+default core 0 is used for operating system background tasks (this value is a
+part of OFP initialization parameter structure) so it is recommended to start
+mapping from core 1. odp_cpumask_* functions of ODP API can be used for
+initializing the CPU mask. Defined CPU mask can be later given as a parameter to
+odph_odpthreads_create() ODP helper function which will create and start worker
+threads or processes on the assigned cores.
+
+See <<ODP_API>> for more information about ODP API and helper functions.
+
+==== Allocating PktIo interfaces
+
+ofp_init_global() function creates respective PktIo instances for all the
+interfaces included into OFP initialization parameter structure. If the value of
+burst_recv_mode global parameter is set to 0 (default), scheduled input mode
+(ODP_PKTIN_MODE_SCHED) will be used for those interfaces; otherwise direct input
+mode (ODP_PKTIN_MODE_DIRECT) will be used.
+
+If OFP application intends to use some non-default parameters for its interfaces
+(e.g. enabling RSS hashing), it must create respective PktIo instances itself.
+This will require following steps:
+
+- initializing default PkiIo parameter values by calling odp_pktio_param_init(),
+- odp_pktin_queue_param_init() and odp_pktout_queue_param_init() routines
+
+- setting non-default values for the parameters
+
+- calling ofp_ifnet_create() function for each interface
+
+For example, following function from example/webserver2/app_main.c will set some
+non-default parameters and create PktIo objects:
+
+----
+/** create_interfaces_direct_rss() Create OFP interfaces with
+  * pktios open in direct mode, thread unsafe and using RSS with
+  * hashing by IPv4 addresses and TCP ports
+  *
+  * @param if_count int  Interface count
+  * @param if_names char** Interface names
+  * @param tx_queue int Number of requested transmission queues
+  *    per interface
+  * @param rx_queue int Number of requested receiver queues per
+  *    interface
+  * @return int 0 on success, -1 on error
+  *
+  */
+ static int create_interfaces_direct_rss(odp_instance_t instance,
+         int if_count, char **if_names,
+         int tx_queues, int rx_queues)
+ {
+         odp_pktio_param_t pktio_param;
+         odp_pktin_queue_param_t pktin_param;
+         odp_pktout_queue_param_t pktout_param;
+         int i;
+
+         odp_pktio_param_init(&pktio_param);
+         pktio_param.in_mode = ODP_PKTIN_MODE_DIRECT;
+         pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
+
+         odp_pktin_queue_param_init(&pktin_param);
+         pktin_param.op_mode = ODP_PKTIO_OP_MT_UNSAFE;
+         pktin_param.hash_enable = 1;
+         pktin_param.hash_proto.proto.ipv4_tcp = 1;
+         pktin_param.num_queues = rx_queues;
+
+         odp_pktout_queue_param_init(&pktout_param);
+         Pktout_param.op_mode = ODP_PKTIO_OP_MT_UNSAFE;
+         pktout_param.num_queues = tx_queues;
+
+         for (i = 0; i < if_count; i++)
+                 if (ofp_ifnet_create(instance, if_names[i],
+                                 &pktio_param,
+                                 &pktin_param,
+                                 &pktout_param) < 0) {
+                         OFP_ERR("Failed to init interface %s",
+                                 if_names[i]);
+                         return -1;
+                 }
+
+         return 0;
+ }
+----
+
+==== RSS and multiqueue support
+
+Multiqueue NICs provide multiple transmit and receive queues, allowing packets
+received by the NIC to be assigned to one of its receive queues. Maximum number
+of input/output queues available in used NICs can be checked with ODP function
+odp_pktio_capability(). Desired number of input/output queues can then be
+provided as a part of odp_pktin_queue_param_t and odp_pktout_queue_param_t
+parameter structures to ofp_ifnet_create() function (see the example in the
+previous chapter).
+
+More than one input queue require input hashing or classifier setup. In the
+previous example input hashing is enabled and hash type is set to ipv4_tcp
+meaning that used NIC should compute hash values over the following header
+fields:
+
+- source IPv4 address
+
+- destination IPv4 address
+
+- source TCP Port
+
+- destination TCP Port
+
+As a consequence, packets coming from the same TCP flow will be directed to the
+same input queue.
+
+==== Starting worker and control threads
+
+OFP application can use ODP helper function odph_odpthreads_create() for
+creating worker and control threads/processes. The function takes two input
+arguments, CPU mask and ODP thread parameter table. CPU mask is used for setting
+CPU affinity for the created threads/processes and can be initialized e.g. with
+odp_cpumask_default_worker() call. ODP thread parameter table should be
+populated with following thread specific parameters:
+
+- thread entry point function (e.g. event dispatcher)
+
+- optional argument for the thread entry point function
+
+- ODP thread type (ODP_THREAD_WORKER or (ODP_THREAD_CONTROL)
+
+- ODP instance handle (returned earlier by odp_init_global)
+
+Created threads can be joined with odph_odpthreads_join() helper function.
+
+==== Default/user event dispatcher
+
+OFP library implements default event dispatcher function (void
+*default_event_dispatcher(void *arg)) which can be run by worker threads of an
+OFP applications on each dedicated processor core. This function provides basic
+event handling functionality for packet receiving, timer expiration, buffer
+freeing and crypto API completion events. It can be provided as a parameter when
+creating worker threads/processes with odph_odpthreads_create() function.
+Default event dispatcher function takes one parameter which is a function to be
+used for processing incoming packets (e.g. ofp_eth_vlan_processing() implemented
+by OFP).
+
+OFP application can also implement its own event dispatchers for worker and
+control threads. Custom event dispatchers can use e.g. odp_pktin_recv() (in case
+of direct mode) and odp_schedule()/odp_schedule_multi() (in case of scheduled
+mode) functions so as other ODP/OFP features for retrieving and handling
+incoming packets and events.
+
+==== Starting client thread
+
+Now when dispatcher threads are running, further application logic can be
+launched. In order to enable OFP CLI, dedicated CLI thread should be started on
+the management core (not competing for CPU cycles with the worker threads) by
+calling ofp_start_cli_thread() function. In addition to OFP instance handle and
+processor core number, this function takes OFP configuration file name as an
+argument. This text file (named in examples as ofp.conf) contains OFP
+configuration commands which will be executed by the client thread after
+starting.
+
+Below is an example of OFP configuration file (from example/webserver/ofp.conf):
+
+ debug 0
+ loglevel set debug
+ ifconfig fp0 192.168.56.33/24
+
+ofp_cli_add_command() function can be used by an OFP application in order to add
+customized CLI commands. ofp_stop_cli_thread() function is used for termination
+of the CLI thread.
+
+=== Synchronization issues
+
+ODP scheduler provides event synchronization services that simplify application
+programming in a parallel processing environment.
+
+ODP synchronization mode determines how the scheduler handles processing of
+multiple events originating from the same queue.
+
+In ODP_SCHED_SYNC_NONE mode different events from parallel queues can be
+scheduled simultaneously to different worker threads. In this case application
+is responsible for possibly needed synchronization during event handling.
+
+In ODP_SCHED_SYNC_ATOMIC mode only a single worker thread receives events from a
+given queue at a time. Events scheduled from atomic queues thus can be processed
+lock free because the locking is being done implicitly by the scheduler.
+
+In ODP_SCHED_SYNC_ORDERED mode the scheduler dispatches multiple events from the
+queue in parallel to different threads, however the scheduler also ensures that
+the relative sequence of these events on output queues is identical to their
+sequence from their originating ordered queue.
+
+See ODP <<Users-Guide>> for more details about queue synchronization modes.
+
+=== Packet processing
+
+The packet processing is handled in OFP through a series of self-contained
+processing functions which means that traffic can be inserted at various places
+in the packet processing flow.
+
+OFP applications can use packet processing functions from ofp_pkt_processing.h
+API for handling packets received by worker threads from Ethernet interfaces and
+Linux kernel. The packet processing component also provides API for sending
+packets.
+
+See OFP technical <<overview>> for ingress/egress packet processing diagrams.
+
+Overall packet processing performance can be further improved by taking into use
+available hardware acceleration functions for packet validation, checksum
+calculation, cryptographic transformations as well as optimized memory/buffers
+operations. Such HW acceleration capabilities are platform specific and can be
+configured, if available, with respective ODP API.
+
+=== Timers
+
+OFP applications can uses functions from ofp_timer.h API in order to
+start/cancel ODP timers so as handle ODP timer events. Applications can also
+register timeout callback functions that will be posted on the specified CPU
+timer queue.
+
+=== Hooks
+
+OFP applications can implement and register its own functions for processing
+specific received packets or specific packets to be sent by OFP. Below is the
+list of available hook handles from include/api/ofp_hook.h:
+
+ enum ofp_hook_id {
+         OFP_HOOK_LOCAL = 0,     /**< Registers a function to handle all packets
+                                         with processing at IP level */
+         OFP_HOOK_LOCAL_IPv4,    /**< Registers a function to handle all packets
+                                         with processing at IPv4 level */
+         OFP_HOOK_LOCAL_IPv6,    /**< Registers a function to handle all packets
+                                         with processing at IPv6 level */
+         OFP_HOOK_LOCAL_UDPv4,   /**< Registers a function to handle all packets
+                                         with processing at UDP IPv4 level */
+         OFP_HOOK_LOCAL_UDPv6,   /**< Registers a function to handle all packets
+                                         with processing at UDP IPv6 level */
+         OFP_HOOK_FWD_IPv4,      /**< Registers a function to handle all IPv4
+                                         packets that require forwarding */
+         OFP_HOOK_FWD_IPv6,      /**< Registers a function to handle all IPv6
+                                         packets that require forwarding */
+         OFP_HOOK_GRE,           /**< Registers a function to handle GRE tunnels
+                                         not registered to OFP */
+         OFP_HOOK_OUT_IPv4,      /**< Registers a function to handle all IPv4
+                                         packets to be sent by OFP*/
+         OFP_HOOK_OUT_IPv6,      /**< Registers a function to handle all IPv6
+                                         packets to be sent by OFP*/
+         OFP_HOOK_MAX
+ };
+
+Hook registration is done during application startup by providing pkt_hook table
+to ofp_init_global() function. Some example applications (e.g. fpm and
+webserver) contain an example of hook registration.
+
+== Using OFP socket interface
+
+On UDP and TCP level OFP library implements an optimized zero-copy socket API
+which enables usage of the complete packet, including metadata, in user space.
+OFP applications can implement and register its own callback functions for
+reading on sockets and handling TCP accept events.
+
+Also legacy BSD socket interface is supported.
+
+OFP socket API is described in include/api/ofp_socket.h.
+
+Some OFP example applications (e.g. udpecho, webserver2, tcpperf) contain
+examples of OFP socket API usage.
+
+== Using OFP with ODP-DPDK
+
+DPDK is supported by OFP through the ODP-DPDK implementation of ODP. OFP
+repository contains a script (scripts/devbuild_ofp_odp_dpdk.sh) for building OFP
+on top of ODP-DPDK.
+
+The script will download and build compatible versions of DPDK, ODP and OFP.
+
+Before launching OFP applications following things should be checked/adjusted in
+DPDK-based setups:
+
+- Check current hugepage settings:
+
+ cat /proc/meminfo | grep HugePages
+
+- Adjust total number of hugepages if needed:
+
+ echo 2048 > /proc/sys/vm/nr_hugepages
+ echo "vm.nr_hugepages=2048" >> /etc/sysctl.conf   (for permanent adjustment)
+ mkdir /mnt/huge  (if not yet created)
+ mount -t hugetlbfs nodev /mnt/huge  (if not yet mounted))
+
+- Insert igb_uio kernel module:
+
+ export PATH_OFP_ROOT=/opt/ofp   (OFP root directory)
+ export RTE_SDK=$PATH_OFP_ROOT/scripts/dpdk
+ export RTE_TARGET=x86_64-native-linuxapp-gcc
+ /sbin/modprobe uio
+ ulimit -Sn 2048
+ insmod $RTE_SDK/$RTE_TARGET/kmod/igb_uio.ko
+
+- Check the current status of network interfaces:
+
+ dpdk/tools/dpdk-devbind.py --status
+ lspci | grep Ethernet
+
+- Unbind desired interface(s) from using any other driver and bind it to
+igb_uio:
+
+ ifconfig <IF name> down
+ dpdk/tools/dpdk-devbind.py --unbind <domain:bus:slot.func>
+ dpdk/tools/dpdk-devbind.py --bind=igb_uio <domain:bus:slot.func>
+
+Note that you cannot use original names (e.g. eth0, eth1 etc.) for the
+interfaces controlled by DPDK; those interfaces can be referenced as '0', '1'
+etc. instead.
+
+Now you can set DPDK command line parameters (number of memory channels to use
+in the example below) and start your OFP application with commands like:
+
+  export ODP_PLATFORM_PARAMS="-n 4"
+  ./example/fpm/fpm -i 0,1 -c 4 -f ./ofp.conf &
+
+Check <<DPDK>> documentation for more DPDK related information.
+
+== Using OFP with ThunderX ODP
+
+ThunderX ODP platform should be cross-compiled or compiled natively with
+`aarch64-thunderx-linux-gnu-gcc` toolchain provided by Cavium.
+
+The build procedure is a standard procedure for ODP platfrom with
+following notes:
+
+  - Certain OpenSSL versions may require `-ldl` library for linking
+against dlopen()
+  - The best CFLAGS for performance are `-O3 -static -flto`
+
+Download ThunderX ODP and run bootstrap:
+
+ git clone https://github.com/Linaro/odp-thunderx.git
+ cd odp-thunderx
+ ./bootstrap
+
+Run configuration script. Below are some examples:
+
+- typical configuration with shared library and standard CFLAGS (-O2):
+
+ ./configure --host=aarch64-thunderx-linux-gnu \
+    --with-platform=linux-thunder \
+    --with-openssl-path=${OPENSSL_DIR} \
+    --disable-debug-print \
+    --disable-debug \
+    --prefix=${ODP_DIR} \
+    LIBS="-ldl"
+
+- recommended, performance optimized configuration (static library and
+aggresive optimizations):
+
+ ./configure --host=aarch64-thunderx-linux-gnu \
+    --with-platform=linux-thunder \
+    --with-openssl-path=${OPENSSL_DIR} \
+    --disable-debug-print \
+    --disable-debug \
+    --prefix=${ODP_DIR} \
+    CFLAGS="-O3 -static -flto -g" LIBS="-ldl"
+
+- configuration for debugging purposes:
+
+ ./configure --host=aarch64-thunderx-linux-gnu \
+    --with-platform=linux-thunder \
+    --with-openssl-path=${OPENSSL_DIR} \
+    --enable-debug-print \
+    --enable-debug \
+    --prefix=${ODP_DIR} \
+    CFLAGS="-O0 -static -g" LIBS="-ldl"
+
+Build ThunderX ODP:
+
+ make install
+
+Download and build OFP:
+
+ git clone https://github.com/OpenFastPath/ofp
+ cd ofp
+ ./bootstrap
+ ./configure --prefix= <OFP DIR> --with-odp=<ODP DIR> 
+ make install
+
+See <<ThunderX>> implimentation of ODP for more details about compiling and
+building ThunderX ODP.
+
+== Using OFP in virtualized environments and containers
+
+In addition to baremetal environment, OFP applications can be run in virtual
+machines and docker containers. Some things should be taken into account in such
+cases.
+
+1. Miltiqueuing is disabled by default is virtio interfaces. For example, in
+OpenStack based clouds following thing should be done in order to enable
+multiqueuing in virtual machines:
+
+- hw_vif_multiqueue_enabled property should be set to "yes" when creating glance
+images
+
+- hw:vif_number_queues property should be set to desired value for used nova
+flavors
+
+- inside virtual machines combined number of tx/rx queues should be set with the
+following command:
+
+ ethtool -L <interface name> combined <number of queues>
+
+2. Some additional parameters should be provided when starting containers with
+OFP applications in order to enable needed memory and network features:
+
+ docker run -it --ulimit memlock=8192000000:8192000000 --cap-add=NET_ADMIN --device=/dev/net/tun ofp
+
+After starting a container needed networks can be created and connected to it,
+e.g.:
+
+ docker network create --driver bridge ofp_net
+ docker network connect ofp_net <container ID>
+
+Note that offloading of generic IP rx/tx checksum calculation is usually
+enabled by default for both physical and virtual network interfaces. This may
+result in a situation when TCP packets sent from one container or virtual
+machine to another (inside the same physical server) will not contain valid
+checksum and OFP will drop them. One possible workaround to this is to disable
+tx checksumming for the sending interface/bridge with `ethtool -K <interface
+name> tx off` command.
+
+== Tools for performance measurements
+
+A wide variety of HW/SW tools exist for measuring performance of different
+layers of network stacks. Below are just few examples of free SW tools suitable
+for benchmarking OFP applications.
+
+1. <<wrk>> HTTP benchmarking tool can be used with webserver like applications.
+
+ git clone https://github.com/wg/wrk.git
+ cd wrk
+ make
+ ./wrk --threads 4 --connections 8 --duration 10s --timeout 1 --latency http://11.0.0.22:2048/index.html
+
+2. tcpperf is a iperf-like OFP test application which can be used for UDP/TCP
+benchmarking, see `tcpperf --help` for more details.
+
+== Troubleshooting hints
+
+=== Packet monitoring
+
+Incoming/outgoing packets can be monitored using `debug` command of CLI. For
+example, in order to print all the packets into a text file (packets.txt), give
+following command:
+
+ debug 0xf
+
+An example of the output:
+
+----
+[root@vm000949 ~]# cat /root/ofp/packets.txt
+
+ *************
+ [2] ODP to FP: 379.445
+  08:00:27:78:c5:75 -> 08:00:27:24:a9:26
+   IP len=60 TCP 10.10.10.101:52263 -> 10.10.10.102:2048
+    seq=0xdd899b05 ack=0x0 off=10
+    flags=S win=29200 sum=0x40 urp=0
+
+ *************
+ [2] FP to ODP: 379.446
+  08:00:27:24:a9:26 -> 08:00:27:78:c5:75
+   IP len=60 TCP 10.10.10.102:2048 -> 10.10.10.101:52263
+    seq=0x6e2ff56f ack=0xdd899b06 off=10
+    flags=SA win=65535 sum=0xe660 urp=0
+
+ *************
+ [2] ODP to FP: 379.446
+  08:00:27:78:c5:75 -> 08:00:27:24:a9:26
+   IP len=52 TCP 10.10.10.101:52263 -> 10.10.10.102:2048
+    seq=0xdd899b06 ack=0x6e2ff570 off=8
+    flags=A win=229 sum=0x1445 urp=0
+ ...
+----
+
+Check `debug help` output for more details.
+
+=== Debug logs
+
+By default, only "info", "warning", "error" and "disabled" values are acceptable
+by `loglevel set` CLI lommand. In order to enable also "debug" level logs,
+compile first OFP with --enable-debug option and set then debug output level
+e.g. in ofp.conf file:
+
+ loglevel set debug
+
+== Known restrictions
+
+Socket PktIO doesn't currently support multiqueuing which means that only one
+input/output queue can be used in DIRECT_RSS mode with linux-generic
+implementation of ODP. There is no such restriction when using DPDK or netmap
+based PktIO.
+
+RSS hashing is not currently supported by virtio interfaces. As a result, it is
+not possible to ensure that e.g. packets from the same TCP flow will be always
+received by the same worker thread/process.
+
+== References
+
+* [[[OpenFastPath]]] OpenFastPath project homepage
+  http://www.openfastpath.org/
+
+* [[[OpenDataPlane]]] OpenDataPlane project homepage
+  https://www.opendataplane.org/
+
+* [[[GitHub]]] OpenFastPath in GitHub
+  https://github.com/OpenFastPath/ofp
+
+* [[[overview]]] OpenFastPath technical overview
+  http://www.openfastpath.org/index.php/service/technicaloverview/
+
+* [[[Users-Guide]]] ODP Users-Guide
+  https://docs.opendataplane.org/snapshots/odp-publish/generic/usr_html/master/latest/linux-generic/output/users-guide.html
+
+* [[[ODP_API]]] OpenDataPlane API documentation
+  https://www.opendataplane.org/api-documentation/
+
+* [[[DPDK]]] DPDK documentation
+  http://dpdk.org/doc/guides/index.html
+
+* [[[ThunderX]]] Cavium ThunderX implimentation of ODP
+  https://github.com/Linaro/odp-thunderx
+
+* [[[wrk]]] HTTP benchmarking tool
+  https://github.com/wg/wrk
