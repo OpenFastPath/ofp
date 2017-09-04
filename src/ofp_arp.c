@@ -40,14 +40,15 @@
  * Data
  */
 
-struct arp_entry_list {
-	struct arp_entry *slh_first;
-}; /* OFP_SLIST_HEAD */
+struct arp_entry_tailq {
+	struct arp_entry *stqh_first;
+	struct arp_entry **stqh_last;
+}; /* OFP_STAILQ_HEAD */
 
 struct _arp {
 	struct arp_entry entries[NUM_ARPS] ODP_ALIGNED_CACHE;
-	struct arp_entry_list free_entries;
-	struct arp_entry_list table[NUM_SETS] ODP_ALIGNED_CACHE;
+	struct arp_entry_tailq free_entries;
+	struct arp_entry_tailq table[NUM_SETS] ODP_ALIGNED_CACHE;
 	struct arp_cache cache[NUM_SETS] ODP_ALIGNED_CACHE;
 	odp_rwlock_t table_rwlock[NUM_SETS];
 	odp_rwlock_t fr_ent_rwlock;
@@ -99,10 +100,10 @@ static inline void *entry_alloc(void)
 
 	odp_rwlock_write_lock(&shm->arp.fr_ent_rwlock);
 
-	entry = OFP_SLIST_FIRST(&shm->arp.free_entries);
+	entry = OFP_STAILQ_FIRST(&shm->arp.free_entries);
 
 	if (entry)
-		OFP_SLIST_REMOVE_HEAD(&shm->arp.free_entries, next);
+		OFP_STAILQ_REMOVE_HEAD(&shm->arp.free_entries, next);
 
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 
@@ -115,7 +116,9 @@ static inline void entry_free(struct arp_entry *entry)
 	entry->pkt_tmo = ODP_TIMER_INVALID;
 
 	odp_rwlock_write_lock(&shm->arp.fr_ent_rwlock);
-	OFP_SLIST_INSERT_HEAD(&shm->arp.free_entries, entry, next);
+	/* Inserting freed entry to tail of the list so a freed entry */
+	/* is not reused soon, as other worker threads may have reference */
+	OFP_STAILQ_INSERT_TAIL(&shm->arp.free_entries, entry, next);
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 }
 
@@ -123,7 +126,7 @@ static inline struct arp_entry *arp_lookup(int set, struct arp_key *key)
 {
 	struct arp_entry *new;
 
-	OFP_SLIST_FOREACH(new, &shm->arp.table[set], next) {
+	OFP_STAILQ_FOREACH(new, &shm->arp.table[set], next) {
 		if (odp_likely((new->key.ipv4_addr == key->ipv4_addr) &&
 			       (new->key.vrf == key->vrf)))
 			return new;
@@ -147,7 +150,7 @@ static inline void *insert_new_entry(int set, struct arp_key *key)
 		new->key.ipv4_addr = key->ipv4_addr;
 		new->key.vrf = key->vrf;
 		new->usetime_upd_tmo = ODP_TIMER_INVALID;
-		OFP_SLIST_INSERT_HEAD(&shm->arp.table[set], new, next);
+		OFP_STAILQ_INSERT_HEAD(&shm->arp.table[set], new, next);
 	}
 
 	return new;
@@ -168,7 +171,7 @@ static inline int remove_entry(int set, struct arp_entry *entry)
 		ARP_DEL_CACHE(cache);
 
 	/* remove from set */
-	OFP_SLIST_REMOVE(&shm->arp.table[set], entry, arp_entry, next);
+	OFP_STAILQ_REMOVE(&shm->arp.table[set], entry, arp_entry, next);
 
 	/* kill update timer*/
 	odp_rwlock_write_lock(&entry->usetime_rwlock);
@@ -483,9 +486,9 @@ void ofp_arp_age_cb(void *arg)
 	for (i = 0; i < NUM_SETS; ++i) {
 		odp_rwlock_write_lock(&shm->arp.table_rwlock[i]);
 
-		entry = OFP_SLIST_FIRST(&shm->arp.table[i]);
+		entry = OFP_STAILQ_FIRST(&shm->arp.table[i]);
 		while (entry) {
-			next_entry = OFP_SLIST_NEXT(entry, next);
+			next_entry = OFP_STAILQ_NEXT(entry, next);
 			if (OFP_SLIST_FIRST(&entry->pkt_list_head) == NULL &&
 					ofp_arp_entry_is_timeout(entry, now))
 				ofp_arp_entry_cleanup_on_tmo(i, entry);
@@ -573,11 +576,11 @@ int ofp_arp_init_tables(void)
 	memset(shm->arp.cache, 0, sizeof(shm->arp.cache));
 	memset(shm->pkt.entries, 0, sizeof(shm->pkt.entries));
 
-	OFP_SLIST_INIT(&shm->arp.free_entries);
+	OFP_STAILQ_INIT(&shm->arp.free_entries);
 	OFP_SLIST_INIT(&shm->pkt.free_entries);
 
-	for (i = NUM_ARPS; i > 0; --i)
-		OFP_SLIST_INSERT_HEAD(&shm->arp.free_entries, &shm->arp.entries[i],
+	for (i = NUM_ARPS - 1; i >= 0; --i)
+		OFP_STAILQ_INSERT_TAIL(&shm->arp.free_entries, &shm->arp.entries[i],
 				  next);
 
 	for (i = ARP_WAITING_PKTS_SIZE - 1; i >= 0; --i)
@@ -680,10 +683,10 @@ int ofp_arp_term_global(void)
 		CHECK_ERROR(ofp_timer_cancel(shm->age_timer), rc);
 
 	for (i = 0; i < NUM_SETS; i++) {
-		entry = OFP_SLIST_FIRST(&shm->arp.table[i]);
+		entry = OFP_STAILQ_FIRST(&shm->arp.table[i]);
 
 		while (entry) {
-			next_entry = OFP_SLIST_NEXT(entry, next);
+			next_entry = OFP_STAILQ_NEXT(entry, next);
 
 			if (entry->pkt_tmo != ODP_TIMER_INVALID)
 				CHECK_ERROR(ofp_timer_cancel(entry->pkt_tmo),

@@ -54,7 +54,7 @@ struct arp_entry {
 	uint64_t macaddr;
 	struct pkt_list pkt_list_head;
 	odp_timer_t pkt_tmo;
-	OFP_SLIST_ENTRY(arp_entry) next;
+	OFP_STAILQ_ENTRY(arp_entry) next;
 };
 #endif /* OFP_USE_LIBCK */
 
