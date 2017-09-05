@@ -211,7 +211,6 @@ void f_route_del_vrf(struct cli_conn *conn, const char *s)
 void f_route_del_v6(struct cli_conn *conn, const char *s)
 {
 	uint8_t dst6[16];
-	uint8_t gw6[16];
 	int mlen;
 	const char *tk;
 	const char *tk_end;
@@ -252,7 +251,7 @@ void f_route_del_v6(struct cli_conn *conn, const char *s)
 	mlen = atoi(tk);
 
 	ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/, 0 /*port*/,
-			      dst6, mlen, gw6, 0);
+			      dst6, mlen, NULL, 0);
 
 	sendcrlf(conn);
 }

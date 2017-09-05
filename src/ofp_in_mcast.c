@@ -1954,6 +1954,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 	case OFP_IP_ADD_MEMBERSHIP:
 	case OFP_IP_ADD_SOURCE_MEMBERSHIP: {
 		struct ofp_ip_mreq_source	 mreqs;
+		memset(&mreqs, 0, sizeof(mreqs));
 
 		if (sopt->sopt_name == OFP_IP_ADD_MEMBERSHIP) {
 			error = ofp_sooptcopyin(sopt, &mreqs,
@@ -2245,6 +2246,8 @@ inp_leave_group(struct inpcb *inp, struct sockopt *sopt)
 	switch (sopt->sopt_name) {
 	case OFP_IP_DROP_MEMBERSHIP:
 	case OFP_IP_DROP_SOURCE_MEMBERSHIP:
+		memset(&mreqs, 0, sizeof(mreqs));
+
 		if (sopt->sopt_name == OFP_IP_DROP_MEMBERSHIP) {
 			error = ofp_sooptcopyin(sopt, &mreqs,
 			    sizeof(struct ofp_ip_mreq),

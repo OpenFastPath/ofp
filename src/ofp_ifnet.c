@@ -102,7 +102,7 @@ int ofp_loopq_create(struct ofp_ifnet *ifnet)
 	char q_name[ODP_QUEUE_NAME_LEN];
 
 	/* Create loop queue */
-	snprintf(q_name, sizeof(q_name), "%s_loopq_def",
+	snprintf(q_name, sizeof(q_name), "%.20s_loopq_def",
 			ifnet->if_name);
 	q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
 
@@ -183,7 +183,7 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
-	snprintf(q_name, sizeof(q_name), "%s_inq_def", ifnet->if_name);
+	snprintf(q_name, sizeof(q_name), "%.20s_inq_def", ifnet->if_name);
 	q_name[ODP_QUEUE_NAME_LEN - 1] = '\0';
 
 	ifnet->spq_def = odp_queue_create(q_name, &qparam);

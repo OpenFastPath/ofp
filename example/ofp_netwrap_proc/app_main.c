@@ -228,22 +228,23 @@ static void ofp_netwrap_main_dtor(void)
 	 * resources allocated by odp_init_global().
 	 */
 		odph_linux_pthread_join(thread_tbl, num_workers);
-
+		/* fall through */
 	case NETWRAP_OFP_INIT_LOCAL:
 		if (ofp_term_local() < 0)
 			printf("Error: ofp_term_local failed\n");
-
+		/* fall through */
 	case NETWRAP_OFP_INIT_GLOBAL:
 		if (ofp_term_global() < 0)
 			printf("Error: ofp_term_global failed\n");
-
+		/* fall through */
 	case NETWRAP_ODP_INIT_LOCAL:
 		if (odp_term_local() < 0)
 			printf("Error: odp_term_local failed\n");
-
+		/* fall through */
 	case NETWRAP_ODP_INIT_GLOBAL:
 		if (odp_term_global(netwrap_proc_instance) < 0)
 			printf("Error: odp_term_global failed\n");
+		/* fall through */
 	case NETWRAP_UNINT:
 		;
 	};
