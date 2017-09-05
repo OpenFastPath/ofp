@@ -610,8 +610,15 @@ ofp_rtl_insert6(struct ofp_rtl6_tree *tree, uint8_t *addr,
 		bit++;
 	}
 
-	if (node)
-		return &node->data;
+	if (node) {
+		if (node->flags == OFP_RTL_FLAGS_VALID_DATA) {
+			return &node->data;
+		} else {
+			node->flags = OFP_RTL_FLAGS_VALID_DATA;
+			node->data = *data;
+			return NULL;
+		}
+	}
 
 	node = NODEALLOC6();
 	if (!node) {
