@@ -278,11 +278,11 @@ void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr_be, uint32_t masklen)
 
 	avl_delete(shm->rt_rule_table.rule_tree, rule, NULL);
 
-	rt_rule_free(rule);
-
 	OFP_INFO("ofp_rt_rule_remove removed rule vrf %u %s/%u", rule->u1.s1.vrf,
 		 ofp_print_ip_addr(odp_cpu_to_be_32(rule->u1.s1.addr)),
 		 rule->u1.s1.masklen);
+
+        rt_rule_free(rule);
 }
 
 
@@ -512,7 +512,7 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 	removing_rule = ofp_rt_rule_search(tree->vrf, addr_be, masklen);
 	if (removing_rule == NULL) {
 		OFP_WARN("ofp_rtl_remove no rule found for vrf %u addr %s masklen %u",
-			 tree->vrf, ofp_print_ip_addr(odp_be_to_cpu_32(addr_be)), masklen);
+			 tree->vrf, ofp_print_ip_addr(addr_be), masklen);
 		return NULL;
 	}
 	data = &removing_rule->u1.s1.data[0];
