@@ -9,7 +9,7 @@ cd ${REPOS}
 rm -Rf ./check-odp/
 git clone https://git.linaro.org/lng/check-odp.git
 pushd check-odp
-git checkout 6a957e933443eaa088eaf8565865eebc321e4700
+git checkout fc9e45ad1cb3b08b30ebabc150a0926757052b7b
 popd
 
 
@@ -17,7 +17,7 @@ popd
 rm -Rf ./odp-dpdk/
 git clone https://git.linaro.org/lng/odp-dpdk.git
 pushd odp-dpdk
-git checkout 7068593f600e2b5a23ee1780d5c722c54e966df1
+git checkout v1.15.0.0_DPDK_17.02
 popd
 
 # Clone/build DPDK
@@ -34,7 +34,7 @@ if [ "$?" != "0" ]; then
 fi
 
 # Build ODP-DPDK
-export CONFIGURE_FLAGS="--enable-shared=yes"
+export CONFIGURE_FLAGS="--enable-shared=yes --enable-helper-linux"
 odp-dpdk/scripts/devbuild.sh odp
 if [ "$?" != "0" ]; then
     echo "Instaling dpdk failed"
