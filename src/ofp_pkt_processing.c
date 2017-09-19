@@ -770,7 +770,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 					     struct ip_out *odata)
 {
 	struct ofp_ip *ip, *ip_new;
-	int tot_len, pl_len, seg_len, pl_pos, flen, hwlen;
+	int pl_len, seg_len, pl_pos, flen, hwlen;
 	uint16_t frag, frag_new;
 	uint8_t *payload_new;
 	uint32_t payload_offset;
@@ -779,19 +779,57 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
 
-	tot_len = odp_be_to_cpu_16(ip->ip_len);
-	pl_len = tot_len - (ip->ip_hl<<2);
-	seg_len = (odata->dev_out->if_mtu - sizeof(struct ofp_ip)) & 0xfff8;
+	/*
+	 * Copy fragment IP options into a separate buffer, which is
+	 * copied into each fragment, except the first one.
+	 */
+	int ip_hlen = ip->ip_hl<<2;
+	int iopts_len = ip_hlen - sizeof(struct ofp_ip);
+	uint8_t fopts[(iopts_len+3)&0xfffc];
+	uint8_t *iopts = (uint8_t *)(ip + 1);
+	int iopts_pos = 0, fopts_len = 0;
+
+	while (iopts_pos < iopts_len) {
+		int opt_len = 1;
+
+		switch (OFP_IPOPT_NUMBER(iopts[iopts_pos])) {
+		case OFP_IPOPT_EOL:
+		case OFP_IPOPT_NOP:
+			break;
+		default:
+			opt_len = iopts[iopts_pos+1];
+			if (opt_len > iopts_len - iopts_pos)
+				opt_len = iopts_len - iopts_pos;
+			if (OFP_IPOPT_COPIED(iopts[iopts_pos])) {
+				memcpy(fopts + fopts_len, iopts + iopts_pos, opt_len);
+				fopts_len += opt_len;
+			}
+		}
+		iopts_pos += opt_len;
+	}
+
+	while (fopts_len & 3) fopts[fopts_len++] = 0;
+
+	pl_len = odp_be_to_cpu_16(ip->ip_len) - ip_hlen;
 	pl_pos = 0;
 	frag = odp_be_to_cpu_16(ip->ip_off);
-	payload_offset = odp_packet_l3_offset(pkt) + (ip->ip_hl<<2);
+	payload_offset = odp_packet_l3_offset(pkt) + ip_hlen;
 
 	OFP_UPDATE_PACKET_STAT(tx_eth_frag, 1);
 
+	int first = 1;
+
 	while (pl_pos < pl_len) {
+		int f_ip_hl = ip->ip_hl;
+
+		if (!first) f_ip_hl = (sizeof(struct ofp_ip) + fopts_len) >> 2;
+
+		int f_ip_hlen = f_ip_hl<<2;
+
+		seg_len = (odata->dev_out->if_mtu - f_ip_hlen) & 0xfff8;
 		flen = (pl_len - pl_pos) > seg_len ?
 			seg_len : (pl_len - pl_pos);
-		hwlen = flen + sizeof(struct ofp_ip);
+		hwlen = flen + f_ip_hlen;
 
 		pkt_new = ofp_packet_alloc(hwlen);
 		if (pkt_new == ODP_PACKET_INVALID) {
@@ -807,7 +845,14 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 
 		*ip_new = *ip;
 
-		payload_new = (uint8_t *)(ip_new + 1);
+		if (first)
+			memcpy(ip_new + 1, ip + 1, ip_hlen - sizeof(struct ofp_ip));
+		else
+			memcpy(ip_new + 1, fopts, fopts_len);
+
+		ip_new->ip_hl = f_ip_hl;
+
+		payload_new = (uint8_t *)ip_new + f_ip_hlen;
 
 		if (odp_packet_copy_to_mem(pkt, payload_offset + pl_pos,
 					    flen, payload_new) < 0) {
@@ -815,7 +860,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 			return OFP_PKT_DROP;
 		};
 
-		ip_new->ip_len = odp_cpu_to_be_16(flen + sizeof(*ip_new));
+		ip_new->ip_len = odp_cpu_to_be_16(flen + f_ip_hlen);
 
 		frag_new = frag + pl_pos/8;
 		pl_pos += flen;
@@ -830,6 +875,8 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 			odp_packet_free(pkt_new);
 			return OFP_PKT_DROP;
 		}
+
+		first = 0;
 	}
 
 	odp_packet_free(pkt);
