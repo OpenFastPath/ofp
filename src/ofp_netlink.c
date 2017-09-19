@@ -917,7 +917,7 @@ extern int clone (int (*__fn) (void *__arg), void *__child_stack,
                   int __flags, void *__arg, ...) __THROW;
 
 #define STACK_SIZE (128 * 1024)
-static char child_stack[STACK_SIZE];    /* Space for child's stack */
+static char child_stack[STACK_SIZE] ODP_ALIGNED_CACHE;
 
 
 static int open_nl_socket(int vrf)
