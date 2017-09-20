@@ -381,11 +381,12 @@ int ofp_term_global(void)
 			ifnet->out_queue_queue[j] = ODP_QUEUE_INVALID;
 
 		if (ifnet->pktio != ODP_PKTIO_INVALID) {
-			odp_queue_t in_queue[OFP_PKTIN_QUEUE_MAX];
+			int num_queues = odp_pktin_event_queue(ifnet->pktio, NULL, 0);
+			odp_queue_t in_queue[num_queues];
 			int num_in_queue, idx;
 
 			num_in_queue = odp_pktin_event_queue(ifnet->pktio,
-					in_queue, OFP_PKTIN_QUEUE_MAX);
+					in_queue, num_queues);
 			for (idx = 0; idx < num_in_queue; idx++)
 				cleanup_pkt_queue(in_queue[idx]);
 

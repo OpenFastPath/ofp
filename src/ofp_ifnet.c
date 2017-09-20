@@ -56,12 +56,6 @@ void ofp_pktin_queue_param_init(odp_pktin_queue_param_t *param,
 static int ofp_pktin_queue_config(struct ofp_ifnet *ifnet,
 	odp_pktin_queue_param_t *pktin_param)
 {
-	if (OFP_PKTIN_QUEUE_MAX < pktin_param->num_queues) {
-		OFP_ERR("Number of input queues too big. Max: %d",
-			OFP_PKTIN_QUEUE_MAX);
-		return -1;
-	}
-
 	if (odp_pktin_queue_config(ifnet->pktio, pktin_param) < 0) {
 		OFP_ERR("Failed to create input queues.");
 		return -1;

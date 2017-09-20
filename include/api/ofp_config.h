@@ -113,10 +113,6 @@
 /* Maximum numbers of VLANs */
 #define OFP_NUM_VLAN_MAX 256
 
-/**Maximum number of input queues that can be configured for an
-   * OFP interface*/
-#define OFP_PKTIN_QUEUE_MAX 64
-
 /**Maximum number of output queues that can be configured for an
  * OFP interface*/
 #define OFP_PKTOUT_QUEUE_MAX 64
