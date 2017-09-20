@@ -547,7 +547,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 	}
 
 	is_ours = dev->ip_addr && dev->ip_addr == (ofp_in_addr_t)(arp->ip_dst);
-	if (!is_ours) {
+	if (!is_ours && !global_param->arp.check_interface) {
 		/* This may be for some other local interface. */
 		uint32_t flags;
 		struct ofp_nh_entry *nh;

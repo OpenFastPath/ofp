@@ -90,6 +90,20 @@ typedef struct ofp_global_param_t {
 	struct arp_s {
 		/** Entry timeout in seconds. Default is ARP_ENTRY_TIMEOUT. */
 		int entry_timeout;
+
+		/**
+		 * Reply to an ARP request only if the target address of the
+		 * request is an address of the receiving interface.
+		 * Ignore the request otherwise.
+		 *
+		 * If not set, reply to an ARP request for any local IP
+		 * address regardless of the receiving interface.
+		 *
+		 * See net.ipv4.conf.all.arp_ignore sysctl in Linux.
+		 *
+		 * Default value is 0.
+		 */
+		odp_bool_t check_interface;
 	} arp;
 
 	/**
