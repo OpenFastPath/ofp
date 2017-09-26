@@ -148,12 +148,6 @@ AC_ARG_WITH([odp-lib],
     [ODP_LIB=$withval],
     [])
 
-# add OFP_PLAT_ODP_DPDK define
-if test "${ODP_LIB}" == "odp-dpdk";
-then
-    AM_CFLAGS="$AM_CFLAGS -DOFP_PLAT_ODP_DPDK"
-fi
-
 # introduce optional configure parameter for ofp configuration flavor
 OFP_CONFIG_FLV=default
 AC_ARG_WITH([config-flv],
