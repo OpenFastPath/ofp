@@ -342,7 +342,7 @@ OFP public API header files can be found from ./include/api/ folder at the
 OFP provides following user application APIs:
 
 - initiation and termination OpenFastPath (ofp_init.h)
-- creating PktIo interfaces (ofp_ifnet.h)
+- creating packet IO interfaces (ofp_ifnet.h)
 - creating, configuration and deleting interfaces (ofp_portconf.h)
 - handling routing and ARP tables (ofp_route_arp.h)
 - packet Ingress and Egress processing (ofp_pkt_processing.h)
@@ -380,16 +380,16 @@ interfere with the OFP worker threads.
 
 ==== Packet input modes
 
-Incoming packets can be received by an OFP application either directly or via a
+Incoming packets can be received by an OFP application either directly or via
 scheduled receive queues.
 
 ===== Direct mode
 
 Direct mode is designed to support poll-based packet processing. In direct mode,
-received packets are stored by ODP into one or more PktIO queues and can be
+received packets are stored by ODP into one or more packet IO queues and can be
 retrieved by worker threads with odp_pktin_recv() call. Note that applications
-cannot perform enqueues to these queues. Packets can be transmitted to the PktIO
-by calling odp_pktout_send().
+cannot perform enqueues to these queues. Packets can be transmitted to the
+packet IO by calling odp_pktout_send().
 
 Optional RSS hashing functionality can be enabled for distributing packets to
 different input queues.
@@ -449,27 +449,29 @@ threads or processes on the assigned cores.
 
 See <<ODP_API>> for more information about ODP API and helper functions.
 
-==== Allocating PktIo interfaces
+==== Allocating packet IO interfaces
 
-ofp_init_global() function creates respective PktIo instances for all the
+ofp_init_global() function creates respective packet IO instances for all the
 interfaces included into OFP initialization parameter structure. Some of the
-properties, such as packet input and output modes, of the PktIo instances can
-be configured through the global initialization parameters passed to
+properties, such as packet input and output modes, of the packet IO instances
+can be configured through the global initialization parameters passed to
 ofp_init_global().
 
-If OFP application intends to use some non-default parameters for its interfaces
-(e.g. enabling RSS hashing), it must create respective PktIo instances itself.
-This will require following steps:
+If an OFP application needs packet IO configuration that is not possible through
+ofp_init_global() (e.g. enabling multiple input or output queues per interface),
+it must create respective packet IO instances after OFP initialization through
+the ofp_ifnet_create() function. This will require the following steps:
 
-- initializing default PkiIo parameter values by calling odp_pktio_param_init(),
-- odp_pktin_queue_param_init() and odp_pktout_queue_param_init() routines
+- initializing default packet IO parameter values by calling
+  odp_pktio_param_init(), odp_pktin_queue_param_init() and
+  odp_pktout_queue_param_init() routines
 
 - setting non-default values for the parameters
 
 - calling ofp_ifnet_create() function for each interface
 
 For example, following function from example/webserver2/app_main.c will set some
-non-default parameters and create PktIo objects:
+non-default parameters and create packet IO objects:
 
 ----
 /** create_interfaces_direct_rss() Create OFP interfaces with
@@ -931,10 +933,10 @@ e.g. in ofp.cli file:
 
 == Known restrictions
 
-Socket PktIO doesn't currently support multiqueuing which means that only one
-input/output queue can be used in DIRECT_RSS mode with linux-generic
+Socket based packet IO doesn't currently support multiqueuing which means that
+only one input/output queue can be used in DIRECT_RSS mode with linux-generic
 implementation of ODP. There is no such restriction when using DPDK or netmap
-based PktIO.
+based packet IO.
 
 RSS hashing is not currently supported by virtio interfaces. As a result, it is
 not possible to ensure that e.g. packets from the same TCP flow will be always
