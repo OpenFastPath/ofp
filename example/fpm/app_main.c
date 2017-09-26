@@ -182,6 +182,19 @@ int main(int argc, char *argv[])
 
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
+	/* Receive packets through the ODP scheduler. */
+	app_init_params.pktin_mode = ODP_PKTIN_MODE_SCHED;
+	/*
+	 * Use ordered pktin queues to allow processing of the same flow
+	 * in many threads in parallel.
+	 */
+	app_init_params.sched_sync = ODP_SCHED_SYNC_ORDERED;
+	/*
+	 * Use queued output to order forwarded packets back to the receive
+	 * order at output after parallel processing in multiple threads.
+	 */
+	app_init_params.pktout_mode = ODP_PKTOUT_MODE_QUEUE;
+
 	app_init_params.pkt_hook[OFP_HOOK_LOCAL] = fastpath_local_hook;
 
 	/*
