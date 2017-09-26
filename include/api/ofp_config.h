@@ -58,13 +58,7 @@
 
 /* Configure values */
 /** Packet pool size. */
-#if defined(OFP_CONFIG_WEBSERVER) || \
-	defined(OFP_CONFIG_NETWRAP_WEBSERVER) || \
-	defined(OFP_PLAT_ODP_DPDK)
 # define SHM_PKT_POOL_NB_PKTS		10240
-#else /*OFP_CONFIG_DEFAULT*/
-# define SHM_PKT_POOL_NB_PKTS		512
-#endif /* OFP_CONFIGS */
 
 /** Packet pool buffer size. */
 #define SHM_PKT_POOL_BUFFER_SIZE	1856
