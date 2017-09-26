@@ -107,6 +107,9 @@ odp_bool_t *ofp_get_processing_state(void)
 void ofp_init_global_param(ofp_global_param_t *params)
 {
 	memset(params, 0, sizeof(*params));
+	params->pktin_mode = ODP_PKTIN_MODE_SCHED;
+	params->pktout_mode = ODP_PKTIN_MODE_DIRECT;
+	params->sched_sync = ODP_SCHED_SYNC_ATOMIC;
 	params->sched_group = ODP_SCHED_GROUP_ALL;
 #ifdef SP
 	params->enable_nl_thread = 1;
@@ -248,12 +251,12 @@ int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 
 	/* Create interfaces */
 	odp_pktio_param_init(&pktio_param);
-	pktio_param.in_mode = params->burst_recv_mode ? ODP_PKTIN_MODE_DIRECT :
-						ODP_PKTIN_MODE_SCHED;
-	pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
+	pktio_param.in_mode = params->pktin_mode;
+	pktio_param.out_mode = params->pktout_mode;
 
 	ofp_pktin_queue_param_init(&pktin_param, pktio_param.in_mode,
-			params->sched_group);
+				   params->sched_sync,
+				   params->sched_group);
 
 	for (i = 0; i < params->if_count; ++i)
 		HANDLE_ERROR(ofp_ifnet_create(instance, params->if_names[i],

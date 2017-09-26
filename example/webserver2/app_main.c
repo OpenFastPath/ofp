@@ -343,7 +343,6 @@ int main(int argc, char *argv[])
 	ofp_init_global_param(&app_init_params);
 	app_init_params.linux_core_id = linux_sp_core;
 	if (params.mode == EXEC_MODE_SCHEDULER) {
-		app_init_params.burst_recv_mode = 0;
 		app_init_params.if_count = params.if_count;
 		app_init_params.if_names = params.if_names;
 	}

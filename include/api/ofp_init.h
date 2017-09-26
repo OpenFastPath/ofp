@@ -23,6 +23,7 @@
 #ifndef __OFP_INIT_H__
 #define __OFP_INIT_H__
 
+#include <odp_api.h>
 #include "ofp_hook.h"
 
 #if __GNUC__ >= 4
@@ -56,6 +57,31 @@ typedef struct ofp_global_param_t {
 	char **if_names;
 
 	/**
+	 * Packet input mode of the interfaces initialized by OFP.
+	 * Must be ODP_PKTIN_MODE_SCHED if default_event_dispatcher()
+	 * is used.
+	 *
+	 * Default value is ODP_PKTIN_MODE_SCHED.
+	 */
+	odp_pktin_mode_t pktin_mode;
+
+	/**
+	 * Packet output mode of the interfaces initialized by OFP.
+	 *
+	 * Default value is ODP_PKTOUT_MODE_DIRECT.
+	 */
+	odp_pktout_mode_t pktout_mode;
+
+	/**
+	 * Scheduler synchronization method of the pktin queues of the
+	 * interfaces initialized by OFP in the scheduled mode.
+	 * Ignored when pktin_mode is not ODP_PKTIN_MODE_SCHED.
+	 *
+	 * Default value is ODP_SCHED_SYNC_ATOMIC.
+	 */
+	odp_schedule_sync_t sched_sync;
+
+	/**
 	 * ODP event scheduling group for all scheduled event queues
 	 * (pktio queues, timer queues and other queues) created in
 	 * OFP initialization. The default value is
@@ -70,13 +96,6 @@ typedef struct ofp_global_param_t {
 	 * @see ofp_hook.h
 	 */
 	ofp_pkt_hook pkt_hook[OFP_HOOK_MAX];
-
-	/**
-	 * Use direct input mode for all interfaces if set. Otherwise
-	 * use scheduled input mode. Default value is 0
-	 * (i.e. scheduled mode).
-	 */
-	uint8_t burst_recv_mode;
 
 	/**
 	 * Create netlink listener thread. If slow path is enabled,

@@ -391,10 +391,6 @@ retrieved by worker threads with odp_pktin_recv() call. Note that applications
 cannot perform enqueues to these queues. Packets can be transmitted to the PktIO
 by calling odp_pktout_send().
 
-In case of direct mode OFP applications are responsible for creating and
-configuring PktIO interfaces so as for possibly needed synchronizing when
-handling queues associated with different PktIO interfaces.
-
 Optional RSS hashing functionality can be enabled for distributing packets to
 different input queues.
 
@@ -456,10 +452,10 @@ See <<ODP_API>> for more information about ODP API and helper functions.
 ==== Allocating PktIo interfaces
 
 ofp_init_global() function creates respective PktIo instances for all the
-interfaces included into OFP initialization parameter structure. If the value of
-burst_recv_mode global parameter is set to 0 (default), scheduled input mode
-(ODP_PKTIN_MODE_SCHED) will be used for those interfaces; otherwise direct input
-mode (ODP_PKTIN_MODE_DIRECT) will be used.
+interfaces included into OFP initialization parameter structure. Some of the
+properties, such as packet input and output modes, of the PktIo instances can
+be configured through the global initialization parameters passed to
+ofp_init_global().
 
 If OFP application intends to use some non-default parameters for its interfaces
 (e.g. enabling RSS hashing), it must create respective PktIo instances itself.
