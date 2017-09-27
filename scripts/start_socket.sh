@@ -3,7 +3,7 @@
 intf=$1
 if test "X$intf" = "X"; then intf=eth0; fi
 
-./example/socket/socket -i $intf -c 2 -f ./example/socket/ofp.conf &
+./example/socket/socket -i $intf -c 2 -f ./example/socket/ofp.cli &
 
 sleep 3
 iptables -A FORWARD -i $intf -j DROP

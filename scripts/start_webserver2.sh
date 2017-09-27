@@ -11,4 +11,4 @@ ifconfig $intf -arp
 ip addr flush dev $intf
 sleep 3
 
-./example/webserver2/webserver2 -i $intf -c 2 -f ./example/webserver2/ofp.conf -r /tmp &
+./example/webserver2/webserver2 -i $intf -c 2 -f ./example/webserver2/ofp.cli -r /tmp &

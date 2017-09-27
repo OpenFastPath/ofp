@@ -25,7 +25,7 @@ typedef struct {
 	int core_count;
 	int if_count;		/**< Number of interfaces to be used */
 	char **if_names;	/**< Array of pointers to interface names */
-	char *conf_file;
+	char *cli_file;
 } appl_args_t;
 
 /* helper funcs */
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	build_classifier(app_init_params.if_count, app_init_params.if_names);
 
 	/* Start CLI */
-	ofp_start_cli_thread(instance, app_init_params.linux_core_id, params.conf_file);
+	ofp_start_cli_thread(instance, app_init_params.linux_core_id, params.cli_file);
 	sleep(1);
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
@@ -156,7 +156,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 		{"count", required_argument, NULL, 'c'},
 		{"interface", required_argument, NULL, 'i'},	/* return 'i' */
 		{"help", no_argument, NULL, 'h'},		/* return 'h' */
-		{"configuration file", required_argument,
+		{"cli-file", required_argument,
 			NULL, 'f'},/* return 'f' */
 		{NULL, 0, NULL, 0}
 	};
@@ -230,13 +230,13 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 			}
 			len += 1;	/* add room for '\0' */
 
-			appl_args->conf_file = malloc(len);
-			if (appl_args->conf_file == NULL) {
+			appl_args->cli_file = malloc(len);
+			if (appl_args->cli_file == NULL) {
 				usage(argv[0]);
 				exit(EXIT_FAILURE);
 			}
 
-			strcpy(appl_args->conf_file, optarg);
+			strcpy(appl_args->cli_file, optarg);
 			break;
 
 		default:

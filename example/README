@@ -89,7 +89,7 @@ A script is provided in order to make utilization of this feature friendlier.
 Script's default configuration (see OFP_NETWRAP_ENV environment variable):
  - Interface eth1 is used and 192.168.100.1 is configured.
  - All cores (except for core 0) are used.
- - Configuration file ./scripts/ofp_netwrap.conf is used for additional settings
+ - CLI file ./scripts/ofp_netwrap.cli is used for additional settings
 
 Restrictions:
  - Application needs to run as super user

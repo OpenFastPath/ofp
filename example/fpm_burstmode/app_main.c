@@ -21,7 +21,7 @@ typedef struct {
 	int core_start;
 	int if_count;		/**< Number of interfaces to be used */
 	char **if_names;	/**< Array of pointers to interface names */
-	char *conf_file;
+	char *cli_file;
 } appl_args_t;
 
 struct worker_arg {
@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 
 	/* Start CLI */
 	ofp_start_cli_thread(instance, app_init_params.linux_core_id,
-			     params.conf_file);
+			     params.cli_file);
 
 	odph_linux_pthread_join(thread_tbl, num_workers);
 	printf("End Main()\n");
@@ -381,7 +381,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 		{"core_start", required_argument, NULL, 's'},
 		{"interface", required_argument, NULL, 'i'},	/* return 'i' */
 		{"help", no_argument, NULL, 'h'},		/* return 'h' */
-		{"configuration file", required_argument,
+		{"cli-file", required_argument,
 			NULL, 'f'},/* return 'f' */
 		{NULL, 0, NULL, 0}
 	};
@@ -460,13 +460,13 @@ static void parse_args(int argc, char *argv[], appl_args_t *appl_args)
 			}
 			len += 1;	/* add room for '\0' */
 
-			appl_args->conf_file = malloc(len);
-			if (appl_args->conf_file == NULL) {
+			appl_args->cli_file = malloc(len);
+			if (appl_args->cli_file == NULL) {
 				usage(argv[0]);
 				exit(EXIT_FAILURE);
 			}
 
-			strcpy(appl_args->conf_file, optarg);
+			strcpy(appl_args->cli_file, optarg);
 			break;
 
 		default:
@@ -530,7 +530,7 @@ static void usage(char *progname)
 		   "Optional OPTIONS\n"
 		   "  -s, --core_start <number> Core start. Default 1.\n"
 		   "  -c, --core_count <number> Core count. Default 0: all above core start\n"
-		   "  -f, --configuration_file <file> OFP configuration file.\n"
+		   "  -f, --cli-file <file> OFP CLI file.\n"
 		   "  -h, --help           Display help and exit.\n"
 		   "\n", NO_PATH(progname), NO_PATH(progname)
 		);

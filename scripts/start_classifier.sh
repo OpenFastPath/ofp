@@ -12,4 +12,4 @@ ip addr flush dev $intf
 
 sleep 1
 
-./example/classifier/classifier -i $intf -c 2 -f ./example/classifier/ofp.conf &
+./example/classifier/classifier -i $intf -c 2 -f ./example/classifier/ofp.cli &

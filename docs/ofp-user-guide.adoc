@@ -103,10 +103,10 @@ Check how many processor cores are available:
 
  nproc
 
-Set IP address for the interface into ./example/webserver/ofp.conf configuration
+Set IP address for the interface into ./example/webserver/ofp.cli
 file:
 
- [root@overcloud-novacompute-0 ofp]# cat ./example/webserver/ofp.conf
+ [root@overcloud-novacompute-0 ofp]# cat ./example/webserver/ofp.cli
  debug 0
  loglevel set error
  ifconfig fp0 10.0.0.10/24
@@ -121,14 +121,14 @@ Check usage and available options with command:
 
 Start the application with command like:
 
- ./example/webserver/webserver -i ens1f0 -c 4 -f ./example/webserver/ofp.conf &
+ ./example/webserver/webserver -i ens1f0 -c 4 -f ./example/webserver/ofp.cli &
 
 Here the number of fastpath processing cores is 4 which means that the
 application will start 1 control and 3 working threads for processing incoming
 packets. Below is an example of startup output:
 
 ----
-[root@overcloud-novacompute-0 ofp]# example/webserver/webserver -i ens1f0 -c 4 -f ./example/webserver/ofp.conf &
+[root@overcloud-novacompute-0 ofp]# example/webserver/webserver -i ens1f0 -c 4 -f ./example/webserver/ofp.cli &
 [1] 842322
 [root@overcloud-novacompute-0 ofp]# RLIMIT_CORE: 0/-1
 Setting to max: 0
@@ -165,13 +165,13 @@ I 8 25:3886323968 ofp_ifnet.c:143] Device 'ens1f0' addr  90:e2:ba:b3:71:e8
 I 8 25:3886323968 ofp_ifnet.c:152] Device 'ens1f0' MTU=1500
 I 0 0:3600140032 ofp_cli.c:1599] CLI server started on core 0
 
-CONFIGURATION LINE: debug 0
+CLI: debug 0
 
 
-CONFIGURATION LINE: loglevel set error
+CLI: loglevel set error
 
 
-CONFIGURATION LINE: ifconfig fp0 10.0.0.10/24
+CLI: ifconfig fp0 10.0.0.10/24
 ----
 
 In this example network interface used for fastpath processing (ens1f0) is
@@ -281,8 +281,8 @@ First, compile and install OFP with the needed options:
  make install
 
 Secondly, update interface name into the ./scripts/ofp_netwrap.sh script
-(default name is eth1) and IP address into ./scripts/ofp_netwrap.conf
-configuration file (default address is 192.168.100.1/24).
+(default name is eth1) and IP address into ./scripts/ofp_netwrap.cli
+file (default address is 192.168.100.1/24).
 
 Ensure that ofp_netwrap_proc and ofp_netwrap_crt libraries are accessible:
 
@@ -325,13 +325,13 @@ I 159 25:4036192512 ofp_ifnet.c:143] Device 'ens1f0' addr  90:e2:ba:b3:71:e8
 I 159 25:4036192512 ofp_ifnet.c:152] Device 'ens1f0' MTU=1500
 I 0 0:3982997248 ofp_cli.c:1599] CLI server started on core 0
 
-CONFIGURATION LINE: debug 0
+CLI: debug 0
 
 
-CONFIGURATION LINE: loglevel set error
+CLI: loglevel set error
 
 
-CONFIGURATION LINE: ifconfig fp0 10.0.0.10/24
+CLI: ifconfig fp0 10.0.0.10/24
 ----
 
 == Overview of OFP API
@@ -595,12 +595,12 @@ Now when dispatcher threads are running, further application logic can be
 launched. In order to enable OFP CLI, dedicated CLI thread should be started on
 the management core (not competing for CPU cycles with the worker threads) by
 calling ofp_start_cli_thread() function. In addition to OFP instance handle and
-processor core number, this function takes OFP configuration file name as an
-argument. This text file (named in examples as ofp.conf) contains OFP
-configuration commands which will be executed by the client thread after
+processor core number, this function takes OFP CLI file name as an
+argument. This text file (named in examples as ofp.cli) contains OFP
+CLI commands which will be executed by the client thread after
 starting.
 
-Below is an example of OFP configuration file (from example/webserver/ofp.conf):
+Below is an example of OFP CLI file (from example/webserver/ofp.cli):
 
  debug 0
  loglevel set debug
@@ -758,7 +758,7 @@ Now you can set DPDK command line parameters (number of memory channels to use
 in the example below) and start your OFP application with commands like:
 
   export ODP_PLATFORM_PARAMS="-n 4"
-  ./example/fpm/fpm -i 0,1 -c 4 -f ./ofp.conf &
+  ./example/fpm/fpm -i 0,1 -c 4 -f ./ofp.cli &
 
 Check <<DPDK>> documentation for more DPDK related information.
 
@@ -929,7 +929,7 @@ Check `debug help` output for more details.
 By default, only "info", "warning", "error" and "disabled" values are acceptable
 by `loglevel set` CLI lommand. In order to enable also "debug" level logs,
 compile first OFP with --enable-debug option and set then debug output level
-e.g. in ofp.conf file:
+e.g. in ofp.cli file:
 
  loglevel set debug
 

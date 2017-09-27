@@ -86,7 +86,7 @@ typedef struct {
 	uint16_t dport;		/**< Destination port number */
 	char *laddr;		/**< Listening IPv4 address */
 	uint16_t lport;		/**< Listening port number */
-	char *conf_file;	/**< Configuration file passed to CLI */
+	char *cli_file;		/**< CLI file passed to CLI */
 	int single_thread;	/**< Run pktio and application in same thread */
 } appl_args_t;
 
@@ -794,7 +794,7 @@ static void usage(char *progname)
 {
 	printf("\n"
 	       "Usage: %s OPTIONS\n"
-	       "  E.g. HOST1: %s -i eth0 -f ofp.conf\n"
+	       "  E.g. HOST1: %s -i eth0 -f ofp.cli\n"
 	       "       HOST2: iperf -c 10.10.10.1\n"
 	       "\n"
 	       "Mandatory OPTIONS:\n"
@@ -808,7 +808,7 @@ static void usage(char *progname)
 	       "                            Default: %s\n"
 	       "  -p, --port <port>    Port address\n"
 	       "                            Default: %d\n"
-	       "  -f, --config <file>   OFP configuration file\n"
+	       "  -f, --cli-file <file> OFP CLI file\n"
 	       "  -h, --help            Display help and exit\n"
 	       "\n", NO_PATH(progname), NO_PATH(progname),
 	       ofp_print_ip_addr(DEF_BIND_ADDR), DEF_BIND_PORT);
@@ -828,7 +828,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *args)
 	size_t len;
 	static struct option longopts[] = {
 		{"client", required_argument, NULL, 'c'},
-		{"config", required_argument, NULL, 'f'},
+		{"cli-file", required_argument, NULL, 'f'},
 		{"help", no_argument, NULL, 'h'},
 		{"interface", required_argument, NULL, 'i'},
 		{"laddr", required_argument, NULL, 'l'},
@@ -876,13 +876,13 @@ static void parse_args(int argc, char *argv[], appl_args_t *args)
 			}
 			len += 1;	/* add room for '\0' */
 
-			args->conf_file = malloc(len);
-			if (args->conf_file == NULL) {
+			args->cli_file = malloc(len);
+			if (args->cli_file == NULL) {
 				usage(argv[0]);
 				exit(EXIT_FAILURE);
 			}
 
-			strcpy(args->conf_file, optarg);
+			strcpy(args->cli_file, optarg);
 			break;
 		case 'h':
 			usage(argv[0]);
@@ -1105,7 +1105,7 @@ int main(int argc, char *argv[])
 
 	/* Start CLI */
 	ofp_start_cli_thread(instance, app_init_params.linux_core_id,
-			     gbl_args->appl.conf_file);
+			     gbl_args->appl.cli_file);
 
 	/** Wait for the stack to create the FP interface. Otherwise ofp_bind()
 	 *  call will fail.
@@ -1172,8 +1172,8 @@ int main(int argc, char *argv[])
 		ofp_close(gbl_args->server_fd);
 
 	free(gbl_args->appl.if_name);
-	if (gbl_args->appl.conf_file)
-		free(gbl_args->appl.conf_file);
+	if (gbl_args->appl.cli_file)
+		free(gbl_args->appl.cli_file);
 	if (gbl_args->appl.daddr)
 		free(gbl_args->appl.daddr);
 	if (gbl_args->appl.laddr)

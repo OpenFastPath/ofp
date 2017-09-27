@@ -24,7 +24,7 @@ typedef struct {
 	int core_count;
 	int if_count;		/**< Number of interfaces to be used */
 	char **if_names;	/**< Array of pointers to interface names */
-	char *conf_file;
+	char *cli_file;
 	int perf_stat;
 } appl_args_t;
 
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
 	 * worker threads
 	 */
 	if (ofp_start_cli_thread(instance, app_init_params.linux_core_id,
-		params.conf_file) < 0) {
+		params.cli_file) < 0) {
 		OFP_ERR("Error: Failed to init CLI thread");
 		ofp_stop_processing();
 		odph_linux_pthread_join(thread_tbl, num_workers);
@@ -321,7 +321,7 @@ static int parse_args(int argc, char *argv[], appl_args_t *appl_args)
 		{"interface", required_argument, NULL, 'i'},	/* return 'i' */
 		{"performance", no_argument, NULL, 'p'},	/* return 'p' */
 		{"help", no_argument, NULL, 'h'},		/* return 'h' */
-		{"configuration file", required_argument,
+		{"cli-file", required_argument,
 			NULL, 'f'},/* return 'f' */
 		{NULL, 0, NULL, 0}
 	};
@@ -398,13 +398,13 @@ static int parse_args(int argc, char *argv[], appl_args_t *appl_args)
 			}
 			len += 1;	/* add room for '\0' */
 
-			appl_args->conf_file = malloc(len);
-			if (appl_args->conf_file == NULL) {
+			appl_args->cli_file = malloc(len);
+			if (appl_args->cli_file == NULL) {
 				usage(argv[0]);
 				return EXIT_FAILURE;
 			}
 
-			strcpy(appl_args->conf_file, optarg);
+			strcpy(appl_args->cli_file, optarg);
 			break;
 
 		default:
