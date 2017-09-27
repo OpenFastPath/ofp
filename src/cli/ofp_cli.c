@@ -1131,7 +1131,7 @@ static void cli_init_commands(void)
 	}
 }
 
-static void cli_process_conf_file(char *config_file_name)
+static void cli_process_file(char *file_name)
 {
 	FILE *f;
 	struct cli_conn conn;
@@ -1141,17 +1141,17 @@ static void cli_process_conf_file(char *config_file_name)
 	conn.fd = 1; /* stdout */
 	conn.status = CONNECTION_ON; /* no prompt */
 
-	if (config_file_name != NULL) {
-		f = fopen(config_file_name, "r");
+	if (file_name != NULL) {
+		f = fopen(file_name, "r");
 		if (!f) {
-			OFP_ERR("OFP configuration file not found.\n");
+			OFP_ERR("OFP CLI file not found.\n");
 			return;
 		}
 
 		while (fgets(conn.inbuf, sizeof(conn.inbuf), f)) {
 			if (conn.inbuf[0] == '#' || conn.inbuf[0] <= ' ')
 				continue;
-			ofp_sendf(conn.fd, "CONFIGURATION LINE: %s\n",
+			ofp_sendf(conn.fd, "CLI: %s\n",
 				conn.inbuf);
 			parse(&conn, 0);
 		}
@@ -1159,7 +1159,7 @@ static void cli_process_conf_file(char *config_file_name)
 		fclose(f);
 	}
 	else {
-		OFP_DBG("OFP configuration file not set.\n");
+		OFP_DBG("OFP CLI file not set.\n");
 	}
 }
 
@@ -1572,13 +1572,13 @@ static void *cli_server(void *arg)
 	struct sockaddr_in my_addr, caller;
 	int reuse = 1;
 	fd_set read_fd, fds;
-	char *config_file_name;
+	char *file_name;
 	struct ofp_global_config_mem *ofp_global_cfg = NULL;
 	int select_nfds;
 
 	close_cli = 0;
 
-	config_file_name = (char *)arg;
+	file_name = (char *)arg;
 
 	OFP_INFO("CLI server started on core %i\n", odp_cpu_id());
 
@@ -1595,7 +1595,7 @@ static void *cli_server(void *arg)
 
 	cli_init_commands();
 
-	cli_process_conf_file(config_file_name);
+	cli_process_file(file_name);
 
 	cli_serv_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (cli_serv_fd < 0) {
