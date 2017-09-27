@@ -11,7 +11,7 @@
 /**
  * @file
  *
- * @brief Configuration file for OFP
+ * @brief Configuration defaults for OFP
  *
  */
 

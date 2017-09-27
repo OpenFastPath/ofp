@@ -1691,15 +1691,7 @@ static void *cli_server(void *arg)
 	return NULL;
 }
 
-/** Start CLI server thread
- *  To be called by Application code to start the CLI server if needed;
- *
- * @param core_id int
- * @retval 0 on success
- * @retval -1 on failure
- *
- */
-int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *conf_file)
+int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *cli_file)
 {
 	odp_cpumask_t cpumask;
 	struct ofp_global_config_mem *ofp_global_cfg;
@@ -1718,7 +1710,7 @@ int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *conf_file)
 	odp_cpumask_set(&cpumask, core_id);
 
 	thr_params.start = cli_server;
-	thr_params.arg = conf_file;
+	thr_params.arg = cli_file;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
 
