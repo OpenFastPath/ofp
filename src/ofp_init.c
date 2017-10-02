@@ -104,7 +104,142 @@ odp_bool_t *ofp_get_processing_state(void)
 	return &shm->is_running;
 }
 
-void ofp_init_global_param(ofp_global_param_t *params)
+#ifdef OFP_USE_LIBCONFIG
+
+#include <ctype.h>
+#include <libconfig.h>
+
+#define OFP_CONF_FILE_ENV "OFP_CONF_FILE"
+#define STR(x) #x
+
+struct lookup_entry {
+	const char *name;
+	int value;
+};
+
+#define ENTRY(x) { #x, (int)x }
+
+struct lookup_entry lt_pktin_mode[] = {
+	ENTRY(ODP_PKTIN_MODE_DIRECT),
+	ENTRY(ODP_PKTIN_MODE_SCHED),
+	ENTRY(ODP_PKTIN_MODE_QUEUE),
+	ENTRY(ODP_PKTIN_MODE_DISABLED),
+};
+
+struct lookup_entry lt_pktout_mode[] = {
+	ENTRY(ODP_PKTOUT_MODE_DIRECT),
+	ENTRY(ODP_PKTOUT_MODE_QUEUE),
+	ENTRY(ODP_PKTOUT_MODE_TM),
+	ENTRY(ODP_PKTOUT_MODE_DISABLED),
+};
+
+struct lookup_entry lt_sched_sync[] = {
+	ENTRY(ODP_SCHED_SYNC_PARALLEL),
+	ENTRY(ODP_SCHED_SYNC_ATOMIC),
+	ENTRY(ODP_SCHED_SYNC_ORDERED),
+};
+
+struct lookup_entry lt_sched_group[] = {
+	ENTRY(ODP_SCHED_GROUP_ALL),
+	ENTRY(ODP_SCHED_GROUP_WORKER),
+	ENTRY(ODP_SCHED_GROUP_CONTROL),
+};
+
+/*
+ * Based on a string, lookup a value in a struct lookup_entry
+ * array. Return the value from the entry or -1 if not found.
+ */
+static int lookup(const struct lookup_entry *table, int n, const char *str)
+{
+#define BUF_LEN 32
+	int i, len = strnlen(str, BUF_LEN-1);
+	char ustr[BUF_LEN];
+
+	memcpy(ustr, str, len);
+	ustr[len] = 0;
+
+	for (i = 0; i < len; i++)
+		ustr[i] = toupper(ustr[i]);
+
+	for (i = 0; i < n; i++)
+		if (strstr(table[i].name, ustr))
+			return table[i].value;
+
+	return -1;
+}
+
+static void read_conf_file(ofp_global_param_t *params, const char *filename)
+{
+	config_t conf;
+	config_setting_t *setting;
+	int length;
+	const char *str;
+	int i;
+
+	if (!filename) {
+		filename = OFP_DEFAULT_CONF_FILE;
+		char *filename_env = getenv(OFP_CONF_FILE_ENV);
+		if (filename_env) filename = filename_env;
+	}
+
+	if (!*filename) return;
+
+	config_init(&conf);
+	OFP_DBG("Using configuration file: %s\n", filename);
+
+	if (!config_read_file(&conf, filename)) {
+		OFP_ERR("%s(%d): %s\n", config_error_file(&conf),
+			config_error_line(&conf), config_error_text(&conf));
+		goto done;
+	}
+
+	setting = config_lookup(&conf, "ofp_global_param.if_names");
+
+	if (setting && (length = config_setting_length(setting)) > 0) {
+		params->if_count = 0;
+		params->if_names = malloc(length * sizeof(char *));
+		while (params->if_count < length) {
+			/* These strings are never freed. */
+			params->if_names[params->if_count] =
+				strndup(config_setting_get_string_elem(setting, params->if_count), OFP_IFNAMSIZ);
+			params->if_count++;
+		}
+	}
+
+#define GET_CONF_STR(p)							\
+	if (config_lookup_string(&conf, "ofp_global_param." STR(p), &str)) { \
+		i = lookup(lt_ ## p, sizeof(lt_ ## p) / sizeof(lt_ ## p[0]), str); \
+		if (i >= 0) params->p = i;				\
+	}
+
+	GET_CONF_STR(pktin_mode);
+	GET_CONF_STR(pktout_mode);
+	GET_CONF_STR(sched_sync);
+	GET_CONF_STR(sched_group);
+
+#define GET_CONF_INT(type, p)						\
+	if (config_lookup_ ## type(&conf, "ofp_global_param." STR(p), &i)) \
+		params->p = i;
+
+	GET_CONF_INT(int, linux_core_id);
+	GET_CONF_INT(bool, enable_nl_thread);
+	GET_CONF_INT(int, arp.entry_timeout);
+	GET_CONF_INT(bool, arp.check_interface);
+	GET_CONF_INT(int, evt_rx_burst_size);
+	GET_CONF_INT(int, pkt_tx_burst_size);
+	GET_CONF_INT(int, pcb_tcp_max);
+	GET_CONF_INT(int, pkt_pool.nb_pkts);
+	GET_CONF_INT(int, pkt_pool.buffer_size);
+
+done:
+	config_destroy(&conf);
+}
+
+#else
+#define read_conf_file(params, filename) ((void)filename)
+#endif
+
+void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *filename)
 {
 	memset(params, 0, sizeof(*params));
 	params->pktin_mode = ODP_PKTIN_MODE_SCHED;
@@ -120,6 +255,12 @@ void ofp_init_global_param(ofp_global_param_t *params)
 	params->pkt_pool.nb_pkts = SHM_PKT_POOL_NB_PKTS;
 	params->pkt_pool.buffer_size = SHM_PKT_POOL_BUFFER_SIZE;
 	params->pkt_tx_burst_size = OFP_PKT_TX_BURST_SIZE;
+	read_conf_file(params, filename);
+}
+
+void ofp_init_global_param(ofp_global_param_t *params)
+{
+	ofp_init_global_param_from_file(params, NULL);
 }
 
 static void ofp_init_prepare(void)

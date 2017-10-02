@@ -87,6 +87,11 @@ __LIB__libofp_la_SOURCES += \
 ofp_arp.c
 endif
 
+if OFP_USE_LIBCONFIG
+AM_CFLAGS += -DOFP_USE_LIBCONFIG
+AM_CFLAGS += -DOFP_DEFAULT_CONF_FILE="\"$(sysconfdir)/ofp.conf\""
+endif
+
 if OFP_SP
 AM_CFLAGS +=  -DSP
 

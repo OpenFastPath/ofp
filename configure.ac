@@ -248,6 +248,16 @@ AC_ARG_ENABLE([mtrie],
     esac],[use_mtrie=true])
 AM_CONDITIONAL([OFP_MTRIE], [test x$use_mtrie = xtrue])
 
+# Enable/disable libconfig use
+AC_ARG_ENABLE([libconfig],
+    [  --enable-libconfig     Enable/disable use of libconfig],
+    [case "${enableval}" in
+        yes) use_libconfig=true ;;
+        no)  use_libconfig=false ;;
+        *) AC_MSG_ERROR([bad value ${enableval} for --enable-libconfig]) ;;
+    esac],[use_libconfig=true])
+AM_CONDITIONAL([OFP_USE_LIBCONFIG], [test x$use_libconfig = xtrue])
+
 
 ##########################################################################
 # Enable/disable Unit tests
@@ -362,6 +372,32 @@ else
     AC_SEARCH_LIBS([rumpns_rt_inithead],[rumpnet])
     AC_SEARCH_LIBS([rump_init],[rump])
     AC_SEARCH_LIBS([rumpuser_init],[rumpuser])
+fi
+
+##########################################################################
+# libconfig
+##########################################################################
+
+# introduce the optional configure parameter for a non-standard install prefix of libconfig
+AC_ARG_WITH([libconfig],
+    [AS_HELP_STRING([--with-libconfig=prefix],
+	[non-standard path prefix of libconfig install directory])],
+    [LIBCONFIGPATHSET=1],
+    [LIBCONFIGPATHSET=0])
+
+if test x$use_libconfig = xtrue ; then
+   LIBS="-lconfig $LIBS"
+   if test $LIBCONFIGPATHSET = 1 ; then
+      # if optional parameter used, provide paths for compiler and linker
+      AM_CPPFLAGS="$AM_CPPFLAGS -I$with_libconfig/include"
+      AM_LDFLAGS="$AM_LDFLAGS -L$with_libconfig/lib"
+   fi
+
+   AC_CHECK_HEADERS([libconfig.h], [
+      AC_DEFINE(HAVE_LIBCONFIG, [1], [Have libconfig])], [])
+
+   AC_SEARCH_LIBS([config_init],[config],[], [
+      AC_MSG_ERROR([Unable to find libconfig library])])
 fi
 
 ##########################################################################

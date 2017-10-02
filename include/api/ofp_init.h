@@ -166,11 +166,60 @@ typedef struct ofp_global_param_t {
  * compatible with future versions of OFP that may add new fields in
  * the parameter structure.
  *
+ * If libconfig is enabled, a configuration file may be used. The
+ * configuration file location may be set using the environment
+ * variable OFP_CONF_FILE. If the environment variable is not set, the
+ * file is read from $(sysconfdir)/ofp.conf, normally
+ * /usr/local/etc/ofp.conf.
+ *
+ * The file uses libconfig format. See
+ * http://www.hyperrealm.com/libconfig/libconfig_manual.html#Configuration-File-Grammar
+ *
+ * <pre>
+ * ofp_global_param: {
+ *     if_names = [ string, string, ... ]
+ *     linux_core_id = integer
+ *     pktin_mode = "direct" | "sched" | "queue" | "disabled"
+ *     pktout_mode = "direct" | "queue" | "tm" | "disabled"
+ *     sched_sync = "parallel" | "atomic" | ordered"
+ *     sched_group = "all | "worker" | "control"
+ *     enable_nl_thread = boolean
+ *     arp: {
+ *         entry_timeout = integer
+ *         check_interface = boolean
+ *     }
+ *     evt_rx_burst_size = integer
+ *     pkt_tx_burst_size = integer
+ *     pcb_tcp_max = integer
+ *     pkt_pool: {
+ *         nb_pkts = integer
+ *         buffer_size = integer
+ *     }
+ * }
+ * </pre>
+ *
  * @params parameter structure to initialize
  *
  * @see ofp_init_global()
  */
 void ofp_init_global_param(ofp_global_param_t *params);
+
+/**
+ * Initialize ofp_global_param_t according to a configuration file.
+ *
+ * This function is similar to ofp_init_global_param(), but allows the
+ * caller to specify the location of the configuration file. Calling
+ * this function with filename = NULL has the same effect as calling
+ * ofp_init_global_param(). Passing a zero-length string as filename
+ * means that no configuration file will be used, not even the default
+ * or the file specified by the environment variable.
+ *
+ * @see ofp_init_global_param()
+ *
+ * @param params structure to initialize
+ * @param filename name of the configuration file
+ */
+void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *filename);
 
 /**
  * OFP global initialization

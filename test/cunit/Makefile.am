@@ -14,6 +14,10 @@ if OFP_MTRIE
 AM_CFLAGS +=  -DMTRIE
 endif
 
+if OFP_USE_LIBCONFIG
+AM_CFLAGS +=  -DOFP_USE_LIBCONFIG
+endif
+
 AM_CPPFLAGS += -I$(top_srcdir)/include -I$(top_srcdir)/include/api
 AM_LDFLAGS += -L$(top_builddir)/lib
 

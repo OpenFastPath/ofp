@@ -82,6 +82,17 @@ Check output of `./configure --help` command for available configuration
 options. For example, `--with-config-flv=webserver` option can be used for
 optimizing OFP for webserver-like applications.
 
+=== The Configuration File
+
+Many OFP initialization parameters may be set using a configuration
+file. This feature utilizes the <<libconfig>> library, which is LGPL
+licensed. Configuration file support using libconfig may be enabled or
+disabled using the configure script option --enable-libconfig. By
+default, libconfig is enabled.
+
+See the documentation of the API functions ofp_init_global_param() and
+ofp_init_global_param_from_file() for more information.
+
 === Starting an example application
 
 This chapter will guide you through the steps needed for starting one of the
@@ -970,3 +981,6 @@ received by the same worker thread/process.
 
 * [[[wrk]]] HTTP benchmarking tool
   https://github.com/wg/wrk
+
+* [[[libconfig]]] libconfig – C/C++ Configuration File Library
+  http://www.hyperrealm.com/libconfig/libconfig.html

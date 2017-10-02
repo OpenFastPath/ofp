@@ -77,6 +77,28 @@ test_global_init_cleanup(void)
 	CU_ASSERT_EQUAL(ofp_term_global(), 0);
 }
 
+static void
+test_global_init_from_file_cleanup(void)
+{
+	static ofp_global_param_t oig;
+	int test_value = 1234;
+
+	const char *filename = "test-ofp.conf";
+	FILE *f = fopen(filename, "wb");
+	CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
+	fprintf(f, "ofp_global_param: { arp: { entry_timeout = %d } }\n", test_value);
+	fclose(f);
+
+	ofp_init_global_param_from_file(&oig, filename);
+
+	CU_ASSERT_EQUAL(oig.arp.entry_timeout, test_value);
+
+	CU_ASSERT_EQUAL(ofp_init_global(instance, &oig), 0);
+	ofp_start_cli_thread(instance, oig.linux_core_id, NULL);
+
+	CU_ASSERT_EQUAL(ofp_term_global(), 0);
+}
+
 /*
  * Main
  */
@@ -103,6 +125,14 @@ main(void)
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
+
+#ifdef OFP_USE_LIBCONFIG
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_global_init_from_file_cleanup)) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+#endif
 
 #if OFP_TESTMODE_AUTO
 	CU_set_output_filename("CUnit-INIT");
