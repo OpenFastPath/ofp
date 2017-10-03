@@ -857,6 +857,7 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 		if (odp_packet_copy_to_mem(pkt, payload_offset + pl_pos,
 					    flen, payload_new) < 0) {
 			OFP_ERR("odp_packet_copy_to_mem failed");
+			odp_packet_free(pkt_new);
 			return OFP_PKT_DROP;
 		};
 
