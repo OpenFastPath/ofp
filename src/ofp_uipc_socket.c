@@ -1919,6 +1919,7 @@ ofp_soreceive_dgram(struct socket *so, struct ofp_sockaddr **psa, struct uio *ui
 	struct ofp_udphdr *uh = (struct ofp_udphdr *)odp_packet_l4_ptr(pkt, NULL);
 	if (!uh) {
 		OFP_ERR("UDP HDR == NULL!");
+		odp_packet_free(pkt);
 		return 0;
 	}
 	uint8_t *data = (uint8_t *)(uh + 1);
