@@ -44,7 +44,7 @@ struct ofp_rt_rule_table {
 struct ofp_rt_lookup_mem {
 	struct ofp_rtl_node small_list[NUM_NODES][1<<IPV4_LEVEL];
 	struct ofp_rtl_node large_list[NUM_NODES_LARGE][1<<IPV4_FIRST_LEVEL];
-	struct ofp_rtl_node *free_small;
+	struct ofp_rtl_tailq free_small;
 	struct ofp_rtl_node *free_large;
 
 	struct ofp_rt_rule_table rt_rule_table;
@@ -64,8 +64,12 @@ static __thread struct ofp_rt_lookup_mem *shm;
 static void NODEFREE(struct ofp_rtl_node *node)
 {
 	if (node->root == 0) {
-		node->next = shm->free_small;
-		shm->free_small = node;
+		node->next = NULL;
+		if (shm->free_small.last)
+			shm->free_small.last->next = node;
+		else
+			shm->free_small.first = node;
+		shm->free_small.last = node;
 		shm->nodes_allocated--;
 	}
 }
@@ -77,10 +81,12 @@ static struct ofp_rtl_node *NODEALLOC(void)
 	if (!shm)
 		return NULL;
 
-	struct ofp_rtl_node *rtl_node = shm->free_small;
+	struct ofp_rtl_node *rtl_node = shm->free_small.first;
 
 	if (rtl_node) {
-		shm->free_small = rtl_node->next;
+		shm->free_small.first = rtl_node->next;
+		if (shm->free_small.first == NULL)
+			shm->free_small.last = NULL;
 		shm->nodes_allocated++;
 
 		if (shm->nodes_allocated > shm->max_nodes_allocated)
@@ -528,7 +534,8 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 				if (node[index].masklen == masklen &&
 				    !memcmp(&node[index].data, data,
 					    sizeof(struct ofp_nh_entry))) {
-					if (node[index].next == NULL)
+					if (node[index].next == NULL &&
+						&node[index] != shm->free_small.last)
 						node[index].masklen = 0;
 					else
 						node[index].masklen = high + 1;
@@ -848,7 +855,8 @@ int ofp_rt_lookup_init_global(void)
 	for (i = 0; i < NUM_NODES; i++)
 		shm->small_list[i][0].next = (i == NUM_NODES - 1) ?
 			NULL : &(shm->small_list[i+1][0]);
-	shm->free_small = shm->small_list[0];
+	shm->free_small.first = &shm->small_list[0][0];
+	shm->free_small.last = &shm->small_list[NUM_NODES - 1][0];
 
 	for (i = 0; i < NUM_NODES_LARGE; i++)
 		shm->large_list[i][0].next = (i == NUM_NODES_LARGE - 1) ?

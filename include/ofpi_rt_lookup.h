@@ -59,6 +59,11 @@ struct ofp_rtl_tree {
 	struct ofp_rtl_node *root;
 };
 
+struct ofp_rtl_tailq {
+	struct ofp_rtl_node *first;
+	struct ofp_rtl_node *last;
+};
+
 struct ofp_rtl6_node {
 	uint32_t flags;
 	struct ofp_nh6_entry data;
