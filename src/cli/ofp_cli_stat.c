@@ -17,10 +17,10 @@
 #include "ofpi_util.h"
 
 static void print_latency_entry(struct cli_conn *conn,
-	struct ofp_packet_stat *st, int core, int entry)
+	struct ofp_packet_stat *st, int thread, int entry)
 {
 	int j;
-	uint64_t input_latency = st->per_core[core].input_latency[entry];
+	uint64_t input_latency = st->per_thr[thread].input_latency[entry];
 	int input_latency_log = ilog2(input_latency);
 
 	ofp_sendf(conn->fd, "\r\n%3d| ", entry);
@@ -28,7 +28,7 @@ static void print_latency_entry(struct cli_conn *conn,
 	if (input_latency == 0)
 		return;
 
-	if (input_latency < 10000)
+	if (input_latency < 100000)
 		ofp_sendf(conn->fd, "[%05d]", input_latency);
 	else
 		ofp_sendf(conn->fd, "[99999]");
@@ -37,10 +37,37 @@ static void print_latency_entry(struct cli_conn *conn,
 		ofp_sendf(conn->fd, "*");
 }
 
+static void print_thread_stat(struct cli_conn *conn,
+	struct ofp_packet_stat *st, odp_thrmask_t thrmask)
+{
+	int next_thr;
+
+	ofp_sendf(conn->fd, " Thread        ODP_to_FP        FP_to_ODP"
+		"     FP_to_SP    SP_to_ODP      Tx_frag   Rx_IP_frag"
+		"   Rx_IP_reas\r\n\r\n");
+	next_thr = odp_thrmask_first(&thrmask);
+	while (next_thr >= 0) {
+		ofp_sendf(conn->fd, "%7u %16llu %16llu %12llu %12llu"
+			" %12llu %12llu %12llu\r\n",
+			next_thr,
+			st->per_thr[next_thr].rx_fp,
+			st->per_thr[next_thr].tx_fp,
+			st->per_thr[next_thr].rx_sp,
+			st->per_thr[next_thr].tx_sp,
+			st->per_thr[next_thr].tx_eth_frag,
+			st->per_thr[next_thr].rx_ip_frag,
+			st->per_thr[next_thr].rx_ip_reass);
+		next_thr = odp_thrmask_next(&thrmask, next_thr);
+	}
+	ofp_sendf(conn->fd, "\r\n");
+}
+
 void f_stat_show(struct cli_conn *conn, const char *s)
 {
 	struct ofp_packet_stat *st = ofp_get_packet_statistics();
-	int i, j, k;
+	int i, j;
+	int next_thr;
+	odp_thrmask_t thrmask;
 	int last_entry;
 
 	(void)s;
@@ -54,31 +81,17 @@ void f_stat_show(struct cli_conn *conn, const char *s)
 		ofp_stat_flags & OFP_STAT_COMPUTE_LATENCY ? "yes" : "no",
 		ofp_stat_flags & OFP_STAT_COMPUTE_PERF ? "yes" : "no");
 
-#define PRINT_STAT(_st, _s, _n) do { int i;                             \
-	ofp_sendf(conn->fd, "  %16s:", _s);                           \
-	for (i = 0; i < odp_cpu_count(); i++)                      \
-		ofp_sendf(conn->fd, " %10d", (_st)->per_core[i]._n);  \
-	ofp_sendf(conn->fd, "\r\n"); }                                \
-	while (0)
+	odp_thrmask_control(&thrmask);
+	ofp_sendf(conn->fd, "Packet counters of control threads:\r\n\r\n");
+	print_thread_stat(conn, st, thrmask);
 
-	ofp_sendf(conn->fd, "Packets:\r\n              Core:");
-
-	for (i = 0; i < odp_cpu_count(); i++)
-		ofp_sendf(conn->fd, " %10d", i);
-	ofp_sendf(conn->fd, "\r\n\r\n");
-
-	PRINT_STAT(st, "ODP to FP", rx_fp);
-	PRINT_STAT(st, "FP to ODP", tx_fp);
-	PRINT_STAT(st, "FP to SP", rx_sp);
-	PRINT_STAT(st, "SP to ODP", tx_sp);
-
-	PRINT_STAT(st, "Tx frag", tx_eth_frag);
-	PRINT_STAT(st, "Rx IP frag", rx_ip_frag);
-	PRINT_STAT(st, "RX IP reass", rx_ip_reass);
+	odp_thrmask_worker(&thrmask);
+	ofp_sendf(conn->fd, "Packet counters of worker threads:\r\n\r\n");
+	print_thread_stat(conn, st, thrmask);
 
 /*TODO: print interface related stats colected from ODP or linux IP stack*/
 
-	ofp_sendf(conn->fd, "\r\nAllocated memory:\r\n");
+	ofp_sendf(conn->fd, "Allocated memory:\r\n");
 	ofp_print_avl_stat(conn->fd);
 	ofp_print_rt_stat(conn->fd);
 
@@ -86,26 +99,28 @@ void f_stat_show(struct cli_conn *conn, const char *s)
 		ofp_sendf(conn->fd, "\r\n  Latency graph | log/log scale | "
 			"X = occurrences, Y = cycles");
 
-		for (k = 0; k < odp_cpu_count(); k++) {
-			ofp_sendf(conn->fd, "\r\nCore %d:\r\n", k);
+		next_thr = odp_thrmask_first(&thrmask);
+		while (next_thr >= 0) {
+			ofp_sendf(conn->fd, "\r\nWorker thread %d:\r\n", next_thr);
 
 			/* Skip to the first entry where there's data */
-			for (i = 0; i < 64; i++)
-				if (st->per_core[k].input_latency[i] != 0)
+			for (i = 0; i < OFP_LATENCY_SLICES; i++)
+				if (st->per_thr[next_thr].input_latency[i] != 0)
 					break;
 
-			if (i == 64)
-				continue;
+			if (i < OFP_LATENCY_SLICES) {
+				/* Check what's the last entry with data */
+				last_entry = i;
+				for (j = i; j < OFP_LATENCY_SLICES; j++)
+					if (st->per_thr[next_thr].input_latency[j])
+						last_entry = j;
 
-			/* Check what's the last entry with data */
-			last_entry = i;
-			for (j = i; j < 64; j++)
-				if (st->per_core[k].input_latency[j])
-					last_entry = j;
-
-			/* Now we have cut the ends with zeros */
-			for (; i < last_entry + 1; i++)
-				print_latency_entry(conn, st, k, i);
+				/* Now we have cut the ends with zeros */
+				for (; i < last_entry + 1; i++)
+					print_latency_entry(conn, st, next_thr, i);
+				ofp_sendf(conn->fd, "\r\n");
+			}
+			next_thr = odp_thrmask_next(&thrmask, next_thr);
 		}
 	}
 	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF) {

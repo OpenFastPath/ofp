@@ -75,10 +75,10 @@ test_packet_statistics(void)
 	struct ofp_packet_stat *st;
 
 	st = ofp_get_packet_statistics();
-	CU_ASSERT_EQUAL(st->per_core[odp_cpu_id()].rx_fp, 0);
+	CU_ASSERT_EQUAL(st->per_thr[odp_thread_id()].rx_fp, 0);
 
 	OFP_UPDATE_PACKET_STAT(rx_fp, 4);
-	CU_ASSERT_EQUAL(st->per_core[odp_cpu_id()].rx_fp, 4);
+	CU_ASSERT_EQUAL(st->per_thr[odp_thread_id()].rx_fp, 4);
 }
 
 /*

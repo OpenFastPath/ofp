@@ -19,20 +19,20 @@ int ofp_stat_term_global(void);
 #define OFP_UPDATE_PACKET_STAT(_s, _n) do {				\
 	struct ofp_packet_stat *st = ofp_get_packet_statistics(); \
 	if (st)							\
-		st->per_core[odp_cpu_id()]._s += _n;	\
+		st->per_thr[odp_thread_id()]._s += _n;	\
 } while (0)
 
 extern unsigned long int ofp_stat_flags;
 
-#define _UPDATE_LATENCY(_core, _current_cycle, _n) do {\
-	if (odp_time_to_ns(st->per_core[_core].last_input_cycles)) \
-		st->per_core[_core].input_latency[\
+#define _UPDATE_LATENCY(_thr, _current_cycle, _n) do {\
+	if (odp_time_to_ns(st->per_thr[_thr].last_input_cycles)) \
+		st->per_thr[_thr].input_latency[\
 			ilog2(odp_time_to_ns(odp_time_diff(\
 				_current_cycle, \
-				st->per_core[_core]\
+				st->per_thr[_thr]\
 				.last_input_cycles)))]\
 			+= _n;	\
-	st->per_core[_core].last_input_cycles = _current_cycle;\
+	st->per_thr[_thr].last_input_cycles = _current_cycle;\
 } while (0)
 
 #define OFP_UPDATE_PACKET_LATENCY_STAT(_n) do {\
@@ -40,8 +40,8 @@ extern unsigned long int ofp_stat_flags;
 		struct ofp_packet_stat *st = ofp_get_packet_statistics(); \
 		if (st)	{						\
 			odp_time_t _in_cycles = odp_time_global(); \
-			int _core = odp_cpu_id(); \
-			_UPDATE_LATENCY(_core, _in_cycles, _n);\
+			int _thr = odp_thread_id(); \
+			_UPDATE_LATENCY(_thr, _in_cycles, _n);\
 		} \
 	} \
 } while (0)

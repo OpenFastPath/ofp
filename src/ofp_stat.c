@@ -47,7 +47,7 @@ struct ofp_perf_stat *ofp_get_perf_statistics(void)
 static void ofp_perf_tmo(void *arg)
 {
 	uint64_t pps, value = 0;
-	int core;
+	int thr;
 	(void)arg;
 
 	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF)
@@ -55,8 +55,8 @@ static void ofp_perf_tmo(void *arg)
 
 	odp_mb_release();
 
-	for (core = 0; core < odp_cpu_count(); core++)
-		value += shm_stat->ofp_packet_statistics.per_core[core].rx_fp;
+	for (thr = 0; thr < odp_thread_count(); thr++)
+		value += shm_stat->ofp_packet_statistics.per_thr[thr].rx_fp;
 
 	if (value >= shm_stat->ofp_perf_stat.rx_prev_sum)
 		pps = value - shm_stat->ofp_perf_stat.rx_prev_sum;
