@@ -198,7 +198,7 @@ typedef struct ofp_global_param_t {
  * }
  * </pre>
  *
- * @params parameter structure to initialize
+ * @param params structure to initialize
  *
  * @see ofp_init_global()
  */
@@ -227,6 +227,7 @@ void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *fil
  * This function must be called once in an ODP control thread before calling any
  * other OFP API functions.
  *
+ * @param instance ODP instance
  * @param params Structure with parameters for global init of OFP API
  *
  * @retval 0 on success

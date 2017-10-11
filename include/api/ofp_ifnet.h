@@ -15,10 +15,13 @@
  * during ofp_init_global(). One can specify no interface in ofp_init_global
  * and open one by one using this functionality.
  *
+ * @param instance ODP instance
  * @param if_name Interface name to open
  * @param pktio_param Specify packet access mode for this
  *        interface
  * @param pktin_param Specify packet input queue parameters for
+ *        this interface
+ * @param pktout_param Specify packet output queue parameters for
  *        this interface
  *
  * @retval 0 on success
