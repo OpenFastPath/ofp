@@ -1170,9 +1170,11 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 	error = ofp_ip_output(m, inp->inp_options, NULL, ipflags,
 				inp->inp_moptions, inp);
 #else
-	if (ofp_ip_output(m, NULL) == OFP_PKT_DROP)
+	if (ofp_ip_output(m, NULL) == OFP_PKT_DROP) {
+		OFP_WARN("packet dropped, returning OFP_EIO");
+		odp_packet_free(m);
 		error = OFP_EIO;
-	else
+	} else
 		error = 0;
 #endif
 	if (unlock_udbinfo == UH_WLOCKED)

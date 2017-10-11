@@ -833,9 +833,11 @@ udp6_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr6,
 		error = ip6_output(m, optp, NULL, flags, inp->in6p_moptions,
 		    NULL, inp);
 #else
-		if (ofp_ip6_output(m, NULL) ==  OFP_PKT_DROP)
+		if (ofp_ip6_output(m, NULL) ==  OFP_PKT_DROP) {
+			OFP_WARN("packet dropped, returning OFP_EIO");
+			odp_packet_free(m);
 			error = OFP_EIO;
-		else
+		} else
 			error = 0;
 #endif
 		break;
