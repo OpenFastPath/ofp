@@ -45,7 +45,7 @@ that is licensed under any GPL type.
 
 Mailing list
 -------------------------------------------------------------------------------
-We have a [mailing list](http://www.openfastpath.org/mailman/listinfo/openfastpath),
+We have a [mailing list](https://list.openfastpath.org/mailman/listinfo/openfastpath),
 reached via the address: _openfastpath@list.openfastpath.org_
 
 
