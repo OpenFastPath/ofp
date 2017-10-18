@@ -2656,22 +2656,15 @@ igmp_final_leave(struct ofp_in_multi *inm, struct ofp_igmp_ifinfo *igi)
 
 static int myappend(odp_packet_t *pkt, int size, void *src)
 {
-#if 0 /* THIS CRASHES ! */
-	int off = odp_packet_len(*pkt);
-
-	*pkt = odp_packet_add_data(*pkt, off, size);
-	if (*pkt != ODP_PACKET_INVALID) {
-		odp_packet_copy_from_mem(*pkt, off, size, src);
-		return 1;
-	}
-	return 0;
-#else /* LIMITED FUNCTIONALITY! */
+	/*
+	 * TODO: Use odp_packet_add_data() instead, and handle the
+	 * segmented packets that may result.
+	 */
 	uint8_t *p = odp_packet_push_tail(*pkt, size);
 	if (!p)
 		return 0;
 	memcpy(p, src, size);
 	return 1;
-#endif
 }
 
 #define m_append(_m, _size, _src) myappend(&_m, _size, _src)
