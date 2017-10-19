@@ -1341,6 +1341,13 @@ void ofp_update_ifindex_lookup_tab(struct ofp_ifnet *ifnet)
 			ifnet->vlan;
 	}
 }
+#else
+struct ofp_ifnet *ofp_get_ifnet_by_linux_ifindex(int ix)
+{
+	(void)ix;
+
+	return NULL;
+}
 #endif /* SP */
 
 struct ofp_ifnet *ofp_get_ifnet_match(uint32_t ip,

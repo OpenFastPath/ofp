@@ -50,10 +50,8 @@ struct ofp_ifnet *ofp_vlan_alloc(void);
 
 odp_pktio_t ofp_port_pktio_get(int port);
 
-#ifdef SP
 /* LINUX interface lookup table*/
 struct ofp_ifnet *ofp_get_ifnet_by_linux_ifindex(int ix);
-#endif /* SP */
 /* Finds the node interface by the local ip assigned */
 struct ofp_ifnet *ofp_get_ifnet_match(uint32_t ip,
 					uint16_t vrf, uint16_t vlan);
