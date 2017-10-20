@@ -492,6 +492,11 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 			(void **)&dev)) {
 
 			dev = ofp_vlan_alloc();
+			if(!dev) {
+				OFP_ERR(" ! Interface allocation failed for VLAN: %d", vlan);
+				return -1;
+			}
+
 			memset(dev, 0, sizeof(struct ofp_ifnet));
 			dev->port = dev_root->port;
 			dev->vlan = vlan;
@@ -509,9 +514,6 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 		/* Update linux index in case dev was created by portconf */
 		/* when linux interface index was not available yet (cli) */
 		if (!dev->linux_index) {
-			dev->linux_index = ifinfo_entry->ifi_index;
-			ofp_update_ifindex_lookup_tab(dev);
-		} else if (dev->linux_index == 0) {
 			dev->linux_index = ifinfo_entry->ifi_index;
 			ofp_update_ifindex_lookup_tab(dev);
 		}
