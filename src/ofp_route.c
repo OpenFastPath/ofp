@@ -124,7 +124,7 @@ static struct routes_by_vrf *ofp_vrf_route_alloc(void)
 	odp_rwlock_write_unlock(&vrf_shm->vrf_mtx);
 
 	if (rt == NULL) {
-		OFP_ERR("Cannot allocate vlan!");
+		OFP_ERR("Cannot allocate VRF.");
 		return (NULL);
 	}
 
