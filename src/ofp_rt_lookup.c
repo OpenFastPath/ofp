@@ -148,7 +148,7 @@ ofp_rtl_insert(struct ofp_rtl_tree *tree, uint32_t addr_be,
 	struct ofp_rtl_node  *last = NULL;
 	uint32_t              depth;
 	uint32_t              mask = 0x80000000;
-	uint32_t              addr = (odp_be_to_cpu_32(addr_be)) & ((~0)<<(32-masklen));
+	uint32_t              addr = (odp_be_to_cpu_32(addr_be)) & ((~0U)<<(32-masklen));
 
 	depth = 0;
 	node = tree->root;
