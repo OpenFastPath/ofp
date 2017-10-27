@@ -172,7 +172,7 @@ ofp_tcp_reass(struct tcpcb *tp, struct ofp_tcphdr *th, int *tlenp, odp_packet_t 
 	struct tseg_qent *te = NULL;
 	struct socket *so = tp->t_inpcb->inp_socket;
 	char *s = NULL;
-	int flags;
+	int flags = 0;
 	struct tseg_qent tqs;
 
 	INP_WLOCK_ASSERT(tp->t_inpcb);
@@ -331,7 +331,7 @@ ofp_tcp_reass(struct tcpcb *tp, struct ofp_tcphdr *th, int *tlenp, odp_packet_t 
 				     "first element in queue", __func__));
 		OFP_LIST_INSERT_AFTER(p, te, tqe_q);
 	}
-
+	t_flags_or(tp->t_flags, TF_ACKNOW);
 present:
 	/*
 	 * Present data to user, advancing rcv_nxt through
@@ -340,12 +340,11 @@ present:
 	if (!TCPS_HAVEESTABLISHED(tp->t_state))
 		return (0);
 	q = OFP_LIST_FIRST(&tp->t_segq);
-	if (!q || q->tqe_th->th_seq != tp->rcv_nxt)
-		return (0);
 
 	SOCKBUF_LOCK(&so->so_rcv);
 
-	do {
+	while (q && sbspace(&so->so_rcv) >= q->tqe_len
+		&& q->tqe_th->th_seq == tp->rcv_nxt) {
 		tp->rcv_nxt += q->tqe_len;
 		flags = q->tqe_th->th_flags & OFP_TH_FIN;
 		nq = OFP_LIST_NEXT(q, tqe_q);
@@ -359,7 +358,7 @@ present:
 		}
 		tp->t_segqlen--;
 		q = nq;
-	} while (q && q->tqe_th->th_seq == tp->rcv_nxt);
+	};
 
 	ND6_HINT(tp);
 	sorwakeup_locked(so);
