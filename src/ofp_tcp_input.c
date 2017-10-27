@@ -1732,6 +1732,11 @@ ofp_tcp_do_segment(odp_packet_t m, struct ofp_tcphdr *th, struct socket *so,
 					    newsize, so, NULL))
 						so->so_rcv.sb_flags &= ~SB_AUTOSIZE;
 				odp_packet_pull_head(m, drop_hdrlen);	/* delayed header drop */
+
+				todrop = odp_packet_len(m) - tlen;
+				if (todrop > 0)
+					odp_packet_pull_tail(m, todrop);
+
 				ofp_sbappendstream_locked(&so->so_rcv, m);
 			}
 			/* NB: sorwakeup_locked() does an implicit unlock. */
@@ -2786,6 +2791,11 @@ dodata:							/* XXX */
 	    TCPS_HAVERCVDFIN(tp->t_state) == 0) {
 		tcp_seq save_start = th->th_seq;
 		odp_packet_pull_head(m, drop_hdrlen);	/* delayed header drop */
+
+		todrop = odp_packet_len(m) - tlen;
+		if (todrop > 0)
+			odp_packet_pull_tail(m, todrop);
+
 		/*
 		 * Insert segment which includes th into TCP reassembly queue
 		 * with control block tp.  Set thflags to whether reassembly now
