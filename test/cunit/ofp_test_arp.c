@@ -137,6 +137,8 @@ static void test_arp(void)
 	CU_ASSERT(0 == ofp_arp_ipv4_remove(ip.s_addr, &mock_ifnet));
 	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 
+#ifndef OFP_USE_LIBCK
+	/* Aging not defined in arp ck impl */
 	/* Test entry is aged out. */
 	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
 	OFP_INFO("Inserted ARP entry");
@@ -152,6 +154,7 @@ static void test_arp(void)
 	/* More than entry timeout passed, entry has aged. */
 	sleep(ENTRY_TIMEOUT*2);
 	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
+#endif
 }
 
 int main(void)

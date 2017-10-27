@@ -19,6 +19,7 @@
 #include <ck_pr.h>
 #include <odp.h>
 
+#include "api/ofp_types.h"
 #include "ofpi_portconf.h"
 #include "ofpi_arp.h"
 #include "ofpi_hash.h"
@@ -50,7 +51,8 @@ struct ofp_arp_mem {
 
 static __thread struct ofp_arp_mem *shm;
 
-static ck_epoch_t arp_epoch ODP_ALIGNED_CACHE;
+static ck_epoch_t arp_epoch;
+static ck_epoch_section_t section ODP_ALIGNED_CACHE;
 static __thread ck_epoch_record_t record ODP_ALIGNED_CACHE;
 
 static inline uint32_t ipv4_hash(struct arp_key *key)
@@ -117,7 +119,7 @@ inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	key.ipv4_addr = ipv4_addr;
 	set = ipv4_hash(&key);
 
-	ck_epoch_begin(&arp_epoch, &record);
+	ck_epoch_begin(&record, &section);
 	new = arp_lookup(&key);
 	/*
 	  TODO: when mac is changing for an existing node and read while
@@ -128,20 +130,20 @@ inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 		new->ifx = dev->port;
 		memcpy(&new->macaddr, ll_addr, ETH_ALEN);
 		odp_mb_release();
-		ck_epoch_end(&arp_epoch, &record);
+		ck_epoch_end(&record, &section);
 		return 0;
 	}
 
 	new = arp_malloc(set, &key);
 	if (odp_unlikely(new == NULL)) {
-		ck_epoch_end(&arp_epoch, &record);
+		ck_epoch_end(&record, &section);
 		return -1;
 	}
 
 	new->ifx = dev->port;
 	memcpy(&new->macaddr, ll_addr, ETH_ALEN);
 	CK_SLIST_INSERT_HEAD(&(shm->arp_table[set]), new, next);
-	ck_epoch_end(&arp_epoch, &record);
+	ck_epoch_end(&record, &section);
 
 	return 0;
 }
@@ -157,7 +159,7 @@ inline int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev)
 	key.ipv4_addr = ipv4_addr;
 	set = ipv4_hash(&key);
 
-	ck_epoch_begin(&arp_epoch, &record);
+	ck_epoch_begin(&record, &section);
 	new = arp_lookup(&key);
 
 	if (odp_likely(new != NULL)) {
@@ -165,10 +167,10 @@ inline int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev)
 		ret = 0;
 	}
 
-	ck_epoch_end(&arp_epoch, &record);
+	ck_epoch_end(&record, &section);
 	if (odp_likely(ret == 0)) {
 		/* Blocking RCU cleanup from controlplane side */
-		ck_epoch_barrier(&arp_epoch, &record);
+		ck_epoch_barrier(&record);
 		/* epoch has passed, we can now safely free object */
 		arp_free(new);
 	}
@@ -186,7 +188,7 @@ inline int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 	key.vrf = dev->vrf;
 	key.ipv4_addr = ipv4_addr;
 
-	ck_epoch_begin(&arp_epoch, &record);
+	ck_epoch_begin(&record, &section);
 	new = arp_lookup(&key);
 
 	if (odp_likely(new != NULL)) {
@@ -195,7 +197,7 @@ inline int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 	} else {
 		ret = -1;
 	}
-	ck_epoch_end(&arp_epoch, &record);
+	ck_epoch_end(&record, &section);
 
 	return ret;
 }
@@ -213,30 +215,26 @@ void ofp_arp_show_table(int fd)
 {
 	uint32_t i, j;
 
-	ck_epoch_begin(&arp_epoch, &record);
+	ck_epoch_begin(&record, &section);
 	for (i = 0; i < NUM_SETS; ++i)
 		for (j = 0; j < ENTRIES_PER_SET; ++j)
 			show_arp_entry(fd, i, j);
-	ck_epoch_end(&arp_epoch, &record);
+	ck_epoch_end(&record, &section);
 }
 
 /*
  * TODO, stubs
  */
-int ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
-			    uint32_t ipv4_addr, struct ofp_ifnet *dev)
+
+enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
+					   uint32_t ipv4_addr, struct ofp_ifnet *dev)
 {
 	(void) pkt;
 	(void) nh_param;
 	(void) ipv4_addr;
 	(void) dev;
 
-	return OFP_DROP;
-}
-
-void ofp_arp_cleanup(void *arg)
-{
-	(void) arg;
+	return OFP_PKT_DROP;
 }
 
 void ofp_arp_show_saved_packets(int fd)
@@ -261,7 +259,7 @@ static int ofp_arp_alloc_shared_memory(void)
 	return 0;
 }
 
-static int void ofp_arp_free_shared_memory(void)
+static int ofp_arp_free_shared_memory(void)
 {
 	int rc = 0;
 
@@ -288,8 +286,11 @@ void ofp_arp_init_prepare(void)
 	ofp_shared_memory_prealloc(SHM_NAME_ARP_CK, sizeof(*shm));
 }
 
-int ofp_arp_init_global(void)
+int ofp_arp_init_global(int age_interval, int entry_timeout)
 {
+	(void)age_interval;
+	(void)entry_timeout;
+
 	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
 
 	memset(shm, 0, sizeof(*shm));

@@ -512,8 +512,12 @@ test_ofp_packet_input_send_arp(void)
 
 	res = ofp_packet_input(pkt, interface_queue[port],
 		ofp_eth_vlan_processing);
+#ifdef OFP_USE_LIBCK
+	/* Saving pkt not implemented in arp ck */
+	CU_ASSERT_EQUAL(res, OFP_PKT_DROP);
+#else
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
-
+#endif
 	res = ofp_send_pending_pkt();
 	CU_ASSERT_EQUAL(res, OFP_PKT_PROCESSED);
 	odp_packet_free(pkt);

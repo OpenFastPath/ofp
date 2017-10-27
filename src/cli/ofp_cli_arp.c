@@ -38,8 +38,12 @@ void f_arp_cleanup(struct cli_conn *conn, const char *s)
 	int cli = 1;
 
 	(void)s;
-
+#ifdef OFP_USE_LIBCK
+	(void)cli;
+	/* Aging not defined in arp ck impl */
+#else
 	ofp_arp_age_cb(&cli);
+#endif
 	sendcrlf(conn);
 }
 
