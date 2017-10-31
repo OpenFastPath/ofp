@@ -508,7 +508,11 @@ ofp_udp_input(odp_packet_t m, int off)
 			if (inp)
 				INP_RUNLOCK(inp);
 			INP_INFO_RUNLOCK(&ofp_udbinfo);
+#ifndef SP
 			goto badunlocked;
+#else
+			return OFP_PKT_CONTINUE;
+#endif
 		}
 		udp_append(last, ip, m, iphlen, &udp_in);
 		INP_RUNLOCK(last);
