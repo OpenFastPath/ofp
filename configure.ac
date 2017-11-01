@@ -199,6 +199,8 @@ LIBS="$ODP_LIBS $ODPHELPER_LIBS $LIBS"
 LDFLAGS=$OLD_LDFLAGS
 CPPFLAGS=$OLD_CPPFLAGS
 
+AM_CPPFLAGS="$AM_CPPFLAGS -DINET"
+
 # Enable/disable OFP_DEBUG
 ofp_debug=no
 AC_ARG_ENABLE([debug],
@@ -217,6 +219,7 @@ AC_ARG_ENABLE([ipv6],
         *) AC_MSG_ERROR([bad value ${enableval} for --enable-ipv6]) ;;
     esac],[ipv6_support=true])
 AM_CONDITIONAL([OFP_IPv6], [test x$ipv6_support = xtrue])
+AM_COND_IF([OFP_IPv6], [AM_CPPFLAGS="$AM_CPPFLAGS -DINET6"])
 
 # Enable/disable Slow Path processing
 AC_ARG_ENABLE([sp],
@@ -227,6 +230,7 @@ AC_ARG_ENABLE([sp],
         *) AC_MSG_ERROR([bad value ${enableval} for --enable-sp]) ;;
     esac],[sp_support=true])
 AM_CONDITIONAL([OFP_SP], [test x$sp_support = xtrue])
+AM_COND_IF([OFP_SP], [AM_CPPFLAGS="$AM_CPPFLAGS -DSP"])
 
 # Enable/disable libCK use
 AC_ARG_ENABLE([libck],
@@ -237,6 +241,7 @@ AC_ARG_ENABLE([libck],
         *) AC_MSG_ERROR([bad value ${enableval} for --enable-libck]) ;;
     esac],[use_ck=false])
 AM_CONDITIONAL([OFP_USE_LIBCK], [test x$use_ck = xtrue])
+AM_COND_IF([OFP_USE_LIBCK], [AM_CPPFLAGS="$AM_CPPFLAGS -DOFP_USE_LIBCK"])
 
 # Enable/disable MTRIE IPv4 use
 AC_ARG_ENABLE([mtrie],
@@ -247,6 +252,7 @@ AC_ARG_ENABLE([mtrie],
         *) AC_MSG_ERROR([bad value ${enableval} for --enable-mtrie]) ;;
     esac],[use_mtrie=true])
 AM_CONDITIONAL([OFP_MTRIE], [test x$use_mtrie = xtrue])
+AM_COND_IF([OFP_MTRIE], [AM_CPPFLAGS="$AM_CPPFLAGS -DMTRIE"])
 
 # Enable/disable libconfig use
 AC_ARG_ENABLE([libconfig],
@@ -257,6 +263,7 @@ AC_ARG_ENABLE([libconfig],
         *) AC_MSG_ERROR([bad value ${enableval} for --enable-libconfig]) ;;
     esac],[use_libconfig=true])
 AM_CONDITIONAL([OFP_USE_LIBCONFIG], [test x$use_libconfig = xtrue])
+AM_COND_IF([OFP_USE_LIBCONFIG], [AM_CPPFLAGS="$AM_CPPFLAGS -DOFP_USE_LIBCONFIG"])
 
 
 ##########################################################################

@@ -13,7 +13,6 @@ AM_LDFLAGS += -version-number '$(LIBOFP_VERSION)'
 
 AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api
-AM_CFLAGS +=  -DINET
 AM_CFLAGS +=  $(VISIBILITY_CFLAGS)
 
 __LIB__libofp_la_SOURCES = \
@@ -78,8 +77,6 @@ ofp_uma.c \
 ofp_epoll.c
 
 if OFP_USE_LIBCK
-AM_CFLAGS +=  -DOFP_USE_LIBCK
-
 __LIB__libofp_la_SOURCES += \
 ofp_arp_ck.c
 else
@@ -88,13 +85,10 @@ ofp_arp.c
 endif
 
 if OFP_USE_LIBCONFIG
-AM_CFLAGS += -DOFP_USE_LIBCONFIG
 AM_CFLAGS += -DOFP_DEFAULT_CONF_FILE="\"$(sysconfdir)/ofp.conf\""
 endif
 
 if OFP_SP
-AM_CFLAGS +=  -DSP
-
 __LIB__libofp_la_SOURCES += \
 ofp_netlink.c \
 ofp_quagga.c \
@@ -102,8 +96,6 @@ ofp_tunthread.c
 endif
 
 if OFP_IPv6
-AM_CFLAGS +=  -DINET6
-
 __LIB__libofp_la_SOURCES += \
 ofp_ip6_init.c \
 ofp_in6_proto.c \
@@ -116,8 +108,6 @@ ofp_nd6.c
 endif
 
 if OFP_MTRIE
-AM_CFLAGS +=  -DMTRIE
-
 __LIB__libofp_la_SOURCES += \
 ofp_rt_mtrie_lookup.c
 else
