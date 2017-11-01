@@ -137,7 +137,7 @@ AC_ARG_WITH([odp],
     [# extend the compiler and linker flags according to the path set
      AM_CPPFLAGS="$AM_CPPFLAGS -I$with_odp/include"
      AM_LDFLAGS="$AM_LDFLAGS -L$with_odp/lib"
-     export PKG_CONFIG_PATH=$with_odp/lib/pkgconfig],
+     export PKG_CONFIG_PATH="$with_odp/lib/pkgconfig:$PKG_CONFIG_PATH"],
     [])
 
 # introduce optional configure parameter for odp library name
