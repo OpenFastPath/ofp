@@ -1587,7 +1587,7 @@ static int ofp_portconf_alloc_shared_memory(void)
 }
 
 #define SHM_SIZE_VLAN (sizeof(struct ofp_vlan_mem) + \
-		       sizeof(struct ofp_ifnet) * OFP_NUM_VLAN_MAX)
+		       sizeof(struct ofp_ifnet) * global_param->num_vlan)
 
 static int ofp_vlan_alloc_shared_memory(void)
 {
@@ -1753,8 +1753,8 @@ int ofp_vlan_init_global(void)
 	/* init vlan shared memory */
 	HANDLE_ERROR(ofp_vlan_alloc_shared_memory());
 	memset(vlan_shm, 0, sizeof(*vlan_shm));
-	for (i = 0; i < OFP_NUM_VLAN_MAX; i++) {
-		vlan_shm->vlan_ifnet[i].next = (i == OFP_NUM_VLAN_MAX - 1) ?
+	for (i = 0; i < global_param->num_vlan; i++) {
+		vlan_shm->vlan_ifnet[i].next = (i == global_param->num_vlan - 1) ?
 			NULL : &(vlan_shm->vlan_ifnet[i+1]);
 	}
 	vlan_shm->free_ifnet_list = &(vlan_shm->vlan_ifnet[0]);

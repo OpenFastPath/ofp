@@ -153,6 +153,11 @@ typedef struct ofp_global_param_t {
 		 */
 		unsigned long buffer_size;
 	} pkt_pool;
+
+	/**
+	 * Maximum number of VLANs. Default is OFP_NUM_VLAN.
+	 */
+	int num_vlan;
 } ofp_global_param_t;
 
 /**
@@ -195,6 +200,7 @@ typedef struct ofp_global_param_t {
  *         nb_pkts = integer
  *         buffer_size = integer
  *     }
+ *     num_vlan = integer
  * }
  * </pre>
  *
