@@ -57,6 +57,9 @@ static int cleanup(void)
 	return 0;
 }
 
+void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *filename);
+ofp_global_param_t ofp_global_param;
+extern __thread ofp_global_param_t *global_param;
 static void prevent_freeing_of(struct ofp_rtl_node *root);
 static void setup(void)
 {
@@ -64,6 +67,8 @@ static void setup(void)
 	prevent_freeing_of(root);
 	tree.vrf = 1;
 	data.port = 313;
+	global_param = &ofp_global_param;
+	ofp_init_global_param_from_file(global_param, "");
 }
 
 static void *allocator(const char *name, uint64_t size);
@@ -292,7 +297,7 @@ static void test_adding_rule_when_rule_table_full(void)
 
 	add_rule(0, 24, 0);
 	add_rule(0, 16, 0);
-	for (i = 0; i < ROUTE4_RULE_LIST_SIZE-2; ++i)
+	for (i = 0; i < OFP_ROUTES-2; ++i)
 		add_rule(2+i, 24, 0);
 
 	add_rule(1, 1, 1);

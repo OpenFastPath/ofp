@@ -23,18 +23,26 @@
 
 #define SHM_NAME_RT_LOOKUP_MTRIE	"OfpRtlookupMtrieShMem"
 
-#define NUM_RT_RULES                    ROUTE4_RULE_LIST_SIZE
-#define NUM_NODES			ROUTE4_MTRIE8_TABLE_NODES
-#define NUM_NODES_LARGE			ROUTE4_MTRIE16_TABLE_NODES
+#define NUM_RT_RULES			global_param->mtrie.routes
+#define NUM_NODES			global_param->mtrie.table8_nodes
+#define NUM_NODES_LARGE			global_param->mtrie.table16_nodes
 
 #define NUM_NODES_6			ROUTE6_NODES
+
+#define SMALL_NODE (1<<IPV4_LEVEL)
+#define LARGE_NODE (1<<IPV4_FIRST_LEVEL)
+#define SIZEOF_SMALL_LIST (sizeof(struct ofp_rtl_node)*NUM_NODES*SMALL_NODE)
+#define SIZEOF_LARGE_LIST (sizeof(struct ofp_rtl_node)*NUM_NODES_LARGE*LARGE_NODE)
+#define SHM_SIZE_RT_LOOKUP_MTRIE					\
+	(sizeof(*shm) +	SIZEOF_SMALL_LIST + SIZEOF_LARGE_LIST +		\
+	 sizeof(struct ofp_rt_rule)*NUM_RT_RULES)
 
 /*
  * Shared data
  */
 
 struct ofp_rt_rule_table {
-	struct ofp_rt_rule  rules[NUM_RT_RULES];
+	struct ofp_rt_rule *rules;
 	struct ofp_rt_rule *free_rule;
 	uint32_t rule_allocated;
 	uint32_t max_rule_allocated;
@@ -42,8 +50,8 @@ struct ofp_rt_rule_table {
 };
 
 struct ofp_rt_lookup_mem {
-	struct ofp_rtl_node small_list[NUM_NODES][1<<IPV4_LEVEL];
-	struct ofp_rtl_node large_list[NUM_NODES_LARGE][1<<IPV4_FIRST_LEVEL];
+	struct ofp_rtl_node *small_list;
+	struct ofp_rtl_node *large_list;
 	struct ofp_rtl_tailq free_small;
 	struct ofp_rtl_node *free_large;
 
@@ -808,7 +816,7 @@ void ofp_print_rt_stat(int fd)
 
 static int ofp_rt_lookup_alloc_shared_memory(void)
 {
-	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
+	shm = ofp_shared_memory_alloc(SHM_NAME_RT_LOOKUP_MTRIE, SHM_SIZE_RT_LOOKUP_MTRIE);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
@@ -841,7 +849,7 @@ int ofp_rt_lookup_lookup_shared_memory(void)
 
 void ofp_rt_lookup_init_prepare(void)
 {
-	ofp_shared_memory_prealloc(SHM_NAME_RT_LOOKUP_MTRIE, sizeof(*shm));
+	ofp_shared_memory_prealloc(SHM_NAME_RT_LOOKUP_MTRIE, SHM_SIZE_RT_LOOKUP_MTRIE);
 }
 
 int ofp_rt_lookup_init_global(void)
@@ -850,18 +858,22 @@ int ofp_rt_lookup_init_global(void)
 
 	HANDLE_ERROR(ofp_rt_lookup_alloc_shared_memory());
 
-	memset(shm, 0, sizeof(*shm));
+	memset(shm, 0, SHM_SIZE_RT_LOOKUP_MTRIE);
+
+	shm->small_list = (struct ofp_rtl_node *)((char *)shm+sizeof(*shm));
+	shm->large_list = (struct ofp_rtl_node *)((char *)shm->small_list+SIZEOF_SMALL_LIST);
+	shm->rt_rule_table.rules = (struct ofp_rt_rule *)((char *)shm->large_list+SIZEOF_LARGE_LIST);
 
 	for (i = 0; i < NUM_NODES; i++)
-		shm->small_list[i][0].next = (i == NUM_NODES - 1) ?
-			NULL : &(shm->small_list[i+1][0]);
-	shm->free_small.first = &shm->small_list[0][0];
-	shm->free_small.last = &shm->small_list[NUM_NODES - 1][0];
+		shm->small_list[i * SMALL_NODE].next = (i == NUM_NODES - 1) ?
+			NULL : &(shm->small_list[(i + 1) * SMALL_NODE]);
+	shm->free_small.first = &shm->small_list[0];
+	shm->free_small.last = &shm->small_list[(NUM_NODES - 1) * SMALL_NODE];
 
 	for (i = 0; i < NUM_NODES_LARGE; i++)
-		shm->large_list[i][0].next = (i == NUM_NODES_LARGE - 1) ?
-			NULL : &(shm->large_list[i+1][0]);
-	shm->free_large = shm->large_list[0];
+		shm->large_list[i * LARGE_NODE].next = (i == NUM_NODES_LARGE - 1) ?
+			NULL : &(shm->large_list[(i + 1) * LARGE_NODE]);
+	shm->free_large = shm->large_list;
 
 	for (i = 0; i < NUM_NODES_6; i++) {
 		shm->node_list6[i].left = (i == 0) ?

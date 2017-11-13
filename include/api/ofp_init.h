@@ -158,6 +158,18 @@ typedef struct ofp_global_param_t {
 	 * Maximum number of VLANs. Default is OFP_NUM_VLAN.
 	 */
 	int num_vlan;
+
+	/**
+	 * IPv4 route mtrie parameters.
+	 */
+	struct mtrie_s {
+		/** Number of routes. Default is OFP_ROUTES. */
+		int routes;
+		/** Number of 16 bit mtrie nodes. Default is OFP_MTRIE_TABLE16_NODES. */
+		int table16_nodes;
+		/** Number of 8 bit mtrie nodes. Default is OFP_MTRIE_TABLE8_NODES. */
+		int table8_nodes;
+	} mtrie;
 } ofp_global_param_t;
 
 /**
@@ -201,6 +213,11 @@ typedef struct ofp_global_param_t {
  *         buffer_size = integer
  *     }
  *     num_vlan = integer
+ *     mtrie: {
+ *         routes = integer
+ *         table16_nodes = integer
+ *         table8_nodes = integer
+ *     }
  * }
  * </pre>
  *

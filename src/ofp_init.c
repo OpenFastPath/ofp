@@ -231,6 +231,9 @@ static void read_conf_file(ofp_global_param_t *params, const char *filename)
 	GET_CONF_INT(int, pkt_pool.nb_pkts);
 	GET_CONF_INT(int, pkt_pool.buffer_size);
 	GET_CONF_INT(int, num_vlan);
+	GET_CONF_INT(int, mtrie.routes);
+	GET_CONF_INT(int, mtrie.table16_nodes);
+	GET_CONF_INT(int, mtrie.table8_nodes);
 
 done:
 	config_destroy(&conf);
@@ -257,6 +260,9 @@ void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *fil
 	params->pkt_pool.buffer_size = SHM_PKT_POOL_BUFFER_SIZE;
 	params->pkt_tx_burst_size = OFP_PKT_TX_BURST_SIZE;
 	params->num_vlan = OFP_NUM_VLAN;
+	params->mtrie.routes = OFP_ROUTES;
+	params->mtrie.table16_nodes = OFP_MTRIE_TABLE16_NODES;
+	params->mtrie.table8_nodes = OFP_MTRIE_TABLE8_NODES;
 	read_conf_file(params, filename);
 }
 

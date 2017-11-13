@@ -120,12 +120,12 @@
 
 /**Controls memory size for IPv4 MTRIE 16/8/8 data structure.
  * It defines the number of large tables (16) used to store routes.*/
-#define ROUTE4_MTRIE16_TABLE_NODES 8
+#define OFP_MTRIE_TABLE16_NODES 8
 /**Controls memory size for IPv4 MTRIE 16/8/8 data structure.
  * It defines the number of small tables (8) used to store routes.*/
-#define ROUTE4_MTRIE8_TABLE_NODES 128
+#define OFP_MTRIE_TABLE8_NODES 128
 /** Defines the maximum number of routes that are stored in the MTRIE.*/
-#define ROUTE4_RULE_LIST_SIZE 65536
+#define OFP_ROUTES 65536
 
 /** Number of VRFs. */
 #define VRF_ROUTES 65536
