@@ -434,6 +434,7 @@ enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
 	struct ofp_ip6_hdr *ipv6;
 	struct ofp_nh6_entry *nh;
 	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
+	int is_ours = 0;
 
 	ipv6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(pkt, NULL);
 
@@ -447,6 +448,16 @@ enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
 		(const void *)((uintptr_t)ipv6->ip6_dst.ofp_s6_addr + 8),
 			2 * sizeof(uint32_t)) == 0)) {
 
+			is_ours = 1;
+	}
+	/* check if it's ours for another ipv6 address */
+	if (!is_ours) {
+		nh = ofp_get_next_hop6(dev->vrf, ipv6->ip6_dst.ofp_s6_addr, &flags);
+		if (nh && (nh->flags & OFP_RTF_LOCAL))
+			is_ours = 1;
+	}
+
+	if (is_ours) {
 		OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
 		if (res != OFP_PKT_CONTINUE) {
 			OFP_DBG("OFP_HOOK_LOCAL returned %d", res);
