@@ -31,24 +31,34 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "api/ofp_config.h"
+#include "ofpi_init.h"
 #include "ofpi_avl.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 
 #define SHM_NAME_AVL "OfpAvlShMem"
 
+#define NUM_TREES 64
+
+#ifdef MTRIE
+#define NUM_NODES ((uint32_t)(NUM_TREES + VRF_ROUTES + global_param->num_vlan + global_param->mtrie.routes))
+#else
+#define NUM_NODES ((uint32_t)(NUM_TREES + VRF_ROUTES + global_param->num_vlan))
+#endif
+
+#define SHM_SIZE_AVL (sizeof(struct ofp_avl_mem) + sizeof(avl_node) * NUM_NODES)
+
 /*
  * Shared data
  */
 struct ofp_avl_mem {
-#define NUM_NODES (65536*2)
-	avl_node node_list[NUM_NODES];
 	avl_node *free_nodes;
-#define NUM_TREES 64
 	avl_tree trees[NUM_TREES];
 	avl_tree *free_trees;
 	int tree_cnt;
 	int nodes_allocated, max_nodes_allocated;
+	avl_node node_list[0];
 };
 
 /*
@@ -1283,13 +1293,13 @@ void ofp_print_avl_stat(int fd)
 
 static int ofp_avl_alloc_shared_memory(void)
 {
-	shm = ofp_shared_memory_alloc(SHM_NAME_AVL, sizeof(*shm));
+	shm = ofp_shared_memory_alloc(SHM_NAME_AVL, SHM_SIZE_AVL);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
 	}
 
-	memset(shm, 0, sizeof(*shm));
+	memset(shm, 0, SHM_SIZE_AVL);
 
 	return 0;
 }
@@ -1319,7 +1329,7 @@ int ofp_avl_lookup_shared_memory(void)
 
 void ofp_avl_init_prepare(void)
 {
-	ofp_shared_memory_prealloc(SHM_NAME_AVL, sizeof(*shm));
+	ofp_shared_memory_prealloc(SHM_NAME_AVL, SHM_SIZE_AVL);
 }
 
 int ofp_avl_init_global(void)
@@ -1327,8 +1337,6 @@ int ofp_avl_init_global(void)
 	uint32_t i;
 
 	HANDLE_ERROR(ofp_avl_alloc_shared_memory());
-
-	memset(shm, 0, sizeof(*shm));
 
 	for (i = 0; i < NUM_NODES; i++)
 		shm->node_list[i].right = (i == NUM_NODES - 1) ?
