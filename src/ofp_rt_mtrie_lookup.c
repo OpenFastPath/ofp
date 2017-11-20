@@ -25,7 +25,7 @@
 
 #define NUM_RT_RULES			global_param->mtrie.routes
 #define NUM_NODES			global_param->mtrie.table8_nodes
-#define NUM_NODES_LARGE			global_param->mtrie.table16_nodes
+#define NUM_NODES_LARGE			global_param->num_vrf
 
 #define NUM_NODES_6			ROUTE6_NODES
 

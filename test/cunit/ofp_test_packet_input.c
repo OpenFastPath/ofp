@@ -267,6 +267,7 @@ init_suite(void)
 
 	ofp_init_global_param(&params);
 	params.enable_nl_thread = 0;
+	params.num_vrf = 2;
 	memset(params.pkt_hook, 0, sizeof(params.pkt_hook));
 	params.pkt_hook[OFP_HOOK_LOCAL]    = fastpath_local_hook;
 	params.pkt_hook[OFP_HOOK_LOCAL_IPv4]    = fastpath_local_IPv4_hook;

@@ -165,8 +165,6 @@ typedef struct ofp_global_param_t {
 	struct mtrie_s {
 		/** Number of routes. Default is OFP_ROUTES. */
 		int routes;
-		/** Number of 16 bit mtrie nodes. Default is OFP_MTRIE_TABLE16_NODES. */
-		int table16_nodes;
 		/** Number of 8 bit mtrie nodes. Default is OFP_MTRIE_TABLE8_NODES. */
 		int table8_nodes;
 	} mtrie;
@@ -220,7 +218,6 @@ typedef struct ofp_global_param_t {
  *     num_vlan = integer
  *     mtrie: {
  *         routes = integer
- *         table16_nodes = integer
  *         table8_nodes = integer
  *     }
  *     num_vrf = integer

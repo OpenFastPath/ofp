@@ -119,16 +119,13 @@
 #define OFP_PKT_TX_BURST_SIZE 1
 
 /**Controls memory size for IPv4 MTRIE 16/8/8 data structure.
- * It defines the number of large tables (16) used to store routes.*/
-#define OFP_MTRIE_TABLE16_NODES 8
-/**Controls memory size for IPv4 MTRIE 16/8/8 data structure.
  * It defines the number of small tables (8) used to store routes.*/
 #define OFP_MTRIE_TABLE8_NODES 128
 /** Defines the maximum number of routes that are stored in the MTRIE.*/
 #define OFP_ROUTES 65536
 
 /** Number of VRFs. */
-#define OFP_NUM_VRF 65536
+#define OFP_NUM_VRF 1
 
 /**Controls memory size for IPv4 radix tree data structure.
  * It defines the number of radix tree nodes used to store routes.*/
