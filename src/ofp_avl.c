@@ -42,9 +42,9 @@
 #define NUM_TREES 64
 
 #ifdef MTRIE
-#define NUM_NODES ((uint32_t)(NUM_TREES + VRF_ROUTES + global_param->num_vlan + global_param->mtrie.routes))
+#define NUM_NODES ((uint32_t)(NUM_TREES + global_param->num_vrf + global_param->num_vlan + global_param->mtrie.routes))
 #else
-#define NUM_NODES ((uint32_t)(NUM_TREES + VRF_ROUTES + global_param->num_vlan))
+#define NUM_NODES ((uint32_t)(NUM_TREES + global_param->num_vrf + global_param->num_vlan))
 #endif
 
 #define SHM_SIZE_AVL (sizeof(struct ofp_avl_mem) + sizeof(avl_node) * NUM_NODES)

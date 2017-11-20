@@ -591,7 +591,7 @@ int ofp_route_lookup_shared_memory(void)
 }
 
 #define SHM_SIZE_VRF_ROUTE  (sizeof(struct vrf_route_mem) + \
-			     sizeof(struct routes_by_vrf) * VRF_ROUTES)
+			     sizeof(struct routes_by_vrf) * global_param->num_vrf)
 
 static int ofp_vrf_route_alloc_shared_memory(void)
 {
@@ -673,8 +673,8 @@ int ofp_route_init_global(void)
 			&shm->pkt6.entries[i], next);
 
 	memset(vrf_shm, 0, sizeof(*vrf_shm));
-	for (i = 0; i < VRF_ROUTES; i++) {
-		vrf_shm->routes[i].next = (i == VRF_ROUTES - 1) ?
+	for (i = 0; i < global_param->num_vrf; i++) {
+		vrf_shm->routes[i].next = (i == global_param->num_vrf - 1) ?
 			NULL : &(vrf_shm->routes[i+1]);
 	}
 	vrf_shm->free_routes = &(vrf_shm->routes[0]);

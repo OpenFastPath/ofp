@@ -128,7 +128,7 @@
 #define OFP_ROUTES 65536
 
 /** Number of VRFs. */
-#define VRF_ROUTES 65536
+#define OFP_NUM_VRF 65536
 
 /**Controls memory size for IPv4 radix tree data structure.
  * It defines the number of radix tree nodes used to store routes.*/

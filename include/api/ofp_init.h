@@ -170,6 +170,11 @@ typedef struct ofp_global_param_t {
 		/** Number of 8 bit mtrie nodes. Default is OFP_MTRIE_TABLE8_NODES. */
 		int table8_nodes;
 	} mtrie;
+
+	/**
+	 * Maximum number of VRFs. Default is OFP_NUM_VRF.
+	 */
+	int num_vrf;
 } ofp_global_param_t;
 
 /**
@@ -218,6 +223,7 @@ typedef struct ofp_global_param_t {
  *         table16_nodes = integer
  *         table8_nodes = integer
  *     }
+ *     num_vrf = integer
  * }
  * </pre>
  *
