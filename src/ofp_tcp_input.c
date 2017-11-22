@@ -582,6 +582,7 @@ ofp_tcp_input(odp_packet_t m, int off0)
 	odp_packet_pull_head(m, odp_packet_l3_offset(m));
 	odp_packet_l2_offset_set(m, 0);
 	odp_packet_l3_offset_set(m, 0);
+	odp_packet_l4_offset_set(m, off0);
 
 #ifdef INET6
 	isipv6 = (((struct ofp_ip *)odp_packet_data(m))->ip_v == 6) ? 1 : 0;
