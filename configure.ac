@@ -116,6 +116,7 @@ AC_CONFIG_FILES([
 	scripts/Makefile
 	test/Makefile
 	test/cunit/Makefile
+	test/benchmark/Makefile
 	])
 
 AC_ARG_ENABLE([lto],

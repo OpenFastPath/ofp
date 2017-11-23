@@ -1,4 +1,4 @@
-SUBDIRS = .
+SUBDIRS = . benchmark
 
 if OFP_CUNIT_ENABLED
 SUBDIRS += cunit
