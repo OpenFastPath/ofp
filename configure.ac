@@ -267,6 +267,18 @@ AM_CONDITIONAL([OFP_USE_LIBCONFIG], [test x$use_libconfig = xtrue])
 AM_COND_IF([OFP_USE_LIBCONFIG], [AM_CPPFLAGS="$AM_CPPFLAGS -DOFP_USE_LIBCONFIG"])
 
 
+# Enable/disable CLI use
+AC_ARG_ENABLE([cli],
+    [  --enable-cli         Enable/disable use of ofp cli],
+    [case "${enableval}" in
+        yes) use_cli=true ;;
+        no)  use_cli=false ;;
+        *) AC_MSG_ERROR([bad value ${enableval} for --enable-cli]) ;;
+    esac],[use_cli=true])
+AM_CONDITIONAL([OFP_CLI], [test x$use_cli = xtrue])
+AM_COND_IF([OFP_CLI], [AM_CPPFLAGS="$AM_CPPFLAGS -DCLI"])
+
+
 ##########################################################################
 # Enable/disable Unit tests
 ##########################################################################

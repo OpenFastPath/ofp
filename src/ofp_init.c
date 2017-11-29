@@ -17,6 +17,8 @@
 #include <unistd.h>
 #include <odp.h>
 
+#include "ofp_cli.h"
+
 #include "ofpi.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_util.h"
@@ -27,7 +29,6 @@
 #include "ofpi_rt_lookup.h"
 #include "ofpi_arp.h"
 #include "ofpi_avl.h"
-#include "ofpi_cli.h"
 #include "ofpi_pkt_processing.h"
 #include "ofpi_ifnet.h"
 #include "ofpi_ip.h"
@@ -469,9 +470,10 @@ int ofp_term_global(void)
 	struct ofp_ifnet *ifnet;
 
 	ofp_stop_processing();
-
+#ifdef CLI
 	/* Terminate CLI thread*/
 	CHECK_ERROR(ofp_stop_cli_thread(), rc);
+#endif
 
 #ifdef SP
 	/* Terminate Netlink thread*/

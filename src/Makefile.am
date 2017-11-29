@@ -23,14 +23,6 @@ ofp_log.c \
 ofp_debug.c \
 ofp_debug_pcap.c \
 ofp_debug_print.c \
-cli/ofp_cli_route.c \
-cli/ofp_cli_debug.c \
-cli/ofp_cli_log.c \
-cli/ofp_cli_arp.c \
-cli/ofp_cli_alias.c \
-cli/ofp_cli_stat.c \
-cli/ofp_cli_ifconfig.c \
-cli/ofp_cli_sysctl.c \
 cli/ofp_cli.c \
 ofp_hash.c \
 ofp_icmp.c \
@@ -113,4 +105,17 @@ ofp_rt_mtrie_lookup.c
 else
 __LIB__libofp_la_SOURCES += \
 ofp_rt_lookup.c
+endif
+
+if OFP_CLI
+
+__LIB__libofp_la_SOURCES += \
+cli/ofp_cli_route.c \
+cli/ofp_cli_debug.c \
+cli/ofp_cli_log.c \
+cli/ofp_cli_arp.c \
+cli/ofp_cli_alias.c \
+cli/ofp_cli_stat.c \
+cli/ofp_cli_ifconfig.c \
+cli/ofp_cli_sysctl.c
 endif
