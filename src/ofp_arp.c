@@ -22,6 +22,8 @@
 #include "ofpi_util.h"
 
 #define SHM_NAME_ARP "OfpArpShMem"
+#define SHM_SIZE_ARP (sizeof(struct ofp_arp_mem) + \
+		      sizeof(struct arp_entry) * NUM_ARPS)
 
 /* Default ARP age interval (in seconds). If set to 0, then age interval is half of OFP_ARP_ENTRY_TIMEOUT. */
 #define ARP_AGE_INTERVAL 0
@@ -32,7 +34,7 @@
 
 #define NUM_SETS OFP_ARP_TABLE_ENTRIES
 /* Plus one because zeroth entry is used as the invalid entry. */
-#define NUM_ARPS OFP_ARP_ENTRIES + 1
+#define NUM_ARPS (global_param->arp.entries + 1)
 #define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * US_PER_SEC)
 #define SAVED_PKT_TIMEOUT (OFP_ARP_SAVED_PKT_TIMEOUT * US_PER_SEC)
 #define AGE_DIVISOR 2
@@ -53,7 +55,7 @@ struct arp_entry_tailq {
 }; /* OFP_STAILQ_HEAD */
 
 struct _arp {
-	struct arp_entry entries[NUM_ARPS] ODP_ALIGNED_CACHE;
+	struct arp_entry *entries;
 	struct arp_entry_tailq free_entries;
 	struct arp_entry_tailq table[NUM_SETS] ODP_ALIGNED_CACHE;
 	struct arp_cache cache[NUM_SETS] ODP_ALIGNED_CACHE;
@@ -604,7 +606,7 @@ int ofp_arp_init_tables(void)
 
 static int ofp_arp_alloc_shared_memory(void)
 {
-	shm = ofp_shared_memory_alloc(SHM_NAME_ARP, sizeof(*shm));
+	shm = ofp_shared_memory_alloc(SHM_NAME_ARP, SHM_SIZE_ARP);
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
@@ -626,7 +628,7 @@ static int ofp_arp_free_shared_memory(void)
 
 void ofp_arp_init_prepare(void)
 {
-	ofp_shared_memory_prealloc(SHM_NAME_ARP, sizeof(*shm));
+	ofp_shared_memory_prealloc(SHM_NAME_ARP, SHM_SIZE_ARP);
 }
 
 int ofp_arp_init_global(void)
@@ -638,8 +640,9 @@ int ofp_arp_init_global(void)
 
 	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
 
-	memset(shm, 0, sizeof(*shm));
+	memset(shm, 0, SHM_SIZE_ARP);
 	shm->age_timer = ODP_TIMER_INVALID;
+	shm->arp.entries = (struct arp_entry *)((char *)shm + sizeof(*shm));
 
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_init(&shm->arp.table_rwlock[i]);

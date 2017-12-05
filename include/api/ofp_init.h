@@ -107,6 +107,9 @@ typedef struct ofp_global_param_t {
 	 * Global ARP parameters.
 	 */
 	struct arp_s {
+		/** Maximum number of ARP entries. Default is OFP_ARP_ENTRIES. */
+		int entries;
+
 		/** Entry timeout in seconds. Default is OFP_ARP_ENTRY_TIMEOUT. */
 		int entry_timeout;
 
@@ -205,6 +208,7 @@ typedef struct ofp_global_param_t {
  *     sched_group = "all | "worker" | "control"
  *     enable_nl_thread = boolean
  *     arp: {
+ *         entries = integer
  *         entry_timeout = integer
  *         check_interface = boolean
  *     }

@@ -138,7 +138,7 @@
 /**ARP entry hash table size. Must be power of two. */
 #define OFP_ARP_TABLE_ENTRIES 2048
 /**Total number of ARP entries that can be stored. */
-#define OFP_ARP_ENTRIES (NUM_SETS * 4)
+#define OFP_ARP_ENTRIES 128
 /**Default ARP entry timeout (in seconds). */
 #define OFP_ARP_ENTRY_TIMEOUT 1200
 /**Time interval(s) while a packet is saved and waiting for an ARP reply. */

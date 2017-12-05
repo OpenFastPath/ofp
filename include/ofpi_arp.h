@@ -55,7 +55,7 @@ struct arp_entry {
 	struct pkt_list pkt_list_head;
 	odp_timer_t pkt_tmo;
 	OFP_STAILQ_ENTRY(arp_entry) next;
-};
+} ODP_ALIGNED_CACHE;
 #endif /* OFP_USE_LIBCK */
 
 struct arp_cache {

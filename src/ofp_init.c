@@ -224,6 +224,7 @@ static void read_conf_file(ofp_global_param_t *params, const char *filename)
 
 	GET_CONF_INT(int, linux_core_id);
 	GET_CONF_INT(bool, enable_nl_thread);
+	GET_CONF_INT(int, arp.entries);
 	GET_CONF_INT(int, arp.entry_timeout);
 	GET_CONF_INT(bool, arp.check_interface);
 	GET_CONF_INT(int, evt_rx_burst_size);
@@ -254,6 +255,7 @@ void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *fil
 #ifdef SP
 	params->enable_nl_thread = 1;
 #endif /* SP */
+	params->arp.entries = OFP_ARP_ENTRIES;
 	params->arp.entry_timeout = OFP_ARP_ENTRY_TIMEOUT;
 	params->evt_rx_burst_size = OFP_EVT_RX_BURST_SIZE;
 	params->pcb_tcp_max = OFP_NUM_PCB_TCP_MAX;
