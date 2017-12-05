@@ -135,8 +135,8 @@
  * It defines the number of radix tree nodes used to store routes.*/
 #define ROUTE6_NODES 65536
 
-/**ARP entry hash table size. Must be power of two. */
-#define OFP_ARP_TABLE_ENTRIES 2048
+/**ARP hash bits. */
+#define OFP_ARP_HASH_BITS 11
 /**Total number of ARP entries that can be stored. */
 #define OFP_ARP_ENTRIES 128
 /**Default ARP entry timeout (in seconds). */

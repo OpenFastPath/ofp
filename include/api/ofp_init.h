@@ -110,6 +110,9 @@ typedef struct ofp_global_param_t {
 		/** Maximum number of ARP entries. Default is OFP_ARP_ENTRIES. */
 		int entries;
 
+		/** ARP hash bits. Default is OFP_ARP_HASH_BITS. */
+		int hash_bits;
+
 		/** Entry timeout in seconds. Default is OFP_ARP_ENTRY_TIMEOUT. */
 		int entry_timeout;
 
@@ -209,6 +212,7 @@ typedef struct ofp_global_param_t {
  *     enable_nl_thread = boolean
  *     arp: {
  *         entries = integer
+ *         hash_bits = integer
  *         entry_timeout = integer
  *         check_interface = boolean
  *     }

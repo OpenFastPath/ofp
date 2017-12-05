@@ -22,8 +22,10 @@
 #include "ofpi_util.h"
 
 #define SHM_NAME_ARP "OfpArpShMem"
+#define SIZEOF_ENTRIES (sizeof(struct arp_entry) * NUM_ARPS)
+#define SIZEOF_SETS (sizeof(struct set_s) * NUM_SETS)
 #define SHM_SIZE_ARP (sizeof(struct ofp_arp_mem) + \
-		      sizeof(struct arp_entry) * NUM_ARPS)
+		      SIZEOF_ENTRIES + SIZEOF_SETS)
 
 /* Default ARP age interval (in seconds). If set to 0, then age interval is half of OFP_ARP_ENTRY_TIMEOUT. */
 #define ARP_AGE_INTERVAL 0
@@ -32,7 +34,7 @@
 /* Maximum number of saved packets waiting for an ARP reply. */
 #define ARP_WAITING_PKTS_SIZE 2048
 
-#define NUM_SETS OFP_ARP_TABLE_ENTRIES
+#define NUM_SETS (1<<global_param->arp.hash_bits)
 /* Plus one because zeroth entry is used as the invalid entry. */
 #define NUM_ARPS (global_param->arp.entries + 1)
 #define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * US_PER_SEC)
@@ -64,7 +66,7 @@ struct _arp {
 	struct arp_entry *entries;
 	struct arp_entry_tailq free_entries;
 	odp_rwlock_t fr_ent_rwlock;
-	struct set_s set[NUM_SETS];
+	struct set_s *set;
 };
 
 struct _pkt {
@@ -650,6 +652,7 @@ int ofp_arp_init_global(void)
 	memset(shm, 0, SHM_SIZE_ARP);
 	shm->age_timer = ODP_TIMER_INVALID;
 	shm->arp.entries = (struct arp_entry *)((char *)shm + sizeof(*shm));
+	shm->arp.set = (struct set_s *)((char *)shm->arp.entries + SIZEOF_ENTRIES);
 
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_init(&shm->arp.set[i].table_rwlock);
