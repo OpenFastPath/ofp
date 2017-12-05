@@ -343,8 +343,7 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 
 	HANDLE_ERROR(ofp_hook_init_global(params->pkt_hook));
 
-	HANDLE_ERROR(ofp_arp_init_global(ARP_AGE_INTERVAL,
-			params->arp.entry_timeout));
+	HANDLE_ERROR(ofp_arp_init_global());
 
 	HANDLE_ERROR(ofp_route_init_global());
 

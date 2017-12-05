@@ -622,10 +622,12 @@ void ofp_arp_init_prepare(void)
 	ofp_shared_memory_prealloc(SHM_NAME_ARP, sizeof(*shm));
 }
 
-int ofp_arp_init_global(int age_interval, int entry_timeout)
+int ofp_arp_init_global(void)
 {
 	int i;
 	int cli = 0;
+	int age_interval = ARP_AGE_INTERVAL;
+	int entry_timeout = global_param->arp.entry_timeout;
 
 	HANDLE_ERROR(ofp_arp_alloc_shared_memory());
 
