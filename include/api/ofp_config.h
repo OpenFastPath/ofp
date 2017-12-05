@@ -140,16 +140,10 @@
 #define ARP_ENTRY_TABLE_SIZE 2048
 /**Total number of arp entries that can be stored. */
 #define ARP_ENTRIES_SIZE (NUM_SETS * 4)
-/**Default ARP age interval (in seconds). If set to 0, then age interval is half of ARP_ENTRY_TIMEOUT. */
-#define ARP_AGE_INTERVAL 0
 /**Default ARP entry timeout (in seconds) */
 #define ARP_ENTRY_TIMEOUT 1200
-/**Timer trigger(s) to scan for old arp entries.*/
-#define ARP_ENTRY_UPD_TIMEOUT 2
 /**Time interval(s) while a packet is saved and waiting for an ARP reply. */
 #define ARP_SAVED_PKT_TIMEOUT 10
-/**Maximum number of saved packets waiting for an ARP reply. */
-#define ARP_WAITING_PKTS_SIZE 2048
 
 /**Enable IPv4 UDP checksum validation mechanism on input
  * packets. If enabled, validation is performed on input

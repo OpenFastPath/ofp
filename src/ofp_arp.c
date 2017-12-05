@@ -23,6 +23,13 @@
 
 #define SHM_NAME_ARP "OfpArpShMem"
 
+/* Default ARP age interval (in seconds). If set to 0, then age interval is half of ARP_ENTRY_TIMEOUT. */
+#define ARP_AGE_INTERVAL 0
+/* Timer interval for entry use time update. */
+#define ARP_ENTRY_UPD_TIMEOUT 2
+/* Maximum number of saved packets waiting for an ARP reply. */
+#define ARP_WAITING_PKTS_SIZE 2048
+
 #define NUM_SETS ARP_ENTRY_TABLE_SIZE
 /*ARP_ENTRIES_SIZE + 1: Zeroth entry used as the invalid entry*/
 #define NUM_ARPS ARP_ENTRIES_SIZE + 1
