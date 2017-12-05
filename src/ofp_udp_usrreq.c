@@ -264,7 +264,7 @@ ofp_in_broadcast(struct ofp_in_addr in, struct ofp_ifnet *ifp)
 }
 
 enum ofp_return_code
-ofp_udp_input(odp_packet_t m, int off)
+ofp_udp_input(odp_packet_t *m, int off)
 {
 
 	int iphlen = off;
@@ -280,20 +280,20 @@ ofp_udp_input(odp_packet_t m, int off)
 #endif /* SP*/
 	struct ofp_sockaddr_in udp_in;
 
-	OFP_HOOK(OFP_HOOK_LOCAL, m, &protocol, &res);
+	OFP_HOOK(OFP_HOOK_LOCAL, *m, &protocol, &res);
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
-	OFP_HOOK(OFP_HOOK_LOCAL_UDPv4, m, NULL, &res);
+	OFP_HOOK(OFP_HOOK_LOCAL_UDPv4, *m, NULL, &res);
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
 	/* Offer to VXLAN handler. */
-	res = ofp_vxlan_input(m);
+	res = ofp_vxlan_input(*m);
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
-	ifp = odp_packet_user_ptr(m);
+	ifp = odp_packet_user_ptr(*m);
 	UDPSTAT_INC(udps_ipackets);
 
 	/*
@@ -310,8 +310,8 @@ ofp_udp_input(odp_packet_t m, int off)
 	/*
 	 * Get IP and UDP header together in first mbuf.
 	 */
-	ip = (struct ofp_ip *)odp_packet_l3_ptr(m, NULL);
-	if (odp_packet_len(m) < iphlen + sizeof(struct ofp_udphdr)) {
+	ip = (struct ofp_ip *)odp_packet_l3_ptr(*m, NULL);
+	if (odp_packet_len(*m) < iphlen + sizeof(struct ofp_udphdr)) {
 #if 0
 		if ((m = odp_packet_ensure_contiguous(m, iphlen +
 			      sizeof(struct ofp_udphdr))) == 0) {
@@ -378,7 +378,7 @@ ofp_udp_input(odp_packet_t m, int off)
 #if 1
 		uint16_t uh_sum;
 
-		uh_sum = ofp_in4_cksum(m);
+		uh_sum = ofp_in4_cksum(*m);
 		if (uh_sum)
 			goto badunlocked;
 #else
@@ -480,7 +480,7 @@ ofp_udp_input(odp_packet_t m, int off)
 			if (last != NULL) {
 				odp_packet_t n;
 
-				n = odp_packet_copy(m, ofp_packet_pool);
+				n = odp_packet_copy(*m, ofp_packet_pool);
 				udp_append(last, ip, n, iphlen, &udp_in);
 				INP_RUNLOCK(last);
 			}
@@ -514,7 +514,7 @@ ofp_udp_input(odp_packet_t m, int off)
 			return OFP_PKT_CONTINUE;
 #endif
 		}
-		udp_append(last, ip, m, iphlen, &udp_in);
+		udp_append(last, ip, *m, iphlen, &udp_in);
 		INP_RUNLOCK(last);
 		INP_INFO_RUNLOCK(&ofp_udbinfo);
 		return OFP_PKT_PROCESSED;
@@ -566,11 +566,11 @@ ofp_udp_input(odp_packet_t m, int off)
 	INP_RLOCK_ASSERT(inp);
 	if (inp->inp_ip_minttl && inp->inp_ip_minttl > ip->ip_ttl) {
 		INP_RUNLOCK(inp);
-		odp_packet_free(m);
+		odp_packet_free(*m);
 		return OFP_PKT_PROCESSED;
 	}
 
-	udp_append(inp, ip, m, iphlen, &udp_in);
+	udp_append(inp, ip, *m, iphlen, &udp_in);
 	INP_RUNLOCK(inp);
 	return OFP_PKT_PROCESSED;
 

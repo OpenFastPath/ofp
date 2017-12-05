@@ -135,7 +135,7 @@ void	ofp_ip_init(void);
 #ifdef VIMAGE
 void	ofp_ip_destroy(void);
 #endif
-enum ofp_return_code ofp_ip_input(odp_packet_t , int);
+enum ofp_return_code ofp_ip_input(odp_packet_t *, int);
 
 extern int
 	(*ip_mforward)(struct ofp_ip *, struct ofp_ifnet *, odp_packet_t ,

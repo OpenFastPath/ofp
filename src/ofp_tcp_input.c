@@ -508,12 +508,12 @@ do { \
  */
 #ifdef INET6
 enum ofp_return_code
-ofp_tcp6_input(odp_packet_t m, int *offp, int *nxt)
+ofp_tcp6_input(odp_packet_t *m, int *offp, int *nxt)
 {
 	enum ofp_return_code ret = OFP_PKT_PROCESSED;
 	*nxt = OFP_IPPROTO_DONE;
 
-	OFP_IP6_EXTHDR_CHECK(m, *offp, sizeof(struct ofp_tcphdr),
+	OFP_IP6_EXTHDR_CHECK(*m, *offp, sizeof(struct ofp_tcphdr),
 		OFP_PKT_DROP);
 
 #if 0
@@ -546,7 +546,7 @@ ofp_tcp6_input(odp_packet_t m, int *offp, int *nxt)
 #endif /* INET6 */
 
 enum ofp_return_code
-ofp_tcp_input(odp_packet_t m, int off0)
+ofp_tcp_input(odp_packet_t *m, int off0)
 {
 	struct ofp_tcphdr *th = NULL;
 	struct ofp_ip *ip = NULL;
@@ -579,13 +579,13 @@ ofp_tcp_input(odp_packet_t m, int off0)
 	short ostate = 0;
 #endif
 	/* HJo: remove vlan hdr */
-	odp_packet_pull_head(m, odp_packet_l3_offset(m));
-	odp_packet_l2_offset_set(m, 0);
-	odp_packet_l3_offset_set(m, 0);
-	odp_packet_l4_offset_set(m, off0);
+	odp_packet_pull_head(*m, odp_packet_l3_offset(*m));
+	odp_packet_l2_offset_set(*m, 0);
+	odp_packet_l3_offset_set(*m, 0);
+	odp_packet_l4_offset_set(*m, off0);
 
 #ifdef INET6
-	isipv6 = (((struct ofp_ip *)odp_packet_data(m))->ip_v == 6) ? 1 : 0;
+	isipv6 = (((struct ofp_ip *)odp_packet_data(*m))->ip_v == 6) ? 1 : 0;
 #endif
 
 	to.to_flags = 0;
@@ -605,7 +605,7 @@ ofp_tcp_input(odp_packet_t m, int off0)
 		}
 #endif
 
-		ip6 = (struct ofp_ip6_hdr *)odp_packet_data(m);
+		ip6 = (struct ofp_ip6_hdr *)odp_packet_data(*m);
 		th = (struct ofp_tcphdr *)((char *)ip6 + off0);
 		tlen = sizeof(*ip6) + odp_be_to_cpu_16(ip6->ofp_ip6_plen) - off0;
 
@@ -619,7 +619,7 @@ ofp_tcp_input(odp_packet_t m, int off0)
 			th->th_sum ^= 0xffff;
 		} else
 #endif
-		th->th_sum = ofp_in6_cksum(m, OFP_IPPROTO_TCP, off0, tlen);
+		th->th_sum = ofp_in6_cksum(*m, OFP_IPPROTO_TCP, off0, tlen);
 		if (th->th_sum) {
 			TCPSTAT_INC(tcps_rcvbadsum);
 			goto drop;
@@ -659,12 +659,12 @@ ofp_tcp_input(odp_packet_t m, int off0)
 		}
 		*/
 
-		ip = (struct ofp_ip *)odp_packet_data(m);
+		ip = (struct ofp_ip *)odp_packet_data(*m);
 		th = (struct ofp_tcphdr *)((char *)ip + off0);
 
 #ifdef OFP_IPv4_TCP_CSUM_VALIDATE
 #if 1
-		th->th_sum = ofp_in4_cksum(m);
+		th->th_sum = ofp_in4_cksum(*m);
 #else /* HJo: no csum check */
 		if (odp_packet_csum_flags(m) & CSUM_DATA_VALID) {
 			if (odp_packet_csum_flags(m) & CSUM_PSEUDO_HDR)
@@ -724,8 +724,8 @@ ofp_tcp_input(odp_packet_t m, int off0)
 	if (off > (int)sizeof (struct ofp_tcphdr)) {/* OK */
 #ifdef INET6
 		if (isipv6) {
-			OFP_IP6_EXTHDR_CHECK(m, off0, off, OFP_PKT_DROP);
-			ip6 = (struct ofp_ip6_hdr *)odp_packet_data(m);
+			OFP_IP6_EXTHDR_CHECK(*m, off0, off, OFP_PKT_DROP);
+			ip6 = (struct ofp_ip6_hdr *)odp_packet_data(*m);
 			th = (struct ofp_tcphdr *)((char *)ip6 + off0);
 		}
 		else
@@ -780,13 +780,13 @@ findpcb:
 		inp = ofp_in6_pcblookup_mbuf(&V_tcbinfo, &ip6->ip6_src,
 		    th->th_sport, &ip6->ip6_dst, th->th_dport,
 		    INPLOOKUP_WILDCARD | INPLOOKUP_WLOCKPCB,
-		    ofp_packet_interface(m), m);
+		    ofp_packet_interface(*m), *m);
 	else
 #endif
 		inp = ofp_in_pcblookup_mbuf(&V_tcbinfo, ip->ip_src,
 					th->th_sport, ip->ip_dst, th->th_dport,
 					INPLOOKUP_WILDCARD | INPLOOKUP_WLOCKPCB,
-					ofp_packet_interface(m), m);
+					ofp_packet_interface(*m), *m);
 
 	/*
 	 * If the INPCB does not exist then all data in the incoming
@@ -887,7 +887,7 @@ relocked:
 		/*
 		 * NB: ofp_tcp_twcheck unlocks the INP and frees the mbuf.
 		 */
-		if (ofp_tcp_twcheck(inp, &to, th, m, tlen))
+		if (ofp_tcp_twcheck(inp, &to, th, *m, tlen))
 			goto findpcb;
 
 		INP_INFO_WUNLOCK(&V_tcbinfo);
@@ -992,7 +992,7 @@ relocked:
 			 * NB: ofp_syncache_expand() doesn't unlock
 			 * inp and tcpinfo locks.
 			 */
-			if (!ofp_syncache_expand(&inc, &to, th, &so, m)) {
+			if (!ofp_syncache_expand(&inc, &to, th, &so, *m)) {
 				/*
 				 * No syncache entry or ACK was not
 				 * for our SYN/ACK.  Send a RST.
@@ -1045,7 +1045,7 @@ relocked:
 			 * contains.  ofp_tcp_do_segment() consumes
 			 * the mbuf chain and unlocks the inpcb.
 			 */
-			ofp_tcp_do_segment(m, th, so, tp, drop_hdrlen, tlen,
+			ofp_tcp_do_segment(*m, th, so, tp, drop_hdrlen, tlen,
 			    iptos, ti_locked, 0);
 			INP_INFO_UNLOCK_ASSERT(&V_tcbinfo);
 			return OFP_PKT_PROCESSED;
@@ -1187,7 +1187,7 @@ relocked:
 		 *	in_broadcast() to find them.
 		 */
 
-		if (odp_packet_is_bcast(m) || odp_packet_is_mcast(m)) {
+		if (odp_packet_is_bcast(*m) || odp_packet_is_mcast(*m)) {
 			if ((s = ofp_tcp_log_addrs(&inc, th, NULL, NULL)))
 			    log(LOG_DEBUG, "%s; %s: Listen socket: "
 				"Connection attempt from broad- or multicast "
@@ -1232,7 +1232,7 @@ relocked:
 			if (OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr)) ||
 			    OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_src.s_addr)) ||
 			    ip->ip_src.s_addr == odp_cpu_to_be_32(OFP_INADDR_BROADCAST) ||
-			    in_broadcast(ip->ip_dst, odp_packet_interface(m))) {
+			    in_broadcast(ip->ip_dst, odp_packet_interface(*m))) {
 				if ((s = ofp_tcp_log_addrs(&inc, th, NULL, NULL)))
 				    log(LOG_DEBUG, "%s; %s: Listen socket: "
 					"Connection attempt from/to broad- "
@@ -1251,7 +1251,7 @@ relocked:
 			    (void *)tcp_saveipgen, &tcp_savetcp, 0);
 #endif
 		tcp_dooptions(&to, optp, optlen, TO_SYN);
-		ofp_syncache_add(&inc, &to, th, inp, &so, m, -1);
+		ofp_syncache_add(&inc, &to, th, inp, &so, *m, -1);
 		/*
 		 * Entry added to syncache and mbuf consumed.
 		 * Everything already unlocked by ofp_syncache_add().
@@ -1265,7 +1265,7 @@ relocked:
 	 * state.  ofp_tcp_do_segment() always consumes the mbuf chain, unlocks
 	 * the inpcb, and unlocks pcbinfo.
 	 */
-	ofp_tcp_do_segment(m, th, so, tp, drop_hdrlen, tlen, iptos, ti_locked, 0);
+	ofp_tcp_do_segment(*m, th, so, tp, drop_hdrlen, tlen, iptos, ti_locked, 0);
 	INP_INFO_UNLOCK_ASSERT(&V_tcbinfo);
 	return OFP_PKT_PROCESSED;
 
@@ -1276,11 +1276,11 @@ dropwithreset:
 	}
 
 	if (inp != NULL) {
-		tcp_dropwithreset(m, th, tp, tlen, rstreason);
+		tcp_dropwithreset(*m, th, tp, tlen, rstreason);
 		INP_WUNLOCK(inp);
 	} else
-		tcp_dropwithreset(m, th, NULL, tlen, rstreason);
-	m = ODP_PACKET_INVALID;	/* mbuf chain got consumed. */
+		tcp_dropwithreset(*m, th, NULL, tlen, rstreason);
+	*m = ODP_PACKET_INVALID;	/* mbuf chain got consumed. */
 	goto drop;
 
 dropunlock:
@@ -1300,7 +1300,7 @@ drop:
 	if (s != NULL)
 		free(s, M_TCPLOG);
 	*/
-	if (m == ODP_PACKET_INVALID)
+	if (*m == ODP_PACKET_INVALID)
 		return OFP_PKT_PROCESSED;
 
 	return OFP_PKT_DROP;

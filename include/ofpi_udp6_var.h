@@ -72,6 +72,6 @@ SYSCTL_DECL(_net_inet6_udp6);
 extern struct pr_usrreqs	ofp_udp6_usrreqs;
 
 void	ofp_udp6_ctlinput(int, struct ofp_sockaddr *, void *);
-enum ofp_return_code ofp_udp6_input(odp_packet_t, int *, int *);
+enum ofp_return_code ofp_udp6_input(odp_packet_t *, int *, int *);
 
 #endif /*_NETINET6_UDP6_VAR_H_*/

@@ -142,25 +142,25 @@ uint32_t ofp_packet_min_user_area(void)
 	return sizeof(struct ofp_packet_user_area);
 }
 
-enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
+enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t *pkt)
 {
 	uint16_t vlan = 0, ethtype;
 	struct ofp_ether_header *eth;
-	struct ofp_ifnet *ifnet = odp_packet_user_ptr(pkt);
+	struct ofp_ifnet *ifnet = odp_packet_user_ptr(*pkt);
 
-	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
+	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(*pkt, NULL);
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(eth == NULL)) {
 		OFP_DBG("eth is NULL");
 		return OFP_PKT_DROP;
 	}
 
-	if (odp_unlikely(odp_packet_l3_ptr(pkt, NULL) == NULL ||
-		(uintptr_t) odp_packet_l3_ptr(pkt, NULL) !=
-			(uintptr_t)odp_packet_l2_ptr(pkt, NULL) +
+	if (odp_unlikely(odp_packet_l3_ptr(*pkt, NULL) == NULL ||
+		(uintptr_t) odp_packet_l3_ptr(*pkt, NULL) !=
+			(uintptr_t)odp_packet_l2_ptr(*pkt, NULL) +
 				sizeof(struct ofp_ether_header))) {
 		OFP_DBG("odp_packet_l3_offset_set");
-		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_header));
+		odp_packet_l3_offset_set(*pkt, sizeof(struct ofp_ether_header));
 	}
 #endif
 	ethtype = odp_be_to_cpu_16(eth->ether_type);
@@ -175,9 +175,9 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 		if (!ifnet)
 			return OFP_PKT_DROP;
 		if (odp_likely(ifnet->port != VXLAN_PORTS))
-			odp_packet_user_ptr_set(pkt, ifnet);
+			odp_packet_user_ptr_set(*pkt, ifnet);
 #ifndef OFP_PERFORMANCE
-		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_vlan_header));
+		odp_packet_l3_offset_set(*pkt, sizeof(struct ofp_ether_vlan_header));
 #endif
 	}
 
@@ -208,9 +208,9 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt)
 
 
 enum ofp_return_code
-ipv4_transport_classifier(odp_packet_t pkt, uint8_t ip_proto)
+ipv4_transport_classifier(odp_packet_t *pkt, uint8_t ip_proto)
 {
-	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 
 	OFP_DBG("ip_proto=%d pr_input=%p",
 		ip_proto, ofp_inetsw[ofp_ip_protox[ip_proto]].pr_input);
@@ -227,7 +227,7 @@ ipv4_transport_classifier(odp_packet_t pkt, uint8_t ip_proto)
 
 #ifdef INET6
 enum ofp_return_code
-ipv6_transport_classifier(odp_packet_t pkt, uint8_t ip6_nxt)
+ipv6_transport_classifier(odp_packet_t *pkt, uint8_t ip6_nxt)
 {
 	int nxt = ip6_nxt;
 	int offset = sizeof(struct ofp_ip6_hdr);
@@ -241,61 +241,68 @@ ipv6_transport_classifier(odp_packet_t pkt, uint8_t ip6_nxt)
 }
 #endif /*INET6*/
 
-enum ofp_return_code ofp_udp4_processing(odp_packet_t pkt)
+static enum ofp_return_code pkt_reassembly(odp_packet_t *pkt)
 {
-	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+	OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
+
+	*pkt = ofp_ip_reass(*pkt);
+	if (*pkt == ODP_PACKET_INVALID)
+		return OFP_PKT_ON_HOLD;
+
+	OFP_UPDATE_PACKET_STAT(rx_ip_reass, 1);
+
+	return OFP_PKT_PROCESSED;
+}
+
+enum ofp_return_code ofp_udp4_processing(odp_packet_t *pkt)
+{
+	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
+	int frag_res = 0;
 
 	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
-		OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
-
-		pkt = ofp_ip_reass(pkt);
-		if (pkt == ODP_PACKET_INVALID)
+		frag_res = pkt_reassembly(pkt);
+		if (frag_res == OFP_PKT_ON_HOLD)
 			return OFP_PKT_ON_HOLD;
 
-		OFP_UPDATE_PACKET_STAT(rx_ip_reass, 1);
-
-		ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+		ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	}
 
 	return ofp_inetsw[ofp_ip_protox_udp].pr_input(pkt, ip->ip_hl << 2);
 }
 
-enum ofp_return_code ofp_tcp4_processing(odp_packet_t pkt)
+enum ofp_return_code ofp_tcp4_processing(odp_packet_t *pkt)
 {
-	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
+	int frag_res = 0;
 
 	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
-		OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
-
-		pkt = ofp_ip_reass(pkt);
-		if (pkt == ODP_PACKET_INVALID)
+		frag_res = pkt_reassembly(pkt);
+		if (frag_res == OFP_PKT_ON_HOLD)
 			return OFP_PKT_ON_HOLD;
 
-		OFP_UPDATE_PACKET_STAT(rx_ip_reass, 1);
-
-		ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+		ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	}
 
 	return ofp_inetsw[ofp_ip_protox_tcp].pr_input(pkt, ip->ip_hl << 2);
 }
 
-enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
+enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 {
-	int res;
+	int frag_res = 0, res;
 	int protocol = IS_IPV4;
 	uint32_t flags;
 	struct ofp_ip *ip;
 	struct ofp_nh_entry *nh;
-	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
+	struct ofp_ifnet *dev = odp_packet_user_ptr(*pkt);
 	uint32_t is_ours;
 
-	ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+	ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 
 	if (odp_unlikely(ip == NULL)) {
 		OFP_DBG("ip is NULL");
@@ -312,7 +319,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 			struct ofp_packet_user_area *ua;
 
 			/* Look for the correct device. */
-			ua = ofp_packet_user_area(pkt);
+			ua = ofp_packet_user_area(*pkt);
 			dev = ofp_get_ifnet(VXLAN_PORTS, ua->vxlan.vni);
 			if (!dev)
 				return OFP_PKT_DROP;
@@ -348,33 +355,30 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 
 	if (is_ours) {
 		if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
-			OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
-
-			pkt = ofp_ip_reass(pkt);
-			if (pkt == ODP_PACKET_INVALID)
+			frag_res = pkt_reassembly(pkt);
+			if (frag_res == OFP_PKT_ON_HOLD)
 				return OFP_PKT_ON_HOLD;
 
-			OFP_UPDATE_PACKET_STAT(rx_ip_reass, 1);
-
-			ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+			ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 		}
 
-		OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
+		OFP_HOOK(OFP_HOOK_LOCAL, *pkt, &protocol, &res);
 		if (res != OFP_PKT_CONTINUE) {
 			OFP_DBG("OFP_HOOK_LOCAL returned %d", res);
 			return res;
 		}
 
-		OFP_HOOK(OFP_HOOK_LOCAL_IPv4, pkt, NULL, &res);
+		OFP_HOOK(OFP_HOOK_LOCAL_IPv4, *pkt, NULL, &res);
 		if (res != OFP_PKT_CONTINUE) {
 			OFP_DBG("OFP_HOOK_LOCAL_IPv4 returned %d", res);
 			return res;
 		}
 
 		return ipv4_transport_classifier(pkt, ip->ip_p);
+
 	}
 
-	OFP_HOOK(OFP_HOOK_FWD_IPv4, pkt, nh, &res);
+	OFP_HOOK(OFP_HOOK_FWD_IPv4, *pkt, nh, &res);
 	if (res != OFP_PKT_CONTINUE) {
 		OFP_DBG("OFP_HOOK_FWD_IPv4 returned %d", res);
 		return res;
@@ -387,7 +391,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 
 	if (ip->ip_ttl <= 1) {
 		OFP_DBG("OFP_ICMP_TIMXCEED");
-		ofp_icmp_error(pkt, OFP_ICMP_TIMXCEED,
+		ofp_icmp_error(*pkt, OFP_ICMP_TIMXCEED,
 				OFP_ICMP_TIMXCEED_INTRANS, 0, 0);
 		return OFP_PKT_DROP;
 	}
@@ -417,26 +421,26 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt)
 		INET_SUBNET_PREFIX(nh->gw))) {
 
 		OFP_DBG("send OFP_ICMP_REDIRECT");
-		ofp_icmp_error(pkt, OFP_ICMP_REDIRECT,
+		ofp_icmp_error(*pkt, OFP_ICMP_REDIRECT,
 				OFP_ICMP_REDIRECT_HOST, nh->gw, 0);
 	}
 #endif
 
-	return ofp_ip_output_common(pkt, nh, 0);
+	return ofp_ip_output_common(*pkt, nh, 0);
 }
 
 #ifdef INET6
-enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
+enum ofp_return_code ofp_ipv6_processing(odp_packet_t *pkt)
 {
 	int res;
 	int protocol = IS_IPV6;
 	uint32_t flags;
 	struct ofp_ip6_hdr *ipv6;
 	struct ofp_nh6_entry *nh;
-	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
+	struct ofp_ifnet *dev = odp_packet_user_ptr(*pkt);
 	int is_ours = 0;
 
-	ipv6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(pkt, NULL);
+	ipv6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(*pkt, NULL);
 
 	if (odp_unlikely(ipv6 == NULL))
 		return OFP_PKT_DROP;
@@ -458,13 +462,13 @@ enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
 	}
 
 	if (is_ours) {
-		OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
+		OFP_HOOK(OFP_HOOK_LOCAL, *pkt, &protocol, &res);
 		if (res != OFP_PKT_CONTINUE) {
 			OFP_DBG("OFP_HOOK_LOCAL returned %d", res);
 			return res;
 		}
 
-		OFP_HOOK(OFP_HOOK_LOCAL_IPv6, pkt, NULL, &res);
+		OFP_HOOK(OFP_HOOK_LOCAL_IPv6, *pkt, NULL, &res);
 		if (res != OFP_PKT_CONTINUE) {
 			OFP_DBG("OFP_HOOK_LOCAL_IPv6 returned %d", res);
 			return res;
@@ -474,7 +478,7 @@ enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
 
 	}
 
-	OFP_HOOK(OFP_HOOK_FWD_IPv6, pkt, NULL, &res);
+	OFP_HOOK(OFP_HOOK_FWD_IPv6, *pkt, NULL, &res);
 	if (res != OFP_PKT_CONTINUE) {
 		OFP_DBG("OFP_HOOK_FWD_IPv6 returned %d", res);
 		return res;
@@ -484,27 +488,24 @@ enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt)
 	if (nh == NULL)
 		return OFP_PKT_CONTINUE;
 
-	return ofp_ip6_output(pkt, nh);
+	return ofp_ip6_output(*pkt, nh);
 }
 #endif /* INET6 */
 
-enum ofp_return_code ofp_gre_processing(odp_packet_t pkt)
+enum ofp_return_code ofp_gre_processing(odp_packet_t *pkt)
 {
-	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+	int frag_res = 0;
+	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 
 	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
-		OFP_UPDATE_PACKET_STAT(rx_ip_frag, 1);
-
-		pkt = ofp_ip_reass(pkt);
-		if (pkt == ODP_PACKET_INVALID)
+		frag_res = pkt_reassembly(pkt);
+		if (frag_res == OFP_PKT_ON_HOLD)
 			return OFP_PKT_ON_HOLD;
 
-		OFP_UPDATE_PACKET_STAT(rx_ip_reass, 1);
-
-		ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+		ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	}
 
 	return ofp_inetsw[ofp_ip_protox_gre].pr_input(pkt, ip->ip_hl << 2);
@@ -519,16 +520,16 @@ enum ofp_return_code send_pkt_loop(struct ofp_ifnet *dev,
 	return OFP_PKT_PROCESSED;
 }
 
-enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
+enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt)
 {
 	struct ofp_arphdr *arp;
-	struct ofp_ifnet *dev = odp_packet_user_ptr(pkt);
+	struct ofp_ifnet *dev = odp_packet_user_ptr(*pkt);
 	struct ofp_ifnet *outdev = dev;
 	uint16_t vlan = dev->vlan;
 	uint8_t inner_from_mac[OFP_ETHER_ADDR_LEN];
 	uint32_t is_ours;
 
-	arp = (struct ofp_arphdr *)odp_packet_l3_ptr(pkt, NULL);
+	arp = (struct ofp_arphdr *)odp_packet_l3_ptr(*pkt, NULL);
 
 	if (odp_unlikely(arp == NULL)) {
 		OFP_DBG("arp is NULL");
@@ -550,7 +551,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 			/* Never happens. */
 			break;
 		case VXLAN_PORTS: {
-			ofp_vxlan_update_devices(pkt, arp, &vlan, &dev, &outdev,
+			ofp_vxlan_update_devices(*pkt, arp, &vlan, &dev, &outdev,
 						 inner_from_mac);
 			break;
 		}
@@ -572,7 +573,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 		struct ofp_arphdr tmp;
 		struct ofp_ether_header tmp_eth;
 		struct ofp_ether_vlan_header tmp_eth_vlan;
-		void *l2_addr = odp_packet_l2_ptr(pkt, NULL);
+		void *l2_addr = odp_packet_l2_ptr(*pkt, NULL);
 		struct ofp_ether_header *eth =
 			(struct ofp_ether_header *)l2_addr;
 		struct ofp_ether_vlan_header *eth_vlan =
@@ -626,13 +627,13 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t pkt)
 				/* Restore the original vxlan header and
 				   update the addresses */
 				ofp_vxlan_restore_and_update_header
-					(pkt, outdev, inner_from_mac);
+					(*pkt, outdev, inner_from_mac);
 				break;
 			}
 			} /* switch */
 		} /* not phys port */
 
-		return send_pkt_out(outdev, pkt);
+		return send_pkt_out(outdev, *pkt);
 	}
 	return OFP_PKT_CONTINUE;
 }
@@ -1365,7 +1366,7 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	OFP_UPDATE_PACKET_LATENCY_STAT(1);
 
 	/* data link layer processing */
-	res = pkt_func(pkt);
+	res = pkt_func(&pkt);
 
 	if (res == OFP_PKT_DROP)
 		odp_packet_free(pkt);

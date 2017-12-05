@@ -70,9 +70,9 @@ enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 enum ofp_return_code send_pkt_loop(struct ofp_ifnet *dev,
 			odp_packet_t pkt);
 
-enum ofp_return_code ipv4_transport_classifier(odp_packet_t pkt,
+enum ofp_return_code ipv4_transport_classifier(odp_packet_t *pkt,
 			uint8_t ip_proto);
-enum ofp_return_code ipv6_transport_classifier(odp_packet_t pkt,
+enum ofp_return_code ipv6_transport_classifier(odp_packet_t *pkt,
 			uint8_t ip6_nxt);
 
 int ofp_send_pkt_out_init_local(void);

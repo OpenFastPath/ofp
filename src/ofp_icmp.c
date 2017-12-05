@@ -302,16 +302,16 @@ freeit:
  * Process a received ICMP message.
  */
 enum ofp_return_code
-ofp_icmp_input(odp_packet_t pkt, int off)
+ofp_icmp_input(odp_packet_t *pkt, int off)
 {
-	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
+	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	struct ofp_icmp *icp = (struct ofp_icmp *)((uint8_t *)ip + off);
 	const int icmplen = odp_be_to_cpu_16(ip->ip_len);
 
-	if (ofp_cksum(pkt, odp_packet_l3_offset(pkt) + off, icmplen - (ip->ip_hl << 2)))
+	if (ofp_cksum(*pkt, odp_packet_l3_offset(*pkt) + off, icmplen - (ip->ip_hl << 2)))
 		return OFP_PKT_DROP;
 
-	return _ofp_icmp_input(pkt, ip, icp, icmp_reflect);
+	return _ofp_icmp_input(*pkt, ip, icp, icmp_reflect);
 }
 
 static enum ofp_return_code

@@ -76,7 +76,7 @@ struct	ofp_ip6_hdr;
 
 void	ofp_tcp6_ctlinput __P((int, struct ofp_sockaddr *, void *));
 /*void	tcp6_init __P((void));*/
-enum ofp_return_code	ofp_tcp6_input __P((odp_packet_t, int *, int *));
+enum ofp_return_code	ofp_tcp6_input __P((odp_packet_t *, int *, int *));
 /*
 struct	rtentry *tcp_rtlookup6(struct in_conninfo *);
 */

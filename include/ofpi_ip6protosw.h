@@ -122,7 +122,7 @@ struct ip6protosw {
 
 /* protocol-protocol hooks */
 	enum ofp_return_code (*pr_input)	/* input to protocol (from below) */
-			__P((odp_packet_t, int *, int *));
+			__P((odp_packet_t *, int *, int *));
 	int	(*pr_output)		/* output to protocol (from above) */
 			__P((odp_packet_t, ...));
 	void	(*pr_ctlinput)		/* control input (from below) */

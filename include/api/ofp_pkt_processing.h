@@ -15,7 +15,7 @@
 #pragma GCC visibility push(default)
 #endif
 
-typedef enum ofp_return_code (*ofp_pkt_processing_func)(odp_packet_t pkt);
+typedef enum ofp_return_code (*ofp_pkt_processing_func)(odp_packet_t *pkt);
 
 struct ofp_ifnet;
 
@@ -30,13 +30,13 @@ uint32_t ofp_packet_min_user_area(void);
 enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	odp_queue_t in_queue, ofp_pkt_processing_func pkt_func);
 
-enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t pkt);
-enum ofp_return_code ofp_ipv4_processing(odp_packet_t pkt);
-enum ofp_return_code ofp_ipv6_processing(odp_packet_t pkt);
-enum ofp_return_code ofp_gre_processing(odp_packet_t pkt);
-enum ofp_return_code ofp_arp_processing(odp_packet_t pkt);
-enum ofp_return_code ofp_udp4_processing(odp_packet_t pkt);
-enum ofp_return_code ofp_tcp4_processing(odp_packet_t pkt);
+enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t *pkt);
+enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt);
+enum ofp_return_code ofp_ipv6_processing(odp_packet_t *pkt);
+enum ofp_return_code ofp_gre_processing(odp_packet_t *pkt);
+enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt);
+enum ofp_return_code ofp_udp4_processing(odp_packet_t *pkt);
+enum ofp_return_code ofp_tcp4_processing(odp_packet_t *pkt);
 
 enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt);
 enum ofp_return_code ofp_send_pending_pkt(void);

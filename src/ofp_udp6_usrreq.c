@@ -185,7 +185,7 @@ udp6_append(struct inpcb *inp, odp_packet_t pkt, int off,
 }
 
 enum ofp_return_code
-ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
+ofp_udp6_input(odp_packet_t *pkt, int *offp, int *nxt)
 {
 	int off = *offp;
 	int protocol = IS_IPV6_UDP;
@@ -207,20 +207,20 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 #endif
 	*nxt = OFP_IPPROTO_DONE;
 
-	OFP_HOOK(OFP_HOOK_LOCAL, pkt, &protocol, &res);
+	OFP_HOOK(OFP_HOOK_LOCAL, *pkt, &protocol, &res);
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
-	OFP_HOOK(OFP_HOOK_LOCAL_UDPv6, pkt, NULL, &res);
+	OFP_HOOK(OFP_HOOK_LOCAL_UDPv6, *pkt, NULL, &res);
 	if (res != OFP_PKT_CONTINUE)
 		return res;
 
-	ifp = odp_packet_user_ptr(pkt);
-	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(pkt, NULL);
-	if (odp_packet_len(pkt) < off + sizeof(struct ofp_udphdr))
+	ifp = odp_packet_user_ptr(*pkt);
+	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(*pkt, NULL);
+	if (odp_packet_len(*pkt) < off + sizeof(struct ofp_udphdr))
 		return OFP_PKT_DROP;
 
-	odp_packet_l4_offset_set(pkt, odp_packet_l3_offset(pkt) + off);
+	odp_packet_l4_offset_set(*pkt, odp_packet_l3_offset(*pkt) + off);
 
 	uh = (struct ofp_udphdr *)((uint8_t *)ip6 + off);
 
@@ -248,7 +248,7 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 		goto badunlocked;
 	}
 
-	uh_sum = ofp_in6_cksum(pkt, OFP_IPPROTO_UDP, off, ulen);
+	uh_sum = ofp_in6_cksum(*pkt, OFP_IPPROTO_UDP, off, ulen);
 	if (uh_sum != 0) {
 		UDPSTAT_INC(udps_badsum);
 		goto badunlocked;
@@ -256,7 +256,7 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 	/*
 	 * Construct sockaddr format source address.
 	 */
-	ofp_init_sin6(&fromsa, pkt);
+	ofp_init_sin6(&fromsa, *pkt);
 	fromsa.sin6_port = uh->uh_sport;
 
 #if 0
@@ -485,13 +485,13 @@ ofp_udp6_input(odp_packet_t pkt, int *offp, int *nxt)
 
 	up = intoudpcb(inp);
 	if (up->u_tun_func == NULL) {
-		udp6_append(inp, pkt, off, &fromsa);
+		udp6_append(inp, *pkt, off, &fromsa);
 	} else {
 		/*
 		 * Engage the tunneling protocol.
 		 */
 
-		(*up->u_tun_func)(pkt, off, inp);
+		(*up->u_tun_func)(*pkt, off, inp);
 	}
 
 	INP_RUNLOCK(inp);

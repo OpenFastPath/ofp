@@ -204,7 +204,7 @@ struct ofp_igmp_ifinfo *
 	ofp_igmp_domifattach(struct ofp_ifnet *);
 void	ofp_igmp_domifdetach(struct ofp_ifnet *);
 void	ofp_igmp_ifdetach(struct ofp_ifnet *);
-enum ofp_return_code ofp_igmp_input(odp_packet_t , int);
+enum ofp_return_code ofp_igmp_input(odp_packet_t *, int);
 void	ofp_igmp_slowtimo(void);
 void	ofp_igmp_init(void);
 void	ofp_igmp_uninit(void *unused);

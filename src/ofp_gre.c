@@ -22,7 +22,7 @@
 #include "ofpi_hook.h"
 #include "ofpi_util.h"
 
-enum ofp_return_code ofp_gre_input(odp_packet_t pkt, int off0)
+enum ofp_return_code ofp_gre_input(odp_packet_t *pkt, int off0)
 {
 	int res;
 	struct ofp_ifnet *dev, *dev_in;
@@ -36,27 +36,27 @@ enum ofp_return_code ofp_gre_input(odp_packet_t pkt, int off0)
 
 	(void)off0;
 
-	dev = odp_packet_user_ptr(pkt);
-	greip = odp_packet_l3_ptr(pkt, NULL);
+	dev = odp_packet_user_ptr(*pkt);
+	greip = odp_packet_l3_ptr(*pkt, NULL);
 
 	/* Validate tunnel */
 	dev_in = ofp_get_ifnet_by_tunnel(greip->gi_dst.s_addr,
 					   greip->gi_src.s_addr, dev->vrf);
 	if (dev_in == NULL) {
-		OFP_HOOK(OFP_HOOK_GRE, pkt, NULL, &res);
+		OFP_HOOK(OFP_HOOK_GRE, *pkt, NULL, &res);
 		return res;
 	}
 
 	/* save eth hdr data */
 	if (dev->vlan) {
-		eth_hdr_vlan = odp_packet_l2_ptr(pkt, NULL);
+		eth_hdr_vlan = odp_packet_l2_ptr(*pkt, NULL);
 		memcpy(eth_d_addr, eth_hdr_vlan->evl_dhost,
 		       OFP_ETHER_ADDR_LEN);
 		memcpy(eth_s_addr, eth_hdr_vlan->evl_shost,
 		       OFP_ETHER_ADDR_LEN);
 		eth_hdr_len += OFP_ETHER_VLAN_ENCAP_LEN;
 	} else {
-		eth_hdr = odp_packet_l2_ptr(pkt, NULL);
+		eth_hdr = odp_packet_l2_ptr(*pkt, NULL);
 		memcpy(eth_d_addr, eth_hdr->ether_dhost, OFP_ETHER_ADDR_LEN);
 		memcpy(eth_s_addr, eth_hdr->ether_shost, OFP_ETHER_ADDR_LEN);
 	}
@@ -74,18 +74,18 @@ enum ofp_return_code ofp_gre_input(odp_packet_t pkt, int off0)
 		grelen += 4;
 
 	/* remove outerIP and GRE header */
-	offset = odp_packet_l3_offset(pkt) + (greip->gi_i.ip_hl << 2) + grelen -
+	offset = odp_packet_l3_offset(*pkt) + (greip->gi_i.ip_hl << 2) + grelen -
 		eth_hdr_len;
-	if (odp_packet_pull_head(pkt, offset) == NULL) {
+	if (odp_packet_pull_head(*pkt, offset) == NULL) {
 		OFP_ERR("odp_packet_pull_head failed");
 		return OFP_PKT_DROP;
 	}
-	odp_packet_l2_offset_set(pkt, 0);
-	odp_packet_l3_offset_set(pkt, eth_hdr_len);
+	odp_packet_l2_offset_set(*pkt, 0);
+	odp_packet_l3_offset_set(*pkt, eth_hdr_len);
 
 	/* Add eth header */
 	if (dev->vlan) {
-		eth_hdr_vlan = odp_packet_l2_ptr(pkt, NULL);
+		eth_hdr_vlan = odp_packet_l2_ptr(*pkt, NULL);
 		memcpy(eth_hdr_vlan->evl_dhost, eth_d_addr,
 		       OFP_ETHER_ADDR_LEN);
 		memcpy(eth_hdr_vlan->evl_dhost, eth_s_addr,
@@ -94,13 +94,13 @@ enum ofp_return_code ofp_gre_input(odp_packet_t pkt, int off0)
 		eth_hdr_vlan->evl_tag = odp_cpu_to_be_16(dev->vlan);
 		eth_hdr_vlan->evl_proto = ptype;
 	} else {
-		eth_hdr = odp_packet_l2_ptr(pkt, NULL);
+		eth_hdr = odp_packet_l2_ptr(*pkt, NULL);
 		memcpy(eth_hdr->ether_dhost, eth_d_addr, OFP_ETHER_ADDR_LEN);
 		memcpy(eth_hdr->ether_shost, eth_s_addr, OFP_ETHER_ADDR_LEN);
 		eth_hdr->ether_type = ptype;
 	}
 
-	odp_packet_user_ptr_set(pkt, dev_in);
+	odp_packet_user_ptr_set(*pkt, dev_in);
 
 	switch (odp_be_to_cpu_16(ptype)) {
 	case OFP_ETHERTYPE_IP:
