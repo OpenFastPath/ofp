@@ -7,7 +7,7 @@
 #ifndef __OFPI_ARP_H__
 #define __OFPI_ARP_H__
 
-#include <odp.h>
+#include <odp_api.h>
 
 #include "ofpi_pkt_processing.h" /* return codes, i.e.: OFP_DROP */
 #include "ofpi.h"

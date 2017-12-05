@@ -64,7 +64,7 @@
 #ifndef _NETINET6_IP6_VAR_H_
 #define _NETINET6_IP6_VAR_H_
 
-#include <odp.h>
+#include <odp_api.h>
 #include "ofpi_in_pcb.h"
 #include "ofpi_in6.h"
 #include "ofpi_vnet.h"

@@ -34,7 +34,7 @@
 
 #include <string.h>
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_errno.h"
 #include "ofpi_protosw.h"
 #include "ofpi_sysctl.h"

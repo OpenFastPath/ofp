@@ -11,7 +11,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofpi_config.h"
 #include "ofpi_portconf.h"

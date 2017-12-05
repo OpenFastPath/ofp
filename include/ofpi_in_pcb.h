@@ -41,7 +41,7 @@
 #define OFP_LOG_X(a...) do {} while (0)
 
 #include "ofpi_util.h"
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_log.h"
 #include "ofpi_in.h"
 #include "ofpi_queue.h"

@@ -6,7 +6,7 @@
  */
 #ifndef __SUITE_FRAMEWORK_H__
 #define __SUITE_FRAMEWORK_H__
-#include "odp.h"
+#include <odp_api.h>
 
 typedef int (*init_function)(int *pfd_thread1, int *pfd_thread2);
 typedef int (*run_function)(int fd);

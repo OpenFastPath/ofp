@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <odp.h>
+#include <odp_api.h>
 
 #include "ofp_cli.h"
 

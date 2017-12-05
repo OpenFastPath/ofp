@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-#include "odp.h"
+#include <odp_api.h>
 #include "odp/helper/linux.h"
 
 #include "api/ofp_portconf.h"

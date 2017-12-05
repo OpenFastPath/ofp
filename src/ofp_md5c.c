@@ -31,7 +31,7 @@
  */
 #include <string.h>
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_md5.h"
 
 static void MD5Transform(uint32_t [4], const unsigned char [64]);

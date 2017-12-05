@@ -8,7 +8,7 @@
 #ifndef __OFP_APP_H__
 #define __OFP_APP_H__
 
-#include <odp.h>
+#include <odp_api.h>
 #include "ofp_types.h"
 
 #if __GNUC__ >= 4

@@ -21,7 +21,7 @@
 #endif
 
 
-#include <odp.h>
+#include <odp_api.h>
 #include <ofpi.h>
 #include <ofpi_log.h>
 #include <ofp_init.h>

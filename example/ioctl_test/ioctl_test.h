@@ -7,7 +7,7 @@
 #ifndef _IOCTL_TEST_H_
 #define _IOCTL_TEST_H_
 
-#include "odp.h"
+#include <odp_api.h>
 
 void ofp_start_ioctl_thread(odp_instance_t instance, int core_id);
 

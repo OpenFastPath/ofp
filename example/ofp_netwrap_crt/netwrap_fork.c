@@ -7,7 +7,7 @@
 
 #include "netwrap_common.h"
 #include <unistd.h>
-#include "odp.h"
+#include <odp_api.h>
 #include "ofp.h"
 #include "netwrap_fork.h"
 #include "netwrap_errno.h"

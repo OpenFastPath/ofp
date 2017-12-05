@@ -65,7 +65,7 @@
 #ifndef _NETINET6_IP6PROTOSW_H_
 #define _NETINET6_IP6PROTOSW_H_
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_domain.h"
 
 /*

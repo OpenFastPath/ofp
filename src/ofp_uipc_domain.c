@@ -49,7 +49,7 @@ __FBSDID("$FreeBSD: release/9.1.0/sys/kern/uipc_domain.c 237296 2012-06-20 09:38
 #include <vm/uma.h>
 #endif
 
-#include <odp.h>
+#include <odp_api.h>
 #include "ofpi_domain.h"
 #include "ofpi_protosw.h"
 #include "ofpi_ip6protosw.h"

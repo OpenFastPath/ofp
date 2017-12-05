@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "odp.h"
+#include <odp_api.h>
 #include "ofp.h"
 #include "netwrap_select.h"
 #include "netwrap_errno.h"

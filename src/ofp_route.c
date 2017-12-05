@@ -9,7 +9,7 @@
 #include <string.h>
 
 #include "ofpi.h"
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_rt_lookup.h"
 #include "ofpi_route.h"
 

@@ -6,7 +6,7 @@
  *
  */
 
-#include <odp.h>
+#include <odp_api.h>
 #include "api/ofp_types.h"
 #include "api/ofp_route_arp.h"
 #include "api/ofp_ip6.h"

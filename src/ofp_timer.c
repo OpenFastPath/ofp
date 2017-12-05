@@ -8,7 +8,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "odp.h"
+#include <odp_api.h>
 #include "api/ofp_config.h"
 #include "ofpi_util.h"
 #include "ofpi_log.h"

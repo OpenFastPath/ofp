@@ -14,7 +14,7 @@
 #ifndef _OFPI_DEBUG_H_
 #define _OFPI_DEBUG_H_
 
-#include <odp.h>
+#include <odp_api.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "api/ofp_debug.h"

@@ -35,7 +35,7 @@
 #ifndef _SYS_SOCKBUF_H_
 #define _SYS_SOCKBUF_H_
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_systm.h"
 #include "ofpi_util.h"
 #include "ofpi_config.h"

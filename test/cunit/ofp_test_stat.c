@@ -18,7 +18,7 @@
 #include <CUnit/Basic.h>
 #endif
 
-#include <odp.h>
+#include <odp_api.h>
 #include "../../src/ofp_stat.c"
 
 /*

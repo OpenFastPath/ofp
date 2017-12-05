@@ -35,7 +35,7 @@
 #ifndef _SYS_PROTOSW_H_
 #define _SYS_PROTOSW_H_
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_domain.h"
 
 /* Forward declare these structures referenced from prototypes below. */

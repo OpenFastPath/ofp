@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <stdarg.h>
 #include <sys/ioctl.h>
-#include "odp.h"
+#include <odp_api.h>
 #include "ofp.h"
 #include "netwrap_ioctl.h"
 #include "netwrap_errno.h"

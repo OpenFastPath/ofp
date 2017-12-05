@@ -4,7 +4,7 @@
  *
  * SPDX-License-Identifier:     BSD-3-Clause
  */
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_uma.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"

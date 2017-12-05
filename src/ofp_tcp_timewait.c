@@ -32,7 +32,7 @@
  *	@(#)tcp_subr.c	8.2 (Berkeley) 5/24/95
  */
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofpi_init.h"
 #include "ofpi_pkt_processing.h"

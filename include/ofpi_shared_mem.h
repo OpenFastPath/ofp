@@ -7,7 +7,7 @@
 #ifndef __OFP_SHARED_MEM_H__
 #define __OFP_SHARED_MEM_H__
 
-#include <odp.h>
+#include <odp_api.h>
 
 /*
  * Raw allocator that maps to ODP shared memory allocator or to a

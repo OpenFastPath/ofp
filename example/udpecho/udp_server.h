@@ -8,7 +8,7 @@
 #ifndef _UDP_SERVER_H_
 #define _UDP_SERVER_H_
 
-#include "odp.h"
+#include <odp_api.h>
 
 void ofp_start_udpserver_thread(odp_instance_t instance, int core_id);
 

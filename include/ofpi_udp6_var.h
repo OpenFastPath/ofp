@@ -63,7 +63,7 @@
 #ifndef _NETINET6_UDP6_VAR_H_
 #define _NETINET6_UDP6_VAR_H_
 
-#include <odp.h>
+#include <odp_api.h>
 
 #if 0
 SYSCTL_DECL(_net_inet6_udp6);

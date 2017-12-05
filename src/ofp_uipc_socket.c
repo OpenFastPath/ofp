@@ -107,7 +107,7 @@
 #include <stddef.h>
 #include <limits.h>
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofpi_errno.h"
 #include "ofpi_timer.h"

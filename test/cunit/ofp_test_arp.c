@@ -18,7 +18,7 @@
 
 #include "ofp_log.h"
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

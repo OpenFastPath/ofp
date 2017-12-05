@@ -9,7 +9,7 @@
 #ifndef __OFPI_IN6_H__
 #define __OFPI_IN6_H__
 
-#include "odp.h"
+#include <odp_api.h>
 #include "api/ofp_in6.h"
 
 extern  uint8_t ofp_ip6_protox[];

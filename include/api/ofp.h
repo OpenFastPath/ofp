@@ -7,7 +7,7 @@
 #ifndef __OFP_H__
 #define __OFP_H__
 
-#include <odp.h>
+#include <odp_api.h>
 #include <odp/helper/linux.h>
 
 /**

@@ -31,7 +31,7 @@
 
 #undef HZ
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_avl.h"
 #include "ofpi_portconf.h"
 #include "ofpi_rt_lookup.h"

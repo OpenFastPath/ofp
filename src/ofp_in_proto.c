@@ -31,7 +31,7 @@
  *	@(#)in_proto.c	8.2 (Berkeley) 2/9/95
  */
 
-#include <odp.h>
+#include <odp_api.h>
 #include "ofpi_in.h"
 #include "ofpi_sysctl.h"
 #include "ofpi_icmp.h"

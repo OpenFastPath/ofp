@@ -62,7 +62,7 @@
 #ifndef _NETINET_TCP6_VAR_H_
 #define _NETINET_TCP6_VAR_H_
 
-#include <odp.h>
+#include <odp_api.h>
 
 
 #ifdef SYSCTL_DECL

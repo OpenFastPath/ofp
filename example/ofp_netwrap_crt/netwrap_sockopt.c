@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include "odp.h"
+#include <odp_api.h>
 #include "ofp.h"
 #include "netwrap_sockopt.h"
 #include "netwrap_errno.h"

@@ -5,7 +5,7 @@
  * SPDX-License-Identifier:	BSD-3-Clause
  */
 
-#include <odp.h>
+#include <odp_api.h>
 
 #include "ofpi_inet.h"
 #include "ofpi_domain.h"

@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <CUnit/Basic.h>
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofp_init.h"
 #include "ofpi_tcp_seq.h"

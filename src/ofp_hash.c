@@ -13,7 +13,7 @@ lookup3.c, by Bob Jenkins, May 2006, Public Domain.
 #include <stdio.h>	/* defines printf for tests */
 #include <time.h>	/* defines time_t for timings in the test */
 #include <stdint.h>	/* defines uint32_t etc */
-#include <odp.h>
+#include <odp_api.h>
 
 #include "ofpi_hash.h"
 

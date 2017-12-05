@@ -14,7 +14,7 @@
 #ifndef __OFP_LOG_H__
 #define __OFP_LOG_H__
 
-#include <odp.h>
+#include <odp_api.h>
 #include "ofp_timer.h"
 
 #include <pthread.h>

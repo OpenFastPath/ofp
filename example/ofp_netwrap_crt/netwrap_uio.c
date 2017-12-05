@@ -8,7 +8,7 @@
 #include "netwrap_common.h"
 #include <sys/uio.h>
 #include <unistd.h>
-#include "odp.h"
+#include <odp_api.h>
 #include "ofp.h"
 #include "netwrap_uio.h"
 #include "netwrap_errno.h"

@@ -21,7 +21,7 @@
 #include <CUnit/Basic.h>
 #endif
 
-#include <odp.h>
+#include <odp_api.h>
 #include <ofpi_ethernet.h>
 #include "test_raw_frames.h"
 #include "ofpi.h"

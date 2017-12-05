@@ -41,7 +41,7 @@
 #include <string.h>
 
 #include "ofpi_errno.h"
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofpi_errno.h"
 #include "ofpi_tree.h"

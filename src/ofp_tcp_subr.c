@@ -38,7 +38,7 @@
 #include "ofpi_pkt_processing.h"
 #include "ofpi_errno.h"
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofpi_init.h"
 #include "ofpi_sysctl.h"

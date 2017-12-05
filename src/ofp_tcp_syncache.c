@@ -35,7 +35,7 @@
 #include <strings.h>
 #include <limits.h>
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofpi_util.h"
 #include "ofpi_errno.h"

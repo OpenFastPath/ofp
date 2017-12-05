@@ -67,7 +67,7 @@
 #ifndef _OFP_ICMP6_H_
 #define _OFP_ICMP6_H_
 
-#include <odp.h>
+#include <odp_api.h>
 #include "ofp_in6.h"
 
 #if __GNUC__ >= 4

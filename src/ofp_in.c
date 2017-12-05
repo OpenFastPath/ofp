@@ -32,7 +32,7 @@
  *	@(#)in.c	8.4 (Berkeley) 1/9/95
  */
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_in.h"
 #include "ofpi_in_pcb.h"
 #include "ofpi_udp.h"

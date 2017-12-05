@@ -6,7 +6,7 @@
  *
  */
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_in.h"
 #include "ofpi_ip.h"
 #include "ofpi_log.h"

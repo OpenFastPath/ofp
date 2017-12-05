@@ -8,7 +8,7 @@
 #ifndef _OFPI_SYSTM_H_
 #define _OFPI_SYSTM_H_
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_config.h"
 #include "ofpi_socket.h"
 #include "ofpi_init.h"

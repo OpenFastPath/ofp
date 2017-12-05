@@ -13,7 +13,7 @@
 #include <CUnit/Basic.h>
 #endif
 
-#include "odp.h"
+#include <odp_api.h>
 #include "odp/helper/linux.h"
 
 #include "ofp_errno.h"

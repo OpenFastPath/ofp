@@ -64,7 +64,7 @@
  *	@(#)in_pcb.c	8.2 (Berkeley) 1/4/94
  */
 
-#include <odp.h>
+#include <odp_api.h>
 #include "ofpi_in.h"
 #include "ofpi_in_pcb.h"
 #include "ofpi_in6_pcb.h"

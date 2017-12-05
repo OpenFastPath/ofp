@@ -17,7 +17,7 @@
 #include <ck_epoch.h>
 #include <ck_queue.h>
 #include <ck_pr.h>
-#include <odp.h>
+#include <odp_api.h>
 
 #include "api/ofp_types.h"
 #include "ofpi_portconf.h"

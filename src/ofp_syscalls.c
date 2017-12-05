@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "odp.h"
+#include <odp_api.h>
 
 #include "ofpi_errno.h"
 #include "ofpi_log.h"

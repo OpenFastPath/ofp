@@ -8,7 +8,7 @@
 #ifndef _OFPI_H_
 #define _OFPI_H_
 
-#include <odp.h>
+#include <odp_api.h>
 #include <odp/helper/linux.h>
 
 #include "ofpi_config.h"

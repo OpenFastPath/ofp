@@ -7,7 +7,7 @@
 #ifndef __AVL_H
 #define __AVL_H
 
-#include <odp.h>
+#include <odp_api.h>
 
 #ifdef __cplusplus
 extern "C" {

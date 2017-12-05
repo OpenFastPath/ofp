@@ -36,7 +36,7 @@
  *	@(#)kern_subr.c	8.3 (Berkeley) 1/21/94
  */
 
-#include "odp.h"
+#include <odp_api.h>
 #include "ofpi_queue.h"
 #include "ofpi_socket.h"
 #include "ofpi_systm.h"

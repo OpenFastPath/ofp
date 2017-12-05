@@ -8,7 +8,7 @@
 #ifndef _OFPI_APP_H
 #define _OFPI_APP_H
 
-#include <odp.h>
+#include <odp_api.h>
 #include <string.h>
 #include "api/ofp_types.h"
 #include "api/ofp_pkt_processing.h"
