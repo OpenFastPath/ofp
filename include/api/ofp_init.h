@@ -117,6 +117,12 @@ typedef struct ofp_global_param_t {
 		int entry_timeout;
 
 		/**
+		 * Timeout (in seconds) for a packet waiting for ARP
+		 * to complete. Default is OFP_ARP_SAVED_PKT_TIMEOUT.
+		 */
+		int saved_pkt_timeout;
+
+		/**
 		 * Reply to an ARP request only if the target address of the
 		 * request is an address of the receiving interface.
 		 * Ignore the request otherwise.
@@ -214,6 +220,7 @@ typedef struct ofp_global_param_t {
  *         entries = integer
  *         hash_bits = integer
  *         entry_timeout = integer
+ *         saved_pkt_timeout = integer
  *         check_interface = boolean
  *     }
  *     evt_rx_burst_size = integer

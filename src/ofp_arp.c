@@ -38,7 +38,7 @@
 /* Plus one because zeroth entry is used as the invalid entry. */
 #define NUM_ARPS (global_param->arp.entries + 1)
 #define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * US_PER_SEC)
-#define SAVED_PKT_TIMEOUT (OFP_ARP_SAVED_PKT_TIMEOUT * US_PER_SEC)
+#define SAVED_PKT_TIMEOUT (global_param->arp.saved_pkt_timeout * US_PER_SEC)
 #define AGE_DIVISOR 2
 
 #if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)
