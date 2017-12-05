@@ -107,7 +107,7 @@ typedef struct ofp_global_param_t {
 	 * Global ARP parameters.
 	 */
 	struct arp_s {
-		/** Entry timeout in seconds. Default is ARP_ENTRY_TIMEOUT. */
+		/** Entry timeout in seconds. Default is OFP_ARP_ENTRY_TIMEOUT. */
 		int entry_timeout;
 
 		/**

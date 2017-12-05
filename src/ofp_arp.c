@@ -23,18 +23,18 @@
 
 #define SHM_NAME_ARP "OfpArpShMem"
 
-/* Default ARP age interval (in seconds). If set to 0, then age interval is half of ARP_ENTRY_TIMEOUT. */
+/* Default ARP age interval (in seconds). If set to 0, then age interval is half of OFP_ARP_ENTRY_TIMEOUT. */
 #define ARP_AGE_INTERVAL 0
 /* Timer interval for entry use time update. */
 #define ARP_ENTRY_UPD_TIMEOUT 2
 /* Maximum number of saved packets waiting for an ARP reply. */
 #define ARP_WAITING_PKTS_SIZE 2048
 
-#define NUM_SETS ARP_ENTRY_TABLE_SIZE
-/*ARP_ENTRIES_SIZE + 1: Zeroth entry used as the invalid entry*/
-#define NUM_ARPS ARP_ENTRIES_SIZE + 1
+#define NUM_SETS OFP_ARP_TABLE_ENTRIES
+/* Plus one because zeroth entry is used as the invalid entry. */
+#define NUM_ARPS OFP_ARP_ENTRIES + 1
 #define ENTRY_UPD_TIMEOUT (ARP_ENTRY_UPD_TIMEOUT * US_PER_SEC)
-#define SAVED_PKT_TIMEOUT (ARP_SAVED_PKT_TIMEOUT * US_PER_SEC)
+#define SAVED_PKT_TIMEOUT (OFP_ARP_SAVED_PKT_TIMEOUT * US_PER_SEC)
 #define AGE_DIVISOR 2
 
 #if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)

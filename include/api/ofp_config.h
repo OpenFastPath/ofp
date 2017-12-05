@@ -135,15 +135,14 @@
  * It defines the number of radix tree nodes used to store routes.*/
 #define ROUTE6_NODES 65536
 
-/**Arp entry table size. Controls memory size for arp entries.
- * Must be power of two */
-#define ARP_ENTRY_TABLE_SIZE 2048
-/**Total number of arp entries that can be stored. */
-#define ARP_ENTRIES_SIZE (NUM_SETS * 4)
-/**Default ARP entry timeout (in seconds) */
-#define ARP_ENTRY_TIMEOUT 1200
+/**ARP entry hash table size. Must be power of two. */
+#define OFP_ARP_TABLE_ENTRIES 2048
+/**Total number of ARP entries that can be stored. */
+#define OFP_ARP_ENTRIES (NUM_SETS * 4)
+/**Default ARP entry timeout (in seconds). */
+#define OFP_ARP_ENTRY_TIMEOUT 1200
 /**Time interval(s) while a packet is saved and waiting for an ARP reply. */
-#define ARP_SAVED_PKT_TIMEOUT 10
+#define OFP_ARP_SAVED_PKT_TIMEOUT 10
 
 /**Enable IPv4 UDP checksum validation mechanism on input
  * packets. If enabled, validation is performed on input
