@@ -246,19 +246,19 @@ static void parse_args(int argc, char *argv[])
 		static struct option long_options[] = {
 			{"batch",         required_argument, 0, 'b'},
 			{"dispw",         required_argument, 0, 'd'},
-			{"interval",      required_argument, 0, 't'},
 			{"ivals",         required_argument, 0, 'i'},
 			{"loglevel",      required_argument, 0, 'l'},
 			{"masklen",       required_argument, 0, 'm'},
 			{"neighbor-bits", required_argument, 0, 'n'},
 			{"route-bits",    required_argument, 0, 'r'},
-			{"verify",        required_argument, 0, 'v'},
+			{"interval",      required_argument, 0, 't'},
 			{"warmup",        required_argument, 0, 'u'},
+			{"verify",        required_argument, 0, 'v'},
 			{"workers",       required_argument, 0, 'w'},
 			{0,               0,                 0,  0 }
 		};
 
-		int c = getopt_long(argc, argv, "b:d:l:i:m:n:r:v:u:w:",
+		int c = getopt_long(argc, argv, "b:d:i:l:m:n:r:t:u:v:w:",
 				    long_options, NULL);
 		if (c == -1)
 			break;
@@ -266,14 +266,14 @@ static void parse_args(int argc, char *argv[])
 		switch (c) {
 		case 'b': arg.batch = atoi(optarg); break;
 		case 'd': arg.dispw = atoi(optarg); break;
-		case 't': arg.interval = atoi(optarg); break;
 		case 'i': arg.ivals = atoi(optarg); break;
 		case 'l': arg.loglevel = atoi(optarg); break;
 		case 'm': arg.masklen = atoi(optarg); break;
 		case 'n': arg.neighbor_bits = atoi(optarg); break;
 		case 'r': arg.route_bits = atoi(optarg); break;
-		case 'v': arg.verify = atoi(optarg); break;
+		case 't': arg.interval = atoi(optarg); break;
 		case 'u': arg.warmup = atoi(optarg); break;
+		case 'v': arg.verify = atoi(optarg); break;
 		case 'w': arg.workers = atoi(optarg); break;
 		default:
 			usage(argv[0]);
