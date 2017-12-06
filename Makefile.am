@@ -35,7 +35,8 @@ include_HEADERS = \
 		$(top_srcdir)/include/api/ofp_udp.h \
 		$(top_srcdir)/include/api/ofp_ip_var.h \
 		$(top_srcdir)/include/api/ofp_tcp.h \
-		$(top_srcdir)/include/api/ofp_epoll.h
+		$(top_srcdir)/include/api/ofp_epoll.h \
+		$(top_srcdir)/include/api/ofp_ipsec.h
 
 noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_netlink.h \
