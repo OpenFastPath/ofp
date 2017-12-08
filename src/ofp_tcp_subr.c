@@ -663,6 +663,18 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 	if (tp == NULL || (inp->inp_socket->so_options & OFP_SO_DEBUG))
 		tcp_trace(TA_OUTPUT, 0, tp, (void *)odp_packet_data(m), th, 0);
 #endif
+	if (valid_m) {
+		int pktlen = odp_packet_len(m);
+		KASSERT(pktlen >= tlen, ("pktlen %d too small, tlen=%d", pktlen, tlen));
+		if (pktlen >= tlen) {
+			int ret = odp_packet_trunc_tail(&m, pktlen - tlen, NULL, NULL);
+			KASSERT(ret == 0, ("odp_packet_trunc_tail failed, ret=%d", ret));
+			if (ret)
+				return;
+		}
+		else
+			return;
+	}
 #ifdef INET6
 	if (isipv6)
 		(void) ofp_ip6_output(m, NULL);
