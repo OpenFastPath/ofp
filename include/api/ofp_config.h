@@ -65,6 +65,9 @@
 /** Packet pool name. */
 #define SHM_PKT_POOL_NAME "packet_pool"
 
+/** Maximum size of transmitted IP datagram fragments. */
+#define OFP_MTU_SIZE 1500
+
 /**Socket handle values returned are in the interval:
  * [OFP_SOCK_NUM_OFFSET, OFP_SOCK_NUM_OFFSET + OFP_NUM_SOCKETS_MAX] */
 #if defined(OFP_CONFIG_WEBSERVER)

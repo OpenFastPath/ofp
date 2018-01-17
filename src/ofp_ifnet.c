@@ -144,16 +144,21 @@ int ofp_mac_set(struct ofp_ifnet *ifnet)
 /* Set interface MTU*/
 int ofp_mtu_set(struct ofp_ifnet *ifnet)
 {
-	ifnet->if_mtu = odp_pktio_mtu(ifnet->pktio);
-	OFP_INFO("Device '%s' MTU=%d", ifnet->if_name, ifnet->if_mtu);
+	uint16_t max_frame_size = odp_pktout_maxlen(ifnet->pktio);
 
-	/* RFC 791, p. 24, "Every internet module must be able
-	 * to forward a datagram of 68 octets without further
-	 * fragmentation."*/
-	if (ifnet->if_mtu < 68 || ifnet->if_mtu > 9000) {
-		OFP_INFO("Invalid MTU. Overwrite MTU value to 1500");
-		ifnet->if_mtu = 1500;
-	}
+	ifnet->if_mtu = OFP_MTU_SIZE;
+
+	if (max_frame_size < OFP_ETHER_HDR_LEN + 68) {
+		/* RFC 791, p. 24, "Every internet module must be able
+		 * to forward a datagram of 68 octets without further
+		 * fragmentation."*/
+		OFP_ERR("odp_pktout_maxlen returned too small value: %d",
+			 max_frame_size);
+		return -1;
+	} else if (max_frame_size < OFP_ETHER_HDR_LEN + OFP_MTU_SIZE)
+		ifnet->if_mtu = max_frame_size - OFP_ETHER_HDR_LEN;
+
+	OFP_INFO("Device '%s' MTU=%d", ifnet->if_name, ifnet->if_mtu);
 
 	return 0;
 }
