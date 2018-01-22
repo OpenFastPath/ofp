@@ -106,6 +106,7 @@ static void *worker(void *p)
 	odp_packet_t burst[arg.batch];
 	odp_event_t ev[arg.batch];
 	uint32_t c;
+	uint16_t cksum_base = 0;
 
 	seedp = cpuid + 1;
 
@@ -123,10 +124,14 @@ static void *worker(void *p)
 		memcpy(buf, frame, sizeof(frame));
 
 		struct ofp_ip *ip = (struct ofp_ip *)(buf + OFP_ETHER_HDR_LEN);
-		ip->ip_dst.s_addr = dst_addr();
 		ip->ip_src.s_addr = C_SRC_ADDR;
 		ip->ip_ttl = C_TTL;
 		ip->ip_sum = 0;
+		if (!c) {
+			ip->ip_dst.s_addr = 0;
+			cksum_base = ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2);
+		}
+		ip->ip_dst.s_addr = dst_addr();
 		ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2);
 		odp_packet_has_eth_set(pkt, 1);
 		odp_packet_has_ipv4_set(pkt, 1);
@@ -189,10 +194,13 @@ static void *worker(void *p)
 			struct ofp_ip *ip = (struct ofp_ip *)(buf + OFP_ETHER_HDR_LEN);
 
 			memset(eth->ether_dhost, 0, sizeof(eth->ether_dhost));
-			ip->ip_dst.s_addr = dst_addr();
 			ip->ip_ttl = C_TTL;
-			ip->ip_sum = 0;
-			ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2);
+			ip->ip_dst.s_addr = dst_addr();
+			uint32_t cksum = odp_be_to_cpu_16(~cksum_base);
+			cksum += odp_be_to_cpu_16(ip->ip_dst.s_addr&0xffff);
+			cksum += odp_be_to_cpu_16(ip->ip_dst.s_addr>>16);
+			cksum = (cksum & 0xffff) + (cksum >> 16);
+			ip->ip_sum = odp_cpu_to_be_16(~cksum);
 		}
 
 		odp_time_t start = odp_time_global();
