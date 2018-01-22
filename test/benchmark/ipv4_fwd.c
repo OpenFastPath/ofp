@@ -30,13 +30,11 @@ uint8_t frame[64] = {
 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x0a,
 };
 
-struct tstate_s {
+struct ODP_ALIGNED_CACHE tstate_s {
 	volatile uint64_t packets;
 	volatile odp_time_t time;
 	volatile int stop;
-} ODP_CACHE_ALIGN;
-
-struct tstate_s tstate[OFP_MAX_NUM_CPU];
+} tstate[OFP_MAX_NUM_CPU];
 
 #define STR(x) #x
 #define ASSERT(x)						\
