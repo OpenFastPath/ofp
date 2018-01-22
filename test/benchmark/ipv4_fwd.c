@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
 	ofp_init_global_param(&params);
 	params.enable_nl_thread = 0;
 	params.mtrie.routes = routes + 2;
-	params.mtrie.table8_nodes = routes + (routes>>8) + 2;
+	params.mtrie.table8_nodes = routes/2 + (routes>>8) + 4;
 	ASSERT(!ofp_init_global(instance, &params));
 	ASSERT(!ofp_init_local());
 
