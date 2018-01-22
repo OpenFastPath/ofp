@@ -67,7 +67,7 @@ const uint8_t ether_dhost[OFP_ETHER_ADDR_LEN] = {0xa, 0xb, 0, 0, 0, 0};
 
 struct arg_s {
 	volatile uint32_t batch, dispw, interval, ivals, loglevel, masklen,
-		neighbor_bits, route_bits, verify, warmup, workers;
+		neighbor_bits, route_bits, tx_burst, verify, warmup, workers;
 } arg, default_arg = {
 	.batch = 64,
 	.dispw = 0,
@@ -77,6 +77,7 @@ struct arg_s {
 	.masklen = 24,
 	.neighbor_bits = 0,
 	.route_bits = 0,
+	.tx_burst = 8,
 	.verify = 0,
 	.warmup = 5,
 	.workers = 1,
@@ -230,6 +231,7 @@ static void usage(const char *prog)
 	printf("-v, --verify        Verify output packets. (%u)\n", default_arg.verify);
 	printf("-u, --warmup        Warm up period in seconds. (%u)\n", default_arg.warmup);
 	printf("-w, --workers       Number of worker threads. (%u)\n", default_arg.workers);
+	printf("-x, --tx-burst      TX burst size. (%u)\n", default_arg.tx_burst);
 
 	printf("\n");
 
@@ -255,10 +257,11 @@ static void parse_args(int argc, char *argv[])
 			{"warmup",        required_argument, 0, 'u'},
 			{"verify",        required_argument, 0, 'v'},
 			{"workers",       required_argument, 0, 'w'},
+			{"tx-burst",      required_argument, 0, 'x'},
 			{0,               0,                 0,  0 }
 		};
 
-		int c = getopt_long(argc, argv, "b:d:i:l:m:n:r:t:u:v:w:",
+		int c = getopt_long(argc, argv, "b:d:i:l:m:n:r:t:u:v:w:x:",
 				    long_options, NULL);
 		if (c == -1)
 			break;
@@ -275,6 +278,7 @@ static void parse_args(int argc, char *argv[])
 		case 'u': arg.warmup = atoi(optarg); break;
 		case 'v': arg.verify = atoi(optarg); break;
 		case 'w': arg.workers = atoi(optarg); break;
+		case 'x': arg.tx_burst = atoi(optarg); break;
 		default:
 			usage(argv[0]);
 		}
@@ -330,6 +334,7 @@ int main(int argc, char *argv[])
 	params.arp.entries = neighbors;
 	params.mtrie.routes = routes + 2;
 	params.mtrie.table8_nodes = routes/2 + (routes>>8) + 4;
+	params.pkt_tx_burst_size = arg.tx_burst;
 	ASSERT(!ofp_init_global(instance, &params));
 	ASSERT(!ofp_init_local());
 
