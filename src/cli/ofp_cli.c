@@ -36,8 +36,6 @@
  * Only core 0 runs this.
  */
 
-static void *cli_server(void *arg);
-
 static int close_cli;
 
 int cli_display_width = 80, cli_display_height = 24;
@@ -1569,7 +1567,7 @@ static int cli_serv_fd = -1, cli_tmp_fd = -1;
  * @return void*
  *
  */
-static void *cli_server(void *arg)
+static int cli_server(void *arg)
 {
 	int alen;
 	struct sockaddr_in my_addr, caller;
@@ -1587,13 +1585,13 @@ static void *cli_server(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
 		OFP_ERR("Error: Failed to retrieve global configuration.");
-		return NULL;
+		return -1;
 	}
 
 	cli_init_commands();
@@ -1603,7 +1601,7 @@ static void *cli_server(void *arg)
 	cli_serv_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (cli_serv_fd < 0) {
 		OFP_ERR("cli serv socket\n");
-		return NULL;
+		return -1;
 	}
 
 	if (setsockopt(cli_serv_fd, SOL_SOCKET,
@@ -1618,7 +1616,7 @@ static void *cli_server(void *arg)
 	if (bind(cli_serv_fd, (struct sockaddr *)&my_addr,
 		 sizeof(struct sockaddr)) < 0) {
 		OFP_ERR("serv bind\n");
-		return NULL;
+		return -1;
 	}
 
 	listen(cli_serv_fd, 1);
@@ -1691,14 +1689,14 @@ static void *cli_server(void *arg)
 	cli_serv_fd = -1;
 
 	OFP_DBG("CLI server exiting");
-	return NULL;
+	return 0;
 }
 
 int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *cli_file)
 {
 	odp_cpumask_t cpumask;
 	struct ofp_global_config_mem *ofp_global_cfg;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
@@ -1717,9 +1715,9 @@ int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *cli_file)
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
 
-	if (odph_linux_pthread_create(&ofp_global_cfg->cli_thread,
-			&cpumask,
-			&thr_params) == 0) {
+	if (odph_odpthreads_create(&ofp_global_cfg->cli_thread,
+				   &cpumask,
+				   &thr_params) == 0) {
 		OFP_ERR("Failed to start CLI thread.");
 		ofp_global_cfg->cli_thread_is_running = 0;
 		return -1;
@@ -1741,7 +1739,7 @@ int ofp_stop_cli_thread(void)
 
 	if (ofp_global_cfg->cli_thread_is_running) {
 		close_connection(NULL);
-		odph_linux_pthread_join(&ofp_global_cfg->cli_thread, 1);
+		odph_odpthreads_join(&ofp_global_cfg->cli_thread);
 		ofp_global_cfg->cli_thread_is_running = 0;
 	}
 

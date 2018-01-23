@@ -30,7 +30,6 @@ typedef struct {
 static void parse_args(int argc, char *argv[], appl_args_t *appl_args);
 static void print_info(char *progname, appl_args_t *appl_args);
 static void usage(char *progname);
-static void *app_dispatcher_thread(void *arg);
 
 ofp_global_param_t app_init_params; /**< global OFP init parms */
 
@@ -58,10 +57,10 @@ static enum ofp_return_code fastpath_local_hook(odp_packet_t pkt, void *arg)
 /** Application Dispatcher worker threads
  *
  * @param arg void*
- * @return void*
+ * @return int
  *
  */
-static void *app_dispatcher_thread(void *arg)
+static int app_dispatcher_thread(void *arg)
 {
 	odp_event_t ev;
 	odp_packet_t pkt;
@@ -71,7 +70,7 @@ static void *app_dispatcher_thread(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	/* PER CORE DISPATCHER */
@@ -112,7 +111,7 @@ static void *app_dispatcher_thread(void *arg)
 	}
 
 	/* Never reached */
-	return NULL;
+	return -1;
 }
 
 /** main() Application entry point
@@ -127,12 +126,12 @@ static void *app_dispatcher_thread(void *arg)
 
 int main(int argc, char *argv[])
 {
-	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
+	odph_odpthread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
 	int core_count, num_workers;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 
 	struct rlimit rlp;
@@ -195,9 +194,9 @@ int main(int argc, char *argv[])
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_WORKER;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(thread_tbl,
-				  &cpumask,
-				  &thr_params);
+	odph_odpthreads_create(thread_tbl,
+			       &cpumask,
+			       &thr_params);
 
 	/* other app code here.*/
 	/* Start CLI */
@@ -207,7 +206,7 @@ int main(int argc, char *argv[])
 	/* ioctl test thread */
 	ofp_start_ioctl_thread(instance, app_init_params.linux_core_id);
 
-	odph_linux_pthread_join(thread_tbl, num_workers);
+	odph_odpthreads_join(thread_tbl);
 	printf("End Main()\n");
 
 	return 0;

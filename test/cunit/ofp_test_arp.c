@@ -30,13 +30,13 @@
 #define ALLOW_UNUSED_LOCAL(x) false ? (void)x : (void)0
 
 static odp_atomic_u32_t still_running;
-static odph_linux_pthread_t pp_thread_handle;
-void *pp_thread(void *arg);
+static odph_odpthread_t pp_thread_handle;
+int pp_thread(void *arg);
 
 static int init_suite(void)
 {
 	ofp_global_param_t params;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
@@ -68,9 +68,9 @@ static int init_suite(void)
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_WORKER;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&pp_thread_handle,
-				&cpumask,
-				&thr_params);
+	odph_odpthreads_create(&pp_thread_handle,
+			       &cpumask,
+			       &thr_params);
 
 	return 0;
 }
@@ -79,17 +79,17 @@ static int end_suite(void)
 {
 	odp_atomic_store_u32(&still_running, 0);
 
-	odph_linux_pthread_join(&pp_thread_handle, 1);
+	odph_odpthreads_join(&pp_thread_handle);
 
 	return 0;
 }
 
-void *pp_thread(void *arg)
+int pp_thread(void *arg)
 {
 	ALLOW_UNUSED_LOCAL(arg);
 	if (ofp_init_local()) {
 		OFP_ERR("ofp_init_local failed");
-		return NULL;
+		return -1;
 	}
 
 	while (odp_atomic_load_u32(&still_running)) {
@@ -106,7 +106,7 @@ void *pp_thread(void *arg)
 
 		ofp_timer_handle(event);
 	}
-	return NULL;
+	return 0;
 }
 
 static void test_arp(void)

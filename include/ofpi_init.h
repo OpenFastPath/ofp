@@ -8,7 +8,7 @@
 #define __OFPI_INIT_H__
 
 #include "api/ofp_init.h"
-#include <odp/helper/linux.h>
+#include <odp/helper/odph_api.h>
 
 #define SHM_NAME_GLOBAL_CONFIG "OfpGlobalConfigShMem"
 
@@ -21,11 +21,11 @@ struct ofp_global_config_mem {
 	odp_bool_t is_running ODP_ALIGNED_CACHE;
 
 #ifdef SP
-	odph_linux_pthread_t nl_thread;
+	odph_odpthread_t nl_thread;
 	odp_bool_t nl_thread_is_running;
 #endif /* SP */
 
-	odph_linux_pthread_t cli_thread;
+	odph_odpthread_t cli_thread;
 	odp_bool_t cli_thread_is_running;
 
 	ofp_global_param_t global_param;

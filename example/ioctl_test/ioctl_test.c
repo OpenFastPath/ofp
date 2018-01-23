@@ -210,7 +210,7 @@ set_route(int fd, const char *dev, int vrf,
 	}
 }
 
-static void *
+static int
 ioctl_test(void *arg)
 {
 	int fd;
@@ -223,14 +223,14 @@ ioctl_test(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	sleep(2);
 
 	if ((fd = ofp_socket(OFP_AF_INET, OFP_SOCK_DGRAM, OFP_IPPROTO_UDP)) < 0) {
 		OFP_ERR("ofp_socket failed, err='%s'",
 			ofp_strerror(ofp_errno));
-		return NULL;
+		return -1;
 	}
 
 	OFP_INFO("=====================================");
@@ -332,14 +332,14 @@ ioctl_test(void *arg)
 	fclose(logfile);
 	if (system("cat " logfilename) < 0)
 		OFP_ERR("system failed");
-	return NULL;
+	return 0;
 }
 
 void ofp_start_ioctl_thread(odp_instance_t instance, int core_id)
 {
-	odph_linux_pthread_t test_linux_pthread;
+	odph_odpthread_t test_linux_pthread;
 	odp_cpumask_t cpumask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
@@ -348,7 +348,7 @@ void ofp_start_ioctl_thread(odp_instance_t instance, int core_id)
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&test_linux_pthread,
-				  &cpumask,
-				  &thr_params);
+	odph_odpthreads_create(&test_linux_pthread,
+			       &cpumask,
+			       &thr_params);
 }

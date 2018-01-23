@@ -181,7 +181,7 @@ int sp_setup_device(struct ofp_ifnet *ifnet)
 	return 0;
 }
 
-void *sp_rx_thread(void *ifnet_void)
+int sp_rx_thread(void *ifnet_void)
 {
 	struct ofp_ifnet *ifnet = (struct ofp_ifnet *) ifnet_void;
 	struct ofp_ifnet *pkt_ifnet;
@@ -197,13 +197,13 @@ void *sp_rx_thread(void *ifnet_void)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.");
-		return NULL;
+		return -1;
 	}
 
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
 		OFP_ERR("Error: Failed to retrieve global configuration.");
-		return NULL;
+		return -1;
 	}
 
 	while (ofp_global_cfg->is_running) {
@@ -249,10 +249,10 @@ void *sp_rx_thread(void *ifnet_void)
 	}
 
 	OFP_DBG("SP RX thread of %s exiting", ifnet->if_name);
-	return NULL;
+	return 0;
 }
 
-void *sp_tx_thread(void *ifnet_void)
+int sp_tx_thread(void *ifnet_void)
 {
 	int len, r;
 	odp_packet_t pkt;
@@ -264,13 +264,13 @@ void *sp_tx_thread(void *ifnet_void)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
 		OFP_ERR("Error: Failed to retrieve global configuration.");
-		return NULL;
+		return -1;
 	}
 
 	while (ofp_global_cfg->is_running) {
@@ -331,5 +331,5 @@ drop_pkg:
 	}
 
 	OFP_DBG("SP TX thread of %s exiting", ifnet->if_name);
-	return NULL;
+	return 0;
 }

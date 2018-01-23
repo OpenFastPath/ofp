@@ -856,7 +856,7 @@ static int route_recv(int fd, int vrf)
 
 static fd_set read_fd;
 
-void *start_netlink_nl_server(void *arg)
+int start_netlink_nl_server(void *arg)
 {
 	int i, r;
 	fd_set fds;
@@ -868,7 +868,7 @@ void *start_netlink_nl_server(void *arg)
 	/* Lookup shared memories */
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	for (i = 0; i < NUM_NS_SOCKETS; i++) {
@@ -883,7 +883,7 @@ void *start_netlink_nl_server(void *arg)
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
 		OFP_ERR("Error: Failed to retrieve global configuration.");
-		return NULL;
+		return -1;
 	}
 
 	while (ofp_global_cfg->is_running) {

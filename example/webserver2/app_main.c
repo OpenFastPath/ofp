@@ -65,10 +65,10 @@ ofp_global_param_t app_init_params; /**< global OFP init parms */
 /** pkt_io_direct_mode_recv() Custom event dispatcher
  *
  * @param arg void*  Worker argument
- * @return void* Never returns
+ * @return int Never returns
  *
  */
-static void *pkt_io_direct_mode_recv(void *arg)
+static int pkt_io_direct_mode_recv(void *arg)
 {
 	odp_packet_t pkt, pkt_tbl[PKT_BURST_SIZE];
 	odp_event_t events[PKT_BURST_SIZE], ev;
@@ -86,7 +86,7 @@ static void *pkt_io_direct_mode_recv(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	ptr = (uint8_t *)&pktin[0];
 
@@ -122,7 +122,7 @@ static void *pkt_io_direct_mode_recv(void *arg)
 	}
 
 	/* Never reached */
-	return NULL;
+	return 0;
 }
 
 /** create_interfaces_direct_rss() Create OFP interfaces with
@@ -289,12 +289,12 @@ static int create_interfaces_sched_rss(odp_instance_t instance,
  */
 int main(int argc, char *argv[])
 {
-	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
+	odph_odpthread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
 	int num_workers, first_worker, linux_sp_core, i;
 	struct worker_arg workers_arg_direct_rss[MAX_WORKERS];
 	odp_cpumask_t cpu_mask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 
 	/* Setup system resources */
@@ -396,8 +396,8 @@ int main(int argc, char *argv[])
 		odp_cpumask_zero(&cpu_mask);
 		odp_cpumask_set(&cpu_mask, first_worker + i);
 
-		odph_linux_pthread_create(&thread_tbl[i], &cpu_mask,
-					  &thr_params);
+		odph_odpthreads_create(&thread_tbl[i], &cpu_mask,
+				       &thr_params);
 	}
 
 	/* Start CLI */
@@ -411,7 +411,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	odph_linux_pthread_join(thread_tbl, num_workers);
+	odph_odpthreads_join(thread_tbl);
 	printf("End Main()\n");
 
 	return 0;

@@ -50,7 +50,7 @@ ofp_global_param_t app_init_params; /**< global OFP init parms */
 
 #define PKT_BURST_SIZE 16
 
-static void *pkt_io_recv(void *arg)
+static int pkt_io_recv(void *arg)
 {
 	odp_packet_t pkt, pkt_tbl[PKT_BURST_SIZE];
 	int pkt_idx, pkt_cnt;
@@ -67,7 +67,7 @@ static void *pkt_io_recv(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	ptr = (uint8_t *)&pktin[0];
 
@@ -90,13 +90,13 @@ static void *pkt_io_recv(void *arg)
 	}
 
 	/* Never reached */
-	return NULL;
+	return 0;
 }
 
 /*
  * Should receive timeouts only
  */
-static void *event_dispatcher(void *arg)
+static int event_dispatcher(void *arg)
 {
 	odp_event_t ev;
 
@@ -104,7 +104,7 @@ static void *event_dispatcher(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	while (1) {
@@ -125,7 +125,7 @@ static void *event_dispatcher(void *arg)
 	}
 
 	/* Never reached */
-	return NULL;
+	return 0;
 }
 
 /** main() Application entry point
@@ -137,7 +137,7 @@ static void *event_dispatcher(void *arg)
  */
 int main(int argc, char *argv[])
 {
-	odph_linux_pthread_t thread_tbl[MAX_WORKERS], dispatcher_thread;
+	odph_odpthread_t thread_tbl[MAX_WORKERS], dispatcher_thread;
 	appl_args_t params;
 	int num_workers, tx_queues, first_worker, i;
 	odp_cpumask_t cpu_mask;
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 	odp_pktin_queue_param_t pktin_param;
 	odp_pktout_queue_param_t pktout_param;
 	odp_pktio_t pktio;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
@@ -268,8 +268,8 @@ int main(int argc, char *argv[])
 		odp_cpumask_zero(&cpu_mask);
 		odp_cpumask_set(&cpu_mask, first_worker + i);
 
-		odph_linux_pthread_create(&thread_tbl[i], &cpu_mask,
-					  &thr_params);
+		odph_odpthreads_create(&thread_tbl[i], &cpu_mask,
+				       &thr_params);
 	}
 
 	odp_cpumask_zero(&cpu_mask);
@@ -278,9 +278,9 @@ int main(int argc, char *argv[])
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_WORKER;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&dispatcher_thread,
-				  &cpu_mask,
-				  &thr_params);
+	odph_odpthreads_create(&dispatcher_thread,
+			       &cpu_mask,
+			       &thr_params);
 
 	/* Start CLI */
 	ofp_start_cli_thread(instance, app_init_params.linux_core_id,
@@ -289,7 +289,7 @@ int main(int argc, char *argv[])
 
 	udp_fwd_cfg(params.sock_count, params.laddr, params.raddr);
 
-	odph_linux_pthread_join(thread_tbl, num_workers);
+	odph_odpthreads_join(thread_tbl);
 
 	printf("End Main()\n");
 	return 0;

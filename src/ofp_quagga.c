@@ -605,7 +605,7 @@ static void fpm_serve ()
 	}
 }
 
-void * start_quagga_nl_server(void *arg)
+int start_quagga_nl_server(void *arg)
 {
 	int sock;
 
@@ -613,7 +613,7 @@ void * start_quagga_nl_server(void *arg)
 
 	if (!create_listen_sock(FPM_DEFAULT_PORT, &glob->server_sock)) {
 		err_msg("Failed to create quagga listening socket.");
-		return NULL;
+		return -1;
 	}
 
 	/*
@@ -626,6 +626,6 @@ void * start_quagga_nl_server(void *arg)
 	}
 
 	/* Never reached */
-	return NULL;
+	return 0;
 }
 #endif

@@ -61,7 +61,7 @@ extern odp_pool_t ofp_packet_pool;
 
 __thread struct ofp_global_ip_state *ofp_ip_shm;
 
-void *default_event_dispatcher(void *arg)
+int default_event_dispatcher(void *arg)
 {
 	odp_event_t ev;
 	odp_packet_t pkt;
@@ -73,7 +73,7 @@ void *default_event_dispatcher(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("ofp_init_local failed");
-		return NULL;
+		return -1;
 	}
 
 	odp_event_t events[global_param->evt_rx_burst_size];
@@ -82,7 +82,7 @@ void *default_event_dispatcher(void *arg)
 	if (is_running == NULL) {
 		OFP_ERR("ofp_get_processing_state failed");
 		ofp_term_local();
-		return NULL;
+		return -1;
 	}
 
 	/* PER CORE DISPATCHER */
@@ -134,7 +134,7 @@ void *default_event_dispatcher(void *arg)
 	if (ofp_term_local())
 		OFP_ERR("ofp_term_local failed");
 
-	return NULL;
+	return 0;
 }
 
 uint32_t ofp_packet_min_user_area(void)

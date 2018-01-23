@@ -117,14 +117,14 @@ OFP_SYSCTL_STRING(_mybranch, OFP_OID_AUTO, hello, OFP_CTLFLAG_RW,
  * OID values > 255 are dynamically allocated.
  */
 
-static void *
+static int
 sysctl(void *arg)
 {
 	(void)arg;
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	sleep(2);
 
@@ -267,14 +267,14 @@ sysctl(void *arg)
 	while (1)
 		sleep(1);
 
-	return NULL;
+	return 0;
 }
 
 void ofp_start_sysctl_thread(odp_instance_t instance, int core_id)
 {
-	static odph_linux_pthread_t test_linux_sysctl_pthread;
+	static odph_odpthread_t test_linux_sysctl_pthread;
 	odp_cpumask_t cpumask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
@@ -283,7 +283,7 @@ void ofp_start_sysctl_thread(odp_instance_t instance, int core_id)
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&test_linux_sysctl_pthread,
-				  &cpumask,
-				  &thr_params);
+	odph_odpthreads_create(&test_linux_sysctl_pthread,
+			       &cpumask,
+			       &thr_params);
 }

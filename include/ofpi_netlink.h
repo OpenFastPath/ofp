@@ -26,9 +26,9 @@
 
 #ifdef HAVE_QUAGGA
 #define START_NL_SERVER start_quagga_nl_server
-void * start_quagga_nl_server(void *arg);
+int start_quagga_nl_server(void *arg);
 #else
 #define START_NL_SERVER start_netlink_nl_server
-void * start_netlink_nl_server(void *arg);
+int start_netlink_nl_server(void *arg);
 int ofp_create_ns_socket(int vrf);
 #endif

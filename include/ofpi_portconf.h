@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #include <odp_api.h>
-#include "odp/helper/linux.h"
+#include "odp/helper/odph_api.h"
 
 #include "api/ofp_portconf.h"
 #include "api/ofp_socket.h"
@@ -184,8 +184,8 @@ struct ofp_ifnet {
 #define OFP_SP_DOWN 0
 #define OFP_SP_UP 1
 	int		sp_status;
-	odph_linux_pthread_t	rx_tbl[1];
-	odph_linux_pthread_t	tx_tbl[1];
+	odph_odpthread_t	rx_tbl[1];
+	odph_odpthread_t	tx_tbl[1];
 #endif /*SP */
 
 	OFP_LIST_ENTRY(ofp_ifnet) ia_hash; /* entry in bucket of inet addresses */
@@ -338,8 +338,8 @@ void ofp_ifaddr6_elem_del(struct ofp_ifnet *ifnet);
 struct ofp_ifnet *ofp_ifaddr6_elem_get(uint8_t *addr6);
 #endif /* INET6 */
 
-void *sp_tx_thread(void *ifnet_void);
-void *sp_rx_thread(void *ifnet_void);
+int sp_tx_thread(void *ifnet_void);
+int sp_rx_thread(void *ifnet_void);
 int sp_setup_device(struct ofp_ifnet *ifnet);
 
 int ofp_free_port_alloc(void);

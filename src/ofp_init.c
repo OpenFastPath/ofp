@@ -419,14 +419,15 @@ int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 
 #ifdef SP
 	if (params->enable_nl_thread) {
-		odph_linux_thr_params_t thr_params;
+		odph_odpthread_params_t thr_params;
 
 		/* Start Netlink server process */
 		thr_params.start = START_NL_SERVER;
 		thr_params.arg = NULL;
 		thr_params.thr_type = ODP_THREAD_CONTROL;
 		thr_params.instance = instance;
-		if (!odph_linux_pthread_create(&shm->nl_thread, &cpumask, &thr_params)) {
+		if (!odph_odpthreads_create(&shm->nl_thread, &cpumask,
+					    &thr_params)) {
 			OFP_ERR("Failed to start Netlink thread.");
 			return -1;
 		}
@@ -483,7 +484,7 @@ int ofp_term_global(void)
 #ifdef SP
 	/* Terminate Netlink thread*/
 	if (shm->nl_thread_is_running) {
-		odph_linux_pthread_join(&shm->nl_thread, 1);
+		odph_odpthreads_join(&shm->nl_thread);
 		shm->nl_thread_is_running = 0;
 	}
 #endif /* SP */
@@ -507,8 +508,8 @@ int ofp_term_global(void)
 
 		CHECK_ERROR(odp_pktio_stop(ifnet->pktio), rc);
 #ifdef SP
-		odph_linux_pthread_join(ifnet->rx_tbl, 1);
-		odph_linux_pthread_join(ifnet->tx_tbl, 1);
+		odph_odpthreads_join(ifnet->rx_tbl);
+		odph_odpthreads_join(ifnet->tx_tbl);
 		close(ifnet->fd);
 		ifnet->fd = -1;
 #endif /*SP*/

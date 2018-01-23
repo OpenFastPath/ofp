@@ -14,7 +14,7 @@
 #endif
 
 #include <odp_api.h>
-#include "odp/helper/linux.h"
+#include "odp/helper/odph_api.h"
 
 #include "ofp_errno.h"
 #include "ofpi.h"
@@ -42,14 +42,14 @@ static void test_strerrno(void)
 /* Test that threads can only read/write their own ofp_errno. ODP threads are
  * not required to test this functionality, but use them anyway.
  */
-void *other_thread(void *arg);
+int other_thread(void *arg);
 static void test_tls_errno(void)
 {
 	odp_cpumask_t cpumask;
-	odph_linux_pthread_t threads;
+	odph_odpthread_t threads;
 	odp_barrier_t barrier__;
 	odp_barrier_t *barrier;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	CU_ASSERT(1 == odp_cpumask_default_worker(&cpumask, 1));
 
@@ -61,10 +61,10 @@ static void test_tls_errno(void)
 	thr_params.arg = (void *)barrier;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	CU_ASSERT(1 == odph_linux_pthread_create(
-			&threads,
-			&cpumask,
-			&thr_params));
+	CU_ASSERT(1 == odph_odpthreads_create(
+			  &threads,
+			  &cpumask,
+			  &thr_params));
 
 	/* Initialize this thread's ofp_errno. */
 	ofp_errno = 0;
@@ -83,10 +83,10 @@ static void test_tls_errno(void)
 	odp_barrier_wait(barrier);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EPERM);
 
-	odph_linux_pthread_join(&threads, 1);
+	odph_odpthreads_join(&threads);
 }
 
-void *other_thread(void *arg)
+int other_thread(void *arg)
 {
 	odp_barrier_t *barrier = (odp_barrier_t *)arg;
 
@@ -105,7 +105,7 @@ void *other_thread(void *arg)
 	odp_barrier_wait(barrier);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_ENOENT);
 
-	return NULL;
+	return 0;
 }
 
 int main(void)

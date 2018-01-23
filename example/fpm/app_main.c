@@ -96,12 +96,12 @@ static void ofp_sig_func_stop(int signum)
  */
 int main(int argc, char *argv[])
 {
-	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
+	odph_odpthread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
 	int core_count, num_workers, ret_val;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
@@ -238,15 +238,15 @@ int main(int argc, char *argv[])
 	thr_params.arg = ofp_eth_vlan_processing;
 	thr_params.thr_type = ODP_THREAD_WORKER;
 	thr_params.instance = instance;
-	ret_val = odph_linux_pthread_create(thread_tbl,
-					    &cpumask,
-					    &thr_params);
+	ret_val = odph_odpthreads_create(thread_tbl,
+					 &cpumask,
+					 &thr_params);
 	if (ret_val != num_workers) {
 		OFP_ERR("Error: Failed to create worker threads, "
 			"expected %d, got %d",
 			num_workers, ret_val);
 		ofp_stop_processing();
-		odph_linux_pthread_join(thread_tbl, num_workers);
+		odph_odpthreads_join(thread_tbl);
 		ofp_term_local();
 		ofp_term_global();
 		odp_term_local();
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
 		params.cli_file) < 0) {
 		OFP_ERR("Error: Failed to init CLI thread");
 		ofp_stop_processing();
-		odph_linux_pthread_join(thread_tbl, num_workers);
+		odph_odpthreads_join(thread_tbl);
 		ofp_term_local();
 		ofp_term_global();
 		odp_term_local();
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
 			app_init_params.linux_core_id) <= 0) {
 			OFP_ERR("Error: Failed to init performance monitor");
 			ofp_stop_processing();
-			odph_linux_pthread_join(thread_tbl, num_workers);
+			odph_odpthreads_join(thread_tbl);
 			ofp_term_local();
 			ofp_term_global();
 			odp_term_local();
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
 	 * Wait here until all worker threads have terminated, then free up all
 	 * resources allocated by odp_init_global().
 	 */
-	odph_linux_pthread_join(thread_tbl, num_workers);
+	odph_odpthreads_join(thread_tbl);
 
 	if (ofp_term_local() < 0)
 		printf("Error: ofp_term_local failed\n");
@@ -488,13 +488,13 @@ static void usage(char *progname)
 		);
 }
 
-static void *perf_client(void *arg)
+static int perf_client(void *arg)
 {
 	(void) arg;
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	ofp_set_stat_flags(OFP_STAT_COMPUTE_PERF);
@@ -505,14 +505,14 @@ static void *perf_client(void *arg)
 		usleep(1000000UL);
 	}
 
-	return NULL;
+	return 0;
 }
 
 static int start_performance(odp_instance_t instance, int core_id)
 {
-	odph_linux_pthread_t cli_linux_pthread;
+	odph_odpthread_t cli_linux_pthread;
 	odp_cpumask_t cpumask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
@@ -521,7 +521,7 @@ static int start_performance(odp_instance_t instance, int core_id)
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	return odph_linux_pthread_create(&cli_linux_pthread,
-					 &cpumask, &thr_params);
+	return odph_odpthreads_create(&cli_linux_pthread,
+				      &cpumask, &thr_params);
 
 }

@@ -8,8 +8,8 @@
 #include "ofp.h"
 #include "suite_framework.h"
 
-static void *suite_thread1(void *arg);
-static void *suite_thread2(void *arg);
+static int suite_thread1(void *arg);
+static int suite_thread2(void *arg);
 
 int fd_thread1 = -1;
 int fd_thread2 = -1;
@@ -36,10 +36,10 @@ int init_suite(init_function init_func)
 void run_suite(odp_instance_t instance,
 	run_function run_func1, run_function run_func2)
 {
-	odph_linux_pthread_t sock_pthread1;
-	odph_linux_pthread_t sock_pthread2;
+	odph_odpthread_t sock_pthread1;
+	odph_odpthread_t sock_pthread2;
 	odp_cpumask_t sock_cpumask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	odp_cpumask_zero(&sock_cpumask);
 	odp_cpumask_set(&sock_cpumask, core_id);
@@ -48,20 +48,20 @@ void run_suite(odp_instance_t instance,
 	thr_params.arg = run_func1;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&sock_pthread1,
-			&sock_cpumask,
-			&thr_params);
+	odph_odpthreads_create(&sock_pthread1,
+			       &sock_cpumask,
+			       &thr_params);
 
 	thr_params.start = suite_thread2;
 	thr_params.arg = run_func2;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&sock_pthread2,
-			&sock_cpumask,
-			&thr_params);
+	odph_odpthreads_create(&sock_pthread2,
+			       &sock_cpumask,
+			       &thr_params);
 
-	odph_linux_pthread_join(&sock_pthread1, 1);
-	odph_linux_pthread_join(&sock_pthread2, 1);
+	odph_odpthreads_join(&sock_pthread1);
+	odph_odpthreads_join(&sock_pthread2);
 }
 
 void end_suite(void)
@@ -81,30 +81,30 @@ void end_suite(void)
 	}
 }
 
-static void *suite_thread1(void *arg)
+static int suite_thread1(void *arg)
 {
 	run_function run_func = (run_function)arg;
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	(void)run_func(fd_thread1);
 
-	return NULL;
+	return 0;
 }
 
-static void *suite_thread2(void *arg)
+static int suite_thread2(void *arg)
 {
 	run_function run_func = (run_function)arg;
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 
 	(void)run_func(fd_thread2);
 
-	return NULL;
+	return 0;
 }

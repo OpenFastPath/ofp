@@ -49,10 +49,10 @@ ofp_global_param_t app_init_params; /**< global OFP init parms */
 /** pkt_io_recv() Custom event dispatcher
  *
  * @param _arg void*  Worker argument
- * @return void* Never returns
+ * @return int Never returns
  *
  */
-static void *pkt_io_recv(void *_arg)
+static int pkt_io_recv(void *_arg)
 {
 	odp_packet_t pkt, pkt_tbl[PKT_BURST_SIZE];
 	odp_event_t events[PKT_BURST_SIZE], ev;
@@ -72,7 +72,7 @@ static void *pkt_io_recv(void *_arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	ptr = (uint8_t *)&pktin[0];
 
@@ -111,7 +111,7 @@ static void *pkt_io_recv(void *_arg)
 	}
 
 	/* Never reached */
-	return NULL;
+	return 0;
 }
 
 /** configure_interfaces() Create OFP interfaces with
@@ -214,12 +214,12 @@ static int configure_workers_arg(int num_workers,
  */
 int main(int argc, char *argv[])
 {
-	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
+	odph_odpthread_t thread_tbl[MAX_WORKERS];
 	struct worker_arg workers_arg[MAX_WORKERS];
 	appl_args_t params;
 	int num_workers, first_worker, linux_sp_core, i;
 	odp_cpumask_t cpu_mask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
@@ -299,15 +299,15 @@ int main(int argc, char *argv[])
 		odp_cpumask_zero(&cpu_mask);
 		odp_cpumask_set(&cpu_mask, first_worker + i);
 
-		odph_linux_pthread_create(&thread_tbl[i], &cpu_mask,
-					  &thr_params);
+		odph_odpthreads_create(&thread_tbl[i], &cpu_mask,
+				       &thr_params);
 	}
 
 	/* Start CLI */
 	ofp_start_cli_thread(instance, app_init_params.linux_core_id,
 			     params.cli_file);
 
-	odph_linux_pthread_join(thread_tbl, num_workers);
+	odph_odpthreads_join(thread_tbl);
 	printf("End Main()\n");
 
 	return 0;

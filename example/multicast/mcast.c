@@ -15,9 +15,9 @@
 #define IP4(a, b, c, d) (a|(b<<8)|(c<<16)|(d<<24))
 
 static uint32_t myaddr;
-static odph_linux_pthread_t test_linux_pthread;
+static odph_odpthread_t test_linux_pthread;
 
-static void *mcasttest(void *arg)
+static int mcasttest(void *arg)
 {
 	int fd;
 	struct ofp_sockaddr_in my_addr;
@@ -28,7 +28,7 @@ static void *mcasttest(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	sleep(1);
 
@@ -40,7 +40,7 @@ static void *mcasttest(void *arg)
 	if ((fd = ofp_socket(OFP_AF_INET, OFP_SOCK_DGRAM, OFP_IPPROTO_UDP)) < 0) {
 		perror("socket");
 		logprint("Cannot open socket!\n");
-		return NULL;
+		return -1;
 	}
 
 	memset(&my_addr, 0, sizeof(my_addr));
@@ -52,7 +52,7 @@ static void *mcasttest(void *arg)
 	if (ofp_bind(fd, (struct ofp_sockaddr *)&my_addr,
 		       sizeof(struct ofp_sockaddr)) < 0) {
 		logprint("Cannot bind socket (%s)!\n", ofp_strerror(ofp_errno));
-		return NULL;
+		return -1;
 	}
 
 	memset(&mreq, 0, sizeof(mreq));
@@ -129,13 +129,13 @@ static void *mcasttest(void *arg)
 	}
 
 	logprint("mcast exit\n");
-	return NULL;
+	return 0;
 }
 
 void ofp_multicast_thread(odp_instance_t instance, int core_id)
 {
 	odp_cpumask_t cpumask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
@@ -144,7 +144,7 @@ void ofp_multicast_thread(odp_instance_t instance, int core_id)
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&test_linux_pthread,
-				  &cpumask,
-				  &thr_params);
+	odph_odpthreads_create(&test_linux_pthread,
+			       &cpumask,
+			       &thr_params);
 }

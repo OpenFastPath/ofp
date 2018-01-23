@@ -77,7 +77,7 @@ static void notify(union ofp_sigval sv)
 	ss->pkt = ODP_PACKET_INVALID;
 }
 
-static void *udpecho(void *arg)
+static int udpecho(void *arg)
 {
 	int serv_fd;
 	struct ofp_sockaddr_in my_addr;
@@ -90,7 +90,7 @@ static void *udpecho(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	sleep(1);
 
@@ -99,7 +99,7 @@ static void *udpecho(void *arg)
 	if ((serv_fd = ofp_socket(OFP_AF_INET, OFP_SOCK_DGRAM, OFP_IPPROTO_UDP)) < 0) {
 		OFP_ERR("ofp_socket failed, err='%s'",
 			 ofp_strerror(ofp_errno));
-		return NULL;
+		return -1;
 	}
 
 	memset(&my_addr, 0, sizeof(my_addr));
@@ -112,7 +112,7 @@ static void *udpecho(void *arg)
 		       sizeof(struct ofp_sockaddr)) < 0) {
 		OFP_ERR("ofp_bind failed, err='%s'",
 			 ofp_strerror(ofp_errno));
-		return NULL;
+		return -1;
 	}
 
 	struct ofp_sigevent ev;
@@ -133,14 +133,14 @@ static void *udpecho(void *arg)
 	}
 
 	OFP_INFO("UDP server exiting");
-	return NULL;
+	return 0;
 }
 
 void ofp_start_udpserver_thread(odp_instance_t instance, int core_id)
 {
-	static odph_linux_pthread_t test_linux_udpserver_pthread;
+	static odph_odpthread_t test_linux_udpserver_pthread;
 	odp_cpumask_t cpumask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
@@ -149,8 +149,7 @@ void ofp_start_udpserver_thread(odp_instance_t instance, int core_id)
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&test_linux_udpserver_pthread,
-				  &cpumask,
-				  &thr_params
-				);
+	odph_odpthreads_create(&test_linux_udpserver_pthread,
+			       &cpumask,
+			       &thr_params);
 }

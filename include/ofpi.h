@@ -9,7 +9,7 @@
 #define _OFPI_H_
 
 #include <odp_api.h>
-#include <odp/helper/linux.h>
+#include <odp/helper/odph_api.h>
 
 #include "ofpi_config.h"
 #include "ofpi_ethernet.h"

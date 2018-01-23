@@ -19,7 +19,7 @@ typedef enum ofp_return_code (*ofp_pkt_processing_func)(odp_packet_t *pkt);
 
 struct ofp_ifnet;
 
-void *default_event_dispatcher(void *arg);
+int default_event_dispatcher(void *arg);
 
 /**
  * Return the minimum size of the user area that must be present in all

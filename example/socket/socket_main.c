@@ -67,12 +67,12 @@ ofp_global_param_t app_init_params; /**< global OFP init parms */
  */
 int main(int argc, char *argv[])
 {
-	odph_linux_pthread_t thread_tbl[MAX_WORKERS];
+	odph_odpthread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
 	int core_count, num_workers;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
@@ -123,9 +123,9 @@ int main(int argc, char *argv[])
 	thr_params.arg = ofp_eth_vlan_processing;
 	thr_params.thr_type = ODP_THREAD_WORKER;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(thread_tbl,
-				&cpumask,
-				&thr_params);
+	odph_odpthreads_create(thread_tbl,
+			       &cpumask,
+			       &thr_params);
 
 	/* other app code here.*/
 	/* Start CLI */
@@ -504,7 +504,7 @@ int main(int argc, char *argv[])
 	OFP_INFO("Test ended.\n");
 #endif /*INET6*/
 
-	odph_linux_pthread_join(thread_tbl, num_workers);
+	odph_odpthreads_join(thread_tbl);
 	printf("End Main()\n");
 	return 0;
 }

@@ -233,7 +233,7 @@ static int handle_connection(int i)
 	return fd;
 }
 
-static void *webserver(void *arg)
+static int webserver(void *arg)
 {
 	int serv_fd, tmp_fd;
 	struct ofp_sockaddr_in my_addr;
@@ -244,7 +244,7 @@ static void *webserver(void *arg)
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed.\n");
-		return NULL;
+		return -1;
 	}
 	sleep(1);
 
@@ -253,7 +253,7 @@ static void *webserver(void *arg)
 	if ((serv_fd = ofp_socket(OFP_AF_INET, OFP_SOCK_STREAM, OFP_IPPROTO_TCP)) < 0) {
 		OFP_ERR("ofp_socket failed");
 		perror("serv socket");
-		return NULL;
+		return -1;
 	}
 
 	memset(&my_addr, 0, sizeof(my_addr));
@@ -265,7 +265,7 @@ static void *webserver(void *arg)
 	if (ofp_bind(serv_fd, (struct ofp_sockaddr *)&my_addr,
 		       sizeof(struct ofp_sockaddr)) < 0) {
 		OFP_ERR("Cannot bind http socket (%s)!", ofp_strerror(ofp_errno));
-		return 0;
+		return -1;
 	}
 
 	ofp_listen(serv_fd, 10);
@@ -325,14 +325,14 @@ static void *webserver(void *arg)
 	}
 
 	OFP_INFO("httpd exiting");
-	return NULL;
+	return 0;
 }
 
 void ofp_start_webserver_thread(odp_instance_t instance, int core_id)
 {
-	static odph_linux_pthread_t test_linux_webserver_pthread;
+	static odph_odpthread_t test_linux_webserver_pthread;
 	odp_cpumask_t cpumask;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
@@ -341,7 +341,7 @@ void ofp_start_webserver_thread(odp_instance_t instance, int core_id)
 	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
 	thr_params.instance = instance;
-	odph_linux_pthread_create(&test_linux_webserver_pthread,
-				  &cpumask,
-				  &thr_params);
+	odph_odpthreads_create(&test_linux_webserver_pthread,
+			       &cpumask,
+			       &thr_params);
 }

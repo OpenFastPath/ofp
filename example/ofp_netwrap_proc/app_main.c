@@ -57,7 +57,7 @@ enum netwrap_state_enum {
 };
 
 static enum netwrap_state_enum netwrap_state;
-static odph_linux_pthread_t thread_tbl[MAX_WORKERS];
+static odph_odpthread_t thread_tbl[MAX_WORKERS];
 static int num_workers;
 odp_instance_t netwrap_proc_instance;
 
@@ -69,7 +69,7 @@ __attribute__((constructor)) static void ofp_netwrap_main_ctor(void)
 	int core_count, ret_val;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 
 	memset(&params, 0, sizeof(params));
 	if (parse_env(&params) != EXIT_SUCCESS)
@@ -184,9 +184,9 @@ __attribute__((constructor)) static void ofp_netwrap_main_ctor(void)
 	thr_params.arg = ofp_eth_vlan_processing;
 	thr_params.thr_type = ODP_THREAD_WORKER;
 	thr_params.instance = netwrap_proc_instance;
-	ret_val = odph_linux_pthread_create(thread_tbl,
-					    &cpumask,
-					    &thr_params);
+	ret_val = odph_odpthreads_create(thread_tbl,
+					 &cpumask,
+					 &thr_params);
 	if (ret_val != num_workers) {
 		OFP_ERR("Error: Failed to create worker threads, "
 			"expected %d, got %d",
@@ -227,7 +227,7 @@ static void ofp_netwrap_main_dtor(void)
 	 * Wait here until all worker threads have terminated, then free up all
 	 * resources allocated by odp_init_global().
 	 */
-		odph_linux_pthread_join(thread_tbl, num_workers);
+		odph_odpthreads_join(thread_tbl);
 		/* fall through */
 	case NETWRAP_OFP_INIT_LOCAL:
 		if (ofp_term_local() < 0)

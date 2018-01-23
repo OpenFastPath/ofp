@@ -234,7 +234,7 @@ static inline int rx_burst(odp_pktin_queue_t pktin)
 /**
  * Receive packets directly from the NIC and pass them to OFP stack
  */
-static void *pktio_recv(void *arg)
+static int pktio_recv(void *arg)
 {
 	thread_args_t *thr_args = arg;
 	odp_pktin_queue_t pktin = thr_args->pktin;
@@ -271,7 +271,7 @@ exit:
 	if (ofp_term_local())
 		OFP_ERR("Error: ofp_term_local failed\n");
 
-	return NULL;
+	return 0;
 }
 
 /**
@@ -328,14 +328,14 @@ static int setup_server(char *laddr, uint16_t lport)
 /**
  * Run server thread
  */
-static void *run_server(void *arg ODP_UNUSED)
+static int run_server(void *arg ODP_UNUSED)
 {
 	printf("Server thread starting on CPU: %i\n", odp_cpu_id());
 
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed\n");
 		exit_threads = 1;
-		return NULL;
+		return -1;
 	}
 
 	printf("\nWaiting for client connection...\n");
@@ -343,7 +343,7 @@ static void *run_server(void *arg ODP_UNUSED)
 	gbl_args->client_fd = wait_for_client(gbl_args->server_fd);
 	if (exit_threads || gbl_args->client_fd < 0) {
 		exit_threads = 1;
-		return NULL;
+		return -1;
 	}
 	gbl_args->con_status = 1;
 
@@ -352,7 +352,7 @@ static void *run_server(void *arg ODP_UNUSED)
 	if (gbl_args->appl.single_thread) {
 		if (ofp_term_local())
 			OFP_ERR("Error: ofp_term_local failed\n");
-		return NULL;
+		return -1;
 	}
 
 	while (!exit_threads) {
@@ -382,13 +382,13 @@ static void *run_server(void *arg ODP_UNUSED)
 	if (ofp_term_local())
 		OFP_ERR("Error: ofp_term_local failed\n");
 
-	return NULL;
+	return 0;
 }
 
 /**
  * Run server and pktio in the same thread
  */
-static void *run_server_single(void *arg)
+static int run_server_single(void *arg)
 {
 	thread_args_t *thr_args = arg;
 	odp_pktin_queue_t pktin = thr_args->pktin;
@@ -397,7 +397,7 @@ static void *run_server_single(void *arg)
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed\n");
 		exit_threads = 1;
-		return NULL;
+		return -1;
 	}
 
 	while (!exit_threads) {
@@ -415,7 +415,7 @@ static void *run_server_single(void *arg)
 		if (odp_unlikely(pkts < 0)) {
 			OFP_ERR("Error: odp_pktin_recv failed\n");
 			exit_threads = 1;
-			return NULL;
+			return -1;
 		if (pkts == PKT_BURST_SIZE) continue;
 		}
 
@@ -448,7 +448,7 @@ static void *run_server_single(void *arg)
 	if (ofp_term_local())
 		OFP_ERR("Error: ofp_term_local failed\n");
 
-	return NULL;
+	return 0;
 }
 
 /**
@@ -479,7 +479,7 @@ static int setup_client(char *daddr, uint16_t lport ODP_UNUSED)
 /**
  * Run client thread
  */
-static void *run_client(void *arg ODP_UNUSED)
+static int run_client(void *arg ODP_UNUSED)
 {
 	struct ofp_sockaddr_in addr = {0};
 	int ret = -1;
@@ -488,7 +488,7 @@ static void *run_client(void *arg ODP_UNUSED)
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed\n");
 		exit_threads = 1;
-		return NULL;
+		return -1;
 	}
 
 	printf("Client thread starting on CPU: %i\n", odp_cpu_id());
@@ -504,7 +504,7 @@ static void *run_client(void *arg ODP_UNUSED)
 	if ((ret == -1) && (ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Error: Failed to connect (errno = %d)\n", ofp_errno);
 		exit_threads = 1;
-		return NULL;
+		return -1;
 	}
 	sleep(2);
 
@@ -517,7 +517,7 @@ static void *run_client(void *arg ODP_UNUSED)
 			OFP_ERR("Error: Failed to connect (errno = %d)\n",
 				ofp_errno);
 			exit_threads = 1;
-			return NULL;
+			return -1;
 		}
 		ret = ofp_send(gbl_args->client_fd, &pkt_buf, 1, 0);
 		retry++;
@@ -547,10 +547,10 @@ static void *run_client(void *arg ODP_UNUSED)
 	if (ofp_term_local())
 		OFP_ERR("Error: ofp_term_local failed\n");
 
-	return NULL;
+	return 0;
 }
 
-static void *run_client_single(void *arg ODP_UNUSED)
+static int run_client_single(void *arg ODP_UNUSED)
 {
 	struct ofp_sockaddr_in addr = {0};
 	int ret = -1;
@@ -562,7 +562,7 @@ static void *run_client_single(void *arg ODP_UNUSED)
 	if (ofp_init_local()) {
 		OFP_ERR("Error: OFP local init failed\n");
 		exit_threads = 1;
-		return NULL;
+		return -1;
 	}
 
 	printf("Client thread starting on CPU: %i\n", odp_cpu_id());
@@ -578,7 +578,7 @@ static void *run_client_single(void *arg ODP_UNUSED)
 	if ((ret == -1) && (ofp_errno != OFP_EINPROGRESS)) {
 		OFP_ERR("Error: Failed to connect (errno = %d)\n", ofp_errno);
 		exit_threads = 1;
-		return NULL;
+		return -1;
 	}
 	sleep(2);
 
@@ -594,7 +594,7 @@ static void *run_client_single(void *arg ODP_UNUSED)
 			OFP_ERR("Error: Failed to connect (errno = %d)\n",
 				ofp_errno);
 			exit_threads = 1;
-			return NULL;
+			return -1;
 		}
 		ret = ofp_send(gbl_args->client_fd, &pkt_buf, 1, 0);
 		retry++;
@@ -640,7 +640,7 @@ static void *run_client_single(void *arg ODP_UNUSED)
 	if (ofp_term_local())
 		OFP_ERR("Error: ofp_term_local failed\n");
 
-	return NULL;
+	return 0;
 }
 
 /**
@@ -980,7 +980,7 @@ static void print_info(char *progname, appl_args_t *appl_args)
  */
 int main(int argc, char *argv[])
 {
-	odph_linux_pthread_t thread_tbl[NUM_WORKERS];
+	odph_odpthread_t thread_tbl[NUM_WORKERS];
 	odp_shm_t shm;
 	int num_workers, next_worker;
 	odp_cpumask_t cpu_mask;
@@ -988,7 +988,7 @@ int main(int argc, char *argv[])
 	odp_pktio_param_t pktio_param;
 	odp_pktin_queue_param_t pktin_param;
 	odp_pktout_queue_param_t pktout_param;
-	odph_linux_thr_params_t thr_params;
+	odph_odpthread_params_t thr_params;
 	odp_instance_t instance;
 	odp_pktio_t pktio;
 	odp_pktio_capability_t capa;
@@ -1143,7 +1143,7 @@ int main(int argc, char *argv[])
 		thr_params.instance = instance;
 		odp_cpumask_zero(&cpu_mask);
 		odp_cpumask_set(&cpu_mask, next_worker);
-		odph_linux_pthread_create(&thread_tbl[0], &cpu_mask, &thr_params);
+		odph_odpthreads_create(&thread_tbl[0], &cpu_mask, &thr_params);
 		next_worker++;
 	}
 
@@ -1160,11 +1160,11 @@ int main(int argc, char *argv[])
 	thr_params.instance = instance;
 	odp_cpumask_zero(&cpu_mask);
 	odp_cpumask_set(&cpu_mask, next_worker);
-	odph_linux_pthread_create(&thread_tbl[next_worker-1], &cpu_mask, &thr_params);
+	odph_odpthreads_create(&thread_tbl[next_worker-1], &cpu_mask, &thr_params);
 
 	print_global_stats();
 
-	odph_linux_pthread_join(thread_tbl, num_workers);
+	odph_odpthreads_join(thread_tbl);
 
 	if (gbl_args->client_fd >= 0)
 		ofp_close(gbl_args->client_fd);

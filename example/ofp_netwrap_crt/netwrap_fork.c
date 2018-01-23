@@ -32,9 +32,7 @@ pid_t fork(void)
 	static int recursive;
 
 	if (setup_fork_wrappers_called) {
-		odph_linux_process_t odph_proc[1];
-		int fork_value;
-		odph_linux_thr_params_t thr_params;
+		pid_t pid;
 
 		if (recursive) {
 			if (!libc_fork) {
@@ -45,21 +43,18 @@ pid_t fork(void)
 		}
 
 		recursive = 1;
-		thr_params.start = NULL;
-		thr_params.arg = NULL;
-		thr_params.thr_type = ODP_THREAD_CONTROL;
-		thr_params.instance = netwrap_proc_instance;
-		fork_value = odph_linux_process_fork(odph_proc, odp_cpu_id(),
-			&thr_params);
+
+		pid = fork();
+
 		recursive = 0;
 
-		if (fork_value < 0)
+		if (pid < 0)
 			netwrap_pid = -1;
-		else if (fork_value == 0) {	/* child*/
+		else if (pid == 0) {	/* child*/
 			netwrap_pid = 0;
 			ofp_init_local();
 		} else				/* parent */
-			netwrap_pid = odph_proc[0].pid;
+			netwrap_pid = pid;
 	} else if (libc_fork)
 		netwrap_pid = (*libc_fork)();
 	else {
