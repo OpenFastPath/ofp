@@ -161,7 +161,7 @@ static void *worker(void *p)
 			num += res;
 		}
 
-		if (arg.verify) {
+		if (odp_unlikely(arg.verify)) {
 			for (c = 0; c < num; c++) {
 				odp_packet_t pkt = odp_packet_from_event(ev[c]);
 				struct ofp_ether_header *eth =
@@ -192,7 +192,7 @@ static void *worker(void *p)
 			ip->ip_sum = odp_cpu_to_be_16(~cksum);
 		}
 
-		if (tstate[cpuid].stop) {
+		if (odp_unlikely(tstate[cpuid].stop)) {
 			for (c = 0; c < num; c++)
 				odp_packet_free(burst[c]);
 			break;
