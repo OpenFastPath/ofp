@@ -127,7 +127,7 @@ static void *worker(void *p)
 		ip->ip_sum = 0;
 		if (!c) {
 			ip->ip_dst.s_addr = 0;
-			cksum_base = ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2);
+			cksum_base = odp_be_to_cpu_16(~ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2));
 		}
 		ip->ip_dst.s_addr = dst_addr();
 		ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, ip->ip_hl<<2);
@@ -185,7 +185,7 @@ static void *worker(void *p)
 			memset(eth->ether_dhost, 0, sizeof(eth->ether_dhost));
 			ip->ip_ttl = C_TTL;
 			ip->ip_dst.s_addr = dst_addr();
-			uint32_t cksum = odp_be_to_cpu_16(~cksum_base);
+			uint32_t cksum = cksum_base;
 			cksum += odp_be_to_cpu_16(ip->ip_dst.s_addr&0xffff);
 			cksum += odp_be_to_cpu_16(ip->ip_dst.s_addr>>16);
 			cksum = (cksum & 0xffff) + (cksum >> 16);
