@@ -161,18 +161,9 @@ static void *worker(void *p)
 			num += res;
 		}
 
-		for (c = 0; c < num; c++)
-			burst[c] = odp_packet_from_event(ev[c]);
-
-		if (tstate[cpuid].stop) {
-			for (c = 0; c < num; c++)
-				odp_packet_free(burst[c]);
-			break;
-		}
-
 		if (arg.verify) {
 			for (c = 0; c < num; c++) {
-				odp_packet_t pkt = burst[c];
+				odp_packet_t pkt = odp_packet_from_event(ev[c]);
 				struct ofp_ether_header *eth =
 					(struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
 				struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(pkt, NULL);
@@ -185,7 +176,7 @@ static void *worker(void *p)
 		}
 
 		for (c = 0; c < num; c++) {
-			odp_packet_t pkt = burst[c];
+			odp_packet_t pkt = burst[c] = odp_packet_from_event(ev[c]);
 			uint8_t *buf = odp_packet_data(pkt);
 			struct ofp_ether_header *eth =
 				(struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
@@ -199,6 +190,12 @@ static void *worker(void *p)
 			cksum += odp_be_to_cpu_16(ip->ip_dst.s_addr>>16);
 			cksum = (cksum & 0xffff) + (cksum >> 16);
 			ip->ip_sum = odp_cpu_to_be_16(~cksum);
+		}
+
+		if (tstate[cpuid].stop) {
+			for (c = 0; c < num; c++)
+				odp_packet_free(burst[c]);
+			break;
 		}
 
 		odp_time_t start = odp_time_global();
