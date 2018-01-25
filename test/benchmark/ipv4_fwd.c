@@ -176,11 +176,14 @@ static void *worker(void *p)
 		}
 
 		for (c = 0; c < num; c++) {
-			odp_packet_t pkt = burst[c] = odp_packet_from_event(ev[c]);
-			uint8_t *buf = odp_packet_data(pkt);
+			burst[c] = odp_packet_from_event(ev[c]);
+			/*
+			 * Assume ether header is at the start of
+			 * packet data, followed by IP header.
+			 */
 			struct ofp_ether_header *eth =
-				(struct ofp_ether_header *)odp_packet_l2_ptr(pkt, NULL);
-			struct ofp_ip *ip = (struct ofp_ip *)(buf + OFP_ETHER_HDR_LEN);
+				(struct ofp_ether_header *)odp_packet_data(burst[c]);
+			struct ofp_ip *ip = (struct ofp_ip *)(eth + 1);
 
 			memset(eth->ether_dhost, 0, sizeof(eth->ether_dhost));
 			ip->ip_ttl = C_TTL;
