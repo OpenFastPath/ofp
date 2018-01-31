@@ -553,7 +553,7 @@ ofp_udp_input(odp_packet_t *m, int off)
 #ifndef SP
 		*ip = save_ip;
 		ip->ip_len += iphlen;
-		ofp_icmp_error(m, OFP_ICMP_UNREACH, OFP_ICMP_UNREACH_PORT, 0, 0);
+		ofp_icmp_error(*m, OFP_ICMP_UNREACH, OFP_ICMP_UNREACH_PORT, 0, 0);
 		return OFP_PKT_PROCESSED;
 #else
 		return OFP_PKT_CONTINUE;

@@ -471,7 +471,7 @@ ofp_udp6_input(odp_packet_t *pkt, int *offp, int *nxt)
 #endif
 
 #ifndef SP
-		ofp_icmp6_error(pkt, OFP_ICMP6_DST_UNREACH,
+		ofp_icmp6_error(*pkt, OFP_ICMP6_DST_UNREACH,
 				OFP_ICMP6_DST_UNREACH_NOPORT, 0);
 
 		*nxt = OFP_IPPROTO_DONE;
