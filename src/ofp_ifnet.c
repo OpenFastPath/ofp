@@ -27,6 +27,28 @@ int ofp_pktio_open(struct ofp_ifnet *ifnet, odp_pktio_param_t *pktio_param)
 	return 0;
 }
 
+static int ofp_pktio_config(struct ofp_ifnet *ifnet)
+{
+	odp_pktio_capability_t capa;
+	odp_pktio_config_t config;
+
+	HANDLE_ERROR(odp_pktio_capability(ifnet->pktio, &capa));
+
+	odp_pktio_config_init(&config);
+
+	if (capa.config.pktin.bit.ipv4_chksum) {
+		ifnet->chksum_offload_flags |= OFP_IF_IPV4_RX_CHKSUM;
+		config.pktin.bit.ipv4_chksum = 1;
+		config.pktin.bit.drop_ipv4_err = 1;
+		OFP_DBG("Interface '%s' supports IPv4 RX checksum offload\n",
+			ifnet->if_name);
+	}
+
+	HANDLE_ERROR(odp_pktio_config(ifnet->pktio, &config));
+
+	return 0;
+}
+
 void ofp_pktin_queue_param_init(odp_pktin_queue_param_t *param,
 				odp_pktin_mode_t in_mode,
 				odp_schedule_sync_t sched_sync,
@@ -245,6 +267,8 @@ int ofp_ifnet_create(odp_instance_t instance,
 	}
 
 	HANDLE_ERROR(ofp_pktio_open(ifnet, pktio_param));
+
+	HANDLE_ERROR(ofp_pktio_config(ifnet));
 
 	if (!pktin_param) {
 		pktin_param = &pktin_param_local;

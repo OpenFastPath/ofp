@@ -331,8 +331,27 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 #ifndef OFP_PERFORMANCE
 	if (odp_unlikely(ip->ip_v != OFP_IPVERSION))
 		return OFP_PKT_DROP;
-	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
-		return OFP_PKT_DROP;
+
+	if (ofp_packet_user_area(*pkt)->chksum_flags
+		& OFP_L3_CHKSUM_STATUS_VALID) {
+		switch (odp_packet_l3_chksum_status(*pkt)) {
+		case ODP_PACKET_CHKSUM_OK:
+			break;
+		case ODP_PACKET_CHKSUM_UNKNOWN:
+			/* Checksum was not validated by HW */
+			if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip,
+					 ip->ip_hl<<2)))
+			return OFP_PKT_DROP;
+			break;
+		case ODP_PACKET_CHKSUM_BAD:
+			return OFP_PKT_DROP;
+			break;
+		}
+		ofp_packet_user_area(*pkt)->chksum_flags &=
+			~OFP_L3_CHKSUM_STATUS_VALID;
+	} else if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip,
+						 ip->ip_hl<<2)))
+			return OFP_PKT_DROP;
 
 	/* TODO: handle broadcast */
 	if (dev->bcast_addr == ip->ip_dst.s_addr)
@@ -1358,6 +1377,10 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	if (ifnet->port != VXLAN_PORTS) {
 		ofp_packet_user_area_reset(pkt);
 	}
+
+	if (ifnet->chksum_offload_flags & OFP_IF_IPV4_RX_CHKSUM)
+		ofp_packet_user_area(pkt)->chksum_flags |=
+			OFP_L3_CHKSUM_STATUS_VALID;
 
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_RECV_NIC, pkt, ifnet->port);
 

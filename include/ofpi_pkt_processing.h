@@ -35,8 +35,11 @@ struct ip_out {
  */
 #define OFP_IP_OUTPUT_MAX_RECURSION 8
 
+#define OFP_L3_CHKSUM_STATUS_VALID  0x1
+
 struct ofp_packet_user_area {
 	uint8_t recursion_count;
+	uint8_t chksum_flags;
 	struct vxlan_user_data vxlan;
 };
 

@@ -166,7 +166,8 @@ struct ofp_ifnet {
 
 	char		if_name[OFP_IFNAMSIZ];
 	odp_pktio_t	pktio;
-
+#define OFP_IF_IPV4_RX_CHKSUM 0x1
+	uint32_t        chksum_offload_flags;
 	unsigned	out_queue_num;
 #define OFP_OUT_QUEUE_TYPE_PKTOUT 0
 #define OFP_OUT_QUEUE_TYPE_QUEUE 1
