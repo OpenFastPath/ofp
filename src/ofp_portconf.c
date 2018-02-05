@@ -1240,6 +1240,8 @@ struct ofp_ifnet *ofp_get_create_ifnet(int port, uint16_t vlan)
 			data->port = port;
 			data->vlan = vlan;
 			memcpy(data->mac, shm->ofp_ifnet_data[port].mac, 6);
+			data->chksum_offload_flags =
+				shm->ofp_ifnet_data[port].chksum_offload_flags;
 			data->if_mtu = shm->ofp_ifnet_data[port].if_mtu;
 #ifdef INET6
 			memcpy(data->link_local,

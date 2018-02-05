@@ -502,6 +502,7 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 			dev->vlan = vlan;
 			dev->vrf = vrf;
 			memcpy(dev->mac, dev_root->mac, 6);
+			dev->chksum_offload_flags = dev_root->chksum_offload_flags;
 			dev->sp_status = OFP_SP_UP;
 #ifdef INET6
 			memcpy(dev->link_local, dev_root->link_local, 16);

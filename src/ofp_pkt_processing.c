@@ -1112,16 +1112,22 @@ enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 	return ofp_ip_output_continue(pkt, &odata);
 }
 
+static void ofp_chksum_insert(struct ip_out *odata)
+{
+	if (!(odata->dev_out->chksum_offload_flags & OFP_IF_IPV4_TX_CHKSUM)) {
+		odata->ip->ip_sum = 0;
+		odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *) odata->ip,
+						     odata->ip->ip_hl * 4);
+	}
+}
+
 static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 						   struct ip_out *odata)
 {
 	enum ofp_return_code ret;
 
-	if (odata->insert_checksum) {
-		odata->ip->ip_sum = 0;
-		odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *) odata->ip,
-						     odata->ip->ip_hl * 4);
-	}
+	if (odata->insert_checksum)
+		ofp_chksum_insert(odata);
 
 	switch (odata->out_port) {
 	case GRE_PORTS:

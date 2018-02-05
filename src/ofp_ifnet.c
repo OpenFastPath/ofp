@@ -44,6 +44,14 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	}
 
+	if (capa.config.pktout.bit.ipv4_chksum) {
+		ifnet->chksum_offload_flags |= OFP_IF_IPV4_TX_CHKSUM;
+		config.pktout.bit.ipv4_chksum = 1;
+		config.pktout.bit.ipv4_chksum_ena = 1;
+		OFP_DBG("Interface '%s' supports IPv4 TX checksum offload\n",
+			ifnet->if_name);
+	}
+
 	HANDLE_ERROR(odp_pktio_config(ifnet->pktio, &config));
 
 	return 0;
