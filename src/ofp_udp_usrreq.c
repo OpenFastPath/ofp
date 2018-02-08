@@ -375,38 +375,24 @@ ofp_udp_input(odp_packet_t *m, int off)
 
 	if (uh->uh_sum) {
 #ifdef OFP_IPv4_UDP_CSUM_VALIDATE
-#if 1
-		uint16_t uh_sum;
-
-		uh_sum = ofp_in4_cksum(*m);
-		if (uh_sum)
+		if (ofp_packet_user_area(*m)->chksum_flags
+			& OFP_L4_CHKSUM_STATUS_VALID) {
+			switch (odp_packet_l4_chksum_status(*m)) {
+			case ODP_PACKET_CHKSUM_OK:
+				break;
+			case ODP_PACKET_CHKSUM_UNKNOWN:
+				/* Checksum was not validated by HW */
+				if (ofp_in4_cksum(*m))
+					goto badunlocked;
+				break;
+			case ODP_PACKET_CHKSUM_BAD:
+				goto badunlocked;
+				break;
+			}
+			ofp_packet_user_area(*m)->chksum_flags &=
+				~OFP_L4_CHKSUM_STATUS_VALID;
+		} else if (ofp_in4_cksum(*m))
 			goto badunlocked;
-#else
-		uint16_t uh_sum;
-
-		if (odp_packet_csum_flags(m) & CSUM_DATA_VALID) {
-			if (odp_packet_csum_flags(m) & CSUM_PSEUDO_HDR)
-				uh_sum = odp_packet_csum_data(m);
-			else
-				uh_sum = in_pseudo(ip->ip_src.s_addr,
-				    ip->ip_dst.s_addr, odp_cpu_to_be_32((uint16_t)len +
-				    odp_packet_csum_data(m) + OFP_IPPROTO_UDP));
-			uh_sum ^= 0xffff;
-		} else {
-			char b[9];
-
-			bcopy(((struct ipovly *)ip)->ih_x1, b, 9);
-			bzero(((struct ipovly *)ip)->ih_x1, 9);
-			((struct ipovly *)ip)->ih_len = uh->uh_ulen;
-			uh_sum = in_cksum(m, len + sizeof (struct ofp_ip));
-			bcopy(b, ((struct ipovly *)ip)->ih_x1, 9);
-		}
-		if (uh_sum) {
-			UDPSTAT_INC(udps_badsum);
-			odp_packet_free(m));
-			return(0);
-		}
-#endif
 #endif /*OFP_IPv4_UDP_CSUM_VALIDATE*/
 	} else {
 		UDPSTAT_INC(udps_nosum);

@@ -40,7 +40,7 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 		ifnet->chksum_offload_flags |= OFP_IF_IPV4_RX_CHKSUM;
 		config.pktin.bit.ipv4_chksum = 1;
 		config.pktin.bit.drop_ipv4_err = 1;
-		OFP_DBG("Interface '%s' supports IPv4 RX checksum offload\n",
+		OFP_DBG("Interface '%s' supports IPv4 RX checksum offload",
 			ifnet->if_name);
 	}
 
@@ -48,7 +48,15 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 		ifnet->chksum_offload_flags |= OFP_IF_IPV4_TX_CHKSUM;
 		config.pktout.bit.ipv4_chksum = 1;
 		config.pktout.bit.ipv4_chksum_ena = 1;
-		OFP_DBG("Interface '%s' supports IPv4 TX checksum offload\n",
+		OFP_DBG("Interface '%s' supports IPv4 TX checksum offload",
+			ifnet->if_name);
+	}
+
+	if (capa.config.pktin.bit.udp_chksum) {
+		ifnet->chksum_offload_flags |= OFP_IF_UDP_RX_CHKSUM;
+		config.pktin.bit.udp_chksum = 1;
+		config.pktin.bit.drop_udp_err = 1;
+		OFP_DBG("Interface '%s' supports UDP RX checksum offload",
 			ifnet->if_name);
 	}
 

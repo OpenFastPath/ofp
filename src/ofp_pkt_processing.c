@@ -1388,6 +1388,10 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 		ofp_packet_user_area(pkt)->chksum_flags |=
 			OFP_L3_CHKSUM_STATUS_VALID;
 
+	if (ifnet->chksum_offload_flags & OFP_IF_UDP_RX_CHKSUM)
+		ofp_packet_user_area(pkt)->chksum_flags |=
+			OFP_L4_CHKSUM_STATUS_VALID;
+
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_RECV_NIC, pkt, ifnet->port);
 
 	OFP_UPDATE_PACKET_STAT(rx_fp, 1);
