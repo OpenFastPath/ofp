@@ -172,6 +172,8 @@ static int worker(void *p)
 				ASSERT(eth->ether_dhost[0] == ether_dhost[0] &&
 				       eth->ether_dhost[1] == ether_dhost[1] &&
 				       eth->ether_dhost[2] == (C_GW_ADDR>>24));
+
+				memset(eth->ether_dhost, 0, sizeof(eth->ether_dhost));
 			}
 		}
 
@@ -185,7 +187,6 @@ static int worker(void *p)
 				(struct ofp_ether_header *)odp_packet_data(burst[c]);
 			struct ofp_ip *ip = (struct ofp_ip *)(eth + 1);
 
-			memset(eth->ether_dhost, 0, sizeof(eth->ether_dhost));
 			ip->ip_ttl = C_TTL;
 			ip->ip_dst.s_addr = dst_addr();
 			uint32_t cksum = cksum_base;
