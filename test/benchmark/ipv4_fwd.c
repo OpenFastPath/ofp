@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #include <odp_api.h>
 #include <ofp.h>
@@ -88,7 +89,7 @@ __thread unsigned int seedp;
 
 static inline uint32_t dst_addr(void)
 {
-	return odp_cpu_to_be_32(C_DST_ADDR + ((uint32_t)rand_r(&seedp) & addr_mask));
+	return htonl(C_DST_ADDR + ((uint32_t)rand_r(&seedp) & addr_mask));
 }
 
 
@@ -190,10 +191,10 @@ static int worker(void *p)
 			ip->ip_ttl = C_TTL;
 			ip->ip_dst.s_addr = dst_addr();
 			uint32_t cksum = cksum_base;
-			cksum += odp_be_to_cpu_16(ip->ip_dst.s_addr&0xffff);
-			cksum += odp_be_to_cpu_16(ip->ip_dst.s_addr>>16);
+			cksum += ntohs(ip->ip_dst.s_addr&0xffff);
+			cksum += ntohs(ip->ip_dst.s_addr>>16);
 			cksum = (cksum & 0xffff) + (cksum >> 16);
-			ip->ip_sum = odp_cpu_to_be_16(~cksum);
+			ip->ip_sum = htons(~cksum);
 		}
 
 		if (odp_unlikely(tstate[cpuid].stop)) {
