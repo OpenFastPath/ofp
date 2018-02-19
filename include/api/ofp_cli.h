@@ -22,20 +22,33 @@
  * @param instance The ODP instance to use.
  * @param core_id The core on which the CLI server thread is started.
  * @param cli_file Name of the CLI file to process.
- * @retval 0 on success
- * @retval -1 on failure
- */                                                                                                                                                                                                                                                                                                                         int ofp_start_cli_thread(odp_instance_t instance, int core_id,
-	char *cli_file);
+ * @retval 0 Success.
+ * @retval -1 Failure.
+ * @retval OFP_ENOTSUP OFP has been compiled without CLI support.
+ */
+int ofp_start_cli_thread(odp_instance_t instance, int core_id,
+			 char *cli_file);
+
+/**
+ * Stop CLI server thread.
+ *
+ * @retval 0 Success.
+ * @retval -1 Failure.
+ * @retval OFP_ENOTSUP OFP has been compiled without CLI support.
+ */
 int ofp_stop_cli_thread(void);
 
 /**
- * Customized CLI commands.
+ * @page customCliCmd Customized CLI commands.
  *
  * CLI commands have the format
+ * <pre>
  * keyword [keyword | arg]...
+ * </pre>
  * where keyword is any string and arg is a placeholder for
  * one of the following:
  *
+ * <pre>
  * Arg      Format
  * ---      ------
  * NUMBER   number
@@ -45,9 +58,11 @@ int ofp_stop_cli_thread(void);
  * IP4NET   a.b.c.d/n
  * IP6ADDR  a:b:c:d:e:f:g:h"
  * IP6NET   a:b:c:d:e:f:g:h/n"
+ * </pre>
  *
  * Example: Add an IP address to an array position:
  *
+ * @code
  * void my_func(void *handle, const char *args)
  * {
  *     // get socket
@@ -69,13 +84,16 @@ int ofp_stop_cli_thread(void);
  * ofp_cli_add_command("add_ip_addr IP4ADDR to NUMBER",
  *                     "Add an IP address to a table position"
  *                     my_func);
+ * @endcode
  *
  * Valid CLI command would be for example:
- * "add_ip_addr 10.20.30.4 to 5"
+ * <pre>
+ * add_ip_addr 10.20.30.4 to 5
+ * </pre>
  */
 
 /**
- * Callback function has two arguments:
+ * CLI callback function type.
  *
  * @param  handle  Use handle to get file descriptor.
  * @param  args    Command line arguments separated by a space.
@@ -83,7 +101,7 @@ int ofp_stop_cli_thread(void);
 typedef void (*ofp_cli_cb_func)(void *handle, const char *args);
 
 /**
- * Add a new CLI command.
+ * Add a new CLI command. See @ref customCliCmd "customized CLI commands documentation".
  *
  * @param  cmd   Command line.
  * @param  help  Help text for the command.
