@@ -40,9 +40,9 @@ struct ofp_rt_rule {
 #endif
 
 
-struct ofp_rtl_node {
+struct __attribute__((aligned (32))) ofp_rtl_node {
 	uint32_t flags;
-	struct ofp_nh_entry data[4];
+	struct ofp_nh_entry data[1];
 #ifdef MTRIE
 	uint8_t masklen;
 	uint8_t root;
