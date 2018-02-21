@@ -31,7 +31,7 @@ struct ofp_rt_rule {
 			uint32_t addr;
 			uint16_t vrf;
 			uint8_t masklen;
-			struct ofp_nh_entry data[4];
+			struct ofp_nh_entry data[1];
 		} s1;
 		struct ofp_rt_rule *next;
 	} u1;
