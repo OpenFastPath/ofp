@@ -1072,6 +1072,17 @@ enum ofp_return_code ofp_ip_output_recurse(odp_packet_t pkt,
 	return OFP_PKT_DROP;
 }
 
+static void ofp_l4_checksum_insert(odp_packet_t pkt)
+{
+	uint32_t *len = 0;
+	void *l4_ptr = odp_packet_l4_ptr(pkt, len);
+	if(l4_ptr != NULL) {
+		struct ofp_udphdr *udp = (struct ofp_udphdr *)l4_ptr;
+		udp->uh_sum = 0;
+		udp->uh_sum = ofp_in4_cksum(pkt);
+	}
+}
+
 enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 					  struct ofp_nh_entry *nh_param,
 					  int is_local_out)
@@ -1107,13 +1118,31 @@ enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 				       0, odata.dev_out->if_mtu);
 			return OFP_PKT_DROP;
 		}
+
+		if (ofp_packet_user_area(pkt)->chksum_flags &
+					OFP_UDP_CHKSUM_INSERT) {
+			ofp_l4_checksum_insert(pkt);
+			ofp_packet_user_area(pkt)->chksum_flags &=
+				~OFP_UDP_CHKSUM_INSERT;
+		}
+
 		return ofp_fragment_pkt(pkt, &odata);
 	}
 	return ofp_ip_output_continue(pkt, &odata);
 }
 
-static void ofp_chksum_insert(struct ip_out *odata)
+static void ofp_chksum_insert(odp_packet_t pkt, struct ip_out *odata)
 {
+	if (ofp_packet_user_area(pkt)->chksum_flags & OFP_UDP_CHKSUM_INSERT) {
+		if (!(odata->dev_out->chksum_offload_flags 
+				& OFP_IF_UDP_TX_CHKSUM))
+			ofp_l4_checksum_insert(pkt);
+		else
+			odp_packet_l4_chksum_insert(pkt, 1);
+		ofp_packet_user_area(pkt)->chksum_flags &=
+                               ~OFP_UDP_CHKSUM_INSERT;
+	}
+
 	if (!(odata->dev_out->chksum_offload_flags & OFP_IF_IPV4_TX_CHKSUM)) {
 		odata->ip->ip_sum = 0;
 		odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *) odata->ip,
@@ -1127,7 +1156,7 @@ static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 	enum ofp_return_code ret;
 
 	if (odata->insert_checksum)
-		ofp_chksum_insert(odata);
+		ofp_chksum_insert(pkt, odata);
 
 	switch (odata->out_port) {
 	case GRE_PORTS:

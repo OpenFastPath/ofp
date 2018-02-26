@@ -169,6 +169,7 @@ struct ofp_ifnet {
 #define OFP_IF_IPV4_RX_CHKSUM 0x1
 #define OFP_IF_IPV4_TX_CHKSUM 0x2
 #define OFP_IF_UDP_RX_CHKSUM  0x4
+#define OFP_IF_UDP_TX_CHKSUM  0x8
 	uint32_t        chksum_offload_flags;
 	unsigned	out_queue_num;
 #define OFP_OUT_QUEUE_TYPE_PKTOUT 0

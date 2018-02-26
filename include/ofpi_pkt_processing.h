@@ -37,6 +37,7 @@ struct ip_out {
 
 #define OFP_L3_CHKSUM_STATUS_VALID  0x1
 #define OFP_L4_CHKSUM_STATUS_VALID  0x2
+#define OFP_UDP_CHKSUM_INSERT       0x4
 
 struct ofp_packet_user_area {
 	uint8_t recursion_count;

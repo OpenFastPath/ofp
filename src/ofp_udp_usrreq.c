@@ -1125,25 +1125,13 @@ udp_output(struct inpcb *inp, odp_packet_t m, struct ofp_sockaddr *addr,
 		ipflags |= IP_SENDONES;
 
 	/*
-	 * Set up UDP checksum.
+	 * UDP checksum will be inserted (either by SW or HW) after routing.
 	 */
 #ifdef OFP_IPv4_UDP_CSUM_COMPUTE
-	if (ofp_udp_cksum) {
-#if 1
-		udp->uh_sum = 0;
-		udp->uh_sum = ofp_in4_cksum(m);
-		if (udp->uh_sum == 0)
-			udp->uh_sum = 0xffff;
-#else
-		if (inp->inp_flags & INP_ONESBCAST)
-			faddr.s_addr = OFP_INADDR_BROADCAST;
-		ui->ui_sum = in_pseudo(ui->ui_src.s_addr, faddr.s_addr,
-		    odp_cpu_to_be_16((uint16_t)len + sizeof(struct ofp_udphdr) + OFP_IPPROTO_UDP));
-
-		odp_packet_csum_flags(m) = CSUM_UDP;
-		odp_packet_set_csum_data(m, offsetof(struct ofp_udphdr, uh_sum));
-#endif
-	} else
+	if (ofp_udp_cksum)
+		ofp_packet_user_area(m)->chksum_flags |=
+			OFP_UDP_CHKSUM_INSERT;
+	else
 #endif /*OFP_IPv4_UDP_CSUM_COMPUTE*/
 	{
 		udp->uh_sum = 0;

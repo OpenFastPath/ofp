@@ -60,6 +60,18 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	}
 
+	if (capa.config.pktout.bit.udp_chksum) {
+		ifnet->chksum_offload_flags |= OFP_IF_UDP_TX_CHKSUM;
+		/*
+		 * UDP checksum insertion will be requested explicitly
+		 * for each packet when necessary.
+		 */
+		config.pktout.bit.udp_chksum = 0;
+		config.pktout.bit.udp_chksum_ena = 1;
+		OFP_DBG("Interface '%s' supports UDP TX checksum offload",
+			ifnet->if_name);
+	}
+
 	HANDLE_ERROR(odp_pktio_config(ifnet->pktio, &config));
 
 	return 0;
