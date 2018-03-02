@@ -1417,7 +1417,8 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 		ofp_packet_user_area(pkt)->chksum_flags |=
 			OFP_L3_CHKSUM_STATUS_VALID;
 
-	if (ifnet->chksum_offload_flags & OFP_IF_UDP_RX_CHKSUM)
+	if (ifnet->chksum_offload_flags & 
+		(OFP_IF_UDP_RX_CHKSUM | OFP_IF_TCP_RX_CHKSUM))
 		ofp_packet_user_area(pkt)->chksum_flags |=
 			OFP_L4_CHKSUM_STATUS_VALID;
 

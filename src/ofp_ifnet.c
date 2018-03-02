@@ -72,6 +72,14 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	}
 
+	if (capa.config.pktin.bit.tcp_chksum) {
+		ifnet->chksum_offload_flags |= OFP_IF_TCP_RX_CHKSUM;
+		config.pktin.bit.tcp_chksum = 1;
+		config.pktin.bit.drop_tcp_err = 1;
+		OFP_DBG("Interface '%s' supports TCP RX checksum offload",
+			ifnet->if_name);
+        }
+
 	HANDLE_ERROR(odp_pktio_config(ifnet->pktio, &config));
 
 	return 0;

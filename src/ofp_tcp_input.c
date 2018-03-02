@@ -79,6 +79,7 @@
 #include "ofpi_tcp_syncache.h"
 #include "ofpi_icmp.h"
 #include "ofpi_sockstate.h"
+#include "ofpi_pkt_processing.h"
 
 #define log(a, f...) OFP_INFO(f)
 
@@ -663,29 +664,26 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 		th = (struct ofp_tcphdr *)((char *)ip + off0);
 
 #ifdef OFP_IPv4_TCP_CSUM_VALIDATE
-#if 1
-		th->th_sum = ofp_in4_cksum(*m);
-#else /* HJo: no csum check */
-		if (odp_packet_csum_flags(m) & CSUM_DATA_VALID) {
-			if (odp_packet_csum_flags(m) & CSUM_PSEUDO_HDR)
-				th->th_sum = odp_packet_csum_data(m);
-			else
-				th->th_sum = in_pseudo(ip->ip_src.s_addr,
-					ip->ip_dst.s_addr,
-					odp_cpu_to_be_32(
-						odp_packet_csum_data(m) +
-						ip->ip_len +
-						OFP_IPPROTO_TCP));
-			th->th_sum ^= 0xffff;
-		} else {
-			/*
-			 * Checksum extended TCP header and data.
-			 */
-			len = sizeof (struct ofp_ip) + tlen;
-			th->th_sum = in_cksum(m, len);
-		}
-#endif /* HJo */
-		if (th->th_sum) {
+		if (ofp_packet_user_area(*m)->chksum_flags
+                        & OFP_L4_CHKSUM_STATUS_VALID) {
+                        switch (odp_packet_l4_chksum_status(*m)) {
+			case ODP_PACKET_CHKSUM_OK:
+				break;
+			case ODP_PACKET_CHKSUM_UNKNOWN:
+				/* Checksum was not validated by HW */
+				if (ofp_in4_cksum(*m)) {
+					TCPSTAT_INC(tcps_rcvbadsum);
+					goto drop;
+				}
+				break;
+			case ODP_PACKET_CHKSUM_BAD:
+				TCPSTAT_INC(tcps_rcvbadsum);
+				goto drop;
+				break;
+			}
+			ofp_packet_user_area(*m)->chksum_flags &=
+				~OFP_L4_CHKSUM_STATUS_VALID;
+		} else if (ofp_in4_cksum(*m)) {
 			TCPSTAT_INC(tcps_rcvbadsum);
 			goto drop;
 		}
