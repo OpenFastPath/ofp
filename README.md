@@ -63,7 +63,10 @@ The following packages are mandatory for accessing and building ODP and OFP:
 
 The following packages are optional:
 
-    libssl-dev doxygen asciidoc valgrind libcunit1 libcunit1-doc libcunit1-dev
+    libssl-dev doxygen asciidoc valgrind libcunit1 libcunit1-doc libcunit1-dev libconfig-dev
+
+The usage of libconfig-dev package is enabled by default and can be disabled by --disable-libconfig
+configure option.
 
 Download and build OpenDataPlane (ODP) library:
 
