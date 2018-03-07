@@ -107,7 +107,8 @@ struct ofp_ifmultiaddr {
 	struct ofp_ifmultiaddr *ifma_llifma; 	/* pointer to ifma for ifma_lladdr */
 };
 
-struct ofp_ifnet {
+struct ODP_ALIGNED_CACHE ofp_ifnet {
+	uint32_t	ip_addr; /* network byte order */
 	uint16_t	port;
 	uint16_t	vlan;
 	uint16_t	vrf;
@@ -149,7 +150,6 @@ struct ofp_ifnet {
 	uint8_t		mac[OFP_ETHER_ADDR_LEN];
 	uint16_t	if_mtu;
 
-	uint32_t	ip_addr; /* network byte order */
 	uint32_t	ip_p2p; /* network byte order */
 	uint32_t	ip_local; /* network byte order */
 	uint16_t	physport;
