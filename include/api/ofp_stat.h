@@ -17,7 +17,7 @@
 #define OFP_LATENCY_SLICES 64
 
 struct ofp_packet_stat {
-	struct {
+	struct ODP_ALIGNED_CACHE {
 		uint64_t rx_fp;
 		uint64_t tx_fp;
 		uint64_t rx_sp;
