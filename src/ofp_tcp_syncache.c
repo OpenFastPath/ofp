@@ -1292,8 +1292,8 @@ syncache_respond(struct syncache *sc)
 		ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
 		ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
 		ip->ip_sum = 0;
-		th->th_sum = 0;
-		th->th_sum = ofp_in4_cksum(m);
+
+		ofp_packet_user_area(m)->chksum_flags |= OFP_TCP_CHKSUM_INSERT;
 
 		rc = ofp_ip_output(m, NULL);
 		if (rc == OFP_PKT_DROP) {

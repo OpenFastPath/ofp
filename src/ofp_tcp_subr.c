@@ -650,8 +650,7 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 		ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
 		ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
 
-		nth->th_sum = 0;
-		nth->th_sum = ofp_in4_cksum(m);
+		ofp_packet_user_area(m)->chksum_flags |= OFP_TCP_CHKSUM_INSERT;
 
 		/* HJo FIX
 		odp_packet_csum_flags(m) = CSUM_TCP;

@@ -171,6 +171,7 @@ struct ODP_ALIGNED_CACHE ofp_ifnet {
 #define OFP_IF_UDP_RX_CHKSUM  0x4
 #define OFP_IF_UDP_TX_CHKSUM  0x8
 #define OFP_IF_TCP_RX_CHKSUM  0x10
+#define OFP_IF_TCP_TX_CHKSUM  0x20
 	uint32_t        chksum_offload_flags;
 	unsigned	out_queue_num;
 #define OFP_OUT_QUEUE_TYPE_PKTOUT 0

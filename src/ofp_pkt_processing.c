@@ -1090,6 +1090,7 @@ enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
 	struct ip_out odata;
 	enum ofp_return_code ret;
+	uint16_t l4_chksum_flag;
 
 	OFP_HOOK(OFP_HOOK_OUT_IPv4, pkt, NULL, &ret);
 	if (ret != OFP_PKT_CONTINUE) {
@@ -1119,11 +1120,12 @@ enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 			return OFP_PKT_DROP;
 		}
 
-		if (ofp_packet_user_area(pkt)->chksum_flags &
-					OFP_UDP_CHKSUM_INSERT) {
+		l4_chksum_flag = ofp_packet_user_area(pkt)->chksum_flags &
+			(OFP_UDP_CHKSUM_INSERT | OFP_TCP_CHKSUM_INSERT);
+		if (l4_chksum_flag) {
 			ofp_l4_checksum_insert(pkt);
 			ofp_packet_user_area(pkt)->chksum_flags &=
-				~OFP_UDP_CHKSUM_INSERT;
+				~l4_chksum_flag;
 		}
 
 		return ofp_fragment_pkt(pkt, &odata);
@@ -1140,7 +1142,16 @@ static void ofp_chksum_insert(odp_packet_t pkt, struct ip_out *odata)
 		else
 			odp_packet_l4_chksum_insert(pkt, 1);
 		ofp_packet_user_area(pkt)->chksum_flags &=
-                               ~OFP_UDP_CHKSUM_INSERT;
+			~OFP_UDP_CHKSUM_INSERT;
+	} else 	if (ofp_packet_user_area(pkt)->chksum_flags &
+						OFP_TCP_CHKSUM_INSERT) {
+		if (!(odata->dev_out->chksum_offload_flags
+				& OFP_IF_TCP_TX_CHKSUM))
+			ofp_l4_checksum_insert(pkt);
+		else
+			odp_packet_l4_chksum_insert(pkt, 1);
+		ofp_packet_user_area(pkt)->chksum_flags &=
+			~OFP_TCP_CHKSUM_INSERT;
 	}
 
 	if (!(odata->dev_out->chksum_offload_flags & OFP_IF_IPV4_TX_CHKSUM)) {
