@@ -889,6 +889,9 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 				ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, vlan,
 						      port, data->ip6_addr,
 						      data->ip6_prefix, gw6, 0);
+				ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, vlan,
+						      port, data->ip6_addr,
+						      128, gw6, 0);
 			}
 		}
 
@@ -916,6 +919,9 @@ const char *ofp_config_interface_up_v6(int port, uint16_t vlan,
 		if (ofp_ip6_is_set(data->ip6_addr)) {
 			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/,
 					      port, data->ip6_addr, data->ip6_prefix,
+					      gw6, 0);
+			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/,
+					      port, data->ip6_addr, 128,
 					      gw6, 0);
 		}
 		memcpy(data->ip6_addr, addr, 16);
@@ -1181,6 +1187,9 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		if (ofp_ip6_is_set(data->ip6_addr)) {
 			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/,
 					      port, data->ip6_addr, data->ip6_prefix,
+					      gw6, 0);
+			ofp_set_route6_params(OFP_ROUTE6_DEL, 0 /*vrf*/, 0 /*vlan*/,
+					      port, data->ip6_addr, 128,
 					      gw6, 0);
 #ifdef SP
 			snprintf(cmd, sizeof(cmd),
