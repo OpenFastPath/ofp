@@ -376,7 +376,7 @@ static int iter_vlan(void *key, void *iter_arg)
 		if (res == 0)
 			print_eth_stats(stats, fd);
 		else
-			printf("\r\n");
+			ofp_sendf(fd, "\r\n");
 	} else {
 		ofp_sendf(fd, "%s%d%s\r\n"
 			"	Link not configured\r\n\r\n",
