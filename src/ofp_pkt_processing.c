@@ -1072,7 +1072,7 @@ enum ofp_return_code ofp_ip_output_recurse(odp_packet_t pkt,
 	return OFP_PKT_DROP;
 }
 
-static void ofp_l4_checksum_insert(odp_packet_t pkt)
+static void ofp_udp_checksum_insert(odp_packet_t pkt)
 {
 	uint32_t *len = 0;
 	void *l4_ptr = odp_packet_l4_ptr(pkt, len);
@@ -1080,6 +1080,19 @@ static void ofp_l4_checksum_insert(odp_packet_t pkt)
 		struct ofp_udphdr *udp = (struct ofp_udphdr *)l4_ptr;
 		udp->uh_sum = 0;
 		udp->uh_sum = ofp_in4_cksum(pkt);
+		if (udp->uh_sum == 0)
+			udp->uh_sum = 0xffff;
+	}
+}
+
+static void ofp_tcp_checksum_insert(odp_packet_t pkt)
+{
+	uint32_t *len = 0;
+	void *l4_ptr = odp_packet_l4_ptr(pkt, len);
+	if(l4_ptr != NULL) {
+		struct ofp_tcphdr *tcp = (struct ofp_tcphdr *)l4_ptr;
+		tcp->th_sum = 0;
+		tcp->th_sum = ofp_in4_cksum(pkt);
 	}
 }
 
@@ -1090,7 +1103,6 @@ enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
 	struct ip_out odata;
 	enum ofp_return_code ret;
-	uint16_t l4_chksum_flag;
 
 	OFP_HOOK(OFP_HOOK_OUT_IPv4, pkt, NULL, &ret);
 	if (ret != OFP_PKT_CONTINUE) {
@@ -1120,12 +1132,16 @@ enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 			return OFP_PKT_DROP;
 		}
 
-		l4_chksum_flag = ofp_packet_user_area(pkt)->chksum_flags &
-			(OFP_UDP_CHKSUM_INSERT | OFP_TCP_CHKSUM_INSERT);
-		if (l4_chksum_flag) {
-			ofp_l4_checksum_insert(pkt);
+		if (ofp_packet_user_area(pkt)->chksum_flags &
+						OFP_UDP_CHKSUM_INSERT) {
+			ofp_udp_checksum_insert(pkt);
 			ofp_packet_user_area(pkt)->chksum_flags &=
-				~l4_chksum_flag;
+				~OFP_UDP_CHKSUM_INSERT;
+		} else if (ofp_packet_user_area(pkt)->chksum_flags &
+						OFP_TCP_CHKSUM_INSERT) {
+			ofp_tcp_checksum_insert(pkt);
+			ofp_packet_user_area(pkt)->chksum_flags &=
+				~OFP_TCP_CHKSUM_INSERT;
 		}
 
 		return ofp_fragment_pkt(pkt, &odata);
@@ -1138,7 +1154,7 @@ static void ofp_chksum_insert(odp_packet_t pkt, struct ip_out *odata)
 	if (ofp_packet_user_area(pkt)->chksum_flags & OFP_UDP_CHKSUM_INSERT) {
 		if (!(odata->dev_out->chksum_offload_flags 
 				& OFP_IF_UDP_TX_CHKSUM))
-			ofp_l4_checksum_insert(pkt);
+			ofp_udp_checksum_insert(pkt);
 		else
 			odp_packet_l4_chksum_insert(pkt, 1);
 		ofp_packet_user_area(pkt)->chksum_flags &=
@@ -1147,7 +1163,7 @@ static void ofp_chksum_insert(odp_packet_t pkt, struct ip_out *odata)
 						OFP_TCP_CHKSUM_INSERT) {
 		if (!(odata->dev_out->chksum_offload_flags
 				& OFP_IF_TCP_TX_CHKSUM))
-			ofp_l4_checksum_insert(pkt);
+			ofp_tcp_checksum_insert(pkt);
 		else
 			odp_packet_l4_chksum_insert(pkt, 1);
 		ofp_packet_user_area(pkt)->chksum_flags &=
