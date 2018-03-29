@@ -1539,7 +1539,7 @@ ofp_igmp_input(odp_packet_t *m, int off)
 	/*
 	 * Validate checksum.
 	 */
-	if (ofp_cksum_buffer((uint16_t *)igmp, igmplen)) {
+	if (ofp_cksum_buffer(igmp, igmplen)) {
 		IGMPSTAT_INC(igps_rcv_badsum);
 		return OFP_PKT_DROP;
 	}
@@ -2260,8 +2260,7 @@ igmp_v1v2_queue_report(struct ofp_in_multi *inm, const int type)
 	igmp->igmp_code = 0;
 	igmp->igmp_group = inm->inm_addr;
 	igmp->igmp_cksum = 0;
-	igmp->igmp_cksum = ofp_cksum_buffer((uint16_t *)igmp,
-			sizeof(struct igmp));
+	igmp->igmp_cksum = ofp_cksum_buffer(igmp, sizeof(struct igmp));
 
 	ip->ip_tos = 0;
 	ip->ip_len = sizeof(struct ofp_ip) + sizeof(struct igmp);
@@ -3515,7 +3514,7 @@ igmp_v3_encap_report(struct ofp_ifnet *ifp, odp_packet_t m)
 	igmp->ir_rsv2 = 0;
 	igmp->ir_numgrps = odp_cpu_to_be_16(PKT2HDR(m)->vt_nrecs);
 	igmp->ir_cksum = 0;
-	igmp->ir_cksum = ofp_cksum_buffer((uint16_t *)igmp,
+	igmp->ir_cksum = ofp_cksum_buffer(igmp,
 			sizeof(struct igmp_report) + igmpreclen);
 	PKT2HDR(m)->vt_nrecs = 0;
 

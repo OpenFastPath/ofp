@@ -558,7 +558,16 @@ char	*ofp_inet_ntoa(struct ofp_in_addr); /* implement */
  */
 uint16_t ofp_cksum_iph(const void *addr, int ip_hl);
 
-uint16_t ofp_cksum_buffer(uint16_t *addr, int len);
+/**
+ * Calculate checksum for IP, UDP or TCP.
+ *
+ * @param addr Pointer to the data. This should be 2-byte aligned,
+ *             otherwise performance may suffer.
+ * @param len  Number of bytes of data.
+ * @return Checksum.
+ */
+uint16_t ofp_cksum_buffer(const void *addr, int len);
+
 int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
 int ofp_in4_cksum(const odp_packet_t pkt);
 

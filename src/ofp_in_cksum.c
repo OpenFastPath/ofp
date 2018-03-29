@@ -63,35 +63,70 @@ uint16_t ofp_cksum_iph(const void *addr, int ip_hl)
 	return ~ofp_cksum_fold(sum);
 }
 
-uint16_t ofp_cksum_buffer(uint16_t *addr, int len)
+uint16_t ofp_cksum_buffer(const void *addr, int len)
 {
 	register int nleft = len;
-	register uint16_t *w = addr;
-	register uint16_t answer;
-	register int sum = 0;
+	register uint64_t sum = 0;
 
-	/*
-	 *  Our algorithm is simple, using a 32 bit accumulator (sum),
-	 *  we add sequential 16 bit words to it, and at the end, fold
-	 *  back all the carry bits from the top 16 bits into the lower
-	 *  16 bits.
-	 */
-	while (nleft > 1)  {
+	const uint16_t *w = (const uint16_t *)addr;
+
+	if ((uint64_t)w & 2 && nleft >= 2) {
 		sum += *w++;
 		nleft -= 2;
 	}
 
-	/* mop up an odd byte, if necessary */
-	if (nleft == 1)
-		sum += odp_cpu_to_be_16(*(u_char *)w << 8);
+	register const uint32_t *d = (const uint32_t *)w;
 
+#ifdef __ARM_ARCH
 	/*
-	 * add back carry outs from top 16 bits to low 16 bits
+	 * On ARM the main loop compiles into ldp (load pair)
+	 * instructions, so we need to align to the size of a pair of
+	 * dwords, or 8 bytes.
 	 */
-	sum = (sum >> 16) + (sum & 0xffff); /* add hi 16 to low 16 */
-	sum += (sum >> 16);                 /* add carry */
-	answer = ~sum;                      /* truncate to 16 bits */
-	return answer;
+	if ((uint64_t)d & 4 && nleft >= 4) {
+		sum += *d++;
+		nleft -= 4;
+	}
+#endif
+
+	while (nleft >= 32)  {
+		sum += *d++;
+		sum += *d++;
+		sum += *d++;
+		sum += *d++;
+
+		sum += *d++;
+		sum += *d++;
+		sum += *d++;
+		sum += *d++;
+
+		nleft -= 32;
+	}
+
+	switch (nleft>>2) {
+	case 7: sum += *d++;
+	case 6: sum += *d++;
+	case 5: sum += *d++;
+	case 4: sum += *d++;
+	case 3: sum += *d++;
+	case 2: sum += *d++;
+	case 1: sum += *d++;
+	default: break;
+	}
+
+	nleft &= 3;
+
+	w = (const uint16_t *)d;
+
+	if (nleft > 1)  {
+		sum += *w++;
+		nleft -= 2;
+	}
+
+	if (nleft == 1)
+		sum += odp_cpu_to_be_16(*(const uint8_t *)w << 8);
+
+	return ~ofp_cksum_fold(sum);
 }
 
 #define ADDCARRY(x)  (x > 65535 ? x -= 65535 : x)
@@ -126,7 +161,7 @@ static int __ofp_cksum(const odp_packet_t pkt, unsigned int off,
 			cksum_len = len;
 
 		cksum_data = (uint8_t *)odp_packet_seg_data(pkt, seg) + off;
-		tmp = ~ofp_cksum_buffer((uint16_t *)cksum_data, cksum_len);
+		tmp = ~ofp_cksum_buffer(cksum_data, cksum_len);
 
 		/* swap bytes on odd boundary */
 		if (done % 2)
