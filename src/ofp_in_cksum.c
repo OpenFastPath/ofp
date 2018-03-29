@@ -181,7 +181,7 @@ static int __ofp_cksum(const odp_packet_t pkt, unsigned int off,
 	return sum;
 }
 
-int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len)
+uint16_t ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len)
 {
 	return (~__ofp_cksum(pkt, off, len)) & 0xffff;
 }
@@ -233,7 +233,7 @@ static inline int __ofp_in4_cksum(const odp_packet_t pkt)
 	return (~sum & 0xffff);
 }
 
-int ofp_in4_cksum(const odp_packet_t pkt)
+uint16_t ofp_in4_cksum(const odp_packet_t pkt)
 {
 	return __ofp_in4_cksum(pkt);
 }

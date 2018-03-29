@@ -568,8 +568,26 @@ uint16_t ofp_cksum_iph(const void *addr, int ip_hl);
  */
 uint16_t ofp_cksum_buffer(const void *addr, int len);
 
-int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
-int ofp_in4_cksum(const odp_packet_t pkt);
+/**
+ * Calculate checksum for a part of packet data.
+ *
+ * @param pkt The packet.
+ * @param off Offset from the start of packet data.
+ * @param len Number of bytes of data.
+ * @return Checksum.
+ */
+uint16_t ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
+
+/**
+ * Calculate L4 checksum for packet.
+ *
+ * Construct a pseudo header and use it along with packet data to
+ * calculate an L4 checksum.
+ *
+ * @param pkt The packet. L3 pointer must be set.
+ * @return Checksum.
+ */
+uint16_t ofp_in4_cksum(const odp_packet_t pkt);
 
 #if __GNUC__ >= 4
 #pragma GCC visibility pop
