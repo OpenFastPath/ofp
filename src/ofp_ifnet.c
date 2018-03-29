@@ -36,7 +36,8 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 
 	odp_pktio_config_init(&config);
 
-	if (capa.config.pktin.bit.ipv4_chksum) {
+	if (capa.config.pktin.bit.ipv4_chksum &
+		global_param->chksum_offload.ipv4_rx_ena) {
 		ifnet->chksum_offload_flags |= OFP_IF_IPV4_RX_CHKSUM;
 		config.pktin.bit.ipv4_chksum = 1;
 		config.pktin.bit.drop_ipv4_err = 1;
@@ -44,7 +45,8 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	}
 
-	if (capa.config.pktout.bit.ipv4_chksum) {
+	if (capa.config.pktout.bit.ipv4_chksum &
+		global_param->chksum_offload.ipv4_tx_ena) {
 		ifnet->chksum_offload_flags |= OFP_IF_IPV4_TX_CHKSUM;
 		config.pktout.bit.ipv4_chksum = 1;
 		config.pktout.bit.ipv4_chksum_ena = 1;
@@ -52,7 +54,8 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	}
 
-	if (capa.config.pktin.bit.udp_chksum) {
+	if (capa.config.pktin.bit.udp_chksum &
+		global_param->chksum_offload.udp_rx_ena) {
 		ifnet->chksum_offload_flags |= OFP_IF_UDP_RX_CHKSUM;
 		config.pktin.bit.udp_chksum = 1;
 		config.pktin.bit.drop_udp_err = 0;
@@ -60,7 +63,8 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	}
 
-	if (capa.config.pktout.bit.udp_chksum) {
+	if (capa.config.pktout.bit.udp_chksum &
+		global_param->chksum_offload.udp_tx_ena) {
 		ifnet->chksum_offload_flags |= OFP_IF_UDP_TX_CHKSUM;
 		/*
 		 * UDP checksum insertion will be requested explicitly
@@ -72,7 +76,8 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
 	}
 
-	if (capa.config.pktin.bit.tcp_chksum) {
+	if (capa.config.pktin.bit.tcp_chksum &
+		global_param->chksum_offload.tcp_rx_ena) {
 		ifnet->chksum_offload_flags |= OFP_IF_TCP_RX_CHKSUM;
 		config.pktin.bit.tcp_chksum = 1;
 		config.pktin.bit.drop_tcp_err = 0;
@@ -80,7 +85,8 @@ static int ofp_pktio_config(struct ofp_ifnet *ifnet)
 			ifnet->if_name);
         }
 
-        if (capa.config.pktout.bit.tcp_chksum) {
+        if (capa.config.pktout.bit.tcp_chksum &
+		global_param->chksum_offload.tcp_tx_ena) {
                 ifnet->chksum_offload_flags |= OFP_IF_TCP_TX_CHKSUM;
                 /*
                  * TCP checksum insertion will be requested explicitly

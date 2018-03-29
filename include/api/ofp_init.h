@@ -31,6 +31,42 @@
 #endif
 
 /**
+ * Checksum offloading configuration options bit field
+ *
+ * Packet IP/UDP/TCP checksum validation and insertion offloading
+ * may be enabled or disabled:
+ *
+ * 0: Disable offloading.
+ * 1: Enable offloading. This is the default value.
+ *
+ * When offloading is disabled, related checksums will be calculated by
+ * software, if needed.
+ *
+ * When offloading is enabled, related checksums will be calculated either
+ * by HW (if packet_io supports offloading) or by SW (if packet_io doesn't
+ * support offloading), if needed.
+ */
+typedef struct ofp_chksum_offload_config_t {
+	/** Enable IPv4 header checksum validation offload */
+	uint16_t ipv4_rx_ena : 1;
+
+	/** Enable UDP checksum validation offload */
+	uint16_t udp_rx_ena  : 1;
+
+	/** Enable TCP checksum validation offload */
+	uint16_t tcp_rx_ena  : 1;
+
+	/** Enable IPv4 header checksum insertion offload */
+	uint16_t ipv4_tx_ena : 1;
+
+	/** Enable UDP checksum insertion offload */
+	uint16_t udp_tx_ena  : 1;
+
+	/** Enable TCP checksum insertion offload */
+	uint16_t tcp_tx_ena  : 1;
+} ofp_chksum_offload_config_t;
+
+/**
  * OFP API initialization data
  *
  * @see ofp_init_global_param()
@@ -185,6 +221,12 @@ typedef struct ofp_global_param_t {
 	 * Maximum number of VRFs. Default is OFP_NUM_VRF.
 	 */
 	int num_vrf;
+
+	/**
+	 * Checksum offloading options.
+	 */
+	ofp_chksum_offload_config_t chksum_offload;
+
 } ofp_global_param_t;
 
 /**
@@ -236,6 +278,14 @@ typedef struct ofp_global_param_t {
  *         table8_nodes = integer
  *     }
  *     num_vrf = integer
+ *     chksum_offload: {
+ *         ipv4_rx_ena = true
+ *         udp_rx_ena = true
+ *         tcp_rx_ena = true
+ *         ipv4_tx_ena = true
+ *         udp_tx_ena = true
+ *         tcp_tx_ena = true
+ *     }
  * }
  * </pre>
  *

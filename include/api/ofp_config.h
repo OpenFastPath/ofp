@@ -163,4 +163,14 @@
  * packets. */
 #define OFP_IPv4_TCP_CSUM_VALIDATE
 
+/**Enable (1) or disable (0) offloading of IPv4/UDP/TCP checksum
+ * validation and insertion. If enabled, checksum calculation will
+ * be performed by HW, if possible. See ofp_chksum_offload_config_t.*/
+#define OFP_CHKSUM_OFFLOAD_IPV4_RX 1
+#define OFP_CHKSUM_OFFLOAD_UDP_RX  1
+#define OFP_CHKSUM_OFFLOAD_TCP_RX  1
+#define OFP_CHKSUM_OFFLOAD_IPV4_TX 1
+#define OFP_CHKSUM_OFFLOAD_UDP_TX  1
+#define OFP_CHKSUM_OFFLOAD_TCP_TX  1
+
 #endif

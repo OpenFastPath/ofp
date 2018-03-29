@@ -238,6 +238,12 @@ static void read_conf_file(ofp_global_param_t *params, const char *filename)
 	GET_CONF_INT(int, mtrie.routes);
 	GET_CONF_INT(int, mtrie.table8_nodes);
 	GET_CONF_INT(int, num_vrf);
+	GET_CONF_INT(bool, chksum_offload.ipv4_rx_ena);
+	GET_CONF_INT(bool, chksum_offload.udp_rx_ena);
+	GET_CONF_INT(bool, chksum_offload.tcp_rx_ena);
+	GET_CONF_INT(bool, chksum_offload.ipv4_tx_ena);
+	GET_CONF_INT(bool, chksum_offload.udp_tx_ena);
+	GET_CONF_INT(bool, chksum_offload.tcp_tx_ena);
 
 done:
 	config_destroy(&conf);
@@ -270,6 +276,12 @@ void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *fil
 	params->mtrie.routes = OFP_ROUTES;
 	params->mtrie.table8_nodes = OFP_MTRIE_TABLE8_NODES;
 	params->num_vrf = OFP_NUM_VRF;
+	params->chksum_offload.ipv4_rx_ena = OFP_CHKSUM_OFFLOAD_IPV4_RX;
+	params->chksum_offload.udp_rx_ena = OFP_CHKSUM_OFFLOAD_UDP_RX;
+	params->chksum_offload.tcp_rx_ena = OFP_CHKSUM_OFFLOAD_TCP_RX;
+	params->chksum_offload.ipv4_tx_ena = OFP_CHKSUM_OFFLOAD_IPV4_TX;
+	params->chksum_offload.udp_tx_ena = OFP_CHKSUM_OFFLOAD_UDP_TX;
+	params->chksum_offload.tcp_tx_ena = OFP_CHKSUM_OFFLOAD_TCP_TX;
 	read_conf_file(params, filename);
 }
 
