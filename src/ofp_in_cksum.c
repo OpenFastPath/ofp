@@ -134,8 +134,7 @@ uint16_t ofp_cksum_buffer(const void *addr, int len)
 l_util.l = sum; sum = l_util.s[0] + l_util.s[1]; ADDCARRY(sum);	\
 } while (0)
 
-static int __ofp_cksum(const odp_packet_t pkt, unsigned int off,
-			 unsigned int len)
+uint16_t ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len)
 {
 	int sum = 0;
 	uint16_t tmp = 0;
@@ -178,17 +177,7 @@ static int __ofp_cksum(const odp_packet_t pkt, unsigned int off,
 	}
 
 	REDUCE;
-	return sum;
-}
-
-uint16_t ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len)
-{
-	return (~__ofp_cksum(pkt, off, len)) & 0xffff;
-}
-
-int ofp_getsum(const odp_packet_t pkt, unsigned int off, unsigned int len)
-{
-	return __ofp_cksum(pkt, off, len);
+	return ~sum;
 }
 
 struct ofp_ipovly {
@@ -199,7 +188,7 @@ struct ofp_ipovly {
 	struct   ofp_in_addr ih_dst;       /* destination internet address */
 } __attribute__((__packed__));
 
-static inline int __ofp_in4_cksum(const odp_packet_t pkt)
+uint16_t ofp_in4_cksum(const odp_packet_t pkt)
 {
 	struct ofp_ip *ip;
 	int off, len, sum = 0;
@@ -232,9 +221,3 @@ static inline int __ofp_in4_cksum(const odp_packet_t pkt)
 	REDUCE;
 	return (~sum & 0xffff);
 }
-
-uint16_t ofp_in4_cksum(const odp_packet_t pkt)
-{
-	return __ofp_in4_cksum(pkt);
-}
-

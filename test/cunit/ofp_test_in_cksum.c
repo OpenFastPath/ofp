@@ -176,31 +176,6 @@ test_ofp_cksum_buffer_odd_len_icmp(void)
 }
 
 static void
-test___ofp_cksum(void)
-{
-	odp_packet_t pkt;
-	struct ofp_ip *ip;
-	struct ofp_icmp *icmp;
-	uint16_t res, ip_hl;
-
-	if (create_odp_packet_ip4(&pkt, pkt1_full, sizeof(pkt1_full))) {
-		CU_FAIL("Fail to create packet");
-		return;
-	}
-
-	ip = odp_packet_l3_ptr(pkt, NULL);
-	ip_hl = ip->ip_hl << 2;
-	icmp = (struct ofp_icmp *)((uint8_t *)ip + ip_hl);
-	icmp->icmp_cksum = 0;
-
-	res = __ofp_cksum(pkt,
-			    odp_packet_l3_offset(pkt) + ip_hl,
-			    odp_be_to_cpu_16(ip->ip_len) - ip_hl);
-
-	CU_ASSERT_EQUAL(res, 0xA8ED);
-}
-
-static void
 test_ofp_cksum(void)
 {
 	odp_packet_t pkt;
@@ -303,10 +278,6 @@ main(void)
 	}
 	if (NULL == CU_ADD_TEST(ptr_suite,
 				test_ofp_cksum_buffer_odd_len_icmp)) {
-		CU_cleanup_registry();
-		return CU_get_error();
-	}
-	if (NULL == CU_ADD_TEST(ptr_suite, test___ofp_cksum)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
