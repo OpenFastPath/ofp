@@ -447,8 +447,7 @@ found:
 	chain_ip->ip_sum = 0;
 	chain_ip->ip_off = 0;
 	chain_ip->ip_len = odp_cpu_to_be_16(len);
-	chain_ip->ip_sum = ofp_cksum_buffer((uint16_t *)chain_ip,
-					  chain_ip->ip_hl << 2);
+	chain_ip->ip_sum = ofp_cksum_iph(chain_ip, chain_ip->ip_hl);
 	odp_spinlock_unlock(&shm->ipqlock);
 	return ret;
 

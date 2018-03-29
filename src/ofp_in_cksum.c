@@ -12,6 +12,57 @@
 #include "ofpi_log.h"
 #include "ofpi_util.h"
 
+static inline uint16_t ofp_cksum_fold(register uint64_t sum)
+{
+	sum = (sum >> 32) + (sum & 0xffffffff);
+	sum = (sum >> 16) + (sum & 0xffff);
+	return sum + (sum >> 16);
+}
+
+uint16_t ofp_cksum_iph(const void *addr, int ip_hl)
+{
+	register uint64_t sum = 0;
+	const uint16_t *w = (const uint16_t *)addr;
+	int odd_word = 0;
+
+	if ((uint64_t)w & 2) {
+		sum += *w++;
+		ip_hl--;
+		odd_word = 1;
+	}
+
+	register const uint32_t *d = (const uint32_t *)w;
+
+	sum += *d++;
+	sum += *d++;
+	sum += *d++;
+	sum += *d++;
+
+	ip_hl -= 4;
+
+	if (odp_unlikely(ip_hl)) {
+		switch (ip_hl) {
+		case 11: sum += *d++;
+		case 10: sum += *d++;
+		case 9: sum += *d++;
+		case 8: sum += *d++;
+		case 7: sum += *d++;
+		case 6: sum += *d++;
+		case 5: sum += *d++;
+		case 4: sum += *d++;
+		case 3: sum += *d++;
+		case 2: sum += *d++;
+		case 1: sum += *d++;
+		default: break;
+		}
+	}
+
+	if (odd_word)
+		sum += *((const uint16_t *)d);
+
+	return ~ofp_cksum_fold(sum);
+}
+
 uint16_t ofp_cksum_buffer(uint16_t *addr, int len)
 {
 	register int nleft = len;

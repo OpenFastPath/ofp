@@ -238,7 +238,7 @@ enum ofp_return_code ofp_udp4_processing(odp_packet_t *pkt)
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	int frag_res = 0;
 
-	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
+	if (odp_unlikely(ofp_cksum_iph(ip, ip->ip_hl)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
@@ -257,7 +257,7 @@ enum ofp_return_code ofp_tcp4_processing(odp_packet_t *pkt)
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	int frag_res = 0;
 
-	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
+	if (odp_unlikely(ofp_cksum_iph(ip, ip->ip_hl)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
@@ -329,9 +329,8 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 			break;
 		case ODP_PACKET_CHKSUM_UNKNOWN:
 			/* Checksum was not validated by HW */
-			if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip,
-					 ip->ip_hl<<2)))
-			return OFP_PKT_DROP;
+			if (odp_unlikely(ofp_cksum_iph(ip, ip->ip_hl)))
+				return OFP_PKT_DROP;
 			break;
 		case ODP_PACKET_CHKSUM_BAD:
 			return OFP_PKT_DROP;
@@ -339,9 +338,8 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 		}
 		ofp_packet_user_area(*pkt)->chksum_flags &=
 			~OFP_L3_CHKSUM_STATUS_VALID;
-	} else if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip,
-						 ip->ip_hl<<2)))
-			return OFP_PKT_DROP;
+	} else if (odp_unlikely(ofp_cksum_iph(ip, ip->ip_hl)))
+		return OFP_PKT_DROP;
 
 	/* TODO: handle broadcast */
 	if (dev->bcast_addr == ip->ip_dst.s_addr)
@@ -506,7 +504,7 @@ enum ofp_return_code ofp_gre_processing(odp_packet_t *pkt)
 	int frag_res = 0;
 	struct ofp_ip *ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 
-	if (odp_unlikely(ofp_cksum_buffer((uint16_t *) ip, ip->ip_hl<<2)))
+	if (odp_unlikely(ofp_cksum_iph(ip, ip->ip_hl)))
 		return OFP_PKT_DROP;
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
@@ -1178,8 +1176,7 @@ static void ofp_chksum_insert(odp_packet_t pkt, struct ip_out *odata)
 
 	if (!(odata->dev_out->chksum_offload_flags & OFP_IF_IPV4_TX_CHKSUM)) {
 		odata->ip->ip_sum = 0;
-		odata->ip->ip_sum = ofp_cksum_buffer((uint16_t *) odata->ip,
-						     odata->ip->ip_hl * 4);
+		odata->ip->ip_sum = ofp_cksum_iph(odata->ip, odata->ip->ip_hl);
 	}
 }
 

@@ -468,7 +468,7 @@ void ofp_vxlan_restore_and_update_header(odp_packet_t pkt,
 	ip->ip_dst.s_addr = ip->ip_src.s_addr;
 	ip->ip_src.s_addr = outdev->ip_addr;
 	ip->ip_sum = 0;
-	ip->ip_sum = ofp_cksum_buffer((uint16_t *)ip, sizeof(*ip));
+	ip->ip_sum = ofp_cksum_iph(ip, sizeof(*ip)>>2);
 
 	/* Save MAC address to IP address information. */
 	ofp_vxlan_set_mac_dst(saved_mac, ip->ip_dst.s_addr);

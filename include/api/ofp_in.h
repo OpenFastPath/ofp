@@ -547,6 +547,17 @@ char	*ofp_inet_ntoa(struct ofp_in_addr); /* implement */
 #define	ofp_in_nullhost(x)	((x).s_addr == OFP_INADDR_ANY)
 #define	ofp_in_allhosts(x)	((x).s_addr == odp_cpu_to_be_32(OFP_INADDR_ALLHOSTS_GROUP))
 
+/**
+ * Calculate IPv4 header checksum.
+ *
+ * @param addr  Pointer to the header. This should be 2-byte aligned,
+ *              otherwise performance may suffer.
+ * @param ip_hl Number of 32-bit words, i.e. the value of the header
+ *              length field.
+ * @return Checksum.
+ */
+uint16_t ofp_cksum_iph(const void *addr, int ip_hl);
+
 uint16_t ofp_cksum_buffer(uint16_t *addr, int len);
 int ofp_cksum(const odp_packet_t pkt, unsigned int off, unsigned int len);
 int ofp_in4_cksum(const odp_packet_t pkt);

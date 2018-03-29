@@ -172,7 +172,7 @@ ofp_icmp_error(odp_packet_t pkt_in, int type, int code, uint32_t dest, int mtu)
 	/* ip header + icmp type+code+checksum(4B) + ip addr(4B) + ip header + 8B of original data */
 	const uint16_t icmp_len = (ip_hlen * 2) + 16;
 	ip_in->ip_sum = 0;
-	ip_in->ip_sum = ofp_cksum_buffer((uint16_t *)ip_in, ip_in->ip_hl<<2);
+	ip_in->ip_sum = ofp_cksum_iph(ip_in, ip_in->ip_hl);
 
 	if ((uint16_t)type > OFP_ICMP_MAXTYPE)
 		OFP_ERR("Illegal ICMP type: %d", type);

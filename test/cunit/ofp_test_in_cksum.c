@@ -128,6 +128,22 @@ create_odp_packet_ip4(odp_packet_t *opkt, uint8_t *pkt_data, int plen)
  * Testcases
  */
 static void
+test_ofp_cksum_iph(void)
+{
+#define BUFSIZE 60
+	uint8_t *buf = malloc(BUFSIZE);
+	memset(buf, 0x81, BUFSIZE);
+
+	/* IPv4 header size without options. */
+	CU_ASSERT_EQUAL(ofp_cksum_iph(buf, 20>>2), 0xF0F0);
+
+	/* Max IPv4 header size. */
+	CU_ASSERT_EQUAL(ofp_cksum_iph(buf, BUFSIZE>>2), 0xD2D2);
+
+	free(buf);
+}
+
+static void
 test_ofp_cksum_buffer__ip4_addr(void)
 {
 	uint16_t res = ofp_cksum_buffer((uint16_t *)&ipaddr, sizeof(ipaddr));
@@ -272,6 +288,11 @@ main(void)
 	/* add a suite to the registry */
 	ptr_suite = CU_add_suite("ofp util", init_suite, clean_suite);
 	if (NULL == ptr_suite) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+	if (NULL == CU_ADD_TEST(ptr_suite,
+				test_ofp_cksum_iph)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
