@@ -90,17 +90,15 @@ int default_event_dispatcher(void *arg)
 		event_cnt = odp_schedule_multi(&in_queue, ODP_SCHED_WAIT,
 					 events, global_param->evt_rx_burst_size);
 		for (event_idx = 0; event_idx < event_cnt; event_idx++) {
+			odp_event_type_t ev_type;
+
 			ev = events[event_idx];
 
 			if (ev == ODP_EVENT_INVALID)
 				continue;
+			ev_type = odp_event_type(ev);
 
-			if (odp_event_type(ev) == ODP_EVENT_TIMEOUT) {
-				ofp_timer_handle(ev);
-				continue;
-			}
-
-			if (odp_event_type(ev) == ODP_EVENT_PACKET) {
+			if (odp_likely(ev_type == ODP_EVENT_PACKET)) {
 				pkt = odp_packet_from_event(ev);
 #if 0
 				if (odp_unlikely(odp_packet_has_error(pkt))) {
@@ -112,8 +110,12 @@ int default_event_dispatcher(void *arg)
 				ofp_packet_input(pkt, in_queue, pkt_func);
 				continue;
 			}
+			if (ev_type == ODP_EVENT_TIMEOUT) {
+				ofp_timer_handle(ev);
+				continue;
+			}
 
-			OFP_ERR("Unexpected event type: %u", odp_event_type(ev));
+			OFP_ERR("Unexpected event type: %u", ev_type);
 			odp_event_free(ev);
 		}
 		ofp_send_pending_pkt();
