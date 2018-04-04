@@ -114,19 +114,7 @@ int default_event_dispatcher(void *arg)
 			}
 
 			OFP_ERR("Unexpected event type: %u", odp_event_type(ev));
-
-			/* Free events by type */
-			if (odp_event_type(ev) == ODP_EVENT_BUFFER) {
-				odp_buffer_free(odp_buffer_from_event(ev));
-				continue;
-			}
-
-			if (odp_event_type(ev) == ODP_EVENT_CRYPTO_COMPL) {
-				odp_crypto_compl_free(
-					odp_crypto_compl_from_event(ev));
-				continue;
-			}
-
+			odp_event_free(ev);
 		}
 		ofp_send_pending_pkt();
 	}
