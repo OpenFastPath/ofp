@@ -54,8 +54,8 @@
 #include "ofpi_ip.h"
 #include "api/ofp_init.h"
 
-static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
-						   struct ip_out *odata);
+static inline enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
+							  struct ip_out *odata);
 
 extern odp_pool_t ofp_packet_pool;
 
@@ -292,6 +292,17 @@ enum ofp_return_code ofp_tcp4_processing(odp_packet_t *pkt)
 	return ofp_inetsw[ofp_ip_protox_tcp].pr_input(pkt, ip->ip_hl << 2);
 }
 
+static inline enum ofp_return_code ofp_ip_output_common_inline(odp_packet_t pkt,
+							       struct ofp_nh_entry *nh,
+							       int is_local_out);
+
+enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
+					  struct ofp_nh_entry *nh,
+					  int is_local_out)
+{
+	return ofp_ip_output_common_inline(pkt, nh, is_local_out);
+}
+
 enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 {
 	int frag_res = 0, res;
@@ -445,7 +456,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 	}
 #endif
 
-	return ofp_ip_output_common(*pkt, nh, 0);
+	return ofp_ip_output_common_inline(*pkt, nh, 0);
 }
 
 #ifdef INET6
@@ -1006,8 +1017,8 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 }
 
 
-static enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
-					       struct ip_out *odata)
+static inline enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
+						      struct ip_out *odata)
 {
 	if (odata->is_local_address) {
 		return send_pkt_loop(odata->dev_out, pkt);
@@ -1096,9 +1107,9 @@ static void ofp_tcp_checksum_insert(odp_packet_t pkt)
 	}
 }
 
-enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
-					  struct ofp_nh_entry *nh_param,
-					  int is_local_out)
+static inline enum ofp_return_code ofp_ip_output_common_inline(odp_packet_t pkt,
+							       struct ofp_nh_entry *nh_param,
+							       int is_local_out)
 {
 	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
 	struct ip_out odata;
@@ -1177,7 +1188,7 @@ static void ofp_chksum_insert(odp_packet_t pkt, struct ip_out *odata)
 	}
 }
 
-static enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
+static inline enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 						   struct ip_out *odata)
 {
 	enum ofp_return_code ret;
