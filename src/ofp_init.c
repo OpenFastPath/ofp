@@ -95,7 +95,8 @@ struct ofp_global_config_mem *ofp_get_global_config(void)
 
 void ofp_stop_processing(void)
 {
-	shm->is_running = 0;
+	if (shm)
+		shm->is_running = 0;
 }
 
 odp_bool_t *ofp_get_processing_state(void)
