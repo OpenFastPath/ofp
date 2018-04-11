@@ -182,18 +182,40 @@ int main(int argc, char *argv[])
 
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
-	/* Receive packets through the ODP scheduler. */
-	app_init_params.pktin_mode = ODP_PKTIN_MODE_SCHED;
-	/*
-	 * Use ordered pktin queues to allow processing of the same flow
-	 * in many threads in parallel.
-	 */
-	app_init_params.sched_sync = ODP_SCHED_SYNC_ORDERED;
-	/*
-	 * Use queued output to order forwarded packets back to the receive
-	 * order at output after parallel processing in multiple threads.
-	 */
-	app_init_params.pktout_mode = ODP_PKTOUT_MODE_QUEUE;
+
+	if (app_init_params.pktin_mode != ODP_PKTIN_MODE_SCHED) {
+		printf("Warning: Forcing scheduled pktin mode.\n");
+		/* Receive packets through the ODP scheduler. */
+		app_init_params.pktin_mode = ODP_PKTIN_MODE_SCHED;
+	}
+	switch (app_init_params.sched_sync) {
+	case ODP_SCHED_SYNC_PARALLEL:
+		printf("Warning: Packet order is not preserved with "
+		       "parallel RX queues\n");
+		break;
+	case ODP_SCHED_SYNC_ATOMIC:
+		/*
+		 * Packet order is preserved since we have only one output
+		 * queue per interface.
+		 */
+		break;
+	case ODP_SCHED_SYNC_ORDERED:
+		/*
+		 * Ordered pktin queues allow processing one packet
+		 * flow in many threads in parallel. Queued output
+		 * must be used to get forwarded packets ordered back
+		 * to the reception order at output.
+		 */
+		if (app_init_params.pktout_mode != ODP_PKTOUT_MODE_QUEUE)
+			printf("Warning: Packet order is not preserved with "
+			       "ordered RX queues and direct TX queues.\n");
+		break;
+	default:
+		printf("Warning: Unknown scheduling synchronization mode. "
+		       "Forcing atomic mode.\n");
+		app_init_params.sched_sync = ODP_SCHED_SYNC_ATOMIC;
+		break;
+	}
 
 	app_init_params.pkt_hook[OFP_HOOK_LOCAL] = fastpath_local_hook;
 
