@@ -139,20 +139,12 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t *pkt)
 	struct ofp_ifnet *ifnet = odp_packet_user_ptr(*pkt);
 
 	eth = (struct ofp_ether_header *)odp_packet_l2_ptr(*pkt, NULL);
-#ifndef OFP_PERFORMANCE
+
 	if (odp_unlikely(eth == NULL)) {
 		OFP_DBG("eth is NULL");
 		return OFP_PKT_DROP;
 	}
 
-	if (odp_unlikely(odp_packet_l3_ptr(*pkt, NULL) == NULL ||
-		(uintptr_t) odp_packet_l3_ptr(*pkt, NULL) !=
-			(uintptr_t)odp_packet_l2_ptr(*pkt, NULL) +
-				sizeof(struct ofp_ether_header))) {
-		OFP_DBG("odp_packet_l3_offset_set");
-		odp_packet_l3_offset_set(*pkt, sizeof(struct ofp_ether_header));
-	}
-#endif
 	ethtype = odp_be_to_cpu_16(eth->ether_type);
 
 	if (ethtype == OFP_ETHERTYPE_VLAN) {
@@ -166,9 +158,6 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t *pkt)
 			return OFP_PKT_DROP;
 		if (odp_likely(ifnet->port != VXLAN_PORTS))
 			odp_packet_user_ptr_set(*pkt, ifnet);
-#ifndef OFP_PERFORMANCE
-		odp_packet_l3_offset_set(*pkt, sizeof(struct ofp_ether_vlan_header));
-#endif
 	}
 
 	OFP_DBG("ETH TYPE = %04x", ethtype);
