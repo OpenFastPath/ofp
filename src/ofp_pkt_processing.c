@@ -944,6 +944,8 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 {
 	uint32_t l2_size;
 	void *l2_addr;
+	struct ofp_ether_header *eth;
+	uint32_t addr;
 
 	if (!odata->gw) /* link local */
 		odata->gw = odata->ip->ip_dst.s_addr;
@@ -959,54 +961,32 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		return OFP_PKT_DROP;
 	}
 
+	eth = l2_addr;
+	addr = odp_be_to_cpu_32(odata->ip->ip_dst.s_addr);
+
+	if (OFP_IN_MULTICAST(addr)) {
+		eth->ether_dhost[0] = 0x01;
+		eth->ether_dhost[1] = 0x00;
+		eth->ether_dhost[2] = 0x5e;
+		eth->ether_dhost[3] = (addr >> 16) & 0x7f;
+		eth->ether_dhost[4] = (addr >> 8) & 0xff;
+		eth->ether_dhost[5] = addr & 0xff;
+	} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr ||
+		   odata->dev_out->port == LOCAL_PORTS) {
+		odata->is_local_address = 1;
+		ofp_copy_mac(eth->ether_dhost, odata->dev_out->mac);
+	} else if (ofp_get_mac(odata->dev_out, odata->gw, eth->ether_dhost) < 0) {
+		send_arp_request(odata->dev_out, odata->gw);
+		return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
+					     odata->gw, odata->dev_out);
+	}
+	ofp_copy_mac(eth->ether_shost, odata->dev_out->mac);
+
 	if (ETH_WITHOUT_VLAN(odata->vlan, odata->out_port)) {
-		struct ofp_ether_header *eth =
-				(struct ofp_ether_header *)l2_addr;
-		uint32_t addr = odp_be_to_cpu_32(odata->ip->ip_dst.s_addr);
-
-		if (OFP_IN_MULTICAST(addr)) {
-			eth->ether_dhost[0] = 0x01;
-			eth->ether_dhost[1] = 0x00;
-			eth->ether_dhost[2] = 0x5e;
-			eth->ether_dhost[3] = (addr >> 16) & 0x7f;
-			eth->ether_dhost[4] = (addr >> 8) & 0xff;
-			eth->ether_dhost[5] = addr & 0xff;
-		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr ||
-			   odata->dev_out->port == LOCAL_PORTS) {
-			odata->is_local_address = 1;
-			ofp_copy_mac(eth->ether_dhost, &(odata->dev_out->mac[0]));
-		} else if (ofp_get_mac(odata->dev_out, odata->gw, eth->ether_dhost) < 0) {
-			send_arp_request(odata->dev_out, odata->gw);
-			return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
-						     odata->gw, odata->dev_out);
-		}
-
-		ofp_copy_mac(eth->ether_shost, odata->dev_out->mac);
 		eth->ether_type = odp_cpu_to_be_16(OFP_ETHERTYPE_IP);
 	} else {
-		struct ofp_ether_vlan_header *eth_vlan =
-			(struct ofp_ether_vlan_header *)l2_addr;
-		uint32_t addr = odp_be_to_cpu_32(odata->ip->ip_dst.s_addr);
+		struct ofp_ether_vlan_header *eth_vlan = l2_addr;
 
-		if (OFP_IN_MULTICAST(addr)) {
-			eth_vlan->evl_dhost[0] = 0x01;
-			eth_vlan->evl_dhost[1] = 0x00;
-			eth_vlan->evl_dhost[2] = 0x5e;
-			eth_vlan->evl_dhost[3] = (addr >> 16) & 0x7f;
-			eth_vlan->evl_dhost[4] = (addr >> 8) & 0xff;
-			eth_vlan->evl_dhost[5] = addr & 0xff;
-		} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr ||
-			   odata->dev_out->port == LOCAL_PORTS) {
-			odata->is_local_address = 1;
-			ofp_copy_mac(eth_vlan->evl_dhost, odata->dev_out->mac);
-		} else if (ofp_get_mac(odata->dev_out,
-				odata->gw, eth_vlan->evl_dhost) < 0) {
-			send_arp_request(odata->dev_out, odata->gw);
-			return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
-						     odata->gw, odata->dev_out);
-		}
-
-		ofp_copy_mac(eth_vlan->evl_shost, odata->dev_out->mac);
 		eth_vlan->evl_encap_proto = odp_cpu_to_be_16(
 							OFP_ETHERTYPE_VLAN);
 		eth_vlan->evl_tag = odp_cpu_to_be_16(odata->vlan);
