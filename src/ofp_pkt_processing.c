@@ -905,10 +905,44 @@ static enum ofp_return_code ofp_fragment_pkt(odp_packet_t pkt,
 	return OFP_PKT_PROCESSED;
 }
 
+/*
+ * Prepare a packet for L2 header prepend and output. The packet is pulled
+ * or pushed as necessary so that there is exactly l2_size bytes in the
+ * beginning of the packet before the data pointed to by the L3 offset.
+ *
+ * After return
+ *    - L2 offset is undefined
+ *    - L3 offset points to the same data as before the call
+ *    - Value of L3 offset is l2_size
+ *    - If packet was pushed or pulled, L4 offset is set to l2size + hlen
+ *
+ * Returns pointer to the L3 data or NULL if trimming failed.
+ *
+ */
+static inline void *trim_for_output(odp_packet_t pkt, uint32_t l2_size,
+				    uint32_t hlen)
+{
+	void *l2_addr;
+	uint32_t l3_offset = odp_packet_l3_offset(pkt);
+
+	if (l3_offset == l2_size) {
+		l2_addr = odp_packet_data(pkt);
+	} else if (l3_offset > l2_size) {
+		l2_addr = odp_packet_pull_head(pkt, l3_offset - l2_size);
+		odp_packet_l3_offset_set(pkt, l2_size);
+		odp_packet_l4_offset_set(pkt, l2_size + hlen);
+	} else {
+		l2_addr = odp_packet_push_head(pkt, l2_size - l3_offset);
+		odp_packet_l3_offset_set(pkt, l2_size);
+		odp_packet_l4_offset_set(pkt, l2_size + hlen);
+	}
+	return l2_addr;
+}
+
 static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 						  struct ip_out *odata)
 {
-	uint8_t l2_size = 0;
+	uint32_t l2_size;
 	void *l2_addr;
 
 	if (!odata->gw) /* link local */
@@ -919,20 +953,7 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 	else
 		l2_size = sizeof(struct ofp_ether_vlan_header);
 
-	if (odp_packet_l2_offset(pkt) + l2_size == odp_packet_l3_offset(pkt)) {
-		l2_addr = odp_packet_l2_ptr(pkt, NULL);
-	} else if (odp_packet_l3_offset(pkt) >= l2_size) {
-		odp_packet_l2_offset_set(pkt,
-					odp_packet_l3_offset(pkt) - l2_size);
-		l2_addr = odp_packet_l2_ptr(pkt, NULL);
-	} else {
-		l2_addr = odp_packet_push_head(pkt,
-					l2_size - odp_packet_l3_offset(pkt));
-		odp_packet_l2_offset_set(pkt, 0);
-		odp_packet_l3_offset_set(pkt, l2_size);
-		odp_packet_l4_offset_set(pkt, l2_size + (odata->ip->ip_hl<<2));
-	}
-
+	l2_addr = trim_for_output(pkt, l2_size, odata->ip->ip_hl * 4);
 	if (odp_unlikely(l2_addr == NULL)) {
 		OFP_DBG("l2_addr == NULL");
 		return OFP_PKT_DROP;
@@ -1266,7 +1287,8 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 	struct ofp_nh6_entry *nh_param)
 {
 	struct ofp_ip6_hdr *ip6;
-	uint8_t l2_size;
+	uint32_t l2_size;
+	uint32_t hlen;
 	void *l2_addr;
 	uint32_t flags;
 	struct ofp_nh6_entry *nh;
@@ -1320,24 +1342,10 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 	else
 		l2_size = sizeof(struct ofp_ether_vlan_header);
 
-	if (odp_packet_l3_offset(pkt) >= l2_size) {
-		odp_packet_l2_offset_set(pkt,
-					odp_packet_l3_offset(pkt) - l2_size);
-		l2_addr = odp_packet_l2_ptr(pkt, NULL);
-	} else {
-		int hlen = 0;
-
-		if (odp_packet_l4_offset(pkt) != ODP_PACKET_OFFSET_INVALID)
-			hlen = odp_packet_l4_offset(pkt) -
-				odp_packet_l3_offset(pkt);
-
-		l2_addr = odp_packet_push_head(pkt,
-					l2_size - odp_packet_l3_offset(pkt));
-		odp_packet_l2_offset_set(pkt, 0);
-		odp_packet_l3_offset_set(pkt, l2_size);
-		odp_packet_l4_offset_set(pkt, l2_size + hlen);
-	}
-
+	hlen = 0;
+	if (odp_packet_l4_offset(pkt) != ODP_PACKET_OFFSET_INVALID)
+		hlen = odp_packet_l4_offset(pkt) - odp_packet_l3_offset(pkt);
+	l2_addr = trim_for_output(pkt, l2_size, hlen);
 	if (odp_unlikely(l2_addr == NULL))
 		return OFP_PKT_DROP;
 
