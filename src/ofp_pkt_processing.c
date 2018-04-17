@@ -939,6 +939,19 @@ static inline void *trim_for_output(odp_packet_t pkt, uint32_t l2_size,
 	return l2_addr;
 }
 
+/*
+ * Trim packet data beyond the end of L3 payload
+ * (i.e. from the offset (L3 offset + l3_len) to the end of the packet).
+ */
+static inline void trim_tail(odp_packet_t pkt, uint32_t l3_len)
+{
+	uint32_t l3_offset = odp_packet_l3_offset(pkt);
+	uint32_t len = odp_packet_len(pkt);
+
+	if (len > l3_offset + l3_len)
+		odp_packet_pull_tail(pkt, len - l3_offset - l3_len);
+}
+
 static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 						  struct ip_out *odata)
 {
@@ -946,6 +959,8 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 	void *l2_addr;
 	struct ofp_ether_header *eth;
 	uint32_t addr;
+
+	trim_tail(pkt, odp_be_to_cpu_16(odata->ip->ip_len));
 
 	if (!odata->gw) /* link local */
 		odata->gw = odata->ip->ip_dst.s_addr;
