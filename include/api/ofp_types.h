@@ -18,7 +18,6 @@
 enum ofp_return_code {
 	OFP_PKT_CONTINUE = 0,
 	OFP_PKT_PROCESSED,
-	OFP_PKT_ON_HOLD,
 	OFP_PKT_DROP
 };
 

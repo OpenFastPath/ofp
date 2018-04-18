@@ -226,11 +226,11 @@ static enum ofp_return_code pkt_reassembly(odp_packet_t *pkt)
 
 	*pkt = ofp_ip_reass(*pkt);
 	if (*pkt == ODP_PACKET_INVALID)
-		return OFP_PKT_ON_HOLD;
+		return OFP_PKT_PROCESSED;
 
 	OFP_UPDATE_PACKET_STAT(rx_ip_reass, 1);
 
-	return OFP_PKT_PROCESSED;
+	return OFP_PKT_CONTINUE;
 }
 
 enum ofp_return_code ofp_udp4_processing(odp_packet_t *pkt)
@@ -243,8 +243,8 @@ enum ofp_return_code ofp_udp4_processing(odp_packet_t *pkt)
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
 		frag_res = pkt_reassembly(pkt);
-		if (frag_res == OFP_PKT_ON_HOLD)
-			return OFP_PKT_ON_HOLD;
+		if (frag_res != OFP_PKT_CONTINUE)
+			return frag_res;
 
 		ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	}
@@ -262,8 +262,8 @@ enum ofp_return_code ofp_tcp4_processing(odp_packet_t *pkt)
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
 		frag_res = pkt_reassembly(pkt);
-		if (frag_res == OFP_PKT_ON_HOLD)
-			return OFP_PKT_ON_HOLD;
+		if (frag_res != OFP_PKT_CONTINUE)
+			return frag_res;
 
 		ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	}
@@ -363,8 +363,8 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 	if (is_ours) {
 		if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
 			frag_res = pkt_reassembly(pkt);
-			if (frag_res == OFP_PKT_ON_HOLD)
-				return OFP_PKT_ON_HOLD;
+			if (frag_res != OFP_PKT_CONTINUE)
+				return frag_res;
 
 			ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 		}
@@ -509,8 +509,8 @@ enum ofp_return_code ofp_gre_processing(odp_packet_t *pkt)
 
 	if (odp_be_to_cpu_16(ip->ip_off) & 0x3fff) {
 		frag_res = pkt_reassembly(pkt);
-		if (frag_res == OFP_PKT_ON_HOLD)
-			return OFP_PKT_ON_HOLD;
+		if (frag_res != OFP_PKT_CONTINUE)
+			return frag_res;
 
 		ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 	}
