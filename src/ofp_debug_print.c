@@ -112,6 +112,15 @@ static void print_ipv4(FILE *f, char *p)
 	struct ofp_udphdr *uh;
 	struct ofp_tcphdr *th;
 
+	/* if it's a non-first fragment, print only IPv4 information */
+	if ((odp_be_to_cpu_16(iphdr->ip_off) & 0x1fff) != 0) {
+		ofp_printf(f, "IP fragment PKT len=%d  %s -> %s ",
+			   odp_be_to_cpu_16(iphdr->ip_len),
+			   ofp_print_ip_addr(iphdr->ip_src.s_addr),
+			   ofp_print_ip_addr(iphdr->ip_dst.s_addr));
+		return;
+	}
+
 	if (iphdr->ip_p == OFP_IPPROTO_UDP) {
 		uh = (struct ofp_udphdr *)(((uint8_t *)iphdr) +
 					     (iphdr->ip_hl<<2));
