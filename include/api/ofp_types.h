@@ -15,9 +15,25 @@
 #pragma GCC visibility push(default)
 #endif
 
+/**
+ * Result of processing a packet. Indicates what, if anything, the
+ * caller should do with the packet.
+ */
 enum ofp_return_code {
+	/**
+	 * The caller may continue processing the packet, and should
+	 * eventually free it.
+	 */
 	OFP_PKT_CONTINUE = 0,
+	/**
+	 * The packet has been processed and may already have been
+	 * freed. The caller should not use the packet any further and
+	 * should not free it.
+	 */
 	OFP_PKT_PROCESSED,
+	/**
+	 * The packet is dropped. The caller should free the packet.
+	 */
 	OFP_PKT_DROP
 };
 
