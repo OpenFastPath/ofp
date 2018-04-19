@@ -37,42 +37,26 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 		"  ifconfig [show]\r\n\r\n");
 
 	ofp_sendf(conn->fd, "Create interface:\r\n"
-		"  ifconfig [-A inet4] DEV IP4NET\r\n"
+		"  ifconfig [-A inet4] DEV IP4NET [vrf VRF]\r\n"
 		"    DEV: ethernet interface name or local interface(lo0, lo1,...)\r\n"
 		"    IP4NET: network address in a.b.c.d/e format\r\n"
-		"  Example:\r\n"
-		"    ifconfig %s0 192.168.200.1/24\r\n\r\n",
-		OFP_IFNAME_PREFIX);
-
-	ofp_sendf(conn->fd, "Create interface on virtual route table:\r\n"
-		"  ifconfig [-A inet4] DEV IP4NET vrf VRF\r\n"
-		"    DEV: ethernet interface name or local interface(lo0, lo1,...)\r\n"
-		"    IP4NET: network address in a.b.c.d/e format\r\n"
-		"    VRF: number\r\n"
-		"  Example:\r\n"
+		"    VRF: virtual routing and forwarding instance (a number)\r\n"
+		"  Examples:\r\n"
+		"    ifconfig %s0 192.168.200.1/24\r\n"
 		"    ifconfig %s0 192.168.200.1/24 vrf 2\r\n\r\n",
-		OFP_IFNAME_PREFIX);
+		OFP_IFNAME_PREFIX, OFP_IFNAME_PREFIX);
 	ofp_sendf(conn->fd, "Create GRE tunnel:\r\n"
-		"  ifconfig tunnel gre DEV local IP4ADDR remote IP4ADDR peer IP4ADDR IP4ADDR\r\n"
+		"  ifconfig tunnel gre DEV local IP4ADDR remote IP4ADDR peer IP4ADDR IP4ADDR [vrf VRF]\r\n"
 		"    DEV: gre interface name\r\n"
 		"    local: tunnel local ip address in a.b.c.d format\r\n"
 		"    remote: tunnel remote ip address in a.b.c.d format\r\n"
 		"    peer: pointtopoint ip address in a.b.c.d format\r\n"
 		"    IP4ADDR: interface ip address in a.b.c.d format\r\n"
-		"  Example:\r\n"
-		"    ifconfig %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1\r\n\r\n",
-		OFP_GRE_IFNAME_PREFIX);
-	ofp_sendf(conn->fd, "Create GRE tunnel on virtual route table :\r\n"
-		"  ifconfig tunnel gre DEV local IP4ADDR remote IP4ADDR peer IP4ADDR IP4ADDR vrf VRF\r\n"
-		"    DEV: gre interface name\r\n"
-		"    local: tunnel local ip address in a.b.c.d format\r\n"
-		"    remote: tunnel remote ip address in a.b.c.d format\r\n"
-		"    peer: pointtopoint ip address in a.b.c.d format\r\n"
-		"    IP4ADDR: interface ip address in a.b.c.d format\r\n"
-		"    vrf: number\r\n"
-		"  Example:\r\n"
+		"    VRF: virtual routing and forwarding instance (a number)\r\n"
+		"  Examples:\r\n"
+		"    ifconfig %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1\r\n"
 		"    ifconfig %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1 vrf 2\r\n\r\n",
-		OFP_GRE_IFNAME_PREFIX);
+		OFP_GRE_IFNAME_PREFIX, OFP_GRE_IFNAME_PREFIX);
 	ofp_sendf(conn->fd, "Create VXLAN interface:\r\n"
 		"  ifconfig vxlan DEV group IP4ADDR dev DEV_PHYS IP4NET\r\n"
 		"    DEV: vxlan interface name (interface number is the vni)\r\n"

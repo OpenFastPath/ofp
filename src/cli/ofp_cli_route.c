@@ -276,35 +276,22 @@ void f_help_route(struct cli_conn *conn, const char *s)
 		"  route show\r\n\r\n");
 
 	ofp_sendf(conn->fd, "Add IPv4 route:\r\n"
-		"  route [-A inet4 ] add IP4NET gw IP4ADDR dev DEV\r\n"
-		"    IP4NET: network address in a.b.c.d/e format\r\n"
-		"    IP4ADDR: IP address in a.b.c.d format\r\n"
-		"    DEV: ethernet interface name\r\n"
-		"  Example:\r\n"
-		"    route add 192.168.200.0/24 gw 192.168.100.1"
-		" dev %s0\r\n\r\n", OFP_IFNAME_PREFIX);
-
-	ofp_sendf(conn->fd, "Delete IPv4 route:\r\n"
-		"  route [-A inet4] delete IP4NET\r\n"
-		"    IP4NET: network address in a.b.c.d/e format\r\n"
-		"  Example:\r\n"
-		"    route delete 192.168.200.0/24\r\n\r\n");
-
-	ofp_sendf(conn->fd, "Add IPv4 route to virtual route table:\r\n"
-		"  route [-A inet4 ] add vrf VRF IP4NET gw IP4ADDR dev DEV\r\n"
-		"    VRF: number\r\n"
+		"  route [-A inet4 ] add [vrf VRF] IP4NET gw IP4ADDR dev DEV\r\n"
+		"    VRF: virtual forwarding table instance (a number)\r\n"
 		"    IP4NET: network address in a.b.c.d/n format\r\n"
 		"    IP4ADDR: IP address in a.b.c.d format\r\n"
 		"    DEV: ethernet interface name\r\n"
-		"  Example:\r\n"
+		"  Examples:\r\n"
+		"    route add 192.168.200.0/24 gw 192.168.100.1 dev %s0\r\n"
 		"    route add vrf 2 192.168.200.0/24 gw 192.168.100.1"
-		" dev %s0\r\n\r\n", OFP_IFNAME_PREFIX);
+		" dev %s0\r\n\r\n", OFP_IFNAME_PREFIX, OFP_IFNAME_PREFIX);
 
-	ofp_sendf(conn->fd, "Delete IPv4 route from virtual route table:\r\n"
-		"  route [-A inet4] delete vrf VRF IP4NET\r\n"
-		"    VRF: number\r\n"
+	ofp_sendf(conn->fd, "Delete IPv4 route:\r\n"
+		"  route [-A inet4] delete [vrf VRF] IP4NET\r\n"
+		"    VRF: virtual forwarding table instance (a number)\r\n"
 		"    IP4NET: network address in a.b.c.d/e format\r\n"
-		"  Example:\r\n"
+		"  Examples:\r\n"
+		"    route delete 192.168.200.0/24\r\n"
 		"    route del vrf 2 192.168.200.0/24\r\n\r\n");
 #ifdef INET6
 	ofp_sendf(conn->fd, "Add IPv6 route:\r\n"
