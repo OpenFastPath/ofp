@@ -366,9 +366,9 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 
 	HANDLE_ERROR(ofp_route_init_global());
 
-	HANDLE_ERROR(ofp_portconf_init_global());
-
 	HANDLE_ERROR(ofp_vlan_init_global());
+
+	HANDLE_ERROR(ofp_portconf_init_global());
 
 	HANDLE_ERROR(ofp_vxlan_init_global());
 
@@ -606,8 +606,8 @@ int ofp_term_post_global(const char *pool_name)
 	CHECK_ERROR(ofp_vxlan_term_global(), rc);
 
 	/* Cleanup interface related objects */
-	CHECK_ERROR(ofp_vlan_term_global(), rc);
 	CHECK_ERROR(ofp_portconf_term_global(), rc);
+	CHECK_ERROR(ofp_vlan_term_global(), rc);
 
 	/* Cleanup routes */
 	CHECK_ERROR(ofp_route_term_global(), rc);
