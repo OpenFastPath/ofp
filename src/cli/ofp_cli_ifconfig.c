@@ -36,16 +36,19 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 	ofp_sendf(conn->fd, "Show interfaces:\r\n"
 		"  ifconfig [show]\r\n\r\n");
 
-	ofp_sendf(conn->fd, "Create interface:\r\n"
+	ofp_sendf(conn->fd, "Create or configure an interface:\r\n"
 		"  ifconfig [-A inet4] DEV IP4NET [vrf VRF]\r\n"
-		"    DEV: ethernet interface name or local interface(lo0, lo1,...)\r\n"
+		"    DEV: ethernet, vlan or loopback interface name.\r\n"
+		"         VLAN interfaces are named <phys dev>.<vlan_id>\r\n"
+		"         Loopback interfaces are named lo0, lo1, ...\r\n"
 		"    IP4NET: network address in a.b.c.d/e format\r\n"
 		"    VRF: virtual routing and forwarding instance (a number)\r\n"
 		"  Examples:\r\n"
 		"    ifconfig %s0 192.168.200.1/24\r\n"
+		"    ifconfig %s0.100 192.168.200.1/24\r\n"
 		"    ifconfig %s0 192.168.200.1/24 vrf 2\r\n\r\n",
-		OFP_IFNAME_PREFIX, OFP_IFNAME_PREFIX);
-	ofp_sendf(conn->fd, "Create GRE tunnel:\r\n"
+		OFP_IFNAME_PREFIX, OFP_IFNAME_PREFIX, OFP_IFNAME_PREFIX);
+	ofp_sendf(conn->fd, "Create or configure a GRE tunnel:\r\n"
 		"  ifconfig tunnel gre DEV local IP4ADDR remote IP4ADDR peer IP4ADDR IP4ADDR [vrf VRF]\r\n"
 		"    DEV: gre interface name\r\n"
 		"    local: local tunnel endpoint ip address in a.b.c.d format\r\n"
@@ -57,7 +60,7 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 		"    ifconfig tunnel gre %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1\r\n"
 		"    ifconfig tunnel gre %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1 vrf 2\r\n\r\n",
 		OFP_GRE_IFNAME_PREFIX, OFP_GRE_IFNAME_PREFIX);
-	ofp_sendf(conn->fd, "Create VXLAN interface:\r\n"
+	ofp_sendf(conn->fd, "Create or configure a VXLAN interface:\r\n"
 		"  ifconfig vxlan DEV group IP4ADDR dev DEV_PHYS IP4NET\r\n"
 		"    DEV: vxlan interface name (interface number is the vni)\r\n"
 		"    IP4ADDR: group ip address in a.b.c.d format\r\n"
@@ -68,7 +71,7 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 		"    (vni = 42)\r\n\r\n",
 		OFP_VXLAN_IFNAME_PREFIX);
 #ifdef INET6
-	ofp_sendf(conn->fd, "Create IPv6 interface or add IPv6 address to local interface:\r\n"
+	ofp_sendf(conn->fd, "Create or configure an IPv6 interface:\r\n"
 		"  ifconfig -A inet6 DEV IP6NET\r\n"
 		"    DEV: ethernet interface name\r\n"
 		"    IP6NET: network address in a:b:c:d:e:f:g:h/n or"
@@ -77,7 +80,7 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 		"    ifconfig -A inet6 %s0 2000:1baf::/64\r\n\r\n",
 		OFP_IFNAME_PREFIX);
 #endif /* INET6 */
-	ofp_sendf(conn->fd, "Delete interface:\r\n"
+	ofp_sendf(conn->fd, "Delete or unconfigure an interface:\r\n"
 		"  ifconfig DEV down\r\n"
 		"    DEV: ethernet interface name\r\n"
 		"  Example:\r\n"
