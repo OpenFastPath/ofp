@@ -48,14 +48,14 @@ void f_help_ifconfig(struct cli_conn *conn, const char *s)
 	ofp_sendf(conn->fd, "Create GRE tunnel:\r\n"
 		"  ifconfig tunnel gre DEV local IP4ADDR remote IP4ADDR peer IP4ADDR IP4ADDR [vrf VRF]\r\n"
 		"    DEV: gre interface name\r\n"
-		"    local: tunnel local ip address in a.b.c.d format\r\n"
-		"    remote: tunnel remote ip address in a.b.c.d format\r\n"
+		"    local: local tunnel endpoint ip address in a.b.c.d format\r\n"
+		"    remote: remote tunnel endpoint ip address in a.b.c.d format\r\n"
 		"    peer: pointtopoint ip address in a.b.c.d format\r\n"
 		"    IP4ADDR: interface ip address in a.b.c.d format\r\n"
 		"    VRF: virtual routing and forwarding instance (a number)\r\n"
 		"  Examples:\r\n"
-		"    ifconfig %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1\r\n"
-		"    ifconfig %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1 vrf 2\r\n\r\n",
+		"    ifconfig tunnel gre %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1\r\n"
+		"    ifconfig tunnel gre %s100 local 192.168.200.1 remote 192.168.200.2 peer 10.10.10.2 10.10.10.1 vrf 2\r\n\r\n",
 		OFP_GRE_IFNAME_PREFIX, OFP_GRE_IFNAME_PREFIX);
 	ofp_sendf(conn->fd, "Create VXLAN interface:\r\n"
 		"  ifconfig vxlan DEV group IP4ADDR dev DEV_PHYS IP4NET\r\n"
