@@ -89,18 +89,29 @@ enum ofp_return_code ofp_send_pending_pkt(void)
 	return OFP_PKT_PROCESSED;
 }
 
+static __thread void *pkt_tbl = NULL;
+
 int ofp_send_pkt_out_init_local(void)
 {
 	uint32_t i, j;
 
+	pkt_tbl = malloc(global_param->pkt_tx_burst_size
+			 * sizeof(odp_packet_t) * NUM_PORTS + ODP_CACHE_LINE_SIZE);
+	if (!pkt_tbl) {
+		OFP_ERR("Packet table allocation failed\n");
+		ofp_send_pkt_out_term_local();
+		return -1;
+	}
+
 	for (i = 0; i < NUM_PORTS; i++) {
 		send_pkt_tbl[i].pkt_tbl_cnt = 0;
-		send_pkt_tbl[i].pkt_tbl = malloc(global_param->pkt_tx_burst_size
-				* sizeof(odp_packet_t));
-		if (!send_pkt_tbl[i].pkt_tbl) {
-			OFP_ERR("Packet table allocation failed\n");
-			ofp_send_pkt_out_term_local();
-			return -1;
+		if (!i) {
+			const uint64_t mask = ODP_CACHE_LINE_SIZE - 1;
+			send_pkt_tbl[i].pkt_tbl =
+				(odp_packet_t *)(((uint64_t)pkt_tbl + mask) & ~mask);
+		} else {
+			send_pkt_tbl[i].pkt_tbl =
+				send_pkt_tbl[0].pkt_tbl + global_param->pkt_tx_burst_size * i;
 		}
 		for (j = 0; j < global_param->pkt_tx_burst_size; j++)
 			send_pkt_tbl[i].pkt_tbl[j] = ODP_PACKET_INVALID;
@@ -118,9 +129,10 @@ int ofp_send_pkt_out_term_local(void)
 		for (j = 0; j < send_pkt_tbl[i].pkt_tbl_cnt; j++)
 			odp_packet_free(send_pkt_tbl[i].pkt_tbl[j]);
 
-		free(send_pkt_tbl[i].pkt_tbl);
 		send_pkt_tbl[i].pkt_tbl_cnt = 0;
 	}
+
+	free(pkt_tbl);
 
 	return 0;
 }
