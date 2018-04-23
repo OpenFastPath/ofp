@@ -18,6 +18,7 @@ static __thread struct burst_send {
 	uint32_t pkt_tbl_cnt;
 } send_pkt_tbl[NUM_PORTS] __attribute__((__aligned__(ODP_CACHE_LINE_SIZE)));
 
+static __thread uint32_t tx_burst;
 
 static inline void
 send_table(struct ofp_ifnet *ifnet, odp_packet_t *pkt_tbl,
@@ -56,7 +57,7 @@ enum ofp_return_code send_pkt_out(struct ofp_ifnet *dev,
 
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_SEND_NIC, pkt, dev->port);
 
-	if ((*pkt_tbl_cnt) == global_param->pkt_tx_burst_size)
+	if ((*pkt_tbl_cnt) == tx_burst)
 		send_table(ofp_get_ifnet(dev->port, 0),
 			   pkt_tbl,
 			   pkt_tbl_cnt);
@@ -84,7 +85,7 @@ static void ofp_send_pending_pkt_nocheck(void)
 
 enum ofp_return_code ofp_send_pending_pkt(void)
 {
-	if (global_param->pkt_tx_burst_size > 1)
+	if (tx_burst > 1)
 		ofp_send_pending_pkt_nocheck();
 	return OFP_PKT_PROCESSED;
 }
@@ -94,6 +95,8 @@ static __thread void *pkt_tbl = NULL;
 int ofp_send_pkt_out_init_local(void)
 {
 	uint32_t i, j;
+
+	tx_burst = global_param->pkt_tx_burst_size;
 
 	pkt_tbl = malloc(global_param->pkt_tx_burst_size
 			 * sizeof(odp_packet_t) * NUM_PORTS + ODP_CACHE_LINE_SIZE);
