@@ -97,11 +97,9 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 		return odp_pktout_send(ifnet->out_queue_pktout[out_idx],
 			pkt_tbl, pkt_tbl_cnt);
 	} else {
-		uint32_t i;
 		odp_event_t ev_tbl[pkt_tbl_cnt];
 
-		for (i = 0; i < pkt_tbl_cnt; i++)
-			ev_tbl[i] = odp_packet_to_event(pkt_tbl[i]);
+		odp_packet_to_event_multi(pkt_tbl, ev_tbl, pkt_tbl_cnt);
 
 		return odp_queue_enq_multi(ifnet->out_queue_queue[out_idx],
 			ev_tbl, pkt_tbl_cnt);
