@@ -21,6 +21,7 @@
 typedef struct {
 	struct ofp_packet_stat ofp_packet_statistics;
 	struct ofp_perf_stat ofp_perf_stat;
+	odp_time_t prev_poll;
 } stat_shm_t;
 
 static __thread stat_shm_t *shm_stat;
@@ -48,6 +49,8 @@ static void ofp_perf_tmo(void *arg)
 {
 	uint64_t pps, value = 0;
 	int thr;
+	odp_time_t now;
+	uint64_t diff;
 	(void)arg;
 
 	if (ofp_stat_flags & OFP_STAT_COMPUTE_PERF)
@@ -55,19 +58,28 @@ static void ofp_perf_tmo(void *arg)
 
 	odp_mb_release();
 
+	/* No overflow in 580 years with packet rate < 1 Gpps */
 	for (thr = 0; thr < odp_thread_count(); thr++)
+		/* FIXME: Should be an atomic read */
 		value += shm_stat->ofp_packet_statistics.per_thr[thr].rx_fp;
 
-	if (value >= shm_stat->ofp_perf_stat.rx_prev_sum)
-		pps = value - shm_stat->ofp_perf_stat.rx_prev_sum;
-	else
-		pps = (uint64_t)(-1) - shm_stat->ofp_perf_stat.rx_prev_sum +
-			value;
-
-	shm_stat->ofp_perf_stat.rx_fp_pps =
-		(shm_stat->ofp_perf_stat.rx_fp_pps + pps * PROBES) / 2;
-
+	pps = value - shm_stat->ofp_perf_stat.rx_prev_sum;
 	shm_stat->ofp_perf_stat.rx_prev_sum = value;
+
+	now = odp_time_global();
+	diff = odp_time_diff_ns(now, shm_stat->prev_poll);
+	shm_stat->prev_poll = now;
+
+	if (diff > NS_PER_SEC) {
+		/* Start of polling after a long pause */
+		return;
+	}
+	/* No overflow with packet rate < 18 Gpps */
+	pps = pps * NS_PER_SEC / diff;
+
+	/* FIXME: Should be an atomic write */
+	shm_stat->ofp_perf_stat.rx_fp_pps =
+		(shm_stat->ofp_perf_stat.rx_fp_pps + pps) / 2;
 }
 
 static void ofp_start_perf_stat(void)
