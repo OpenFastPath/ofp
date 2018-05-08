@@ -17,6 +17,7 @@
 #include "ofpi_arp.h"
 
 #include "ofp_log.h"
+#include "ofp_route_arp.h"
 
 #include <odp_api.h>
 
@@ -125,28 +126,25 @@ static void test_arp(void)
 	memset(&mock_ifnet, 0, sizeof(mock_ifnet));
 	CU_ASSERT(0 != inet_aton("1.1.1.1", &ip));
 
-	/* Test entry insert, lookup, and remove. */
+	/* Test entry insert and lookup*/
 	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 
-	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
+	CU_ASSERT(0 == ofp_add_mac(&mock_ifnet, ip.s_addr, mac));
 
 	memset(mac_result, 0xFF, OFP_ETHER_ADDR_LEN);
 	CU_ASSERT(0 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 	CU_ASSERT(0 == memcmp(mac, mac_result, OFP_ETHER_ADDR_LEN));
 
-	CU_ASSERT(0 == ofp_arp_ipv4_remove(ip.s_addr, &mock_ifnet));
-	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
-
 #ifndef OFP_USE_LIBCK
 	/* Aging not defined in arp ck impl */
 	/* Test entry is aged out. */
-	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
+	CU_ASSERT(0 == ofp_add_mac(&mock_ifnet, ip.s_addr, mac));
 	OFP_INFO("Inserted ARP entry");
 	sleep(ENTRY_TIMEOUT*2);
 	CU_ASSERT(-1 == ofp_ipv4_lookup_mac(ip.s_addr, mac_result, &mock_ifnet));
 
 	/* New entry. */
-	CU_ASSERT(0 == ofp_arp_ipv4_insert(ip.s_addr, mac, &mock_ifnet));
+	CU_ASSERT(0 == ofp_add_mac(&mock_ifnet, ip.s_addr, mac));
 	OFP_INFO("Inserted ARP entry");
 	/* Less than entry timeout passed, entry has not aged. */
 	sleep(ENTRY_TIMEOUT/2);

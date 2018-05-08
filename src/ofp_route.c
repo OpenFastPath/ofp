@@ -149,20 +149,17 @@ int ofp_add_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
 	return ofp_arp_ipv4_insert(addr, mac, dev);
 }
 
-int ofp_get_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac_out)
+int ofp_get_mac(struct ofp_ifnet *dev, struct ofp_nh_entry *nh_data,
+		uint32_t addr, uint32_t is_link_local, uint8_t *mac_out)
 {
+#ifndef OFP_USE_LIBCK
+	if (!is_link_local)
+		return ofp_ipv4_get_mac_by_idx(mac_out, nh_data->arp_ent_idx);
+#else
+	(void)nh_data;
+	(void)is_link_local;
+#endif
 	return ofp_ipv4_lookup_mac(addr, mac_out, dev);
-}
-
-int ofp_del_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
-{
-	(void) mac;
-
-	OFP_DBG("Removing MAC=%s IP=%s on device port=%d vlan=%d vrf=%d",
-		ofp_print_mac(mac), ofp_print_ip_addr(addr),
-		dev->port, dev->vlan, dev->vrf);
-
-	return ofp_arp_ipv4_remove(addr, dev);
 }
 
 struct ofp_nh6_entry *ofp_get_next_hop6(uint16_t vrf,
@@ -224,16 +221,35 @@ void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac)
 static int add_route(struct ofp_route_msg *msg)
 {
 	struct ofp_nh_entry tmp;
+	uint8_t  eth_addr[OFP_ETHER_ADDR_LEN];
+	odp_bool_t route_add_success = TRUE;
+
+	memset(&eth_addr, 0, sizeof(eth_addr));
+#ifndef OFP_USE_LIBCK
+	if (ofp_ipv4_lookup_arp_entry_idx(msg->gw, msg->vrf,
+					  &tmp.arp_ent_idx) < 0) {
+		if (ofp_arp_ipv4_insert_entry(msg->gw, eth_addr,
+					      msg->vrf, FALSE,
+					      &tmp.arp_ent_idx, NULL) < 0) {
+			OFP_DBG("ARP insert failure in add route.");
+			return -1;
+		}
+	}
+#endif
 
 	OFP_LOCK_WRITE(route);
 
+#ifndef OFP_USE_LIBCK
+	ofp_arp_inc_ref_count(tmp.arp_ent_idx);
+#endif
 	tmp.gw = msg->gw;
 	tmp.port = msg->port;
 	tmp.vlan = msg->vlan;
 	tmp.flags = msg->flags;
 
-	OFP_DBG("Adding route vrf=%d addr=%s/%d", msg->vrf,
-		   ofp_print_ip_addr(msg->dst), msg->masklen);
+	OFP_DBG("Adding route vrf=%d dst=%s/%d gw=%s arp idx=%u", msg->vrf,
+		ofp_print_ip_addr(msg->dst), msg->masklen,
+		ofp_print_ip_addr(msg->gw), tmp.arp_ent_idx);
 	if (msg->vrf) {
 		struct routes_by_vrf key, *data;
 
@@ -246,13 +262,24 @@ static int add_route(struct ofp_route_msg *msg)
 			ofp_rtl_root_init(&(data->routes), msg->vrf);
 			avl_insert(shm->vrf_routes, data);
 		}
-		if (ofp_rtl_insert(&data->routes, msg->dst, msg->masklen, &tmp))
+		if (ofp_rtl_insert(&data->routes, msg->dst, msg->masklen, &tmp)) {
 			OFP_DBG("ofp_rtl_insert failed");
+			route_add_success = FALSE;
+		}
 	} else {
 		if (ofp_rtl_insert(&shm->default_routes, msg->dst,
-				   msg->masklen, &tmp))
+				   msg->masklen, &tmp)) {
 			OFP_DBG("ofp_rtl_insert failed");
+			route_add_success = FALSE;
+		}
 	}
+#ifndef OFP_USE_LIBCK
+	if (!route_add_success) {
+		ofp_arp_dec_ref_count(tmp.arp_ent_idx);
+		ofp_arp_ipv4_remove_entry_idx(tmp.arp_ent_idx);
+	}
+#endif
+
 #ifdef MTRIE
 	ofp_rt_rule_add(msg->vrf, msg->dst, msg->masklen, &tmp);
 #endif
@@ -264,6 +291,7 @@ static int add_route(struct ofp_route_msg *msg)
 
 static int del_route(struct ofp_route_msg *msg)
 {
+	struct ofp_nh_entry *nh_data;
 	OFP_DBG("Deleting route vrf=%d addr=%s/%d", msg->vrf,
 		   ofp_print_ip_addr(msg->dst), msg->masklen);
 
@@ -278,12 +306,20 @@ static int del_route(struct ofp_route_msg *msg)
 			OFP_UNLOCK_WRITE(route);
 			return -1;
 		}
-		if (!ofp_rtl_remove(&(data->routes), msg->dst, msg->masklen))
-			OFP_DBG("ofp_rtl_remove failed");
+		nh_data = ofp_rtl_remove(&(data->routes), msg->dst,
+					 msg->masklen);
 	} else {
-		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, msg->masklen))
-			OFP_DBG("ofp_rtl_remove failed");
+		nh_data = ofp_rtl_remove(&shm->default_routes,
+					 msg->dst, msg->masklen);
 	}
+
+	if (!nh_data)
+		OFP_DBG("ofp_rtl_remove failed");
+#ifndef OFP_USE_LIBCK
+	else
+		ofp_arp_dec_ref_count(nh_data->arp_ent_idx);
+#endif
+
 #ifdef MTRIE
 	ofp_rt_rule_remove(msg->vrf, msg->dst, msg->masklen);
 #endif

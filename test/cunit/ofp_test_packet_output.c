@@ -34,6 +34,8 @@
 #include <ofpi_util.h>
 #include <ofpi_debug.h>
 
+#include "ofp_route_arp.h"
+
 #ifdef INET6
 #include "test_raw_frames.h"
 #endif
@@ -217,7 +219,7 @@ init_suite(void)
 
 	init_ifnet();
 
-	ofp_arp_ipv4_insert(tun_rem_ip, tun_rem_mac, dev);
+	ofp_add_mac(dev, tun_rem_ip, tun_rem_mac);
 
 	return 0;
 }

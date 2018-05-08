@@ -34,6 +34,8 @@
 #include <ofpi_util.h>
 #include <ofpi_debug.h>
 
+#include "ofp_route_arp.h"
+
 /*
  * Test data
  */
@@ -536,7 +538,7 @@ test_ofp_packet_input_send_arp(void)
 	CU_ASSERT_EQUAL(odp_packet_len(pkt), sizeof(struct ofp_arphdr) +
 		sizeof(struct ofp_ether_header));
 	odp_packet_free(odp_packet_from_event(ev));
-	ofp_arp_init_tables(); /* to clean saved packet */
+	ofp_arp_init_tables_pkt_list(); /* to clean saved packet */
 	CU_PASS("ofp_packet_input_send_arp");
 }
 
@@ -559,7 +561,7 @@ test_ofp_packet_input_forwarding_to_output(void)
 	CU_ASSERT_EQUAL(
 		ofp_ipv4_lookup_mac(dst_ipaddr + 1, ll_addr, ifnet), -1);
 	CU_ASSERT_EQUAL(
-		ofp_arp_ipv4_insert(dst_ipaddr + 1, ll_addr, ifnet), 0);
+		ofp_add_mac(ifnet, dst_ipaddr + 1, ll_addr), 0);
 
 	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame),
 				  dst_ipaddr, 0)) {
@@ -644,7 +646,7 @@ test_ofp_packet_input_gre_processed_inner_pkt_forwarded(void)
 	dst_ip = local_ip + 10;
 	test_ofp_add_route(port, vrf, vlan, ip_encap->ip_dst.s_addr, 24, 4,
 			     dst_ip);
-	ofp_arp_ipv4_insert(dst_ip, dst_mac_addr, ifnet);
+	ofp_add_mac(ifnet, dst_ip, dst_mac_addr);
 
 	res = ofp_packet_input(pkt, interface_queue[port],
 				 ofp_eth_vlan_processing);

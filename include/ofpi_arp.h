@@ -51,9 +51,12 @@ struct arp_entry {
 	odp_timer_t usetime_upd_tmo;
 	odp_rwlock_t usetime_rwlock;
 
+	odp_bool_t is_valid;
 	uint64_t macaddr;
 	struct pkt_list pkt_list_head;
 	odp_timer_t pkt_tmo;
+	uint32_t ref_count;
+
 	OFP_STAILQ_ENTRY(arp_entry) next;
 } ODP_ALIGNED_CACHE;
 #endif /* OFP_USE_LIBCK */
@@ -76,18 +79,34 @@ struct arp_cache {
 #define ARP_DEL_CACHE(_cache) \
 	odp_atomic_store_u32(&(_cache)->entry_idx, 0)
 
+#define ARP_GET_IDX(_entry) \
+	((_entry) - &shm->arp.entries[0])
+
+#define ARP_GET_ENTRY(_entry_idx) \
+	&shm->arp.entries[(_entry_idx)]
+
 int ofp_arp_lookup_shared_memory(void);
 void ofp_arp_init_prepare(void);
 int ofp_arp_init_global(void);
 int ofp_arp_term_global(void);
 int ofp_arp_init_local(void);
 void ofp_arp_term_local(void);
-
+int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
+			      uint16_t vrf, odp_bool_t is_valid,
+			      uint32_t *entry_idx_out,
+			      struct pkt_list *send_list);
 int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 			struct ofp_ifnet *dev);
-int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev);
+void ofp_arp_ipv4_remove_entry(uint32_t set, struct arp_entry *entry);
+void ofp_arp_ipv4_remove_entry_idx(uint32_t entry_idx);
+int ofp_arp_inc_ref_count(uint32_t entry_idx);
+int ofp_arp_dec_ref_count(uint32_t entry_idx);
+odp_bool_t ofp_arp_entry_validity(uint32_t entry_idx);
+int ofp_ipv4_lookup_arp_entry_idx(uint32_t ipv4_addr, uint16_t vrf,
+				       uint32_t *entry_idx);
 int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 			struct ofp_ifnet *dev);
+int ofp_ipv4_get_mac_by_idx(unsigned char *ll_addr, uint32_t entry_idx);
 enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
 				uint32_t ipv4_addr, struct ofp_ifnet *dev);
 
@@ -95,5 +114,6 @@ void ofp_arp_show_table(int fd);
 void ofp_arp_show_saved_packets(int fd);
 void ofp_arp_age_cb(void *arg);
 int ofp_arp_init_tables(void);
+void ofp_arp_init_tables_pkt_list(void);
 
 #endif /* __OFPI_ARP_H__ */

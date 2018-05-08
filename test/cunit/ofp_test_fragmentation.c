@@ -34,6 +34,8 @@
 #include <ofpi_util.h>
 #include <ofpi_debug.h>
 
+#include "ofp_route_arp.h"
+
 #include "fragmented_packet.h"
 
 #define fail_with_odp(msg) do { OFP_ERR(msg); CU_FAIL(msg); } while (0)
@@ -110,11 +112,14 @@ init_suite(void)
 
 	init_ifnet();
 
-	ofp_arp_ipv4_insert(dst_ipaddr, dst_mac, dev);
+	ofp_add_mac(dev, dst_ipaddr, dst_mac);
 
 	nexthop.gw = dst_ipaddr;
 	nexthop.vlan = vlan;
 	nexthop.port = port;
+	/*Next Hop expects a ARP index for gw address*/
+	ofp_ipv4_lookup_arp_entry_idx(nexthop.gw,
+				      vrf, &nexthop.arp_ent_idx);
 
 	return 0;
 }

@@ -109,6 +109,31 @@ static inline uint32_t set_key_and_hash(uint32_t vrf, uint32_t ipv4_addr,
 	return set;
 }
 
+static int ofp_arp_entry_reset(struct arp_entry *entry)
+{
+	int rc;
+
+	rc = 0;
+
+	if (entry->pkt_tmo != ODP_TIMER_INVALID)
+		CHECK_ERROR(ofp_timer_cancel(entry->pkt_tmo), rc);
+
+	odp_rwlock_write_lock(&entry->usetime_rwlock);
+	if (entry->usetime_upd_tmo != ODP_TIMER_INVALID) {
+		CHECK_ERROR(ofp_timer_cancel(entry->usetime_upd_tmo), rc);
+		entry->usetime_upd_tmo = ODP_TIMER_INVALID;
+	}
+	odp_rwlock_write_unlock(&entry->usetime_rwlock);
+
+	entry->pkt_tmo = ODP_TIMER_INVALID;
+
+	memset(&entry->key, 0, sizeof(entry->key));
+	entry->macaddr = 0;
+	entry->ref_count = 0;
+	entry->is_valid = FALSE;
+
+	return rc;
+}
 static inline void *entry_alloc(void)
 {
 	struct arp_entry *entry = NULL;
@@ -117,17 +142,24 @@ static inline void *entry_alloc(void)
 
 	entry = OFP_STAILQ_FIRST(&shm->arp.free_entries);
 
-	if (entry)
+	if (entry) {
 		OFP_STAILQ_REMOVE_HEAD(&shm->arp.free_entries, next);
+		if (ofp_arp_entry_reset(entry) != 0) {
+			OFP_STAILQ_INSERT_TAIL(&shm->arp.free_entries, entry, next);
+			odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
+			return NULL;
+		}
+		memset(&entry->pkt_list_head, 0, sizeof(entry->pkt_list_head));
+	}
 
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
 
 	return entry;
 }
 
+/*Assumption: entry to be reset in entry_alloc()*/
 static inline void entry_free(struct arp_entry *entry)
 {
-	memset(entry, 0, sizeof(*entry));
 	entry->pkt_tmo = ODP_TIMER_INVALID;
 
 	odp_rwlock_write_lock(&shm->arp.fr_ent_rwlock);
@@ -241,44 +273,71 @@ static inline void pkt_entry_free(struct pkt_entry *pktentry)
 	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
 }
 
-/*
- * Public functions
- */
-int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
-			  struct ofp_ifnet *dev)
+int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
+			      uint16_t vrf, odp_bool_t is_valid,
+			      uint32_t *entry_idx_out, struct pkt_list *send_list)
 {
 	struct arp_entry *new;
 	struct arp_key key;
-	struct pkt_entry *pktentry;
-	struct pkt_list send_list;
 	uint32_t set;
 	odp_time_t tnow;
 
-	OFP_SLIST_INIT(&send_list);
-
-	set = set_key_and_hash(dev->vrf, ipv4_addr, &key);
+	set = set_key_and_hash(vrf, ipv4_addr, &key);
 
 	odp_rwlock_write_lock(&shm->arp.set[set].table_rwlock);
 
 	new = insert_new_entry(set, &key);
 
-	if (new == NULL) {
+	if (odp_unlikely(new == NULL)) {
 		odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
 		return -1;
 	}
 
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
-	tnow = odp_time_global();
-	new->usetime = tnow;
 
-	OFP_SLIST_SWAP(&send_list, &new->pkt_list_head, pkt_entry);
+	new->is_valid = is_valid;
 
-	if (OFP_SLIST_FIRST(&send_list)) {
-		ofp_timer_cancel(new->pkt_tmo);
-		new->pkt_tmo = ODP_TIMER_INVALID;
+	if (new->is_valid == TRUE && send_list != NULL) {
+
+		tnow = odp_time_global();
+		new->usetime = tnow;
+
+		OFP_SLIST_INIT(send_list);
+
+		OFP_SLIST_SWAP(send_list, &new->pkt_list_head, pkt_entry);
+
+		if (OFP_SLIST_FIRST(send_list)) {
+			ofp_timer_cancel(new->pkt_tmo);
+			new->pkt_tmo = ODP_TIMER_INVALID;
+		}
 	}
 
+	*entry_idx_out = ARP_GET_IDX(new);
+
+	OFP_DBG("ARP Insert Set: %u IP: %s VRF: %u Inserted Idx: %u",
+		set, ofp_print_ip_addr(key.ipv4_addr), key.vrf, *entry_idx_out);
+
 	odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
+
+	return 0;
+}
+
+
+/*
+ * Public functions
+ */
+int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
+			struct ofp_ifnet *dev)
+{
+	struct pkt_entry *pktentry;
+	struct pkt_list send_list;
+	uint32_t entry_idx;
+	int ret_val;
+
+	ret_val = ofp_arp_ipv4_insert_entry(ipv4_addr, ll_addr, dev->vrf,
+					    TRUE, &entry_idx, &send_list);
+	if (ret_val < 0)
+		return ret_val;
 
 	/* Send queued packets */
 	pktentry = OFP_SLIST_FIRST(&send_list);
@@ -299,31 +358,82 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	return 0;
 }
 
-int ofp_arp_ipv4_remove(uint32_t ipv4_addr, struct ofp_ifnet *dev)
+void ofp_arp_ipv4_remove_entry(uint32_t set, struct arp_entry *entry)
 {
-	struct arp_entry *entry;
-	struct arp_key key;
 	struct pkt_entry *pktentry;
-	int ret = -1;
-	uint32_t set;
 
-	set = set_key_and_hash(dev->vrf, ipv4_addr, &key);
-
-	odp_rwlock_write_lock(&shm->arp.set[set].table_rwlock);
-	entry = arp_lookup(set, &key);
-
-	if (odp_likely(entry != NULL)) {
+	if (entry->ref_count == 0 && !entry->is_valid) {
 		while ((pktentry = OFP_SLIST_FIRST(&entry->pkt_list_head))) {
 			OFP_SLIST_REMOVE_HEAD(&entry->pkt_list_head, next);
 			pkt_entry_free(pktentry);
 		}
-
 		remove_entry(set, entry);
-		ret = 0;
+	} else {
+	        OFP_DBG("Remove ARP entry bypassed as ref_count= %u > 0 validity = %s",
+			entry->ref_count, entry->is_valid ? "True":"False");
 	}
+}
+
+void ofp_arp_ipv4_remove_entry_idx(uint32_t entry_idx)
+{
+	uint32_t set;
+	struct arp_key key;
+	struct arp_entry *entry;
+
+	entry = ARP_GET_ENTRY(entry_idx);
+
+	set = set_key_and_hash(entry->key.vrf, entry->key.ipv4_addr, &key);
+
+	odp_rwlock_write_lock(&shm->arp.set[set].table_rwlock);
+
+	ofp_arp_ipv4_remove_entry(set, entry);
+
+	odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
+}
+
+int ofp_arp_inc_ref_count(uint32_t entry_idx)
+{
+	struct arp_entry *entry = ARP_GET_ENTRY(entry_idx);
+	struct arp_key key;
+	uint32_t set;
+
+	set = set_key_and_hash(entry->key.vrf, entry->key.ipv4_addr, &key);
+
+	odp_rwlock_write_lock(&shm->arp.set[set].table_rwlock);
+
+	++entry->ref_count;
+
 	odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
 
-	return ret;
+	return 0;
+}
+
+int ofp_arp_dec_ref_count(uint32_t entry_idx)
+{
+	struct arp_entry *entry = ARP_GET_ENTRY(entry_idx);
+	struct arp_key key;
+	uint32_t set;
+
+	set = set_key_and_hash(entry->key.vrf, entry->key.ipv4_addr, &key);
+
+	odp_rwlock_write_lock(&shm->arp.set[set].table_rwlock);
+
+	--entry->ref_count;
+
+	ofp_arp_ipv4_remove_entry(set, entry);
+
+	odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
+
+	return 0;
+}
+
+odp_bool_t ofp_arp_entry_validity(uint32_t entry_idx)
+{
+	struct arp_entry *entry;
+
+	entry = ARP_GET_ENTRY(entry_idx);
+
+	return entry->is_valid;
 }
 
 static void ofp_arp_entry_usetime_tmo(void *arg)
@@ -333,26 +443,28 @@ static void ofp_arp_entry_usetime_tmo(void *arg)
 
 	entry_idx = *(uint32_t *)arg;
 
-	entry = &shm->arp.entries[entry_idx];
+	entry = ARP_GET_ENTRY(entry_idx);
 
 	odp_rwlock_write_lock(&entry->usetime_rwlock);
 
 	entry->usetime_upd_tmo = ODP_TIMER_INVALID;
 
+	entry->is_valid = FALSE;
+
 	odp_rwlock_write_unlock(&entry->usetime_rwlock);
 }
 
-int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
-			  struct ofp_ifnet *dev)
+int ofp_ipv4_lookup_arp_entry_idx(uint32_t ipv4_addr, uint16_t vrf,
+				  uint32_t *entry_idx_out)
 {
-	struct arp_entry *entry;
+	struct arp_entry *entry = NULL;
 	struct arp_key key;
 	uint32_t set;
 	odp_time_t tnew;
 	uint32_t entry_idx;
 	struct arp_cache *cache;
 
-	set = set_key_and_hash(dev->vrf, ipv4_addr, &key);
+	set = set_key_and_hash(vrf, ipv4_addr, &key);
 
 	cache = &shm->arp.set[set].cache;
 
@@ -364,7 +476,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 		entry = arp_lookup(set, &key);
 
 		if (odp_unlikely(entry == NULL) ||
-			OFP_SLIST_FIRST(&entry->pkt_list_head)) {
+		    OFP_SLIST_FIRST(&entry->pkt_list_head)) {
 			odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
 			return -1;
 		}
@@ -374,7 +486,6 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 		odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
 	}
 
-	ofp_copy_mac(ll_addr, &entry->macaddr);
 
 	if (odp_unlikely(entry->usetime_upd_tmo == ODP_TIMER_INVALID)) {
 		odp_rwlock_write_lock(&entry->usetime_rwlock);
@@ -382,7 +493,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 			tnew = odp_time_global();
 			entry->usetime = tnew;
 
-			entry_idx = entry - &shm->arp.entries[0];
+			entry_idx = ARP_GET_IDX(entry);
 			entry->usetime_upd_tmo = ofp_timer_start(
 				ENTRY_UPD_TIMEOUT,
 				ofp_arp_entry_usetime_tmo,
@@ -391,23 +502,66 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 		odp_rwlock_write_unlock(&entry->usetime_rwlock);
 	}
 
+	*entry_idx_out = ARP_GET_IDX(entry);
+
+	return 0;
+}
+
+int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
+			struct ofp_ifnet *dev)
+{
+	uint32_t entry_idx = 0;
+	struct arp_entry *entry;
+
+	OFP_DBG("ARP Lookup IP: %s VRF: %u",
+		ofp_print_ip_addr(ipv4_addr), dev->vrf);
+
+	if (ofp_ipv4_lookup_arp_entry_idx(ipv4_addr, dev->vrf,
+					  &entry_idx) < 0)
+		return -1;
+
+	if (!ofp_arp_entry_validity(entry_idx))
+		return -1;
+
+	entry = ARP_GET_ENTRY(entry_idx);
+
+	ofp_copy_mac(ll_addr, &entry->macaddr);
+
+	return 0;
+}
+
+int ofp_ipv4_get_mac_by_idx(unsigned char *ll_addr, uint32_t entry_idx)
+{
+	struct arp_entry *entry;
+
+	if (!ofp_arp_entry_validity(entry_idx))
+		return -1;
+
+	OFP_DBG("ARP Lookup Index Idx: %u", entry_idx);
+	entry = ARP_GET_ENTRY(entry_idx);
+	ofp_copy_mac(ll_addr, &entry->macaddr);
 	return 0;
 }
 
 struct cleanup_arg {
-	uint32_t ipv4_addr;
-	struct ofp_ifnet *dev;
+	uint32_t entry_idx;
 };
 
 static void ofp_arp_cleanup_pkt_list(void *arg)
 {
 	struct cleanup_arg *args;
+	struct arp_entry *entry;
 
 	args = (struct cleanup_arg *)arg;
-
+#ifdef OFP_DEBUG
+	entry = ARP_GET_ENTRY(args->entry_idx);
 	OFP_DBG("Arp reply did not arrive on time, %s",
-		  ofp_print_ip_addr(args->ipv4_addr));
-	ofp_arp_ipv4_remove(args->ipv4_addr, args->dev);
+		ofp_print_ip_addr(entry->key.ipv4_addr));
+#else
+	(void)entry;
+#endif
+
+	ofp_arp_ipv4_remove_entry_idx(args->entry_idx);
 }
 
 enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
@@ -428,18 +582,11 @@ enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry
 
 #if (ARP_SANITY_CHECK)
 	newarp = arp_lookup(set, &key);
-	if (newarp && newarp->macaddr)
+	if (newarp->is_valid)
 		OFP_ERR("ARP Entry failed the sanity check!");
 #endif
 
-	newarp = insert_new_entry(set, &key);
-	if (newarp == NULL) {
-		odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
-		OFP_ERR("ARP entry alloc failed, %" PRIX64 " to %s",
-			  odp_packet_to_u64(pkt),
-			  ofp_print_ip_addr(ipv4_addr));
-		return OFP_PKT_DROP;
-	}
+	newarp = ARP_GET_ENTRY(nh_param->arp_ent_idx);
 	newarp->usetime = ODP_TIME_NULL;
 
 	newpkt = pkt_entry_alloc();
@@ -457,8 +604,7 @@ enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry
 
 	/* Start timer only when the first pkt is saved */
 	if (OFP_SLIST_FIRST(&newarp->pkt_list_head) == NULL) {
-		cl_arg.ipv4_addr = ipv4_addr;
-		cl_arg.dev = dev;
+		cl_arg.entry_idx = ARP_GET_IDX(newarp);
 		newarp->pkt_tmo = ofp_timer_start(SAVED_PKT_TIMEOUT,
 						    ofp_arp_cleanup_pkt_list,
 						    &cl_arg, sizeof(cl_arg));
@@ -477,15 +623,17 @@ static void ofp_arp_entry_cleanup_on_tmo(int set, struct arp_entry *entry)
 		entry->key.vrf, ofp_print_ip_addr(entry->key.ipv4_addr),
 		ofp_print_mac((uint8_t *)&entry->macaddr));
 
-	remove_entry(set, entry);
+	ofp_arp_ipv4_remove_entry(set, entry);
 }
 
 static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 						odp_time_t now)
 {
 	odp_time_t end = odp_time_sum(entry->usetime, shm->entry_timeout);
-
-	return odp_time_cmp(now, end) > 0;
+	odp_bool_t res = odp_time_cmp(now, end) > 0;
+	if (res)
+		entry->is_valid = FALSE;
+	return res;
 }
 
 void ofp_arp_age_cb(void *arg)
@@ -551,7 +699,27 @@ void ofp_arp_show_saved_packets(int fd)
 		}
 	}
 }
+void ofp_arp_init_tables_pkt_list(void)
+{
+	int i;
 
+	odp_rwlock_write_lock(&shm->pkt.fr_ent_rwlock);
+
+	for (i = 0; i < NUM_ARPS; ++i)
+		memset(&shm->arp.entries[i].pkt_list_head, 0,
+		       sizeof(shm->arp.entries[i].pkt_list_head));
+
+	memset(shm->pkt.entries, 0, sizeof(shm->pkt.entries));
+
+	OFP_SLIST_INIT(&shm->pkt.free_entries);
+
+	for (i = ARP_WAITING_PKTS_SIZE - 1; i >= 0; --i)
+		OFP_SLIST_INSERT_HEAD(&shm->pkt.free_entries, &shm->pkt.entries[i],
+				      next);
+
+	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
+
+}
 int ofp_arp_init_tables(void)
 {
 	int i;
@@ -560,55 +728,28 @@ int ofp_arp_init_tables(void)
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_write_lock(&shm->arp.set[i].table_rwlock);
 	odp_rwlock_write_lock(&shm->arp.fr_ent_rwlock);
-	odp_rwlock_write_lock(&shm->pkt.fr_ent_rwlock);
 
-	for (i = 0; i < NUM_ARPS; ++i) {
-		if (shm->arp.entries[i].pkt_tmo != ODP_TIMER_INVALID)
-			CHECK_ERROR(ofp_timer_cancel(
-				shm->arp.entries[i].pkt_tmo), rc);
-
-		odp_rwlock_write_lock(&shm->arp.entries[i].usetime_rwlock);
-
-		if (shm->arp.entries[i].usetime_upd_tmo != ODP_TIMER_INVALID) {
-			CHECK_ERROR(ofp_timer_cancel(
-				shm->arp.entries[i].usetime_upd_tmo),
-				rc);
-			shm->arp.entries[i].usetime_upd_tmo = ODP_TIMER_INVALID;
-		}
-		odp_rwlock_write_unlock(&shm->arp.entries[i].usetime_rwlock);
-
-		shm->arp.entries[i].pkt_tmo = ODP_TIMER_INVALID;
-
-		memset(&shm->arp.entries[i].key, 0,
-				sizeof(shm->arp.entries[i].key));
-		shm->arp.entries[i].macaddr = 0;
-		memset(&shm->arp.entries[i].pkt_list_head, 0,
-				sizeof(shm->arp.entries[i].pkt_list_head));
-	}
+	for (i = 0; i < NUM_ARPS; ++i)
+		CHECK_ERROR(ofp_arp_entry_reset(&shm->arp.entries[i]), rc);
 
 	for (i = 0; i < NUM_SETS; ++i) {
 		memset(&shm->arp.set[i].table, 0, sizeof(shm->arp.set[i].table));
 		memset(&shm->arp.set[i].cache, 0, sizeof(shm->arp.set[i].cache));
 	}
 
-	memset(shm->pkt.entries, 0, sizeof(shm->pkt.entries));
-
 	OFP_STAILQ_INIT(&shm->arp.free_entries);
-	OFP_SLIST_INIT(&shm->pkt.free_entries);
 
-	for (i = NUM_ARPS - 1; i >= 0; --i)
-		OFP_STAILQ_INSERT_TAIL(&shm->arp.free_entries, &shm->arp.entries[i],
+	for (i = NUM_ARPS - 1; i >= 1; --i)
+		OFP_STAILQ_INSERT_HEAD(&shm->arp.free_entries, &shm->arp.entries[i],
 				  next);
-
-	for (i = ARP_WAITING_PKTS_SIZE - 1; i >= 0; --i)
-		OFP_SLIST_INSERT_HEAD(&shm->pkt.free_entries, &shm->pkt.entries[i],
-				  next);
+	memset(&shm->arp.entries[0], 1, sizeof(shm->arp.entries[0]));
 
 	for (i = 0; i < NUM_SETS; ++i)
 		odp_rwlock_write_unlock(&shm->arp.set[i].table_rwlock);
 
-	odp_rwlock_write_unlock(&shm->pkt.fr_ent_rwlock);
 	odp_rwlock_write_unlock(&shm->arp.fr_ent_rwlock);
+
+	ofp_arp_init_tables_pkt_list();
 
 	return rc;
 }

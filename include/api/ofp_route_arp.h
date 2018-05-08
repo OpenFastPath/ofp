@@ -123,8 +123,8 @@ struct ofp_nh6_entry *ofp_get_next_hop6(uint16_t vrf,
 /* ARP */
 struct ofp_ifnet;
 int ofp_add_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac);
-int ofp_get_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac_out);
-int ofp_del_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac);
+int ofp_get_mac(struct ofp_ifnet *dev, struct ofp_nh_entry *nh_data,
+		uint32_t addr, uint32_t is_link_local, uint8_t *mac_out);
 void ofp_add_mac6(struct ofp_ifnet *dev, uint8_t *addr, uint8_t *mac);
 
 #if __GNUC__ >= 4

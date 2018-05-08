@@ -42,6 +42,7 @@ struct ofp_nh_entry {
 	uint32_t gw;
 	uint16_t port;
 	uint16_t vlan;
+	uint32_t arp_ent_idx;
 };
 
 struct pkt6_entry;

@@ -109,7 +109,7 @@ static inline struct arp_entry *arp_lookup(struct arp_key *key)
 }
 
 inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
-				 struct ofp_ifnet *dev)
+			        struct ofp_ifnet *dev)
 {
 	struct arp_entry *new;
 	struct arp_key key;

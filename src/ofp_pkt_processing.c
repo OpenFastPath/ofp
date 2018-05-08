@@ -958,11 +958,14 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 	void *l2_addr;
 	struct ofp_ether_header *eth;
 	uint32_t addr;
+	uint32_t is_link_local = 0;
 
 	trim_tail(pkt, odp_be_to_cpu_16(odata->ip->ip_len));
 
-	if (!odata->gw) /* link local */
+	if (!odata->gw) { /* link local */
 		odata->gw = odata->ip->ip_dst.s_addr;
+		is_link_local = 1;
+	}
 
 	if (ETH_WITHOUT_VLAN(odata->vlan, odata->out_port))
 		l2_size = sizeof(struct ofp_ether_header);
@@ -989,7 +992,9 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		   odata->dev_out->port == LOCAL_PORTS) {
 		odata->is_local_address = 1;
 		ofp_copy_mac(eth->ether_dhost, odata->dev_out->mac);
-	} else if (ofp_get_mac(odata->dev_out, odata->gw, eth->ether_dhost) < 0) {
+	} else if (ofp_get_mac(odata->dev_out, odata->nh,
+			       odata->gw, is_link_local,
+			       eth->ether_dhost) < 0) {
 		send_arp_request(odata->dev_out, odata->gw);
 		return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
 					     odata->gw, odata->dev_out);
@@ -1040,6 +1045,10 @@ static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
 			return OFP_PKT_DROP;
 	}
 
+	OFP_DBG("Found Route IP: %s NH: %s ARP Idx: %u",
+		ofp_print_ip_addr(odata->ip->ip_dst.s_addr),
+		ofp_print_ip_addr(odata->nh->gw),
+		odata->nh->arp_ent_idx);
 	odata->gw = odata->nh->gw;
 	odata->vlan = odata->nh->vlan;
 	odata->out_port = odata->nh->port;
