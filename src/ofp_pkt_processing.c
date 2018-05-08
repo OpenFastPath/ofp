@@ -70,13 +70,14 @@ int default_event_dispatcher(void *arg)
 	int event_cnt = 0;
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
 	odp_bool_t *is_running = NULL;
+	int rx_burst = global_param->evt_rx_burst_size;
 
 	if (ofp_init_local()) {
 		OFP_ERR("ofp_init_local failed");
 		return -1;
 	}
 
-	odp_event_t events[global_param->evt_rx_burst_size];
+	odp_event_t events[rx_burst];
 
 	is_running = ofp_get_processing_state();
 	if (is_running == NULL) {
@@ -88,7 +89,7 @@ int default_event_dispatcher(void *arg)
 	/* PER CORE DISPATCHER */
 	while (*is_running) {
 		event_cnt = odp_schedule_multi(&in_queue, ODP_SCHED_WAIT,
-					 events, global_param->evt_rx_burst_size);
+					 events, rx_burst);
 		for (event_idx = 0; event_idx < event_cnt; event_idx++) {
 			odp_event_type_t ev_type;
 
