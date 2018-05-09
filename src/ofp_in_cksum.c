@@ -42,17 +42,17 @@ uint16_t ofp_cksum_iph(const void *addr, int ip_hl)
 
 	if (odp_unlikely(ip_hl)) {
 		switch (ip_hl) {
-		case 11: sum += *d++;
-		case 10: sum += *d++;
-		case 9: sum += *d++;
-		case 8: sum += *d++;
-		case 7: sum += *d++;
-		case 6: sum += *d++;
-		case 5: sum += *d++;
-		case 4: sum += *d++;
-		case 3: sum += *d++;
-		case 2: sum += *d++;
-		case 1: sum += *d++;
+		case 11: sum += *d++; /* FALLTHROUGH */
+		case 10: sum += *d++; /* FALLTHROUGH */
+		case 9: sum += *d++; /* FALLTHROUGH */
+		case 8: sum += *d++; /* FALLTHROUGH */
+		case 7: sum += *d++; /* FALLTHROUGH */
+		case 6: sum += *d++; /* FALLTHROUGH */
+		case 5: sum += *d++; /* FALLTHROUGH */
+		case 4: sum += *d++; /* FALLTHROUGH */
+		case 3: sum += *d++; /* FALLTHROUGH */
+		case 2: sum += *d++; /* FALLTHROUGH */
+		case 1: sum += *d++; /* FALLTHROUGH */
 		default: break;
 		}
 	}
@@ -104,13 +104,13 @@ uint16_t ofp_cksum_buffer(const void *addr, int len)
 	}
 
 	switch (nleft>>2) {
-	case 7: sum += *d++;
-	case 6: sum += *d++;
-	case 5: sum += *d++;
-	case 4: sum += *d++;
-	case 3: sum += *d++;
-	case 2: sum += *d++;
-	case 1: sum += *d++;
+	case 7: sum += *d++; /* FALLTHROUGH */
+	case 6: sum += *d++; /* FALLTHROUGH */
+	case 5: sum += *d++; /* FALLTHROUGH */
+	case 4: sum += *d++; /* FALLTHROUGH */
+	case 3: sum += *d++; /* FALLTHROUGH */
+	case 2: sum += *d++; /* FALLTHROUGH */
+	case 1: sum += *d++; /* FALLTHROUGH */
 	default: break;
 	}
 
