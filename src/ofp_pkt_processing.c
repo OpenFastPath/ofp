@@ -70,13 +70,13 @@ int default_event_dispatcher(void *arg)
 	int event_cnt = 0;
 	ofp_pkt_processing_func pkt_func = (ofp_pkt_processing_func)arg;
 	odp_bool_t *is_running = NULL;
-	int rx_burst = global_param->evt_rx_burst_size;
 
 	if (ofp_init_local()) {
 		OFP_ERR("ofp_init_local failed");
 		return -1;
 	}
 
+	int rx_burst = global_param->evt_rx_burst_size;
 	odp_event_t events[rx_burst];
 
 	is_running = ofp_get_processing_state();
