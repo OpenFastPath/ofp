@@ -35,7 +35,7 @@ struct ODP_ALIGNED_CACHE tstate_s {
 	volatile uint64_t packets;
 	volatile odp_time_t time;
 	volatile int stop;
-} tstate[OFP_MAX_NUM_CPU];
+} tstate[ODP_THREAD_COUNT_MAX];
 
 #define STR(x) #x
 #define ASSERT(x)						\
@@ -101,20 +101,22 @@ static int worker(void *p)
 	ASSERT(!odp_init_local(instance, ODP_THREAD_WORKER));
 	ASSERT(!ofp_init_local());
 
-	int cpuid = odp_cpu_id(), res;
+	int res;
 	odp_packet_t burst[arg.batch];
 	odp_event_t ev[arg.batch];
 	uint32_t c;
 	uint16_t cksum_base = 0;
 
-	seedp = cpuid + 1;
+	odp_spinlock_lock(&lock);
+
+	static volatile int next_tid = 0;
+	int tid = next_tid++;
+	seedp = tid + 1;
 
 	/*
 	 * Use a lock around packet allocation so that each thread
 	 * gets consecutive packets from the pool.
 	 */
-	odp_spinlock_lock(&lock);
-
 	for (c = 0; c < arg.batch; c++) {
 		odp_packet_t pkt = odp_packet_alloc(pool, sizeof(frame));
 		ASSERT(pkt != ODP_PACKET_INVALID);
@@ -140,7 +142,7 @@ static int worker(void *p)
 
 		ASSERT(ofp_packet_input(pkt, dummyq, ofp_eth_vlan_processing) == OFP_PKT_PROCESSED);
 
-		tstate[cpuid].packets++;
+		tstate[tid].packets++;
 	}
 
 	odp_spinlock_unlock(&lock);
@@ -151,7 +153,7 @@ static int worker(void *p)
 	 * following must match the queue selection in
 	 * ofp_send_pkt_multi().
 	 */
-	odp_queue_t outq = ifnet->out_queue_queue[cpuid % ifnet->out_queue_num];
+	odp_queue_t outq = ifnet->out_queue_queue[odp_cpu_id() % ifnet->out_queue_num];
 
 	while (1) {
 		uint32_t num = 0;
@@ -197,7 +199,7 @@ static int worker(void *p)
 			ip->ip_sum = htons(~cksum);
 		}
 
-		if (odp_unlikely(tstate[cpuid].stop)) {
+		if (odp_unlikely(tstate[tid].stop)) {
 			for (c = 0; c < num; c++)
 				odp_packet_free(burst[c]);
 			break;
@@ -210,8 +212,8 @@ static int worker(void *p)
 
 		res = ofp_send_pending_pkt();
 
-		tstate[cpuid].time = odp_time_sum(tstate[cpuid].time, odp_time_diff(odp_time_global(), start));
-		tstate[cpuid].packets += num;
+		tstate[tid].time = odp_time_sum(tstate[tid].time, odp_time_diff(odp_time_global(), start));
+		tstate[tid].packets += num;
 	}
 
 	return 0;
@@ -327,6 +329,10 @@ static double odp_time_to_sec(odp_time_t t)
 int main(int argc, char *argv[])
 {
 	parse_args(argc, argv);
+
+	if (arg.workers > ODP_THREAD_COUNT_MAX)
+		arg.workers = ODP_THREAD_COUNT_MAX;
+
 	uint32_t neighbors = 1<<arg.neighbor_bits, routes = 1<<arg.route_bits;
 	addr_mask = (1 << (arg.route_bits + (32 - arg.masklen))) - 1;
 	ofp_loglevel = arg.loglevel;
@@ -388,7 +394,7 @@ int main(int argc, char *argv[])
 	memset(tstate, 0, sizeof(tstate));
 	odp_spinlock_init(&lock);
 
-	odph_odpthread_t thread_tbl[OFP_MAX_NUM_CPU];
+	odph_odpthread_t thread_tbl[ODP_THREAD_COUNT_MAX];
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 
 	for (i = 0; i < arg.workers; ++i) {
@@ -408,7 +414,7 @@ int main(int argc, char *argv[])
 	sleep(arg.warmup);
 
 	odp_time_t ltime = odp_time_global();
-	struct tstate_s ltstate[OFP_MAX_NUM_CPU], ntstate[OFP_MAX_NUM_CPU];
+	struct tstate_s ltstate[ODP_THREAD_COUNT_MAX], ntstate[ODP_THREAD_COUNT_MAX];
 	memcpy(ntstate, tstate, sizeof(tstate));
 
 	for (uint32_t n = 0; n < arg.ivals; n++) {
