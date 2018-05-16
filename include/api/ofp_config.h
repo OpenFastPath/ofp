@@ -15,10 +15,6 @@
  *
  */
 
-/**Maximum number of CPUs.
- * Used to define the size of internal structures. */
-#define OFP_MAX_NUM_CPU 64
-
 /* Enable features */
 
 /**Enable PERFORMANCE measurements mode. Some validations are skipped.*/

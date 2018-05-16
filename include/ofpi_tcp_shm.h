@@ -11,6 +11,7 @@
 #include "ofpi_callout.h"
 #include "ofpi_tcp_var.h"
 #include "ofpi_tcp_syncache.h"
+#include "ofpi_config.h"
 
 #include "api/ofp_timer.h"
 

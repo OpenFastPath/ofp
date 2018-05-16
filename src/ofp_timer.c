@@ -12,6 +12,7 @@
 #include "api/ofp_config.h"
 #include "ofpi_util.h"
 #include "ofpi_log.h"
+#include "ofpi_config.h"
 
 
 #include "ofpi_timer.h"
