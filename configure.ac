@@ -172,16 +172,11 @@ OLD_CPPFLAGS=$CPPFLAGS
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
 
-function check_odp {
-	 AC_CHECK_LIB($ODP_LIB, odp_packet_alloc, [],
-	     [AC_MSG_FAILURE(["OpenDataPlane library ($ODP_LIB) not available"])],[-lrt -lpthread -lcrypto])
-	 AC_CHECK_HEADERS([odp.h], [],
-	     [AC_MSG_FAILURE(["Can't find ODP headers"])])
-}
-
-PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= 1.17.0.0], [], check_odp)
+PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= 1.17.0.0], [], [])
 AC_SUBST([ODP_CFLAGS])
 AC_SUBST([ODP_LIBS])
+
+AC_CHECK_HEADERS([odp_api.h], [], [AC_MSG_FAILURE(["Can't find ODP headers"])])
 
 PKG_CHECK_MODULES([ODPHELPER], [libodphelper], [], [])
 AC_SUBST([ODPHELPER_CFLAGS])
