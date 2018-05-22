@@ -183,8 +183,7 @@ PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= 1.17.0.0], [], check_odp)
 AC_SUBST([ODP_CFLAGS])
 AC_SUBST([ODP_LIBS])
 
-PKG_CHECK_MODULES([ODPHELPER], [libodphelper], [],
-				  [ODPHELPER_LIBS="-lodphelper-linux"])
+PKG_CHECK_MODULES([ODPHELPER], [libodphelper], [], [])
 AC_SUBST([ODPHELPER_CFLAGS])
 AC_SUBST([ODPHELPER_LIBS])
 
