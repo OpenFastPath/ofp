@@ -17,10 +17,6 @@
 
 /* Enable features */
 
-/**Enable PERFORMANCE measurements mode. Some validations are skipped.*/
-/* #define OFP_PERFORMANCE */
-
-
 /**Enable static socket configuration mode.
  * It is meant to be used with application where the socket
  * configuration does not change during intensive packet

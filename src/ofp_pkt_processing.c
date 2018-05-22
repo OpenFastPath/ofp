@@ -319,7 +319,6 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 		}
 	}
 
-#ifndef OFP_PERFORMANCE
 	if (odp_unlikely(ip->ip_v != OFP_IPVERSION))
 		return OFP_PKT_DROP;
 
@@ -345,7 +344,6 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 	/* TODO: handle broadcast */
 	if (dev->bcast_addr == ip->ip_dst.s_addr)
 		return OFP_PKT_DROP;
-#endif
 
 	OFP_DBG("Device IP: %s, Packet Dest IP: %s",
 		ofp_print_ip_addr(dev->ip_addr),
