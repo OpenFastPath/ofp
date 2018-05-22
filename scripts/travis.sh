@@ -3,7 +3,7 @@
 ROOTDIR=$(git rev-parse --show-toplevel)
 
 cd $ROOTDIR
-git clone --depth 1 -b v1.17.0.0_tigermoth_rc1 https://github.com/Linaro/odp.git
+git clone --depth 1 -b v1.19.0.1 https://github.com/Linaro/odp.git
 cd odp
 ./bootstrap
 ODPDIR=$(pwd)/install
