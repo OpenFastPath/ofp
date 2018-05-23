@@ -582,7 +582,7 @@ enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry
 
 #if (ARP_SANITY_CHECK)
 	newarp = arp_lookup(set, &key);
-	if (newarp->is_valid)
+       if (newarp && newarp->is_valid)
 		OFP_ERR("ARP Entry failed the sanity check!");
 #endif
 
