@@ -18,11 +18,16 @@
 #include <ofpi.h>
 
 /*
- * IPv4 UDP, destination port 65000.
+ * Ethernet, VLAN tagged / IPv4 / UDP, destination port 65000.
+ *
+ * Our initial packets always have a VLAN header, but if VLANs are not
+ * used, then OFP outputs packets without VLAN header.
  */
-uint8_t frame[64] = {
+uint8_t frame[68] = {
 0xf0, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf0, 0x00,
-0x00, 0x00, 0x00, 0x02, 0x08, 0x00, 0x45, 0x00,
+0x00, 0x00, 0x00, 0x02,
+0x81, 0x00, 0x00, 0x00,
+0x08, 0x00, 0x45, 0x00,
 0x00, 0x32, 0xb9, 0x12, 0x40, 0x00, 0x40, 0x11,
 0x00, 0x00, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00,
 0x00, 0x02, 0xb7, 0x8a, 0xfd, 0xe8, 0x00, 0x1e,
@@ -66,7 +71,7 @@ const uint8_t ether_dhost[OFP_ETHER_ADDR_LEN] = {0xa, 0xb, 0, 0, 0, 0};
 
 struct arg_s {
 	volatile uint32_t batch, dispw, interval, ivals, loglevel, masklen,
-		neighbor_bits, route_bits, tx_burst, verify, warmup, workers;
+		neighbor_bits, route_bits, tx_burst, verify, vlans, warmup, workers;
 } arg, default_arg = {
 	.batch = 64,
 	.dispw = 0,
@@ -78,6 +83,7 @@ struct arg_s {
 	.route_bits = 0,
 	.tx_burst = 8,
 	.verify = 0,
+	.vlans = 0,
 	.warmup = 5,
 	.workers = 1,
 };
@@ -124,7 +130,10 @@ static int worker(void *p)
 		uint8_t *buf = odp_packet_data(pkt);
 		memcpy(buf, frame, sizeof(frame));
 
-		struct ofp_ip *ip = (struct ofp_ip *)(buf + OFP_ETHER_HDR_LEN);
+		struct ofp_ether_vlan_header *eth = (struct ofp_ether_vlan_header *)buf;
+		eth->evl_tag = htons(OFP_EVL_MAKETAG(arg.vlans, 0, 0));
+
+		struct ofp_ip *ip = (struct ofp_ip *)(eth + 1);
 		ip->ip_src.s_addr = C_SRC_ADDR;
 		ip->ip_ttl = C_TTL;
 		ip->ip_sum = 0;
@@ -137,8 +146,8 @@ static int worker(void *p)
 		odp_packet_has_eth_set(pkt, 1);
 		odp_packet_has_ipv4_set(pkt, 1);
 		odp_packet_l2_offset_set(pkt, 0);
-		odp_packet_l3_offset_set(pkt, OFP_ETHER_HDR_LEN);
-		odp_packet_l4_offset_set(pkt, OFP_ETHER_HDR_LEN + (ip->ip_hl<<2));
+		odp_packet_l3_offset_set(pkt, sizeof(struct ofp_ether_vlan_header));
+		odp_packet_l4_offset_set(pkt, sizeof(struct ofp_ether_vlan_header) + (ip->ip_hl<<2));
 
 		ASSERT(ofp_packet_input(pkt, dummyq, ofp_eth_vlan_processing) == OFP_PKT_PROCESSED);
 
@@ -190,6 +199,9 @@ static int worker(void *p)
 				(struct ofp_ether_header *)odp_packet_data(burst[c]);
 			struct ofp_ip *ip = (struct ofp_ip *)(eth + 1);
 
+			if (ntohs(eth->ether_type) == OFP_ETHERTYPE_VLAN)
+				ip = (struct ofp_ip *)((uint8_t *)ip + OFP_ETHER_VLAN_ENCAP_LEN);
+
 			ip->ip_ttl = C_TTL;
 			ip->ip_dst.s_addr = dst_addr();
 			uint32_t cksum = cksum_base;
@@ -227,6 +239,7 @@ static void usage(const char *prog)
 	       "All options take an unsigned integer argument.\n\n", prog);
 
 	printf("Options:\n");
+	printf("-a, --vlans         Number of VLANs. (%u)\n", default_arg.vlans);
 	printf("-b, --batch         Number of packets in each batch. (%u)\n", default_arg.batch);
 	printf("-d, --dispw         Display packet rates for workers\n"
 	       "                    individually. (%u)\n", default_arg.dispw);
@@ -256,6 +269,7 @@ static void parse_args(int argc, char *argv[])
 
 	while (1) {
 		static struct option long_options[] = {
+			{"vlans",         required_argument, 0, 'a'},
 			{"batch",         required_argument, 0, 'b'},
 			{"dispw",         required_argument, 0, 'd'},
 			{"ivals",         required_argument, 0, 'i'},
@@ -271,12 +285,13 @@ static void parse_args(int argc, char *argv[])
 			{0,               0,                 0,  0 }
 		};
 
-		int c = getopt_long(argc, argv, "b:d:i:l:m:n:r:t:u:v:w:x:",
+		int c = getopt_long(argc, argv, "a:b:d:i:l:m:n:r:t:u:v:w:x:",
 				    long_options, NULL);
 		if (c == -1)
 			break;
 
 		switch (c) {
+		case 'a': arg.vlans = atoi(optarg); break;
 		case 'b': arg.batch = atoi(optarg); break;
 		case 'd': arg.dispw = atoi(optarg); break;
 		case 'i': arg.ivals = atoi(optarg); break;
@@ -349,10 +364,15 @@ int main(int argc, char *argv[])
 	params.mtrie.routes = routes + 2;
 	params.mtrie.table8_nodes = routes/2 + (routes>>8) + 4;
 	params.pkt_tx_burst_size = arg.tx_burst;
+	params.num_vlan = arg.vlans;
 	ASSERT(!ofp_init_global(instance, &params));
 	ASSERT(!ofp_init_local());
 
-	ASSERT(!ofp_config_interface_up_v4(C_PORT, C_VLAN, C_VRF, odp_cpu_to_be_32(C_L_ADDR), 24));
+	uint32_t vlan;
+	for (vlan = 0; vlan <= arg.vlans; vlan++)
+		ASSERT(!ofp_config_interface_up_v4(C_PORT, vlan, C_VRF, odp_cpu_to_be_32(C_L_ADDR), 24));
+
+	vlan = arg.vlans;
 
 	ifnet = ofp_get_ifnet(C_PORT, C_VLAN);
 	ASSERT((ifnet->pkt_pool = odp_pool_lookup("packet_pool")) != ODP_POOL_INVALID);
@@ -379,15 +399,16 @@ int main(int argc, char *argv[])
 	ASSERT((pool = odp_pool_lookup("packet_pool")) != ODP_POOL_INVALID);
 
 	for (i = 0; i < routes; i++) {
+		struct ofp_ifnet *ifnet_vlan = ofp_get_ifnet(C_PORT, vlan);
 		uint32_t dst = odp_cpu_to_be_32(C_DST_ADDR + (i << (32 - arg.masklen)));
 		uint32_t gw = odp_cpu_to_be_32(C_GW_ADDR + (i & (neighbors - 1)));
-		ASSERT(!ofp_set_route_params(OFP_ROUTE_ADD, C_VRF, C_VLAN, C_PORT,
+		ASSERT(!ofp_set_route_params(OFP_ROUTE_ADD, C_VRF, vlan, C_PORT,
 					     dst, arg.masklen, gw, OFP_RTF_GATEWAY));
 		if (i < neighbors) {
 			uint8_t gw_ether_dhost[OFP_ETHER_ADDR_LEN];
 			memcpy(gw_ether_dhost, ether_dhost, 2);
 			memcpy(gw_ether_dhost+2, &gw, OFP_ETHER_ADDR_LEN-2);
-			ASSERT(!ofp_add_mac(ifnet, gw, gw_ether_dhost));
+			ASSERT(!ofp_add_mac(ifnet_vlan, gw, gw_ether_dhost));
 		}
 	}
 
