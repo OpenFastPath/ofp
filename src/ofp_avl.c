@@ -36,6 +36,7 @@
 #include "ofpi_avl.h"
 #include "ofpi_log.h"
 #include "ofpi_util.h"
+#include "ofpi_brlock.h"
 
 #define SHM_NAME_AVL "OfpAvlShMem"
 
@@ -143,7 +144,7 @@ avl_tree_new (avl_key_compare_fun_type compare_fun,
 			t->length = 0;
 			t->compare_fun = compare_fun;
 			t->compare_arg = compare_arg;
-			odp_rwlock_init(&t->lock_rw);
+			ofp_brlock_init(&t->lock_rw);
 			thread_rwlock_create(&t->rwlock);
 			return t;
 		}
@@ -187,17 +188,17 @@ int
 avl_insert (avl_tree * ob,
             void * key)
 {
-    odp_rwlock_write_lock(&ob->lock_rw);
+    ofp_brlock_write_lock(&ob->lock_rw);
 
     if (!(ob->root->right)) {
         avl_node * node = avl_node_new (key, ob->root);
         if (!node) {
-            odp_rwlock_write_unlock(&ob->lock_rw);
+            ofp_brlock_write_unlock(&ob->lock_rw);
             return -1;
         } else {
             ob->root->right = node;
             ob->length = ob->length + 1;
-            odp_rwlock_write_unlock(&ob->lock_rw);
+            ofp_brlock_write_unlock(&ob->lock_rw);
             return 0;
         }
     } else { /* not self.right == None */
@@ -216,7 +217,7 @@ avl_insert (avl_tree * ob,
                     /* insert */
                     avl_node * q_node = avl_node_new (key, p);
                     if (!q_node) {
-                        odp_rwlock_write_unlock(&ob->lock_rw);
+                        ofp_brlock_write_unlock(&ob->lock_rw);
                         return (-1);
                     } else {
                         q = q_node;
@@ -235,7 +236,7 @@ avl_insert (avl_tree * ob,
                     /* insert */
                     avl_node * q_node = avl_node_new (key, p);
                     if (!q_node) {
-                        odp_rwlock_write_unlock(&ob->lock_rw);
+                        ofp_brlock_write_unlock(&ob->lock_rw);
                         return -1;
                     } else {
                         q = q_node;
@@ -279,11 +280,11 @@ avl_insert (avl_tree * ob,
         if (AVL_GET_BALANCE (s) == 0) {
             AVL_SET_BALANCE (s, a);
             ob->height = ob->height + 1;
-            odp_rwlock_write_unlock(&ob->lock_rw);
+            ofp_brlock_write_unlock(&ob->lock_rw);
             return 0;
         } else if (AVL_GET_BALANCE (s) == -a) {
             AVL_SET_BALANCE (s, 0);
-            odp_rwlock_write_unlock(&ob->lock_rw);
+            ofp_brlock_write_unlock(&ob->lock_rw);
             return 0;
         } else if (AVL_GET_BALANCE(s) == a) {
             if (AVL_GET_BALANCE (r) == a) {
@@ -364,7 +365,7 @@ avl_insert (avl_tree * ob,
             p->parent = t;
         }
     }
-    odp_rwlock_write_unlock(&ob->lock_rw);
+    ofp_brlock_write_unlock(&ob->lock_rw);
     return 0;
 }
 
@@ -396,11 +397,11 @@ avl_get_by_key (avl_tree * tree,
                 void * key,
                 void **value_address)
 {
-    odp_rwlock_read_lock(&tree->lock_rw);
+    ofp_brlock_read_lock(&tree->lock_rw);
 
     avl_node * x = tree->root->right;
     if (!x) {
-        odp_rwlock_read_unlock(&tree->lock_rw);
+        ofp_brlock_read_unlock(&tree->lock_rw);
         return -1;
     }
     while (1) {
@@ -409,19 +410,19 @@ avl_get_by_key (avl_tree * tree,
             if (x->left) {
                 x = x->left;
             } else {
-                odp_rwlock_read_unlock(&tree->lock_rw);
+                ofp_brlock_read_unlock(&tree->lock_rw);
                 return -1;
             }
         } else if (compare_result > 0) {
             if (x->right) {
                 x = x->right;
             } else {
-                odp_rwlock_read_unlock(&tree->lock_rw);
+                ofp_brlock_read_unlock(&tree->lock_rw);
                 return -1;
             }
         } else {
             *value_address = x->key;
-            odp_rwlock_read_unlock(&tree->lock_rw);
+            ofp_brlock_read_unlock(&tree->lock_rw);
             return 0;
         }
     }
@@ -432,11 +433,11 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
     avl_node *x, *y, *p, *q, *r, *top, *x_child;
     int shortened_side, shorter;
 
-    odp_rwlock_write_lock(&tree->lock_rw);
+    ofp_brlock_write_lock(&tree->lock_rw);
 
     x = tree->root->right;
     if (!x) {
-        odp_rwlock_write_unlock(&tree->lock_rw);
+        ofp_brlock_write_unlock(&tree->lock_rw);
         return -1;
     }
     while (1) {
@@ -460,7 +461,7 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
                     }
                     x = x->parent;
                 }
-                odp_rwlock_write_unlock(&tree->lock_rw);
+                ofp_brlock_write_unlock(&tree->lock_rw);
                 return -1;        /* key not in tree */
             }
         } else if (compare_result > 0) {
@@ -475,7 +476,7 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
                     }
                     x = x->parent;
                 }
-                odp_rwlock_write_unlock(&tree->lock_rw);
+                ofp_brlock_write_unlock(&tree->lock_rw);
                 return -1;        /* key not in tree */
             }
         } else {
@@ -704,7 +705,7 @@ int avl_delete(avl_tree *tree, void *key, avl_free_key_fun_type free_key_fun)
     } /* end while(shorter) */
     /* when we're all done, we're one shorter */
     tree->length = tree->length - 1;
-    odp_rwlock_write_unlock(&tree->lock_rw);
+    ofp_brlock_write_unlock(&tree->lock_rw);
     return (0);
 }
 
@@ -740,13 +741,13 @@ avl_iterate_inorder (avl_tree * tree,
 {
     int result;
 
-    odp_rwlock_read_lock(&tree->lock_rw);
+    ofp_brlock_read_lock(&tree->lock_rw);
     if (tree->length) {
         result = avl_iterate_inorder_helper (tree->root->right, iter_fun, iter_arg);
-        odp_rwlock_read_unlock(&tree->lock_rw);
+        ofp_brlock_read_unlock(&tree->lock_rw);
         return (result);
     } else {
-        odp_rwlock_read_unlock(&tree->lock_rw);
+        ofp_brlock_read_unlock(&tree->lock_rw);
         return 0;
     }
 }

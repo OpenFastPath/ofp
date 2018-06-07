@@ -8,6 +8,7 @@
 #define __AVL_H
 
 #include <odp_api.h>
+#include "ofpi_brlock.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,7 +75,7 @@ typedef struct _avl_tree {
   unsigned int          length;
   avl_key_compare_fun_type    compare_fun;
   void *             compare_arg;
-  odp_rwlock_t       lock_rw;
+  ofp_brlock_t       lock_rw;
 
 #ifndef NO_THREAD
   rwlock_t rwlock;
