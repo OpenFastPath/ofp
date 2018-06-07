@@ -210,16 +210,7 @@ struct ODP_ALIGNED_CACHE ofp_ifnet {
 
 static inline uint8_t ofp_if_type(struct ofp_ifnet *ifnet)
 {
-	switch (ifnet->port) {
-	case GRE_PORTS:
-		return OFP_IFT_GRE;
-	case VXLAN_PORTS:
-		return OFP_IFT_VXLAN;
-	case LOCAL_PORTS:
-		return OFP_IFT_LOOP;
-	default:
-		return OFP_IFT_ETHER;
-	}
+	return ifnet->if_type;
 }
 
 /*
