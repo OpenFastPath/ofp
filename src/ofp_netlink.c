@@ -244,7 +244,7 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 			   unsigned char *laddr, int vrf)
 {
 	if (if_entry->ifa_family == AF_INET)	{
-		if (dev->port == GRE_PORTS) {
+		if (ofp_if_type(dev) == OFP_IFT_GRE) {
 			dev->ip_p2p = *((uint32_t *)addr);
 			dev->ip_addr = *((uint32_t *)laddr);
 		} else {
@@ -260,7 +260,7 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 		/* update quick access table */
 		ofp_update_ifindex_lookup_tab(dev);
 
-		if (dev->port == VXLAN_PORTS) {
+		if (ofp_if_type(dev) == OFP_IFT_VXLAN) {
 			struct ofp_ifnet *dev_root =
 				ofp_get_ifnet(dev->physport, dev->physvlan);
 
@@ -311,16 +311,18 @@ static int del_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 	(void)laddr;
 
 	if (if_entry->ifa_family == AF_INET)	{
+		uint8_t if_type = ofp_if_type(dev);
+
 		OFP_DBG("DEL ADDR addr=%x laddr=%x", *((uint32_t *)addr),
 			*((uint32_t *)laddr));
 		ofp_set_route_params(
 			OFP_ROUTE_DEL, dev->vrf, dev->vlan,dev->port,
-			(dev->port == GRE_PORTS) ? dev->ip_p2p : dev->ip_addr,
+			(if_type == OFP_IFT_GRE) ? dev->ip_p2p : dev->ip_addr,
 			dev->masklen, 0 /*gw*/, 0);
 		dev->ip_addr = 0;
-		if (dev->port == GRE_PORTS)
+		if (if_type == OFP_IFT_GRE)
 			dev->ip_p2p = 0;
-		else if (dev->vlan == 0 || dev->port == VXLAN_PORTS)
+		else if (dev->vlan == 0 || if_type == OFP_IFT_VXLAN)
 			ofp_ifaddr_elem_del(dev);
 	}
 #ifdef INET6
@@ -428,7 +430,7 @@ The processed msg here RTM_NEWADDR, RTM_DELADDR start with ifaddrmsg
 		return -1;
 	}
 
-	if (dev->port == GRE_PORTS && if_entry->ifa_family == AF_INET) {
+	if (ofp_if_type(dev) == OFP_IFT_GRE && if_entry->ifa_family == AF_INET) {
 		if (!laddr) {
 			OFP_ERR(" ! IFA_LOCAL not present for GRE interface");
 			return -1;

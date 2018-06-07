@@ -157,7 +157,7 @@ enum ofp_return_code ofp_eth_vlan_processing(odp_packet_t *pkt)
 		ifnet = ofp_get_ifnet(ifnet->port, vlan);
 		if (!ifnet)
 			return OFP_PKT_DROP;
-		if (odp_likely(ifnet->port != VXLAN_PORTS))
+		if (odp_likely(ofp_if_type(ifnet) != OFP_IFT_VXLAN))
 			odp_packet_user_ptr_set(*pkt, ifnet);
 	}
 
@@ -300,23 +300,14 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 		return OFP_PKT_DROP;
 	}
 
-	if (odp_unlikely(!PHYS_PORT(dev->port))) {
-		switch (dev->port) {
-		case GRE_PORTS:
-		case LOCAL_PORTS:
-			/* Doesn't happen. */
-			break;
-		case VXLAN_PORTS: {
-			struct ofp_packet_user_area *ua;
+	if (odp_unlikely(ofp_if_type(dev) == OFP_IFT_VXLAN)) {
+		struct ofp_packet_user_area *ua;
 
-			/* Look for the correct device. */
-			ua = ofp_packet_user_area(*pkt);
-			dev = ofp_get_ifnet(VXLAN_PORTS, ua->vxlan.vni);
-			if (!dev)
-				return OFP_PKT_DROP;
-			break;
-		}
-		}
+		/* Look for the correct device. */
+		ua = ofp_packet_user_area(*pkt);
+		dev = ofp_get_ifnet(VXLAN_PORTS, ua->vxlan.vni);
+		if (!dev)
+			return OFP_PKT_DROP;
 	}
 
 	if (odp_unlikely(ip->ip_v != OFP_IPVERSION))
@@ -551,17 +542,9 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt)
 		ofp_print_ip_addr(arp->ip_dst));
 
 	/* Check for VXLAN interface */
-	if (odp_unlikely(!PHYS_PORT(dev->port))) {
-		switch (dev->port) {
-		case GRE_PORTS:
-			/* Never happens. */
-			break;
-		case VXLAN_PORTS: {
-			ofp_vxlan_update_devices(*pkt, arp, &vlan, &dev, &outdev,
-						 inner_from_mac);
-			break;
-		}
-		} /* switch */
+	if (odp_unlikely(ofp_if_type(dev) == OFP_IFT_VXLAN)) {
+		ofp_vxlan_update_devices(*pkt, arp, &vlan, &dev, &outdev,
+					 inner_from_mac);
 	}
 
 	is_ours = dev->ip_addr && dev->ip_addr == (ofp_in_addr_t)(arp->ip_dst);
@@ -624,27 +607,19 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt)
 			*eth = tmp_eth;
 		}
 
-		if (odp_unlikely(!PHYS_PORT(dev->port))) {
-			switch (dev->port) {
-			case GRE_PORTS:
-				/* Never happens. */
-				break;
-			case VXLAN_PORTS: {
-				/* Restore the original vxlan header and
-				   update the addresses */
-				ofp_vxlan_restore_and_update_header
-					(*pkt, outdev, inner_from_mac);
-				break;
-			}
-			} /* switch */
-		} /* not phys port */
+		if (odp_unlikely(ofp_if_type(dev) == OFP_IFT_VXLAN)) {
+			/* Restore the original vxlan header and
+			   update the addresses */
+			ofp_vxlan_restore_and_update_header
+				(*pkt, outdev, inner_from_mac);
+		}
 
 		return send_pkt_out(outdev, *pkt);
 	}
 	return OFP_PKT_CONTINUE;
 }
 
-#define ETH_WITH_VLAN(_dev) (_dev->vlan && _dev->port != VXLAN_PORTS)
+#define ETH_WITH_VLAN(dev) ((dev)->vlan && ofp_if_type(dev) != VXLAN_PORTS)
 
 static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 {
@@ -691,7 +666,7 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 
 	memcpy(odp_packet_data(pkt), buf, size);
 
-	if (odp_unlikely(dev->port == VXLAN_PORTS)) {
+	if (odp_unlikely(ofp_if_type(dev) == OFP_IFT_VXLAN)) {
 		ofp_vxlan_send_arp_request(pkt, dev);
 		return;
 	}
@@ -712,7 +687,7 @@ enum ofp_return_code ofp_send_frame(struct ofp_ifnet *dev, odp_packet_t pkt)
 	uint32_t pkt_len, eth_hdr_len;
 	enum ofp_return_code rc;
 
-	if (dev->port == GRE_PORTS) {
+	if (ofp_if_type(dev) == OFP_IFT_GRE) {
 		OFP_ERR("Send frame on GRE port");
 		return OFP_PKT_DROP;
 	}
@@ -986,7 +961,7 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		eth->ether_dhost[4] = (addr >> 8) & 0xff;
 		eth->ether_dhost[5] = addr & 0xff;
 	} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr ||
-		   odata->dev_out->port == LOCAL_PORTS) {
+		   ofp_if_type(odata->dev_out) == OFP_IFT_LOOP) {
 		odata->is_local_address = 1;
 		ofp_copy_mac(eth->ether_dhost, odata->dev_out->mac);
 	} else if (ofp_get_mac(odata->dev_out, odata->nh,
@@ -1193,11 +1168,11 @@ static inline enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 	if (odata->insert_checksum)
 		ofp_chksum_insert(pkt, odata);
 
-	switch (odata->dev_out->port) {
-	case GRE_PORTS:
+	switch (ofp_if_type(odata->dev_out)) {
+	case OFP_IFT_GRE:
 		return ofp_output_ipv4_to_gre(pkt, odata->dev_out);
 		break;
-	case VXLAN_PORTS:
+	case OFP_IFT_VXLAN:
 		if ((ret = ofp_ip_output_add_eth(pkt, odata)) != OFP_PKT_CONTINUE)
 			return ret;
 		return ofp_ip_output_vxlan(pkt, odata->dev_out);
@@ -1328,7 +1303,7 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 		return OFP_PKT_DROP;
 
 	/* GRE */
-	if (dev_out->port == GRE_PORTS)
+	if (ofp_if_type(dev_out) == OFP_IFT_GRE)
 		return ofp_output_ipv6_to_gre(pkt, dev_out);
 
 	if (!vlan)
@@ -1345,7 +1320,7 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 
 	/* MAC address for the destination */
 	if (ofp_ip6_equal(dev_out->ip6_addr, ip6->ip6_dst.ofp_s6_addr) ||
-	    dev_out->port == LOCAL_PORTS) {
+	    ofp_if_type(dev_out) == OFP_IFT_LOOP) {
 		is_local_address = 1;
 		mac = dev_out->mac;
 	} else {
@@ -1425,10 +1400,10 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 	odp_packet_user_ptr_set(pkt, ifnet);
 
 	/*
-	 * Packets from VXLAN_PORTS are looped from OFP and have
+	 * Packets from VXLAN ifnets are looped from OFP and have
 	 * data stored in the user area.
 	 */
-	if (ifnet->port != VXLAN_PORTS) {
+	if (ofp_if_type(ifnet) != OFP_IFT_VXLAN) {
 		ofp_packet_user_area_reset(pkt);
 	}
 

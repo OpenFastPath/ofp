@@ -426,7 +426,7 @@ void ofp_vxlan_update_devices(odp_packet_t pkt, struct ofp_arphdr *arp, uint16_t
 	struct ofp_ifnet *vxdev = ofp_get_ifnet(VXLAN_PORTS, saved->vni);
 
 	/* Sanity check. */
-	if (vxdev && vxdev->port == VXLAN_PORTS) {
+	if (vxdev && ofp_if_type(vxdev) == OFP_IFT_VXLAN) {
 		*dev = vxdev;
 		*outdev = ofp_get_ifnet(vxdev->physport, vxdev->physvlan);
 		*vlan = 0;

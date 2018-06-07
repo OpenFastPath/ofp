@@ -213,7 +213,7 @@ ofp_in_control(struct socket *so, uint32_t cmd, char *data, struct ofp_ifnet *if
 	case OFP_SIOCSIFADDR:
 	case OFP_SIOCSIFNETMASK:
 	case OFP_SIOCSIFFIB:
-		if (ifp->port == GRE_PORTS) {
+		if (ofp_if_type(ifp) == OFP_IFT_GRE) {
 			ofp_config_interface_up_tun
 				(ifp->port, ifp->vlan,
 				 vrf, ifp->ip_local,

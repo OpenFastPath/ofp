@@ -208,6 +208,20 @@ struct ODP_ALIGNED_CACHE ofp_ifnet {
 
 #define outq_def out_queue_queue[0]
 
+static inline uint8_t ofp_if_type(struct ofp_ifnet *ifnet)
+{
+	switch (ifnet->port) {
+	case GRE_PORTS:
+		return OFP_IFT_GRE;
+	case VXLAN_PORTS:
+		return OFP_IFT_VXLAN;
+	case LOCAL_PORTS:
+		return OFP_IFT_LOOP;
+	default:
+		return OFP_IFT_ETHER;
+	}
+}
+
 /*
  * Output queues (ifp->if_snd) and slow device input queues (*ifp->if_slowq)
  * are queues of messages stored on ifqueue structures

@@ -207,7 +207,7 @@ static int iter_vlan(void *key, void *iter_arg)
 
 	mask = odp_cpu_to_be_32(mask << (32 - iface->masklen));
 
-	if (iface->port == GRE_PORTS && iface->vlan) {
+	if (ofp_if_type(iface) == OFP_IFT_GRE && iface->vlan) {
 #ifdef SP
 		ofp_sendf(fd, "gre%d	(%d) slowpath: %s\r\n", iface->vlan,
 			    iface->linux_index,
@@ -244,14 +244,14 @@ static int iter_vlan(void *key, void *iter_arg)
 		else
 			ofp_sendf(fd, "\r\n");
 		return 0;
-	} else if (iface->port == GRE_PORTS && !iface->vlan) {
+	} else if (ofp_if_type(iface) == OFP_IFT_GRE && !iface->vlan) {
 		ofp_sendf(fd, "gre%d\r\n"
 				"	Link not configured\r\n\r\n",
 				iface->vlan);
 		return 0;
 	}
 
-	if (iface->port == VXLAN_PORTS) {
+	if (ofp_if_type(iface) == OFP_IFT_VXLAN) {
 #ifdef SP
 		ofp_sendf(fd, "vxlan%d	(%d) slowpath: %s\r\n", iface->vlan,
 			    iface->linux_index,
@@ -289,7 +289,7 @@ static int iter_vlan(void *key, void *iter_arg)
 		return 0;
 	}
 
-	if (iface->port == LOCAL_PORTS) {
+	if (ofp_if_type(iface) == OFP_IFT_LOOP) {
 #ifdef SP
 		ofp_sendf(fd, "lo%d  (%d) slowpath: %s\r\n", iface->vlan,
 			    iface->linux_index,
@@ -1082,14 +1082,14 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 		vrf = data->vrf;
 #endif /*SP*/
 		if (data->ip_addr) {
-			uint32_t a = (data->port == GRE_PORTS) ?
+			uint32_t a = (ofp_if_type(data) == OFP_IFT_GRE) ?
 				data->ip_p2p : data->ip_addr;
 			a = odp_cpu_to_be_32(odp_be_to_cpu_32(a) & (0xFFFFFFFFULL << (32-data->masklen)));
 
-			if (data->port == LOCAL_PORTS)
+			if (ofp_if_type(data) == OFP_IFT_LOOP)
 				ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
 						     data->ip_addr, data->masklen, 0, 0);
-			else if (data->port != GRE_PORTS)
+			else if (ofp_if_type(data) != OFP_IFT_GRE)
 				ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
 						     data->ip_addr, 32, 0, 0);
 			ofp_set_route_params(OFP_ROUTE_DEL, data->vrf, vlan, port,
@@ -1135,7 +1135,7 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 			data->loopq_def = ODP_QUEUE_INVALID;
 		}
 
-		if (data->port == VXLAN_PORTS &&
+		if (ofp_if_type(data) == OFP_IFT_VXLAN &&
 		    data->ii_inet.ii_allhosts) {
 			/* Use data->ii_inet.ii_allhosts for Vxlan. */
 			ofp_in_leavegroup(data->ii_inet.ii_allhosts, NULL);
@@ -1147,10 +1147,10 @@ const char *ofp_config_interface_down(int port, uint16_t vlan)
 			&key,
 			free_key);
 #ifdef SP
-		if (data->port == GRE_PORTS)
+		if (ofp_if_type(data) == OFP_IFT_GRE)
 			snprintf(cmd, sizeof(cmd), "ip tunnel del %s",
 				 ofp_port_vlan_to_ifnet_name(port, vlan));
-		else if (data->port != LOCAL_PORTS)
+		else if (ofp_if_type(data) != OFP_IFT_LOOP)
 			snprintf(cmd, sizeof(cmd), "ip link del %s",
 				 ofp_port_vlan_to_ifnet_name(port, vlan));
 		ret = exec_sys_call_depending_on_vrf(cmd, vrf);
@@ -1405,10 +1405,10 @@ static int iter_interface(void *key, void *iter_arg)
 		iface->ip_addr;
 	ifr->ifr_addr.sa_family = OFP_AF_INET;
 
-	if (iface->port == GRE_PORTS)
+	if (ofp_if_type(iface) == OFP_IFT_GRE)
 		snprintf(ifr->ifr_name, OFP_IFNAMSIZ,
 			 "gre%d", iface->vlan);
-	else if (iface->port == VXLAN_PORTS)
+	else if (ofp_if_type(iface) == OFP_IFT_VXLAN)
 		snprintf(ifr->ifr_name, OFP_IFNAMSIZ,
 			 "vxlan%d", iface->vlan);
 	else if (iface->vlan)
