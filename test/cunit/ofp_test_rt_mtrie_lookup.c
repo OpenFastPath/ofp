@@ -488,6 +488,11 @@ static char *const_cast(const char *str)
 
 int main(void)
 {
+	odp_instance_t instance;
+
+	odp_init_global(&instance, NULL, NULL);
+	odp_init_local(instance, ODP_THREAD_CONTROL);
+
 	if (CU_initialize_registry() != CUE_SUCCESS)
 		return CU_get_error();
 
