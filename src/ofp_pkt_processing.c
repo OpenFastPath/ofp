@@ -965,7 +965,7 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		is_link_local = 1;
 	}
 
-	if (ETH_WITHOUT_VLAN(odata->vlan, odata->out_port))
+	if (ETH_WITHOUT_VLAN(odata->vlan, odata->dev_out->port))
 		l2_size = sizeof(struct ofp_ether_header);
 	else
 		l2_size = sizeof(struct ofp_ether_vlan_header);
@@ -999,7 +999,7 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 	}
 	ofp_copy_mac(eth->ether_shost, odata->dev_out->mac);
 
-	if (ETH_WITHOUT_VLAN(odata->vlan, odata->out_port)) {
+	if (ETH_WITHOUT_VLAN(odata->vlan, odata->dev_out->port)) {
 		eth->ether_type = odp_cpu_to_be_16(OFP_ETHERTYPE_IP);
 	} else {
 		struct ofp_ether_vlan_header *eth_vlan = l2_addr;
@@ -1049,9 +1049,8 @@ static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
 		odata->nh->arp_ent_idx);
 	odata->gw = odata->nh->gw;
 	odata->vlan = odata->nh->vlan;
-	odata->out_port = odata->nh->port;
 
-	odata->dev_out = ofp_get_ifnet(odata->out_port, odata->vlan);
+	odata->dev_out = ofp_get_ifnet(odata->nh->port, odata->vlan);
 
 	if (!odata->dev_out) {
 		OFP_DBG("!dev_out");
@@ -1196,7 +1195,7 @@ static inline enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 	if (odata->insert_checksum)
 		ofp_chksum_insert(pkt, odata);
 
-	switch (odata->out_port) {
+	switch (odata->dev_out->port) {
 	case GRE_PORTS:
 		return ofp_output_ipv4_to_gre(pkt, odata->dev_out);
 		break;
