@@ -645,7 +645,6 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt)
 }
 
 #define ETH_WITH_VLAN(_dev) (_dev->vlan && _dev->port != VXLAN_PORTS)
-#define ETH_WITHOUT_VLAN(_vlan, _port) (_vlan == 0 || _port == VXLAN_PORTS)
 
 static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 {
@@ -965,7 +964,7 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		is_link_local = 1;
 	}
 
-	if (ETH_WITHOUT_VLAN(odata->vlan, odata->dev_out->port))
+	if (!ETH_WITH_VLAN(odata->dev_out))
 		l2_size = sizeof(struct ofp_ether_header);
 	else
 		l2_size = sizeof(struct ofp_ether_vlan_header);
@@ -999,14 +998,14 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 	}
 	ofp_copy_mac(eth->ether_shost, odata->dev_out->mac);
 
-	if (ETH_WITHOUT_VLAN(odata->vlan, odata->dev_out->port)) {
+	if (!ETH_WITH_VLAN(odata->dev_out)) {
 		eth->ether_type = odp_cpu_to_be_16(OFP_ETHERTYPE_IP);
 	} else {
 		struct ofp_ether_vlan_header *eth_vlan = l2_addr;
 
 		eth_vlan->evl_encap_proto = odp_cpu_to_be_16(
 							OFP_ETHERTYPE_VLAN);
-		eth_vlan->evl_tag = odp_cpu_to_be_16(odata->vlan);
+		eth_vlan->evl_tag = odp_cpu_to_be_16(odata->dev_out->vlan);
 		eth_vlan->evl_proto = odp_cpu_to_be_16(OFP_ETHERTYPE_IP);
 	}
 
@@ -1048,9 +1047,8 @@ static enum ofp_return_code ofp_ip_output_find_route(odp_packet_t pkt,
 		ofp_print_ip_addr(odata->nh->gw),
 		odata->nh->arp_ent_idx);
 	odata->gw = odata->nh->gw;
-	odata->vlan = odata->nh->vlan;
 
-	odata->dev_out = ofp_get_ifnet(odata->nh->port, odata->vlan);
+	odata->dev_out = ofp_get_ifnet(odata->nh->port, odata->nh->vlan);
 
 	if (!odata->dev_out) {
 		OFP_DBG("!dev_out");

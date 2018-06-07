@@ -21,7 +21,6 @@ struct ip_out {
 	struct ofp_nh_entry *nh;
 	struct ofp_ip *ip;
 	uint32_t gw;
-	uint16_t vlan;
 	uint16_t vrf;
 	uint8_t is_local_address;
 	uint8_t insert_checksum;
