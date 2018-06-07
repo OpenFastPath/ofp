@@ -510,6 +510,7 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 	if (vlan) {
 		if (data == NULL) {
 			data = ofp_get_create_ifnet(port, vlan);
+			data->if_type = OFP_IFT_ETHER;
 #ifdef SP
 			char *iname = ofp_port_vlan_to_ifnet_name(port, 0);
 			snprintf(cmd, sizeof(cmd),
