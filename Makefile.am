@@ -112,6 +112,7 @@ noinst_HEADERS = \
 		  $(top_srcdir)/include/ofpi_hook.h \
 		  $(top_srcdir)/include/ofpi_util.h \
 		  $(top_srcdir)/include/ofpi_tcp_shm.h \
-		  $(top_srcdir)/include/ofpi_epoll.h
+		  $(top_srcdir)/include/ofpi_epoll.h \
+		  $(top_srcdir)/include/ofpi_brlock.h
 
 EXTRA_DIST = bootstrap .scmversion
