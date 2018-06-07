@@ -1290,7 +1290,6 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 	uint32_t flags;
 	struct ofp_nh6_entry *nh;
 	uint16_t vlan;
-	int out_port;
 	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
 	struct ofp_ifnet *dev_out = NULL;
 	int vrf = send_ctx ? send_ctx->vrf : 0;
@@ -1314,24 +1313,22 @@ enum ofp_return_code ofp_ip6_output(odp_packet_t pkt,
 	if (nh_param) {
 		nh = nh_param;
 		vlan = nh->vlan;
-		out_port = nh->port;
 	} else {
 		nh = ofp_get_next_hop6(vrf,
 					 ip6->ip6_dst.ofp_s6_addr, &flags);
 		if (nh) {
 			vlan = nh->vlan;
-			out_port = nh->port;
 		} else
 			return OFP_PKT_DROP;
 	}
 
-	dev_out = ofp_get_ifnet(out_port, vlan);
+	dev_out = ofp_get_ifnet(nh->port, vlan);
 
 	if (!dev_out)
 		return OFP_PKT_DROP;
 
 	/* GRE */
-	if (out_port == GRE_PORTS)
+	if (dev_out->port == GRE_PORTS)
 		return ofp_output_ipv6_to_gre(pkt, dev_out);
 
 	if (!vlan)
