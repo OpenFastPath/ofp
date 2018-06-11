@@ -449,8 +449,6 @@ static void ofp_arp_entry_usetime_tmo(void *arg)
 
 	entry->usetime_upd_tmo = ODP_TIMER_INVALID;
 
-	entry->is_valid = FALSE;
-
 	odp_rwlock_write_unlock(&entry->usetime_rwlock);
 }
 
