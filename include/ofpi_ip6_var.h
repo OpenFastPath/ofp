@@ -473,7 +473,6 @@ int	ofp_in6_selectsrc(struct ofp_sockaddr_in6 *, void *,
 	struct inpcb *inp, void *, struct ofp_ucred *cred,
 	struct ofp_ifnet **, struct ofp_in6_addr *);
 
-uint32_t ofp_ip6_randomid __P((void));
 uint32_t ofp_ip6_randomflowlabel __P((void));
 
 #endif /* !_NETINET6_IP6_VAR_H_ */

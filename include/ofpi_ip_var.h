@@ -93,7 +93,6 @@ struct route;
 struct sockopt;
 
 VNET_DECLARE(struct ofp_ipstat, ofp_ipstat);
-VNET_DECLARE(uint16_t, ofp_ip_id);			/* ip packet ctr, for ids */
 VNET_DECLARE(int, ofp_ip_defttl);			/* default IP ttl */
 VNET_DECLARE(int, ofp_ipforwarding);		/* ip forwarding */
 #ifdef IPSTEALTH
@@ -111,7 +110,6 @@ VNET_DECLARE(int, ofp_rsvp_on);
 extern struct	pr_usrreqs rip_usrreqs;
 
 #define	V_ipstat		VNET(ofp_ipstat)
-#define	V_ip_id			VNET(ofp_ip_id)
 #define	V_ip_defttl		VNET(ofp_ip_defttl)
 #define	V_ipforwarding		VNET(ofp_ipforwarding)
 #ifdef IPSTEALTH
@@ -152,7 +150,6 @@ struct ofp_ifnet *
 void	ip_savecontrol(struct inpcb *, odp_packet_t *, struct ofp_ip *,
 	    odp_packet_t );
 void	ip_slowtimo(void);
-uint16_t	ip_randomid(void);
 int	rip_ctloutput(struct socket *, struct sockopt *);
 void	rip_ctlinput(int, struct ofp_sockaddr *, void *);
 void	rip_init(void);
@@ -227,10 +224,5 @@ extern int	(*ng_ipfw_input_p)(odp_packet_t *, int,
 
 extern int	(*ip_dn_ctl_ptr)(struct sockopt *);
 extern int	(*ip_dn_io_ptr)(odp_packet_t *, int, struct ip_fw_args *);
-
-VNET_DECLARE(int, ofp_ip_do_randomid);
-#define	V_ip_do_randomid	VNET(ofp_ip_do_randomid)
-#define	ip_newid()	((V_ip_do_randomid != 0) ? ip_randomid() : \
-			    odp_cpu_to_be_16(V_ip_id++))
 
 #endif /* !_OFPI_IP_VAR_H_ */

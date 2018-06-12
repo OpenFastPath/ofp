@@ -142,16 +142,6 @@ ofp_in6_sin6_2_sin_in_sock(struct ofp_sockaddr *nam)
 }
 
 uint32_t
-ofp_ip6_randomid(void)
-{
-	uint32_t result  = 0;
-
-	odp_random_data((uint8_t *)&result, sizeof(result), 0);
-
-	return result;
-}
-
-uint32_t
 ofp_ip6_randomflowlabel(void)
 {
 	uint32_t result  = 0;
