@@ -51,7 +51,6 @@ struct _pkt6 {
  * Shared data
  */
 struct ofp_route_mem {
-	struct ofp_rtl_tree default_routes;
 	struct ofp_rtl6_tree default_routes_6;
 	struct _pkt6 pkt6;
 };
@@ -183,6 +182,7 @@ static int add_route(struct ofp_route_msg *msg)
 	struct ofp_nh_entry tmp;
 	uint8_t  eth_addr[OFP_ETHER_ADDR_LEN];
 	odp_bool_t route_add_success = TRUE;
+	struct routes_by_vrf *fib;
 
 	memset(&eth_addr, 0, sizeof(eth_addr));
 #ifndef OFP_USE_LIBCK
@@ -210,20 +210,11 @@ static int add_route(struct ofp_route_msg *msg)
 	OFP_DBG("Adding route vrf=%d dst=%s/%d gw=%s arp idx=%u", msg->vrf,
 		ofp_print_ip_addr(msg->dst), msg->masklen,
 		ofp_print_ip_addr(msg->gw), tmp.arp_ent_idx);
-	if (msg->vrf) {
-		struct routes_by_vrf *data;
 
-		data = &vrf_shm->fib[msg->vrf];
-		if (ofp_rtl_insert(&data->routes, msg->dst, msg->masklen, &tmp)) {
-			OFP_DBG("ofp_rtl_insert failed");
-			route_add_success = FALSE;
-		}
-	} else {
-		if (ofp_rtl_insert(&shm->default_routes, msg->dst,
-				   msg->masklen, &tmp)) {
-			OFP_DBG("ofp_rtl_insert failed");
-			route_add_success = FALSE;
-		}
+	fib = &vrf_shm->fib[msg->vrf];
+	if (ofp_rtl_insert(&fib->routes, msg->dst, msg->masklen, &tmp)) {
+		OFP_DBG("ofp_rtl_insert failed");
+		route_add_success = FALSE;
 	}
 #ifndef OFP_USE_LIBCK
 	if (!route_add_success) {
@@ -244,21 +235,15 @@ static int add_route(struct ofp_route_msg *msg)
 static int del_route(struct ofp_route_msg *msg)
 {
 	struct ofp_nh_entry *nh_data;
+	struct routes_by_vrf *fib;
+
 	OFP_DBG("Deleting route vrf=%d addr=%s/%d", msg->vrf,
 		   ofp_print_ip_addr(msg->dst), msg->masklen);
 
 	OFP_LOCK_WRITE(route);
 
-	if (msg->vrf) {
-		struct routes_by_vrf *data;
-
-		data = &vrf_shm->fib[msg->vrf];
-		nh_data = ofp_rtl_remove(&(data->routes), msg->dst,
-					 msg->masklen);
-	} else {
-		nh_data = ofp_rtl_remove(&shm->default_routes,
-					 msg->dst, msg->masklen);
-	}
+	fib = &vrf_shm->fib[msg->vrf];
+	nh_data = ofp_rtl_remove(&fib->routes, msg->dst, msg->masklen);
 
 	if (!nh_data)
 		OFP_DBG("ofp_rtl_remove failed");
@@ -423,16 +408,11 @@ void ofp_show_routes(int fd, int what)
 	case OFP_SHOW_ARP:
 		ofp_sendf(fd,
 			    "VRF  ADDRESS          MAC                AGE\r\n");
-		ofp_arp_show_table(fd); /* ofp_rtl_traverse(fd, &shm->default_routes, show_arp); */
+		ofp_arp_show_table(fd);
 		break;
 	case OFP_SHOW_ROUTES:
 		ofp_sendf(fd, "Destination        Gateway         Iface  Flags\r\n");
-#ifdef MTRIE
-		ofp_rt_rule_print(fd, 0, show_routes);
-#else
-		ofp_rtl_traverse(fd, &shm->default_routes, show_routes);
-#endif
-		for (i = 1; i < global_param->num_vrf; i++)
+		for (i = 0; i < global_param->num_vrf; i++)
 			iter_routes(fd, i, &vrf_shm->fib[i].routes);
 #ifdef INET6
 		ofp_sendf(fd, "\r\nIPv6 routes\r\n");
@@ -446,27 +426,16 @@ struct ofp_nh_entry *ofp_get_next_hop(uint16_t vrf, uint32_t addr, uint32_t *fla
 {
 	(void) flags;
 	struct ofp_nh_entry *node;
+	struct routes_by_vrf *fib;
 
-	if (vrf) {
-		struct routes_by_vrf *data;
-
-		data = &vrf_shm->fib[vrf];
+	fib = &vrf_shm->fib[vrf];
 #ifndef MTRIE
-		OFP_LOCK_READ(route);
+	OFP_LOCK_READ(route);
 #endif
-		node = ofp_rtl_search(&(data->routes), addr);
+	node = ofp_rtl_search(&fib->routes, addr);
 #ifndef MTRIE
-		OFP_UNLOCK_READ(route);
+	OFP_UNLOCK_READ(route);
 #endif
-	} else {
-#ifndef MTRIE
-		OFP_LOCK_READ(route);
-#endif
-		node = ofp_rtl_search(&shm->default_routes, addr);
-#ifndef MTRIE
-		OFP_UNLOCK_READ(route);
-#endif
-	}
 
 	return node;
 }
@@ -481,7 +450,7 @@ static int add_local_interface(struct ofp_route_msg *msg)
 static int del_local_interface(struct ofp_route_msg *msg)
 {
 		OFP_LOCK_WRITE(route);
-		if (!ofp_rtl_remove(&shm->default_routes, msg->dst, 32))
+		if (!ofp_rtl_remove(&vrf_shm->fib[0].routes, msg->dst, 32))
 			OFP_DBG("ofp_rtl_remove failed");
 		OFP_UNLOCK_WRITE(route);
 
@@ -641,7 +610,6 @@ int ofp_route_init_global(void)
 	odp_rwlock_init(&ofp_locks_shm->lock_config_rw);
 	odp_rwlock_init(&ofp_locks_shm->lock_route_rw);
 
-	HANDLE_ERROR(ofp_rtl_init(&shm->default_routes));
 	HANDLE_ERROR(ofp_rtl6_init(&shm->default_routes_6));
 
 	odp_rwlock_init(&shm->pkt6.fr_ent_rwlock);
@@ -652,7 +620,7 @@ int ofp_route_init_global(void)
 			&shm->pkt6.entries[i], next);
 
 	memset(vrf_shm, 0, sizeof(*vrf_shm));
-	for (i = 1; i < global_param->num_vrf; i++)
+	for (i = 0; i < global_param->num_vrf; i++)
 		(void) ofp_rtl_root_init(&vrf_shm->fib[i].routes, i);
 
 	return 0;
