@@ -219,6 +219,9 @@ typedef struct ofp_global_param_t {
 
 	/**
 	 * Maximum number of VRFs. Default is OFP_NUM_VRF.
+	 *
+	 * VRF IDs used in interfaces and routes must be less than
+	 * this value.
 	 */
 	int num_vrf;
 

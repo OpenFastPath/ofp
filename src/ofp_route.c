@@ -546,6 +546,11 @@ static int del_local_interface(struct ofp_route_msg *msg)
 
 int32_t ofp_set_route_msg(struct ofp_route_msg *msg)
 {
+		if (msg->vrf >= global_param->num_vrf) {
+			OFP_ERR("VRF ID too big\n");
+			return -1;
+		}
+
 		if (msg->type == OFP_ROUTE_ADD)
 				return add_route(msg);
 
