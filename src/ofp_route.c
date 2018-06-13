@@ -31,9 +31,7 @@
  * Structure definitions
  */
 struct routes_by_vrf {
-	uint16_t vrf;
 	struct ofp_rtl_tree routes;
-	struct routes_by_vrf *next; /* next in the free list */
 };
 
 struct pkt6_entry {
@@ -53,16 +51,13 @@ struct _pkt6 {
  * Shared data
  */
 struct ofp_route_mem {
-	avl_tree *vrf_routes;
 	struct ofp_rtl_tree default_routes;
 	struct ofp_rtl6_tree default_routes_6;
 	struct _pkt6 pkt6;
 };
 
 struct vrf_route_mem {
-	struct routes_by_vrf *free_routes;
-	odp_rwlock_t vrf_mtx;
-	struct routes_by_vrf routes[0];
+	struct routes_by_vrf fib[0];
 };
 
 /*
@@ -74,20 +69,10 @@ static __thread struct vrf_route_mem *vrf_shm;
 
 struct ofp_locks_str *ofp_locks_shm;
 
-static int free_data(void *data);
 #ifdef INET6
 static void route6_cleanup(int fd, uint8_t *key, int level,
 		struct ofp_nh6_entry *data);
 #endif /* INET6 */
-
-static int routes_avl_compare(void *compare_arg, void *a, void *b)
-{
-	(void) compare_arg;
-	struct routes_by_vrf *a1 = a;
-	struct routes_by_vrf *b1 = b;
-
-	return (a1->vrf - b1->vrf);
-}
 
 static inline void *pkt6_entry_alloc(void)
 {
@@ -112,31 +97,6 @@ static inline void pkt6_entry_free(struct pkt6_entry *pktentry)
 	odp_rwlock_write_lock(&shm->pkt6.fr_ent_rwlock);
 	OFP_SLIST_INSERT_HEAD(&shm->pkt6.free_entries, pktentry, next);
 	odp_rwlock_write_unlock(&shm->pkt6.fr_ent_rwlock);
-}
-
-static struct routes_by_vrf *ofp_vrf_route_alloc(void)
-{
-	odp_rwlock_write_lock(&vrf_shm->vrf_mtx);
-	struct routes_by_vrf *rt = vrf_shm->free_routes;
-	if (vrf_shm->free_routes) {
-		vrf_shm->free_routes = vrf_shm->free_routes->next;
-	}
-	odp_rwlock_write_unlock(&vrf_shm->vrf_mtx);
-
-	if (rt == NULL) {
-		OFP_ERR("Cannot allocate VRF.");
-		return (NULL);
-	}
-
-	return rt;
-}
-
-static void ofp_vrf_route_free(struct routes_by_vrf *vrf)
-{
-	odp_rwlock_write_lock(&vrf_shm->vrf_mtx);
-	vrf->next = vrf_shm->free_routes;
-	vrf_shm->free_routes = vrf;
-	odp_rwlock_write_unlock(&vrf_shm->vrf_mtx);
 }
 
 /* ARP related functions */
@@ -251,17 +211,9 @@ static int add_route(struct ofp_route_msg *msg)
 		ofp_print_ip_addr(msg->dst), msg->masklen,
 		ofp_print_ip_addr(msg->gw), tmp.arp_ent_idx);
 	if (msg->vrf) {
-		struct routes_by_vrf key, *data;
+		struct routes_by_vrf *data;
 
-		key.vrf = msg->vrf;
-		if (avl_get_by_key(shm->vrf_routes, &key, (void *)&data)) {
-			OFP_DBG("Vrf does not exist");
-			data = ofp_vrf_route_alloc();
-			memset(data, 0, sizeof(*data));
-			data->vrf = msg->vrf;
-			ofp_rtl_root_init(&(data->routes), msg->vrf);
-			avl_insert(shm->vrf_routes, data);
-		}
+		data = &vrf_shm->fib[msg->vrf];
 		if (ofp_rtl_insert(&data->routes, msg->dst, msg->masklen, &tmp)) {
 			OFP_DBG("ofp_rtl_insert failed");
 			route_add_success = FALSE;
@@ -298,14 +250,9 @@ static int del_route(struct ofp_route_msg *msg)
 	OFP_LOCK_WRITE(route);
 
 	if (msg->vrf) {
-		struct routes_by_vrf key, *data;
+		struct routes_by_vrf *data;
 
-		key.vrf = msg->vrf;
-		if (avl_get_by_key(shm->vrf_routes, &key, (void *)&data)) {
-			OFP_DBG("Vrf does not exist");
-			OFP_UNLOCK_WRITE(route);
-			return -1;
-		}
+		data = &vrf_shm->fib[msg->vrf];
 		nh_data = ofp_rtl_remove(&(data->routes), msg->dst,
 					 msg->masklen);
 	} else {
@@ -457,21 +404,21 @@ static void show_routes6(int fd, uint8_t *key, int level, struct ofp_nh6_entry *
 }
 #endif /* INET6 */
 
-static int iter_routes(void * key, void * iter_arg)
+static void iter_routes(int fd, int vrf, struct ofp_rtl_tree *tree)
 {
-	struct routes_by_vrf *rbv = key;
-	int fd = *((int *)iter_arg);
-	ofp_sendf(fd, "VRF: %d\r\n", rbv->vrf);
+	ofp_sendf(fd, "VRF: %d\r\n", vrf);
 #ifdef MTRIE
-	ofp_rt_rule_print(fd, rbv->vrf, show_routes);
+	(void) tree;
+	ofp_rt_rule_print(fd, vrf, show_routes);
 #else
-	ofp_rtl_traverse(fd, &(rbv->routes), show_routes);
+	ofp_rtl_traverse(fd, tree, show_routes);
 #endif
-	return 0;
 }
 
 void ofp_show_routes(int fd, int what)
 {
+	int i;
+
 	switch (what) {
 	case OFP_SHOW_ARP:
 		ofp_sendf(fd,
@@ -485,7 +432,8 @@ void ofp_show_routes(int fd, int what)
 #else
 		ofp_rtl_traverse(fd, &shm->default_routes, show_routes);
 #endif
-		avl_iterate_inorder(shm->vrf_routes, iter_routes, &fd);
+		for (i = 1; i < global_param->num_vrf; i++)
+			iter_routes(fd, i, &vrf_shm->fib[i].routes);
 #ifdef INET6
 		ofp_sendf(fd, "\r\nIPv6 routes\r\n");
 		ofp_rtl_traverse6(fd, &shm->default_routes_6, show_routes6);
@@ -500,13 +448,9 @@ struct ofp_nh_entry *ofp_get_next_hop(uint16_t vrf, uint32_t addr, uint32_t *fla
 	struct ofp_nh_entry *node;
 
 	if (vrf) {
-		struct routes_by_vrf key, *data;
+		struct routes_by_vrf *data;
 
-		key.vrf = vrf;
-		if (avl_get_by_key(shm->vrf_routes, &key, (void *)&data)) {
-			OFP_DBG("VRF %d does not exist", vrf);
-			return NULL;
-		}
+		data = &vrf_shm->fib[vrf];
 #ifndef MTRIE
 		OFP_LOCK_READ(route);
 #endif
@@ -697,14 +641,8 @@ int ofp_route_init_global(void)
 	odp_rwlock_init(&ofp_locks_shm->lock_config_rw);
 	odp_rwlock_init(&ofp_locks_shm->lock_route_rw);
 
-	/*avl_tree_new(routes_avl_compare, NULL);*/
 	HANDLE_ERROR(ofp_rtl_init(&shm->default_routes));
 	HANDLE_ERROR(ofp_rtl6_init(&shm->default_routes_6));
-	shm->vrf_routes = avl_tree_new(routes_avl_compare, NULL);
-	if (shm->vrf_routes == NULL) {
-		OFP_ERR("AVL tree allocation failure.");
-		return -1;
-	}
 
 	odp_rwlock_init(&shm->pkt6.fr_ent_rwlock);
 	memset(shm->pkt6.entries, 0, sizeof(shm->pkt6.entries));
@@ -714,12 +652,8 @@ int ofp_route_init_global(void)
 			&shm->pkt6.entries[i], next);
 
 	memset(vrf_shm, 0, sizeof(*vrf_shm));
-	for (i = 0; i < global_param->num_vrf; i++) {
-		vrf_shm->routes[i].next = (i == global_param->num_vrf - 1) ?
-			NULL : &(vrf_shm->routes[i+1]);
-	}
-	vrf_shm->free_routes = &(vrf_shm->routes[0]);
-	odp_rwlock_init(&vrf_shm->vrf_mtx);
+	for (i = 1; i < global_param->num_vrf; i++)
+		(void) ofp_rtl_root_init(&vrf_shm->fib[i].routes, i);
 
 	return 0;
 }
@@ -733,11 +667,6 @@ int ofp_route_term_global(void)
 		OFP_ERR("ofp_shared_memory_lookup failed");
 		rc = -1;
 	} else {
-		if (shm->vrf_routes) {
-			avl_tree_free(shm->vrf_routes, free_data);
-			shm->vrf_routes = NULL;
-		}
-
 #ifdef INET6
 		ofp_rtl_traverse6(0, &shm->default_routes_6, route6_cleanup);
 #endif /*INET6*/
@@ -755,12 +684,6 @@ int ofp_route_term_global(void)
 	CHECK_ERROR(ofp_vrf_route_free_shared_memory(), rc);
 
 	return rc;
-}
-
-static int free_data(void *data)
-{
-	ofp_vrf_route_free(data);
-	return 1;
 }
 
 #ifdef INET6
