@@ -449,12 +449,12 @@ static int add_local_interface(struct ofp_route_msg *msg)
 
 static int del_local_interface(struct ofp_route_msg *msg)
 {
-		OFP_LOCK_WRITE(route);
-		if (!ofp_rtl_remove(&vrf_shm->fib[0].routes, msg->dst, 32))
-			OFP_DBG("ofp_rtl_remove failed");
-		OFP_UNLOCK_WRITE(route);
+	OFP_LOCK_WRITE(route);
+	if (!ofp_rtl_remove(&vrf_shm->fib[msg->vrf].routes, msg->dst, 32))
+		OFP_DBG("ofp_rtl_remove failed");
+	OFP_UNLOCK_WRITE(route);
 
-		return 0;
+	return 0;
 }
 
 int32_t ofp_set_route_msg(struct ofp_route_msg *msg)
