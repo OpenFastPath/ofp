@@ -41,12 +41,6 @@
 #define SAVED_PKT_TIMEOUT (global_param->arp.saved_pkt_timeout * US_PER_SEC)
 #define AGE_DIVISOR 2
 
-#if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)
-#define hashfunc ofp_hashlittle
-#else
-#define hashfunc ofp_hashbig
-#endif
-
 /*
  * Data
  */
@@ -92,9 +86,7 @@ static __thread struct ofp_arp_mem *shm;
 
 static inline uint32_t ipv4_hash(struct arp_key *key)
 {
-	uint32_t set = hashfunc(key, sizeof(*key), 0) & (NUM_SETS - 1);
-
-	return set;
+	return ofp_hashword((const uint32_t *)key, sizeof(*key)/sizeof(uint32_t), 0) & (NUM_SETS - 1);
 }
 
 static inline uint32_t set_key_and_hash(uint32_t vrf, uint32_t ipv4_addr,

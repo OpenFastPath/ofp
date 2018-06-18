@@ -34,12 +34,6 @@
 #define ENTRIES_PER_SET (ENTRIES_PER_CACHE_LINE * 4)
 #define NUM_SETS 2048 /* Must be power of two */
 
-#if (ODP_BYTE_ORDER == ODP_LITTLE_ENDIAN)
-#define hashfunc ofp_hashlittle
-#else
-#define hashfunc ofp_hashbig
-#endif
-
 struct arp_tbl {
 	struct arp_entry *slh_first;
 };
@@ -57,11 +51,7 @@ static __thread ck_epoch_record_t record ODP_ALIGNED_CACHE;
 
 static inline uint32_t ipv4_hash(struct arp_key *key)
 {
-	uint32_t set;
-
-	set = hashfunc(key, sizeof(*key), 0) & (NUM_SETS - 1);
-
-	return set;
+	return ofp_hashword((const uint32_t *)key, sizeof(*key)/sizeof(uint32_t), 0) & (NUM_SETS - 1);
 }
 
 static inline void *arp_malloc(int index, struct arp_key *key)

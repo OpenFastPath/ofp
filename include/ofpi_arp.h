@@ -12,6 +12,10 @@
 #include "ofpi_pkt_processing.h" /* return codes, i.e.: OFP_DROP */
 #include "ofpi.h"
 
+/*
+ * The size of this must be a multiple of 4. That way the hash
+ * function doesn't need to deal with partial doublewords.
+ */
 struct arp_key {
 	uint32_t vrf;
 	uint32_t ipv4_addr;
