@@ -1002,8 +1002,6 @@ ofp_sosend_dgram(struct socket *so, struct ofp_sockaddr *addr, struct uio *uio,
 		if (top == ODP_PACKET_INVALID)
 			goto out;
 
-		odp_packet_user_ptr_set(top, NULL);
-
 		error = 0;
 
 		p = odp_packet_data(top);
@@ -1216,7 +1214,6 @@ restart:
 				if (cancopy > space)
 					cancopy = space;
 				odp_packet_reset(top, cancopy);
-				odp_packet_user_ptr_set(top, NULL);
 				uint8_t *p = odp_packet_data(top);
 				memcpy(p, uio->uio_iov->iov_base, cancopy);
 				uio->uio_iov->iov_base = cancopy +

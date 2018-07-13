@@ -879,7 +879,6 @@ send:
 #endif /*INET6*/
 			sizeof(struct ofp_ip));
 	}
-	odp_packet_user_ptr_set(m, NULL);
 
 #ifdef MAC
 	mac_inpcb_create_mbuf(tp->t_inpcb, m);

@@ -561,7 +561,8 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 			odp_packet_l4_offset_set(m, sizeof(struct ofp_ip));
 		}
 		flags = OFP_TH_ACK;
-	}
+	} else
+		odp_packet_user_ptr_set(m, NULL);
 
 	tlen = 0;
 
@@ -617,7 +618,6 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 			ip->ip_off |= OFP_IP_DF;
 	}
 
-	odp_packet_user_ptr_set(m, NULL);
 	nth->th_seq = odp_cpu_to_be_32(seq);
 	nth->th_ack = odp_cpu_to_be_32(ack);
 	nth->th_x2 = 0;
