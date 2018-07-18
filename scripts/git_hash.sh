@@ -11,7 +11,7 @@ SCM_FILE=${1}/.scmversion
 if [ -d ${GIT_DIR} ]; then
 	export GIT_DIR
 	hash=$(git describe --dirty 2>/dev/null | tr -d "\n")
-	if [ -z "$hash" ]; then
+	if [[ "$hash" = "" || "$hash" =~ ^v2\.0_rc1.* ]]; then
 		branch=$(git rev-parse --abbrev-ref HEAD)
 		hash=$(git rev-parse --short HEAD)
 		rm -f ${SCM_FILE}
