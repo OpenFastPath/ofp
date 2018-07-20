@@ -592,9 +592,9 @@ ofp_tcp_respond(struct tcpcb *tp, void *ipgen, struct ofp_tcphdr *th, odp_packet
 #endif /* INET6 */
 		{
 			xchg(ip->ip_dst.s_addr, ip->ip_src.s_addr, uint32_t);
-			xchg(nth->th_dport, nth->th_sport, uint16_t);
 		}
 
+		xchg(nth->th_dport, nth->th_sport, uint16_t);
 #undef xchg
 	} /* valid_m */
 
