@@ -931,13 +931,15 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 	struct ofp_ether_header *eth;
 	uint32_t addr;
 	uint32_t is_link_local = 0;
+	uint32_t gw;
 
 	trim_tail(pkt, odp_be_to_cpu_16(odata->ip->ip_len));
 
 	if (!odata->gw) { /* link local */
-		odata->gw = odata->ip->ip_dst.s_addr;
+		gw = odata->ip->ip_dst.s_addr;
 		is_link_local = 1;
-	}
+	} else
+		gw = odata->gw;
 
 	if (!ETH_WITH_VLAN(odata->dev_out))
 		l2_size = sizeof(struct ofp_ether_header);
@@ -965,11 +967,11 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		odata->is_local_address = 1;
 		ofp_copy_mac(eth->ether_dhost, odata->dev_out->mac);
 	} else if (ofp_get_mac(odata->dev_out, odata->nh,
-			       odata->gw, is_link_local,
+			       gw, is_link_local,
 			       eth->ether_dhost) < 0) {
-		send_arp_request(odata->dev_out, odata->gw);
+		send_arp_request(odata->dev_out, gw);
 		return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
-					     odata->gw, odata->dev_out);
+					     gw, odata->dev_out);
 	}
 	ofp_copy_mac(eth->ether_shost, odata->dev_out->mac);
 
