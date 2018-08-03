@@ -247,6 +247,9 @@ static void read_conf_file(ofp_global_param_t *params, const char *filename)
 	GET_CONF_INT(bool, chksum_offload.ipv4_tx_ena);
 	GET_CONF_INT(bool, chksum_offload.udp_tx_ena);
 	GET_CONF_INT(bool, chksum_offload.tcp_tx_ena);
+	GET_CONF_INT(int, ipsec.max_num_sp);
+	GET_CONF_INT(int, ipsec.max_num_sa);
+	GET_CONF_INT(int, ipsec.max_inbound_spi);
 
 done:
 	config_destroy(&conf);

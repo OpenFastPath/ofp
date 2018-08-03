@@ -294,6 +294,11 @@ typedef struct ofp_global_param_t {
  *         udp_tx_ena = true
  *         tcp_tx_ena = true
  *     }
+ *     ipsec: {
+ *         max_num_sp = integer
+ *         max_num_sa = integer
+ *         max_inbound_spi = integer
+ *     }
  * }
  * </pre>
  *
