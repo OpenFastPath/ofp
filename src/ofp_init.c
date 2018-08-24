@@ -48,7 +48,7 @@ static __thread struct ofp_global_config_mem *shm;
 
 __thread ofp_global_param_t *global_param = NULL;
 
-static void schedule_shutdown(void);
+static void drain_scheduler(void);
 static void cleanup_pkt_queue(odp_queue_t pkt_queue);
 
 static int ofp_global_config_alloc_shared_memory(void)
@@ -633,8 +633,22 @@ int ofp_term_post_global(const char *pool_name)
 	/* Cleanup timers - phase 1*/
 	CHECK_ERROR(ofp_timer_stop_global(), rc);
 
+	/*
+	 * ofp_term_local() has paused scheduling for this thread. Resume
+	 * scheduling temporarily for draining events created during global
+	 * termination.
+	 */
+	odp_schedule_resume();
+
 	/* Cleanup pending events */
-	schedule_shutdown();
+	drain_scheduler();
+
+	/*
+	 * Now pause scheduling permanently and drain events once more
+	 * as suggested by the ODP API.
+	 */
+	odp_schedule_pause();
+	drain_scheduler();
 
 	/* Cleanup timers - phase 2*/
 	CHECK_ERROR(ofp_timer_term_global(), rc);
@@ -662,19 +676,21 @@ int ofp_term_local(void)
 {
 	int rc = 0;
 
+	odp_schedule_pause();
+	drain_scheduler();
+
 	CHECK_ERROR(ofp_ip_term_local(), rc);
 	CHECK_ERROR(ofp_send_pkt_out_term_local(), rc);
 
 	return rc;
 }
 
-static void schedule_shutdown(void)
+static void drain_scheduler(void)
 {
 	odp_event_t evt;
 	odp_queue_t from;
 
 	while (1) {
-		/* should be called from a thread within OFP's schedule group */
 		evt = odp_schedule(&from, ODP_SCHED_NO_WAIT);
 		if (evt == ODP_EVENT_INVALID)
 			break;
@@ -688,8 +704,6 @@ static void schedule_shutdown(void)
 			odp_event_free(evt);
 		}
 	}
-
-	odp_schedule_pause();
 }
 
 static void cleanup_pkt_queue(odp_queue_t pkt_queue)
