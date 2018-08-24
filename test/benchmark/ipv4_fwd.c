@@ -104,7 +104,6 @@ static int worker(void *p)
 {
 	(void)p;
 
-	ASSERT(!odp_init_local(instance, ODP_THREAD_WORKER));
 	ASSERT(!ofp_init_local());
 
 	int res;
