@@ -30,6 +30,7 @@
 
 #define ALLOW_UNUSED_LOCAL(x) false ? (void)x : (void)0
 
+static odp_instance_t instance;
 static odp_atomic_u32_t still_running;
 static odph_odpthread_t pp_thread_handle;
 int pp_thread(void *arg);
@@ -38,7 +39,6 @@ static int init_suite(void)
 {
 	ofp_global_param_t params;
 	odph_odpthread_params_t thr_params;
-	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
@@ -56,6 +56,10 @@ static int init_suite(void)
 	params.enable_nl_thread = 0;
 	params.arp.entry_timeout = ENTRY_TIMEOUT;
 	(void) ofp_init_global(instance, &params);
+
+	if (ofp_init_local()) {
+		return -1;
+	}
 
 	/*
 	 * Start a packet processing thread to service timer events.
@@ -82,6 +86,12 @@ static int end_suite(void)
 
 	odph_odpthreads_join(&pp_thread_handle);
 
+	ofp_term_local();
+	ofp_term_global();
+
+	odp_term_local();
+	odp_term_global(instance);
+
 	return 0;
 }
 
@@ -107,6 +117,7 @@ int pp_thread(void *arg)
 
 		ofp_timer_handle(event);
 	}
+	ofp_term_local();
 	return 0;
 }
 
