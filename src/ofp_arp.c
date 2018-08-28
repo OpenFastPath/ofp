@@ -585,7 +585,7 @@ enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry
 			  odp_packet_to_u64(pkt),
 			  ofp_print_ip_addr(ipv4_addr));
 		if (OFP_SLIST_FIRST(&newarp->pkt_list_head) == NULL)
-			remove_entry(set, newarp);
+			ofp_arp_ipv4_remove_entry(set, newarp);
 		odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
 		return OFP_PKT_DROP;
 	}
