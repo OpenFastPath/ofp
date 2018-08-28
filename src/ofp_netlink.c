@@ -886,6 +886,7 @@ int start_netlink_nl_server(void *arg)
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
 		OFP_ERR("Error: Failed to retrieve global configuration.");
+		ofp_term_local();
 		return -1;
 	}
 
@@ -914,6 +915,7 @@ int start_netlink_nl_server(void *arg)
 	}
 
 	OFP_DBG("Netlink server exiting");
+	ofp_term_local();
 	return 0;
 }
 
