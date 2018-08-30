@@ -298,6 +298,8 @@ typedef struct ofp_global_param_t {
  *         max_num_sp = integer
  *         max_num_sa = integer
  *         max_inbound_spi = integer
+ *         inbound_op_mode = "sync" | "async" | "inline" | "disabled"
+ *         outbound_op_mode = "sync" | "async" | "inline" | "disabled"
  *     }
  * }
  * </pre>

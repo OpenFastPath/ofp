@@ -149,6 +149,13 @@ struct lookup_entry lt_sched_group[] = {
 	ENTRY(ODP_SCHED_GROUP_CONTROL),
 };
 
+struct lookup_entry lt_ipsec_op_mode[] = {
+	ENTRY(ODP_IPSEC_OP_MODE_SYNC),
+	ENTRY(ODP_IPSEC_OP_MODE_ASYNC),
+	ENTRY(ODP_IPSEC_OP_MODE_INLINE),
+	ENTRY(ODP_IPSEC_OP_MODE_DISABLED),
+};
+
 /*
  * Based on a string, lookup a value in a struct lookup_entry
  * array. Return the value from the entry or -1 if not found.
@@ -210,16 +217,16 @@ static void read_conf_file(ofp_global_param_t *params, const char *filename)
 		}
 	}
 
-#define GET_CONF_STR(p)							\
+#define GET_CONF_STR(lt, p)							\
 	if (config_lookup_string(&conf, "ofp_global_param." STR(p), &str)) { \
-		i = lookup(lt_ ## p, sizeof(lt_ ## p) / sizeof(lt_ ## p[0]), str); \
+		i = lookup(lt_ ## lt, sizeof(lt_ ## lt) / sizeof(lt_ ## lt[0]), str); \
 		if (i >= 0) params->p = i;				\
 	}
 
-	GET_CONF_STR(pktin_mode);
-	GET_CONF_STR(pktout_mode);
-	GET_CONF_STR(sched_sync);
-	GET_CONF_STR(sched_group);
+	GET_CONF_STR(pktin_mode, pktin_mode);
+	GET_CONF_STR(pktout_mode, pktout_mode);
+	GET_CONF_STR(sched_sync, sched_sync);
+	GET_CONF_STR(sched_group, sched_group);
 
 #define GET_CONF_INT(type, p)						\
 	if (config_lookup_ ## type(&conf, "ofp_global_param." STR(p), &i)) \
@@ -250,6 +257,8 @@ static void read_conf_file(ofp_global_param_t *params, const char *filename)
 	GET_CONF_INT(int, ipsec.max_num_sp);
 	GET_CONF_INT(int, ipsec.max_num_sa);
 	GET_CONF_INT(int, ipsec.max_inbound_spi);
+	GET_CONF_STR(ipsec_op_mode, ipsec.inbound_op_mode);
+	GET_CONF_STR(ipsec_op_mode, ipsec.outbound_op_mode);
 
 done:
 	config_destroy(&conf);
