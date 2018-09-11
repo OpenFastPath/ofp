@@ -44,6 +44,32 @@ struct ofp_ipsec_param {
 	 * Maximum inbound SPI value that may be used.
 	 */
 	uint32_t max_inbound_spi;
+
+	/**
+	 * Event queue for signaling the completion of asynchronous
+	 * inbound IPsec operations in async and inline operation mode.
+	 *
+	 * If the value is ODP_QUEUE_INVALID, OFP will create a schedulable
+	 * event queue itself if needed.
+	 *
+	 * If the queue is schedulable and ordered, OFP will make use of its
+	 * ordered lock with index 0 (see sched.lock_count queue parameter).
+	 *
+	 * Ownership of the queue transfers to OFP at ofp_init_global().
+	 *
+	 * Default value is ODP_QUEUE_INVALID.
+	 */
+	odp_queue_t inbound_queue;
+
+	/**
+	 * Event queue for signaling the completion of asynchronous
+	 * outbound IPsec operations in async and inline operation mode.
+	 *
+	 * Similar to inbound_queue in other respects.
+	 *
+	 * outbound_queue and inbound_queue can be the same queue.
+	 */
+	odp_queue_t outbound_queue;
 };
 
 #endif /* OFP_IPSEC_INIT_H */

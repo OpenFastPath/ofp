@@ -64,6 +64,8 @@ void ofp_ipsec_param_init(struct ofp_ipsec_param *param)
 	param->max_num_sp = OFP_IPSEC_MAX_NUM_SP;
 	param->max_num_sa = OFP_IPSEC_MAX_NUM_SA;
 	param->max_inbound_spi = OFP_IPSEC_MAX_INBOUND_SPI;
+	param->inbound_queue = ODP_QUEUE_INVALID;
+	param->outbound_queue = ODP_QUEUE_INVALID;
 }
 
 void ofp_ipsec_init_prepare(const struct ofp_ipsec_param *param)
@@ -130,11 +132,37 @@ static int create_ev_queues(const struct ofp_ipsec_param *param,
 	return 0;
 }
 
+static int check_ev_queue(odp_ipsec_op_mode_t op_mode, odp_queue_t queue)
+{
+	if (op_mode == ODP_IPSEC_OP_MODE_SYNC)
+		return 0;
+	if (queue == ODP_QUEUE_INVALID)
+		return -1;
+	if (odp_queue_type(queue) != ODP_QUEUE_TYPE_SCHED)
+		return 0;
+
+	switch (odp_queue_sched_type(queue)) {
+	case ODP_SCHED_SYNC_ORDERED:
+		if (odp_queue_lock_count(queue) < 1) {
+			OFP_ERR("No ordered locks in IPsec event queue");
+			return -1;
+		}
+		break;
+	case ODP_SCHED_SYNC_PARALLEL:
+		OFP_WARN("Parallel IPsec event queue may not preserve packet order");
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
 static void destroy_ev_queues(odp_queue_t in_queue, odp_queue_t out_queue)
 {
 	if (in_queue != ODP_QUEUE_INVALID)
 		odp_queue_destroy(in_queue);
-	if (out_queue != ODP_QUEUE_INVALID)
+	if (out_queue != ODP_QUEUE_INVALID &&
+	    out_queue != in_queue)
 		odp_queue_destroy(out_queue);
 }
 
@@ -142,8 +170,8 @@ int ofp_ipsec_init_global(const struct ofp_ipsec_param *param)
 {
 	odp_ipsec_config_t config;
 	odp_ipsec_capability_t capa;
-	odp_queue_t in_queue = ODP_QUEUE_INVALID;
-	odp_queue_t out_queue = ODP_QUEUE_INVALID;
+	odp_queue_t in_queue = param->inbound_queue;
+	odp_queue_t out_queue = param->outbound_queue;
 	uint32_t max_num_sa = param->max_num_sa;
 	uint32_t max_num_sp = param->max_num_sp;
 
@@ -195,6 +223,11 @@ int ofp_ipsec_init_global(const struct ofp_ipsec_param *param)
 	if (max_num_sa > 0) {
 		if (create_ev_queues(param, &in_queue, &out_queue) != 0)
 			return -1;
+		if (check_ev_queue(param->inbound_op_mode, in_queue) ||
+		    check_ev_queue(param->outbound_op_mode, out_queue)) {
+			destroy_ev_queues(in_queue, out_queue);
+			return -1;
+		}
 
 		odp_ipsec_config_init(&config);
 		config.inbound_mode = param->inbound_op_mode;
@@ -758,7 +791,6 @@ static void handle_sa_disable_completion(const odp_ipsec_status_t *status,
 					 odp_queue_t queue)
 {
 	ofp_ipsec_sa_handle sa = odp_ipsec_sa_context(status->sa);
-	(void) queue;
 
 	if (status->result < 0) {
 		OFP_ERR("Failed to finish disabling ODP SA (%"PRIu64")",
@@ -769,8 +801,17 @@ static void handle_sa_disable_completion(const odp_ipsec_status_t *status,
 	/*
 	 * Make sure other threads complete the processing of preceding
 	 * packet completion events for this SA.
+	 *
+	 * - If the event queue is atomic, other threads have already
+	 *   stopped processing all packet events for this SA.
+	 * - If the event queue is ordered, we use an ordered lock to
+	 *   ensure the other threads are done.
+	 * - If the event queue is parallel or not scheduled at all,
+	 *   we assume that the OFP application somehow ensures that
+	 *   the SA is no longer in
 	 */
-	{
+	if (odp_queue_type(queue) == ODP_QUEUE_TYPE_SCHED &&
+	    odp_queue_sched_type(queue) == ODP_SCHED_SYNC_ORDERED) {
 		odp_schedule_order_lock(0);
 		/* At this point other threads are done with this SA. */
 		odp_schedule_order_unlock(0);
