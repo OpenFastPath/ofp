@@ -77,7 +77,11 @@ typedef enum ofp_ipsec_cipher_alg_t {
  * IPSEC key structure
  */
 typedef struct ofp_ipsec_key_t {
-	/** Key length in bytes */
+	/** Key length in bytes
+	 *
+	 * @note With AES_GCM the key must be 4 bytes longer than the AES key.
+	 * The last 4 bytes of the key are used as the salt value.
+	 */
 	uint16_t key_len;
 	/** Key data */
 	uint8_t key_data[OFP_IPSEC_MAX_KEY_SZ];
@@ -113,7 +117,12 @@ typedef enum ofp_ipsec_auth_alg_t {
 	 *
 	 *  @note Must be paired with cipher OFP_IPSEC_CIPHER_ALG_AES_GCM
 	 */
-	OFP_IPSEC_AUTH_ALG_AES_GCM = ODP_AUTH_ALG_AES_GCM
+	OFP_IPSEC_AUTH_ALG_AES_GCM = ODP_AUTH_ALG_AES_GCM,
+	/** AES Galois Message Authentication Code
+	 *
+	 *  @note Must be paired with cipher OFP_IPSEC_CIPHER_ALG_NULL
+	 */
+	OFP_IPSEC_AUTH_ALG_AES_GMAC = ODP_AUTH_ALG_AES_GMAC
 } ofp_ipsec_auth_alg_t;
 
 /**

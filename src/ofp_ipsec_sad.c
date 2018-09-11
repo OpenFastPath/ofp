@@ -158,6 +158,21 @@ int ofp_ipsec_sad_term_global(void)
 	return 0;
 }
 
+#define SALT_LEN 4
+
+/*
+ * Move salt from end of the key data to cipher_key_extra parameter for ODP.
+ */
+static void extract_salt(odp_ipsec_crypto_param_t *crypto,
+			 odp_crypto_key_t *key)
+{
+	if (key->length < SALT_LEN)
+		return;
+	key->length -= SALT_LEN;
+	crypto->cipher_key_extra.data = &key->data[key->length];
+	crypto->cipher_key_extra.length = SALT_LEN;
+}
+
 static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 {
 	ofp_ipsec_sa_param_t *param = &sa->param;
@@ -173,9 +188,14 @@ static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 	crypto->cipher_key.length = param->crypto.cipher_key.key_len;
 	crypto->cipher_key_extra.data = NULL;
 	crypto->cipher_key_extra.length = 0;
+	if (crypto->cipher_alg == ODP_CIPHER_ALG_AES_GCM)
+		extract_salt(crypto, &crypto->cipher_key);
 	crypto->auth_alg = param->crypto.auth_alg;
 	crypto->auth_key.data = param->crypto.auth_key.key_data;
 	crypto->auth_key.length = param->crypto.auth_key.key_len;
+	if (crypto->auth_alg == ODP_AUTH_ALG_AES_GCM ||
+	    crypto->auth_alg == ODP_AUTH_ALG_AES_GMAC)
+		extract_salt(crypto, &crypto->auth_key);
 
 	opt->esn = param->opt.esn;
 	opt->udp_encap = param->opt.udp_encap;
