@@ -986,7 +986,7 @@ static struct cli_node *add_command(struct cli_node *root, struct cli_command *c
 	struct cli_node *new;
 	struct cli_node *n;
 	int nextpossibility = 0;
-	int len;
+	size_t len;
 	char *nw;
 	char *param;
 	const char *str;
@@ -1009,7 +1009,8 @@ static struct cli_node *add_command(struct cli_node *root, struct cli_command *c
 			len = strlen(str);
 		}
 
-		while (cn != &end && strncmp(str, cn->word, len)) {
+		while (cn != &end && (strncmp(str, cn->word, len)
+				      || len != strlen(cn->word))) {
 			s = cn;
 			cn = cn->nextpossibility;
 		}
@@ -1206,11 +1207,13 @@ static void print_q(struct cli_conn *conn, struct cli_node *s, struct cli_node *
 
 static struct cli_node *find_next_vertical(struct cli_node *s, char *word)
 {
-	int foundcnt = 0, len = strlen(word);
+	int foundcnt = 0;
+	size_t len = strlen(word);
 	struct cli_node *found = 0;
 
 	while (s != &end) {
-		if ((strncmp(s->word, word, len) == 0) ||
+		if ((strncmp(s->word, word, len) == 0 &&
+		     strlen(s->word) == len) ||
 			(s->word == NUMBER && int_ok(word)) ||
 			(s->word == IP4ADDR && ip4addr_ok(word)) ||
 			(s->word == TOPNAME && topname_ok(word)) ||
