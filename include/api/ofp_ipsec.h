@@ -248,7 +248,20 @@ typedef struct ofp_ipsec_sa_param_t {
 	uint32_t spi;
 	/** VFR to use */
 	uint16_t vrf;
+	/** Unique identifier for the SA */
+	uint32_t id;
 } ofp_ipsec_sa_param_t;
+
+typedef enum ofp_ipsec_sa_status_t {
+	OFP_IPSEC_SA_ACTIVE,         /** SA is usable */
+	OFP_IPSEC_SA_DISABLED,       /** SA destruction is in progress */
+	OFP_IPSEC_SA_DESTROYED       /** SA has been destroyed */
+} ofp_ipsec_sa_status_t;
+
+typedef struct ofp_ipsec_sa_info_t {
+	ofp_ipsec_sa_status_t status; /** SA status */
+	ofp_ipsec_sa_param_t  param;  /** Creation parameters of the SA */
+} ofp_ipsec_sa_info_t;
 
 /***********************************************************************
  * OFP Security Association Database API
@@ -267,7 +280,10 @@ void ofp_ipsec_sa_param_init(ofp_ipsec_sa_param_t *param);
 /**
  * Create IPSEC SA
  *
- * Create a new IPSEC SA according to the parameters.
+ * Create a new reference counted IPsec SA according to the parameters.
+ * Set the reference count of the newly created SA to 2 (one for SAD and
+ * one for the returned handle). Handles to the SA stay valid as long as
+ * the reference count is positive.
  *
  * @param param		IPSEC SA parameters
  *
@@ -281,7 +297,7 @@ ofp_ipsec_sa_handle ofp_ipsec_sa_create(const ofp_ipsec_sa_param_t *param);
 /**
  * Destroy IPSEC SA
  *
- * Destroy specified IPSEC security association.
+ * Remove the specified IPsec SA from SAD and decrement its reference count.
  *
  * @param sa	IPSEC SA to be destroyed
  *
@@ -305,6 +321,58 @@ int ofp_ipsec_sa_destroy(ofp_ipsec_sa_handle sa);
  * @see ofp_ipsec_sa_destroy()
  */
 int ofp_ipsec_sa_flush(uint16_t vrf);
+
+/**
+ * Find IPSEC SA by ID and return a handle to it. The returned handle
+ * stays valid (even through SA destruction) until unreferenced through
+ * ofp_ipsec_sa_unref().
+ *
+ * @param id    ID of the SA
+ *
+ * @return IPSEC SA handle
+ * @retval OFP_IPSEC_SA_INVALID on failure
+ */
+ofp_ipsec_sa_handle ofp_ipsec_sa_find_by_id(uint32_t id);
+
+/**
+ * Increment SA reference count.
+ *
+ * @param sa	IPSEC SA
+ */
+void ofp_ipsec_sa_ref(ofp_ipsec_sa_handle sa);
+
+/**
+ * Decrement SA reference count
+ *
+ * @param sa	IPSEC SA
+ */
+void ofp_ipsec_sa_unref(ofp_ipsec_sa_handle sa);
+
+/**
+ * Get the "first" SA for iteration through the SAs. Increment the reference
+ * count of the returned SA so that the handle stays valid until unreferenced.
+ *
+ * @return IPSEC SA handle
+ * @retval OFP_IPSEC_SA_INVALID when there are no SAs
+ */
+ofp_ipsec_sa_handle ofp_ipsec_sa_first(void);
+
+/**
+ * Return the "next" SA in iteration through the SAs. Increment the reference
+ * count of the returned SA and decrement that of the passed SA.
+ *
+ * @return IPSEC SA handle
+ * @retval OFP_IPSEC_SA_INVALID when there are no more SAs
+ */
+ofp_ipsec_sa_handle ofp_ipsec_sa_next(ofp_ipsec_sa_handle sa);
+
+/**
+ * Get SA information.
+ *
+ * @param sa	  IPSEC SA
+ * @param status  Pointer to caller allocated info structure to be filled.
+ */
+void ofp_ipsec_sa_get_info(ofp_ipsec_sa_handle sa, ofp_ipsec_sa_info_t *info);
 
 /***********************************************************************
  * OFP Security Policy Database Structures
@@ -428,7 +496,19 @@ typedef struct ofp_ipsec_sp_param_t {
 	ofp_ipsec_selectors_t selectors;
 	/** VFR to use */
 	uint16_t vrf;
+	/** Unique identifier for the SP */
+	uint32_t id;
 } ofp_ipsec_sp_param_t;
+
+typedef enum ofp_ipsec_sp_status_t {
+	OFP_IPSEC_SP_ACTIVE,         /** SP is usable */
+	OFP_IPSEC_SP_DESTROYED       /** SP has been destroyed */
+} ofp_ipsec_sp_status_t;
+
+typedef struct ofp_ipsec_sp_info_t {
+	ofp_ipsec_sp_status_t status; /** SP status */
+	ofp_ipsec_sp_param_t  param;  /** Creation parameters of the SP */
+} ofp_ipsec_sp_info_t;
 
 /***********************************************************************
  * OFP Security Policy Database API
@@ -446,7 +526,10 @@ void ofp_ipsec_sp_param_init(ofp_ipsec_sp_param_t *param);
 /**
  * Create IPSEC SP
  *
- * Create a new IPSEC SP according to the parameters.
+ * Create a new reference counted IPsec SP according to the parameters.
+ * Set the reference count of the newly created SP to 2 (one for SPD and
+ * one for the returned handle). Handles to the SP stay valid as long as
+ * the reference count is positive.
  *
  * @param param	IPSEC SP parameters
  *
@@ -482,7 +565,7 @@ int ofp_ipsec_sp_bind(ofp_ipsec_sp_handle sp, ofp_ipsec_sa_handle sa);
 /**
  * Destroy IPSEC SP
  *
- * Destroy specified IPSEC security policy.
+ * Remove the specified IPsec SP from SPD and decrement its reference count.
  *
  * @param sp	IPSEC SP to be destroyed
  *
@@ -506,5 +589,57 @@ int ofp_ipsec_sp_destroy(ofp_ipsec_sp_handle sp);
  * @see ofp_ipsec_sp_destroy()
  */
 int ofp_ipsec_sp_flush(uint16_t vrf);
+
+/**
+ * Find IPSEC SP by ID and return a handle to it. The returned handle
+ * stays valid (even through SP destruction) until unreferenced through
+ * ofp_ipsec_sp_unref().
+ *
+ * @param id    ID of the SP
+ *
+ * @return IPSEC SP handle
+ * @retval OFP_IPSEC_SP_INVALID on failure
+ */
+ofp_ipsec_sp_handle ofp_ipsec_sp_find_by_id(uint32_t id);
+
+/**
+ * Increment SP reference count.
+ *
+ * @param sp	IPSEC SP
+ */
+void ofp_ipsec_sp_ref(ofp_ipsec_sp_handle sp);
+
+/**
+ * Decrement SP reference count.
+ *
+ * @param sp	IPSEC SP
+ */
+void ofp_ipsec_sp_unref(ofp_ipsec_sp_handle sp);
+
+/**
+ * Get the "first" SP for iteration through the SPs. Increment the reference
+ * count of the returned SP so that the handle stays valid until unreferenced.
+ *
+ * @return IPSEC SP handle
+ * @retval OFP_IPSEC_SP_INVALID when there are no SPs
+ */
+ofp_ipsec_sp_handle ofp_ipsec_sp_first(void);
+
+/**
+ * Return the "next" SP in iteration through the SPs. Increment the reference
+ * count of the returned SP and decrement that of the passed SP.
+ *
+ * @return IPSEC SP handle
+ * @retval OFP_IPSEC_SP_INVALID when there are no more SPs
+ */
+ofp_ipsec_sp_handle ofp_ipsec_sp_next(ofp_ipsec_sp_handle sp);
+
+/**
+ * Get SP information.
+ *
+ * @param sp	  IPSEC SP
+ * @param status  Pointer to caller allocated info structure to be filled.
+ */
+void ofp_ipsec_sp_get_info(ofp_ipsec_sp_handle sp, ofp_ipsec_sp_info_t *info);
 
 #endif /* OFP_IPSEC_H */
