@@ -50,6 +50,7 @@ static __thread struct ofp_global_config_mem *shm;
 __thread ofp_global_param_t *global_param = NULL;
 
 static void drain_scheduler(void);
+static void drain_scheduler_for_global_term(void);
 static void cleanup_pkt_queue(odp_queue_t pkt_queue);
 
 static int ofp_global_config_alloc_shared_memory(void)
@@ -600,7 +601,6 @@ int ofp_term_post_global(const char *pool_name)
 
 	ofp_igmp_uninit(NULL);
 
-	CHECK_ERROR(ofp_ipsec_term_global(), rc);
 	CHECK_ERROR(ofp_ip_term_global(), rc);
 
 	/* Cleanup sockets */
@@ -640,6 +640,9 @@ int ofp_term_post_global(const char *pool_name)
 	/* Cleanup timers - phase 1*/
 	CHECK_ERROR(ofp_timer_stop_global(), rc);
 
+	/* Stop IPsec. This may generate events that need to be handled. */
+	CHECK_ERROR(ofp_ipsec_stop_global(), rc);
+
 	/*
 	 * ofp_term_local() has paused scheduling for this thread. Resume
 	 * scheduling temporarily for draining events created during global
@@ -648,7 +651,7 @@ int ofp_term_post_global(const char *pool_name)
 	odp_schedule_resume();
 
 	/* Cleanup pending events */
-	drain_scheduler();
+	drain_scheduler_for_global_term();
 
 	/*
 	 * Now pause scheduling permanently and drain events once more
@@ -659,6 +662,9 @@ int ofp_term_post_global(const char *pool_name)
 
 	/* Cleanup timers - phase 2*/
 	CHECK_ERROR(ofp_timer_term_global(), rc);
+
+	/* Cleanup IPsec */
+	CHECK_ERROR(ofp_ipsec_term_global(), rc);
 
 	/* Cleanup packet pool */
 	pool = odp_pool_lookup(pool_name);
@@ -707,8 +713,29 @@ static void drain_scheduler(void)
 				ofp_timer_evt_cleanup(evt);
 				break;
 			}
+		case ODP_EVENT_IPSEC_STATUS:
+			ofp_ipsec_status_event(evt, from);
+			break;
 		default:
 			odp_event_free(evt);
+		}
+	}
+}
+
+static void drain_scheduler_for_global_term(void)
+{
+	odp_time_t start, now;
+
+	start = odp_time_local();
+
+	while (1) {
+		drain_scheduler();
+		if (ofp_ipsec_term_global_ok())
+			break;
+		now = odp_time_local();
+		if (odp_time_diff_ns(now, start) > NS_PER_SEC) {
+			OFP_ERR("Giving up waiting ODP IPsec SA destruction");
+			break;
 		}
 	}
 }

@@ -17,6 +17,8 @@
 
 struct ofp_ipsec_sad {
 	odp_rwlock_t lock;
+	odp_queue_t inbound_queue;
+	odp_queue_t outbound_queue;
 	struct ofp_ipsec_sa *sa_list;
 	struct ofp_ipsec_sa *free_sa_list;
 };
@@ -105,7 +107,9 @@ void ofp_ipsec_sad_init_prepare(uint32_t max_num_sa)
 				   sa_table_size(max_num_sa));
 }
 
-int ofp_ipsec_sad_init_global(uint32_t max_num_sa)
+int ofp_ipsec_sad_init_global(uint32_t max_num_sa,
+			      odp_queue_t inbound_queue,
+			      odp_queue_t outbound_queue)
 {
 	uint32_t n;
 
@@ -117,6 +121,8 @@ int ofp_ipsec_sad_init_global(uint32_t max_num_sa)
 	odp_rwlock_init(&shm->lock);
 	shm->sa_list = NULL;
 	shm->free_sa_list = NULL;
+	shm->inbound_queue = inbound_queue;
+	shm->outbound_queue = outbound_queue;
 
 	shm_sa_table = ofp_shared_memory_alloc(SHM_NAME_IPSEC_SA_TABLE,
 					       sa_table_size(max_num_sa));
@@ -183,7 +189,6 @@ static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 	odp_param.mode = param->mode;
 	odp_param.lifetime = param->lifetime;
 	odp_param.spi = param->spi;
-	odp_param.dest_queue = ODP_QUEUE_INVALID;
 	odp_param.context = sa;
 	odp_param.context_len = 0;
 
@@ -191,6 +196,7 @@ static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 		odp_param.inbound.lookup_mode = ODP_IPSEC_LOOKUP_SPI;
 		odp_param.inbound.antireplay_ws = param->antireplay_ws;
 		odp_param.inbound.pipeline = ODP_IPSEC_PIPELINE_NONE;
+		odp_param.dest_queue = shm->inbound_queue;
 	} else {
 		tunnel->type = param->tunnel.type;
 		tunnel->ipv4.src_addr = &param->tunnel.ipv4.src_addr;
@@ -201,6 +207,7 @@ static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 
 		odp_param.outbound.frag_mode = ODP_IPSEC_FRAG_DISABLED;
 		odp_param.outbound.mtu = UINT32_MAX;
+		odp_param.dest_queue = shm->outbound_queue;
 	}
 
 	return odp_ipsec_sa_create(&odp_param);

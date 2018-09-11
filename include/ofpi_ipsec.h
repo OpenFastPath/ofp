@@ -22,8 +22,12 @@ struct ofp_ipsec_param;
  */
 struct ofp_ipsec {
 	odp_atomic_u32_t ipsec_active;
+	odp_ipsec_op_mode_t inbound_op_mode;
+	odp_ipsec_op_mode_t outbound_op_mode;
 	ofp_brlock_t processing_lock;
 	uint32_t max_num_sa;
+	odp_queue_t in_queue;
+	odp_queue_t out_queue;
 };
 
 extern __thread struct ofp_ipsec *ofp_ipsec_shm;
@@ -50,6 +54,18 @@ int ofp_ipsec_init_global(const struct ofp_ipsec_param *param);
  * Thread specific IPsec initialization.
  */
 int ofp_ipsec_init_local(void);
+
+/*
+ * Stop IPsec before termination. This may generate status events that need
+ * to be handled to finalize SA destruction.
+ */
+int ofp_ipsec_stop_global(void);
+
+/*
+ * Return true if ofp_ipsec_term_global() can be called, i.e. if all
+ * SAs have been destroyed.
+ */
+int ofp_ipsec_term_global_ok(void);
 
 /*
  * IPsec module termination

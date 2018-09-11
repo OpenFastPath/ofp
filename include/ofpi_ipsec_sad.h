@@ -14,7 +14,9 @@
 struct ofp_ipsec_global_param;
 
 void ofp_ipsec_sad_init_prepare(uint32_t max_num_sa);
-int ofp_ipsec_sad_init_global(uint32_t max_num_sa);
+int ofp_ipsec_sad_init_global(uint32_t max_num_sa,
+			      odp_queue_t inbound_queue,
+			      odp_queue_t outbound_queue);
 int ofp_ipsec_sad_init_local(void);
 int ofp_ipsec_sad_term_global(void);
 

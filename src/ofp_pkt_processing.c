@@ -93,12 +93,13 @@ int default_event_dispatcher(void *arg)
 					 events, rx_burst);
 		for (event_idx = 0; event_idx < event_cnt; event_idx++) {
 			odp_event_type_t ev_type;
+			odp_event_subtype_t ev_subtype;
 
 			ev = events[event_idx];
 
 			if (ev == ODP_EVENT_INVALID)
 				continue;
-			ev_type = odp_event_type(ev);
+			ev_type = odp_event_types(ev, &ev_subtype);
 
 			if (odp_likely(ev_type == ODP_EVENT_PACKET)) {
 				pkt = odp_packet_from_event(ev);
@@ -109,11 +110,19 @@ int default_event_dispatcher(void *arg)
 					continue;
 				}
 #endif
+				if (ev_subtype == ODP_EVENT_PACKET_IPSEC) {
+					ofp_ipsec_packet_event(ev, in_queue);
+					continue;
+				}
 				ofp_packet_input(pkt, in_queue, pkt_func);
 				continue;
 			}
 			if (ev_type == ODP_EVENT_TIMEOUT) {
 				ofp_timer_handle(ev);
+				continue;
+			}
+			if (ev_type == ODP_EVENT_IPSEC_STATUS) {
+				ofp_ipsec_status_event(ev, in_queue);
 				continue;
 			}
 

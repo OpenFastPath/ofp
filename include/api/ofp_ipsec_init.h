@@ -21,6 +21,16 @@
  */
 struct ofp_ipsec_param {
 	/**
+	 * Inbound operation mode. Default is ODP_IPSEC_OP_MODE_SYNC.
+	 */
+	odp_ipsec_op_mode_t inbound_op_mode;
+
+	/**
+	 * Outbound operation mode. Default is ODP_IPSEC_OP_MODE_SYNC.
+	 */
+	odp_ipsec_op_mode_t outbound_op_mode;
+
+	/**
 	 * Maximum number of security policies that can exist at a time.
 	 */
 	uint32_t max_num_sp;

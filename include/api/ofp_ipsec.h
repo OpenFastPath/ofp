@@ -642,4 +642,39 @@ ofp_ipsec_sp_handle ofp_ipsec_sp_next(ofp_ipsec_sp_handle sp);
  */
 void ofp_ipsec_sp_get_info(ofp_ipsec_sp_handle sp, ofp_ipsec_sp_info_t *info);
 
+/***********************************************************************
+ * OFP IPsec packet processing API
+ **********************************************************************/
+
+/**
+ * Handle an IPsec packet event.
+ *
+ * In asynchronous and inline operation modes the result of an ODP IPsec
+ * operation is delivered as an event through a queue. An OFP application
+ * must provide these events to OFP using this function unless it uses
+ * the default event dispatcher. The provided event will be freed.
+ *
+ * This function must be called with events that have type ODP_EVENT_PACKET
+ * and subtype ODP_EVENT_PACKET_IPSEC.
+ *
+ * @param ev       Event handle
+ * @param queue    Handle of the queue through which the event was received
+ */
+void ofp_ipsec_packet_event(odp_event_t ev, odp_queue_t queue);
+
+/**
+ * Handle an IPsec packet event.
+ *
+ * In asynchronous and inline operation modes the result of an ODP IPsec
+ * operation may result in a status event. An OFP application must provide
+ * these events to OFP using this function unless it uses the default event
+ * dispatcher. The provided event will be freed.
+ *
+ * This function must be called with events of type ODP_EVENT_IPSEC_STATUS.
+ *
+ * @param ev       Event handle
+ * @param queue    Handle of the queue through which the event was received
+ */
+void ofp_ipsec_status_event(odp_event_t ev, odp_queue_t queue);
+
 #endif /* OFP_IPSEC_H */
