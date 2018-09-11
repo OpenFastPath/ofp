@@ -66,7 +66,10 @@ ofp_in_mcast.c \
 ofp_vxlan.c \
 ofp_shared_mem.c \
 ofp_uma.c \
-ofp_epoll.c
+ofp_epoll.c \
+ofp_ipsec.c \
+ofp_ipsec_spd.c \
+ofp_ipsec_sad.c
 
 if OFP_USE_LIBCK
 __LIB__libofp_la_SOURCES += \

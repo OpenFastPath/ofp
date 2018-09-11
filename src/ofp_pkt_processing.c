@@ -53,6 +53,7 @@
 #include "ofpi_gre.h"
 #include "ofpi_ip.h"
 #include "api/ofp_init.h"
+#include "ofpi_ipsec.h"
 
 static inline enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 							  struct ip_out *odata);
@@ -274,13 +275,15 @@ enum ofp_return_code ofp_tcp4_processing(odp_packet_t *pkt)
 
 static inline enum ofp_return_code ofp_ip_output_common_inline(odp_packet_t pkt,
 							       struct ofp_nh_entry *nh,
-							       int is_local_out);
+							       int is_local_out,
+							       ofp_ipsec_sa_handle sa);
 
 enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 					  struct ofp_nh_entry *nh,
-					  int is_local_out)
+					  int is_local_out,
+					  ofp_ipsec_sa_handle sa)
 {
-	return ofp_ip_output_common_inline(pkt, nh, is_local_out);
+	return ofp_ip_output_common_inline(pkt, nh, is_local_out, sa);
 }
 
 enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
@@ -292,6 +295,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 	struct ofp_nh_entry *nh;
 	struct ofp_ifnet *dev = odp_packet_user_ptr(*pkt);
 	uint32_t is_ours;
+	ofp_ipsec_sa_handle sa = OFP_IPSEC_SA_INVALID;
 
 	ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 
@@ -363,6 +367,9 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 			ip = (struct ofp_ip *)odp_packet_l3_ptr(*pkt, NULL);
 		}
 
+		if (ofp_ipsec_inbound_check(dev->vrf, *pkt, ip, 1) == OFP_PKT_DROP)
+			return OFP_PKT_DROP;
+
 		OFP_HOOK(OFP_HOOK_LOCAL, *pkt, &protocol, &res);
 		if (res != OFP_PKT_CONTINUE) {
 			OFP_DBG("OFP_HOOK_LOCAL returned %d", res);
@@ -379,18 +386,25 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 
 	}
 
+	if (ofp_ipsec_inbound_check(dev->vrf, *pkt, ip, 0) == OFP_PKT_DROP)
+		return OFP_PKT_DROP;
+
 	OFP_HOOK(OFP_HOOK_FWD_IPv4, *pkt, nh, &res);
 	if (res != OFP_PKT_CONTINUE) {
 		OFP_DBG("OFP_HOOK_FWD_IPv4 returned %d", res);
 		return res;
 	}
 
-	if (nh == NULL) {
+	if (ofp_ipsec_out_lookup(dev->vrf, *pkt, &sa) == OFP_PKT_DROP)
+		return OFP_PKT_DROP;
+
+	if (nh == NULL && sa == OFP_IPSEC_SA_INVALID) {
 		OFP_DBG("nh is NULL, vrf=%d dest=%x", dev->vrf, ip->ip_dst.s_addr);
 		return OFP_PKT_CONTINUE;
 	}
 
 	if (ip->ip_ttl <= 1) {
+		ofp_ipsec_output_cancel(sa);
 		OFP_DBG("OFP_ICMP_TIMXCEED");
 		ofp_icmp_error(*pkt, OFP_ICMP_TIMXCEED,
 				OFP_ICMP_TIMXCEED_INTRANS, 0, 0);
@@ -413,13 +427,15 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 	 * 2. The subnet or network of the source IP address is on the same
 	 * subnet or network of the next-hop IP address of the routed packet.
 	 * 3. Stack configured to send redirects.
+	 * 4. The packet is not going to be IPsec encapsulated.
 	 */
 #define INET_SUBNET_PREFIX(addr)				\
 	(odp_be_to_cpu_32(addr) & ((~0) << (32 - dev->ip_addr_info[0].masklen)))
 
 	if (nh->port == dev->port &&
-		(INET_SUBNET_PREFIX(ip->ip_src.s_addr) ==
-		INET_SUBNET_PREFIX(nh->gw))) {
+	    sa == OFP_IPSEC_SA_INVALID &&
+	    (INET_SUBNET_PREFIX(ip->ip_src.s_addr) ==
+	     INET_SUBNET_PREFIX(nh->gw))) {
 
 		OFP_DBG("send OFP_ICMP_REDIRECT");
 		ofp_icmp_error(*pkt, OFP_ICMP_REDIRECT,
@@ -427,7 +443,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 	}
 #endif
 
-	return ofp_ip_output_common_inline(*pkt, nh, 0);
+	return ofp_ip_output_common_inline(*pkt, nh, 0, sa);
 }
 
 #ifdef INET6
@@ -1109,9 +1125,22 @@ static inline void ofp_chksum_insert(odp_packet_t pkt,
 	}
 }
 
+enum ofp_return_code ofp_ip_output(odp_packet_t pkt, struct ofp_nh_entry *nh)
+{
+	ofp_ipsec_sa_handle sa = OFP_IPSEC_SA_INVALID;
+	struct ofp_ifnet *ifnet = odp_packet_user_ptr(pkt);
+	uint16_t vrf = ifnet ? ifnet->vrf : 0;
+
+	if (ofp_ipsec_out_lookup(vrf, pkt, &sa) == OFP_PKT_DROP)
+		return OFP_PKT_DROP;
+
+	return ofp_ip_output_common(pkt, nh, 1, sa);
+}
+
 static inline enum ofp_return_code ofp_ip_output_common_inline(odp_packet_t pkt,
 							       struct ofp_nh_entry *nh_param,
-							       int is_local_out)
+							       int is_local_out,
+							       ofp_ipsec_sa_handle sa)
 {
 	struct ofp_ifnet *send_ctx = odp_packet_user_ptr(pkt);
 	struct ip_out odata;
@@ -1120,6 +1149,7 @@ static inline enum ofp_return_code ofp_ip_output_common_inline(odp_packet_t pkt,
 
 	OFP_HOOK(OFP_HOOK_OUT_IPv4, pkt, NULL, &ret);
 	if (ret != OFP_PKT_CONTINUE) {
+		ofp_ipsec_output_cancel(sa);
 		OFP_DBG("OFP_HOOK_OUT_IPv4 returned %d", ret);
 		return ret;
 	}
@@ -1128,6 +1158,14 @@ static inline enum ofp_return_code ofp_ip_output_common_inline(odp_packet_t pkt,
 	if (odp_unlikely(ip == NULL)) {
 		odp_packet_l3_offset_set(pkt, 0);
 		ip = odp_packet_l3_ptr(pkt, NULL);
+	}
+	if (sa != OFP_IPSEC_SA_INVALID) {
+		if (is_local_out) {
+			ofp_chksum_insert(pkt, ip, 0);
+		}
+		ret = ofp_ipsec_output(pkt, sa);
+		if (ret != OFP_PKT_CONTINUE)
+			return ret;
 	}
 	odata.ip = ip;
 	odata.dev_out = NULL;

@@ -211,7 +211,7 @@ static enum ofp_return_code send_packet(odp_packet_t pkt)
 	 * Send packets as if they were forwarded to avoid the stack
 	 * touching the ID field of the IP header.
 	 */
-	return ofp_ip_output_common(pkt, &nexthop, 0);
+	return ofp_ip_output_common(pkt, &nexthop, 0, OFP_IPSEC_SA_INVALID);
 }
 
 static void send_packet_and_check(odp_packet_t pkt)

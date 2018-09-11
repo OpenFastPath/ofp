@@ -15,6 +15,7 @@
 #include "ofpi_in.h"
 #include "ofpi_init.h"
 #include "ofpi_vxlan.h"
+#include "ofpi_ipsec.h"
 
 struct ip_out {
 	struct ofp_ifnet *dev_out;
@@ -39,6 +40,7 @@ struct ip_out {
 #define OFP_TCP_CHKSUM_INSERT       0x8
 
 struct ofp_packet_user_area {
+	uint8_t ipsec_flags;
 	uint8_t recursion_count;
 	uint8_t chksum_flags;
 	struct vxlan_user_data vxlan;
@@ -106,13 +108,10 @@ static inline int ofp_send_pkt_multi(struct ofp_ifnet *ifnet,
 
 enum ofp_return_code ofp_ip_output_common(odp_packet_t pkt,
 					  struct ofp_nh_entry *nh,
-					  int is_local_out);
+					  int is_local_out,
+					  ofp_ipsec_sa_handle sa);
 
-static inline enum ofp_return_code ofp_ip_output(odp_packet_t pkt,
-						 struct ofp_nh_entry *nh)
-{
-	return ofp_ip_output_common(pkt, nh, 1);
-}
+enum ofp_return_code ofp_ip_output(odp_packet_t pkt, struct ofp_nh_entry *nh);
 
 enum ofp_return_code ofp_ip_output_recurse(odp_packet_t pkt,
 					   struct ofp_nh_entry *nh);

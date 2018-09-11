@@ -40,6 +40,7 @@
 #include "ofpi_igmp_var.h"
 #include "ofpi_vxlan.h"
 #include "ofpi_uma.h"
+#include "ofpi_ipsec.h"
 
 #include "ofpi_log.h"
 #include "ofpi_debug.h"
@@ -283,6 +284,8 @@ void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *fil
 	params->chksum_offload.ipv4_tx_ena = OFP_CHKSUM_OFFLOAD_IPV4_TX;
 	params->chksum_offload.udp_tx_ena = OFP_CHKSUM_OFFLOAD_UDP_TX;
 	params->chksum_offload.tcp_tx_ena = OFP_CHKSUM_OFFLOAD_TCP_TX;
+	ofp_ipsec_param_init(&params->ipsec);
+
 	read_conf_file(params, filename);
 }
 
@@ -316,6 +319,7 @@ static void ofp_init_prepare(void)
 	ofp_socket_init_prepare();
 	ofp_tcp_var_init_prepare();
 	ofp_ip_init_prepare();
+	ofp_ipsec_init_prepare(&global_param->ipsec);
 }
 
 static int ofp_init_pre_global(ofp_global_param_t *params)
@@ -391,6 +395,7 @@ static int ofp_init_pre_global(ofp_global_param_t *params)
 	HANDLE_ERROR(ofp_tcp_var_init_global());
 	HANDLE_ERROR(ofp_inet_init());
 	HANDLE_ERROR(ofp_ip_init_global());
+	HANDLE_ERROR(ofp_ipsec_init_global(&params->ipsec));
 
 	return 0;
 }
@@ -478,6 +483,7 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_tcp_var_lookup_shared_memory());
 	HANDLE_ERROR(ofp_send_pkt_out_init_local());
 	HANDLE_ERROR(ofp_ip_init_local());
+	HANDLE_ERROR(ofp_ipsec_init_local());
 
 	return 0;
 }
@@ -594,6 +600,7 @@ int ofp_term_post_global(const char *pool_name)
 
 	ofp_igmp_uninit(NULL);
 
+	CHECK_ERROR(ofp_ipsec_term_global(), rc);
 	CHECK_ERROR(ofp_ip_term_global(), rc);
 
 	/* Cleanup sockets */

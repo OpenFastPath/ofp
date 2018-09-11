@@ -53,6 +53,8 @@ extern "C" {
 #include "ofp_ip_var.h"
 #include "ofp_tcp.h"
 #include "ofp_epoll.h"
+#include "ofp_ipsec.h"
+#include "ofp_ipsec_init.h"
 
 #ifdef __cplusplus
 }

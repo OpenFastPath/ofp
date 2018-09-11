@@ -338,7 +338,8 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 			odp_packet_to_u64(pktentry->pkt),
 			ofp_print_ip_addr(ipv4_addr));
 
-		if (ofp_ip_output_common(pktentry->pkt, pktentry->nh, 0) == OFP_PKT_DROP)
+		if (ofp_ip_output_common(pktentry->pkt, pktentry->nh, 0,
+			    OFP_IPSEC_SA_INVALID) == OFP_PKT_DROP)
 			odp_packet_free(pktentry->pkt);
 
 		OFP_SLIST_REMOVE_HEAD(&send_list, next);

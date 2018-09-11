@@ -25,6 +25,7 @@
 
 #include <odp_api.h>
 #include "ofp_hook.h"
+#include "ofp_ipsec_init.h"
 
 #if __GNUC__ >= 4
 #pragma GCC visibility push(default)
@@ -230,6 +231,10 @@ typedef struct ofp_global_param_t {
 	 */
 	ofp_chksum_offload_config_t chksum_offload;
 
+	/*
+	 * IPsec parameters
+	 */
+	struct ofp_ipsec_param ipsec;
 } ofp_global_param_t;
 
 /**
