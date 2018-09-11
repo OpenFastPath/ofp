@@ -21,6 +21,7 @@
 #include "ofpi_log.h"
 #include "ofpi_hook.h"
 #include "ofpi_util.h"
+#include "ofpi_ipsec.h"
 
 enum ofp_return_code ofp_gre_input(odp_packet_t *pkt, int off0)
 {
@@ -101,6 +102,7 @@ enum ofp_return_code ofp_gre_input(odp_packet_t *pkt, int off0)
 	}
 
 	odp_packet_user_ptr_set(*pkt, dev_in);
+	ofp_ipsec_flags_set(*pkt, 0);
 
 	switch (odp_be_to_cpu_16(ptype)) {
 	case OFP_ETHERTYPE_IP:

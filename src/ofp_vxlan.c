@@ -21,6 +21,7 @@
 #include "ofpi_vxlan.h"
 #include "ofpi_if_arp.h"
 #include "ofpi_pkt_processing.h"
+#include "ofpi_ipsec.h"
 
 #define SHM_NAME_VXLAN "OfpVxlanShMem"
 
@@ -213,6 +214,7 @@ enum ofp_return_code ofp_vxlan_input(odp_packet_t pkt)
 	/* learn mac to dst addr association */
 	ofp_vxlan_set_mac_dst(eth->ether_shost, from);
 	odp_packet_user_ptr_set(pkt, dev);
+	ofp_ipsec_flags_set(pkt, 0);
 	dev0 = ofp_get_ifnet(VXLAN_PORTS, 0);
 	odp_event_t ev = odp_packet_to_event(pkt);
 	if (odp_queue_enq(dev0->loopq_def, ev) < 0) {
