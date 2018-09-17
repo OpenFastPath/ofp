@@ -155,7 +155,7 @@ test_single_port_basic(void)
 	CU_ASSERT_PTR_NULL_FATAL(res);
 
 	dev = ofp_get_ifnet(port, vlan);
-	assert_dev(dev, port, vlan, vrf, 0, ifmtu, masklen, bcast, link_local);
+	assert_dev(dev, port, vlan, vrf, 0, ifmtu, 0, 0, link_local);
 	nh = ofp_get_next_hop(vrf, ifaddr, NULL);
 	CU_ASSERT_PTR_NULL(nh);
 }
@@ -199,7 +199,7 @@ test_two_ports_vlan(void)
 	CU_ASSERT_PTR_NULL_FATAL(res);
 
 	dev = ofp_get_ifnet(port, vlan);
-	assert_dev(dev, port, vlan, vrf, 0, ifmtu, masklen, bcast, link_local);
+	assert_dev(dev, port, vlan, vrf, 0, ifmtu, 0, 0, link_local);
 	nh = ofp_get_next_hop(vrf, ifaddr, NULL);
 	CU_ASSERT_PTR_NULL(nh);
 

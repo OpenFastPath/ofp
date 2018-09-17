@@ -340,6 +340,10 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 		ofp_print_ip_addr(dev->ip_addr_info[0].ip_addr),
 		ofp_print_ip_addr(ip->ip_dst.s_addr));
 
+	/* Do not search through the ifnet IP list because it adds overhead.
+	 * Verify against first IP address in the list.
+	 * Anyways, ofp_get_next_hop should validate if this is local.
+	 */
 	is_ours = dev->ip_addr_info[0].ip_addr == ip->ip_dst.s_addr ||
 		OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr));
 
@@ -547,7 +551,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt)
 					 inner_from_mac);
 	}
 
-	is_ours = dev->ip_addr_info[0].ip_addr && dev->ip_addr_info[0].ip_addr == (ofp_in_addr_t)(arp->ip_dst);
+	is_ours = (-1 != ofp_ifnet_ip_find(dev, (ofp_in_addr_t)(arp->ip_dst)));
 	if (!is_ours && !global_param->arp.check_interface) {
 		/* This may be for some other local interface. */
 		uint32_t flags;
@@ -962,8 +966,8 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		eth->ether_dhost[3] = (addr >> 16) & 0x7f;
 		eth->ether_dhost[4] = (addr >> 8) & 0xff;
 		eth->ether_dhost[5] = addr & 0xff;
-	} else if (odata->dev_out->ip_addr_info[0].ip_addr == odata->ip->ip_dst.s_addr ||
-		   ofp_if_type(odata->dev_out) == OFP_IFT_LOOP) {
+	} else if ((-1 != ofp_ifnet_ip_find(odata->dev_out, odata->ip->ip_dst.s_addr)) ||
+		ofp_if_type(odata->dev_out) == OFP_IFT_LOOP) {
 		odata->is_local_address = 1;
 		ofp_copy_mac(eth->ether_dhost, odata->dev_out->mac);
 	} else if (ofp_get_mac(odata->dev_out, odata->nh,

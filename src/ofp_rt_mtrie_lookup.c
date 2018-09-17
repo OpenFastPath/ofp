@@ -240,23 +240,23 @@ static struct ofp_rt_rule *rt_rule_alloc(void)
 	return rule;
 }
 
-void ofp_rt_rule_add(uint16_t vrf, uint32_t addr_be, uint32_t masklen, struct ofp_nh_entry *data)
+int ofp_rt_rule_add(uint16_t vrf, uint32_t addr_be, uint32_t masklen, struct ofp_nh_entry *data)
 {
 	struct ofp_rt_rule *rule = NULL;
 
 	if ((rule = ofp_rt_rule_search(vrf, addr_be, masklen)) != NULL) {
 		rule->u1.s1.data[0] = *data;
 		OFP_INFO("ofp_rt_rule_add updated existing rule vrf %u %s/%u",
-			 rule->u1.s1.vrf,
-			 ofp_print_ip_addr(odp_cpu_to_be_32(rule->u1.s1.addr)),
-			 rule->u1.s1.masklen);
-		return;
+			rule->u1.s1.vrf,
+			ofp_print_ip_addr(odp_cpu_to_be_32(rule->u1.s1.addr)),
+			rule->u1.s1.masklen);
+		return -1;
 	}
 
 	if ((rule = rt_rule_alloc()) == NULL) {
 		OFP_ERR("ofp_rt_rule_add allocation failed rule allocated %u/%u",
 			shm->rt_rule_table.rule_allocated, NUM_RT_RULES);
-		return;
+		return -1;
 	}
 
 	/*
@@ -271,23 +271,25 @@ void ofp_rt_rule_add(uint16_t vrf, uint32_t addr_be, uint32_t masklen, struct of
 	if (avl_insert(shm->rt_rule_table.rule_tree, rule) != 0) {
 		rt_rule_free(rule);
 		OFP_ERR("ofp_rt_rule_add avl insertion failed");
-		return;
+		return -1;
 	}
 
 	OFP_INFO("ofp_rt_rule_add inserted new rule vrf %u prefix %s/%u",
 		 rule->u1.s1.vrf,
 		 ofp_print_ip_addr(odp_cpu_to_be_32(rule->u1.s1.addr)),
 		 rule->u1.s1.masklen);
+
+	return 0;
 }
 
-void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr_be, uint32_t masklen)
+int ofp_rt_rule_remove(uint16_t vrf, uint32_t addr_be, uint32_t masklen)
 {
 	struct ofp_rt_rule *rule = NULL;
 
 	if ((rule = ofp_rt_rule_search(vrf, addr_be, masklen)) == NULL) {
 		OFP_ERR("ofp_rt_rule_remove rule vrf %u %s/%u not exist", vrf,
 			ofp_print_ip_addr(addr_be), masklen);
-		return;
+		return -1;
 	}
 
 	avl_delete(shm->rt_rule_table.rule_tree, rule, NULL);
@@ -296,7 +298,9 @@ void ofp_rt_rule_remove(uint16_t vrf, uint32_t addr_be, uint32_t masklen)
 		 ofp_print_ip_addr(odp_cpu_to_be_32(rule->u1.s1.addr)),
 		 rule->u1.s1.masklen);
 
-        rt_rule_free(rule);
+	rt_rule_free(rule);
+
+	return 0;
 }
 
 

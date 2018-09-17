@@ -1418,9 +1418,9 @@ igmp_input_v2_report(struct ofp_ifnet *ifp, /*const*/ struct ofp_ip *ip,
 	 * leave requires knowing that we are the only member of a
 	 * group.
 	 */
-	if (ip->ip_src.s_addr == ifp->ip_addr_info[0].ip_addr) {
+	if (-1 != ofp_ifnet_ip_find(ifp, ip->ip_src.s_addr))
 		return (0);
-	}
+
 
 	IGMPSTAT_INC(igps_rcv_reports);
 

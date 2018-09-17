@@ -183,6 +183,7 @@ static int add_route(struct ofp_route_msg *msg)
 	uint8_t  eth_addr[OFP_ETHER_ADDR_LEN];
 	odp_bool_t route_add_success = TRUE;
 	struct routes_by_vrf *fib;
+	int ret = 0;
 
 	memset(&eth_addr, 0, sizeof(eth_addr));
 #ifndef OFP_USE_LIBCK
@@ -224,11 +225,19 @@ static int add_route(struct ofp_route_msg *msg)
 #endif
 
 #ifdef MTRIE
-	ofp_rt_rule_add(msg->vrf, msg->dst, msg->masklen, &tmp);
+	ret = ofp_rt_rule_add(msg->vrf, msg->dst, msg->masklen, &tmp);
 #endif
-
 	OFP_UNLOCK_WRITE(route);
-
+	OFP_DBG("route_add_success = %d ret = %d tmp.port=%d tmp.vlan = %d \n",route_add_success,ret, tmp.port,tmp.vlan);
+	if (route_add_success && !ret) {
+		if ((tmp.flags & OFP_RTF_LOCAL) && (msg->masklen == 32)) {
+			OFP_DBG("Adding static route for %s\n", ofp_print_ip_addr(msg->dst));
+			struct ofp_ifnet *ifnet = ofp_get_create_ifnet(tmp.port, tmp.vlan);
+			if (NULL != ifnet) {
+				ofp_ifnet_ip_add(ifnet, msg->dst);
+			}
+		}
+	}
 	return 0;
 }
 
@@ -257,6 +266,18 @@ static int del_route(struct ofp_route_msg *msg)
 #endif
 
 	OFP_UNLOCK_WRITE(route);
+
+	if (NULL != nh_data) {
+		if (nh_data->flags & OFP_RTF_LOCAL) {
+			struct ofp_ifnet *ifnet;
+			ifnet = ofp_get_ifnet(nh_data->port, nh_data->vlan);
+			if (!ifnet)
+				OFP_INFO("ofp_rt_rule_remove Interface doesn't exist\n");
+			else {
+				ofp_ifnet_ip_remove(ifnet, msg->dst);
+			}
+		}
+	}
 
 	return 0;
 }

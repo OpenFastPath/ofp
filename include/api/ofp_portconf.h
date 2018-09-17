@@ -34,11 +34,19 @@ const char *ofp_config_interface_up_vxlan(uint16_t vrf, uint32_t addr, int mlen,
 const char *ofp_config_interface_up_local(uint16_t id, uint16_t vrf,
 					  uint32_t addr, int masklen);
 const char *ofp_config_interface_up_local_v6(uint16_t id,
-					     uint8_t *addr, int masklen);
+					uint8_t *addr, int masklen);
 const char *ofp_config_interface_down(int port, uint16_t vlan);
+
+const char *ofp_config_interface_add_ip_v4(int port, uint16_t vlan,
+								uint16_t vrf, uint32_t addr, int masklen);
+const char *ofp_config_interface_del_ip_v4(int port, uint16_t vlan,
+								int vrf, uint32_t addr, int masklen);
 
 /* Interfaces: SHOW */
 void ofp_show_interfaces(int fd);
+
+/* Show ifnet ips */
+void ofp_show_ifnet_ip_addrs(int fd);
 
 /* Interfaces: operations*/
 int ofp_get_num_ports(void);

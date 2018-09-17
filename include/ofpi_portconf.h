@@ -113,8 +113,15 @@ struct ofp_ifnet_ipaddr {
 	uint8_t  masklen;
 };
 
+#define IP_ADDR_LIST_INIT(if) odp_rwlock_init(&(if)->ip_addr_mtx)
+#define IP_ADDR_LIST_RLOCK(if)   odp_rwlock_read_lock(&(if)->ip_addr_mtx)
+#define IP_ADDR_LIST_RUNLOCK(if) odp_rwlock_read_unlock(&(if)->ip_addr_mtx)
+#define IP_ADDR_LIST_WLOCK(if)   odp_rwlock_write_lock(&(if)->ip_addr_mtx)
+#define IP_ADDR_LIST_WUNLOCK(if) odp_rwlock_write_unlock(&(if)->ip_addr_mtx)
+
 struct ODP_ALIGNED_CACHE ofp_ifnet {
 	struct ofp_ifnet_ipaddr	ip_addr_info[OFP_NUM_IFNET_IP_ADDRS];
+	odp_rwlock_t ip_addr_mtx;
 	uint16_t	port;
 	uint16_t	vlan;
 	uint16_t	vrf;
@@ -379,6 +386,15 @@ int free_key(void *key);
 
 struct ofp_ifconf;
 void ofp_get_interfaces(struct ofp_ifconf *ifc);
+
+int ofp_ifnet_ip_find(struct ofp_ifnet *dev, uint32_t addr);
+int ofp_set_first_ifnet_addr(struct ofp_ifnet *dev, uint32_t addr, uint32_t bcast_addr, int masklen);
+void ofp_free_ifnet_ip_list(struct ofp_ifnet *dev);
+void ofp_ifnet_print_ip_info(int fd, struct ofp_ifnet *dev);
+int ofp_ifnet_ip_find_update_fields(struct ofp_ifnet *dev, uint32_t addr, int masklen, uint32_t bcast_addr);
+void ofp_ifnet_print_ip_info(int fd, struct ofp_ifnet *dev);
+int ofp_ifnet_ip_add(struct ofp_ifnet *dev, uint32_t addr);
+void ofp_ifnet_ip_remove(struct ofp_ifnet *dev, uint32_t addr);
 
 /* Finds the node interface by the local ip assigned regardless of vlan */
 struct ofp_ifnet *ofp_get_ifnet_by_ip(uint32_t ip, uint16_t vrf);

@@ -596,7 +596,6 @@ icmp_reflect(odp_packet_t pkt)
 	 * own addresses, use dst as the src for the reply.
 	 */
 	if ((dev_out = ofp_get_ifnet_match(t.s_addr, ifp->vrf, ifp->vlan))) {
-		t.s_addr = dev_out->ip_addr_info[0].ip_addr;
 		goto match;
 	}
 
