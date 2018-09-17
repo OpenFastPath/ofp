@@ -91,6 +91,11 @@ void f_ifconfig_tun(struct cli_conn *conn, const char *s);
 void f_ifconfig_vxlan(struct cli_conn *conn, const char *s);
 void f_ifconfig_down(struct cli_conn *conn, const char *s);
 
+void f_address_show(struct cli_conn *conn, const char *s);
+void f_address_add(struct cli_conn *conn, const char *s);
+void f_address_del(struct cli_conn *conn, const char *s);
+void f_address_help(struct cli_conn *conn, const char *s);
+
 void f_sysctl_dump(struct cli_conn *conn, const char *s);
 void f_sysctl_read(struct cli_conn *conn, const char *s);
 void f_sysctl_write(struct cli_conn *conn, const char *s);

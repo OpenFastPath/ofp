@@ -456,7 +456,7 @@ static void f_help(struct cli_conn *conn, const char *s)
 	(void)s;
 	ofp_sendf(conn->fd, "Display help information for CLI commands:\r\n"
 		"  help <command>\r\n"
-		"    command: alias, arp, debug, exit, ifconfig, loglevel, "
+		"    command: alias, arp, debug, exit, ifconfig, loglevel, address, "
 		"route, show, stat\r\n\r\n");
 	sendcrlf(conn);
 }
@@ -475,7 +475,7 @@ static void f_help_show(struct cli_conn *conn, const char *s)
 	(void)s;
 	ofp_sendf(conn->fd, "Display current status:\r\n"
 		"  show <command>\r\n"
-		"    command: alias, arp, debug, ifconfig, loglevel, route, "
+		"    command: alias, arp, debug, ifconfig, loglevel, route, address, "
 		"stat\r\n\r\n");
 	sendcrlf(conn);
 }
@@ -863,6 +863,26 @@ struct cli_command commands[] = {
 		"ifconfig help",
 		NULL,
 		f_help_ifconfig
+	},
+	{
+		"address add IP4NET DEV",
+		"Add IP address to interface",
+		f_address_add
+	},
+	{
+		"address del IP4NET DEV",
+		"Remove IP address to interface",
+		f_address_del
+	},
+	{
+		"address show",
+		"Show IP addresses",
+		f_address_show
+	},
+	{
+		"help address",
+		NULL,
+		f_address_help
 	},
 	{
 		"alias",
