@@ -1792,7 +1792,7 @@ ofp_inp_getmoptions(struct inpcb *inp, struct sockopt *sopt)
 				mreqn.imr_address = imo->imo_multicast_addr;
 			} else if (ifp != NULL) {
 				mreqn.imr_ifindex = if_index(ifp);
-				mreqn.imr_address.s_addr = ifp->ip_addr;
+				mreqn.imr_address.s_addr = ifp->ip_addr_info[0].ip_addr;
 			}
 		}
 		INP_WUNLOCK(inp);

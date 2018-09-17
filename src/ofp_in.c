@@ -136,7 +136,7 @@ ofp_in_control(struct socket *so, uint32_t cmd, char *data, struct ofp_ifnet *if
 		if (ifp == NULL)
 			return (OFP_EINVAL);
 
-		treq->iftun_addr.sin_addr.s_addr = ifp->ip_addr;
+		treq->iftun_addr.sin_addr.s_addr = ifp->ip_addr_info[0].ip_addr;
 		treq->iftun_p2p_addr.sin_addr.s_addr = ifp->ip_p2p;
 		treq->iftun_local_addr.sin_addr.s_addr = ifp->ip_local;
 		treq->iftun_remote_addr.sin_addr.s_addr = ifp->ip_remote;
@@ -181,10 +181,10 @@ ofp_in_control(struct socket *so, uint32_t cmd, char *data, struct ofp_ifnet *if
 
 	error = 0;
 
-	uint32_t if_addr = ifp->ip_addr;
-	uint32_t if_bcast = ifp->bcast_addr;
+	uint32_t if_addr = ifp->ip_addr_info[0].ip_addr;
+	uint32_t if_bcast = ifp->ip_addr_info[0].bcast_addr;
 	uint32_t if_p2p = ifp->ip_p2p;
-	int if_masklen = ifp->masklen;
+	int if_masklen = ifp->ip_addr_info[0].masklen;
 	int vrf = ifp->vrf;
 
 	switch (cmd) {
@@ -234,7 +234,7 @@ ofp_in_control(struct socket *so, uint32_t cmd, char *data, struct ofp_ifnet *if
 		ifp->ip_p2p = if_p2p;
 		break;
 	case OFP_SIOCSIFBRDADDR:
-		ifp->bcast_addr = if_bcast;
+		ifp->ip_addr_info[0].bcast_addr = if_bcast;
 		break;
 	}
 
@@ -245,12 +245,12 @@ ofp_in_control(struct socket *so, uint32_t cmd, char *data, struct ofp_ifnet *if
 	switch (cmd) {
 	case OFP_SIOCGIFADDR:
 		((struct ofp_sockaddr_in *)&ifr->ifr_addr)->sin_addr.s_addr
-			= ifp->ip_addr;
+			= ifp->ip_addr_info[0].ip_addr;
 		goto out;
 
 	case OFP_SIOCGIFBRDADDR:
 		((struct ofp_sockaddr_in *)&ifr->ifr_dstaddr)->sin_addr.s_addr
-			= ifp->bcast_addr;
+			= ifp->ip_addr_info[0].bcast_addr;
 		goto out;
 
 	case OFP_SIOCGIFDSTADDR:
@@ -266,7 +266,7 @@ ofp_in_control(struct socket *so, uint32_t cmd, char *data, struct ofp_ifnet *if
 
 	case OFP_SIOCGIFNETMASK:
 		((struct ofp_sockaddr_in *)&ifr->ifr_addr)->sin_addr.s_addr =
-			odp_cpu_to_be_32(0xFFFFFFFFULL << (32 - ifp->masklen));
+			odp_cpu_to_be_32(0xFFFFFFFFULL << (32 - ifp->ip_addr_info[0].masklen));
 		goto out;
 
 	case OFP_SIOCGIFFIB:

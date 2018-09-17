@@ -1329,7 +1329,7 @@ igmp_input_v1_report(struct ofp_ifnet *ifp, /*const*/ struct ofp_ip *ip,
 	 * Replace 0.0.0.0 with the subnet address if told to do so.
 	 */
 	if (V_igmp_recvifkludge && ofp_in_nullhost(ip->ip_src)) {
-		ip->ip_src.s_addr = ifp->ip_addr;
+		ip->ip_src.s_addr = ifp->ip_addr_info[0].ip_addr;
 	}
 
 	CTR3(KTR_IGMPV3, "process v1 report %s on ifp %p(%s)",
@@ -1418,7 +1418,7 @@ igmp_input_v2_report(struct ofp_ifnet *ifp, /*const*/ struct ofp_ip *ip,
 	 * leave requires knowing that we are the only member of a
 	 * group.
 	 */
-	if (ip->ip_src.s_addr == ifp->ip_addr) {
+	if (ip->ip_src.s_addr == ifp->ip_addr_info[0].ip_addr) {
 		return (0);
 	}
 
@@ -1442,7 +1442,7 @@ igmp_input_v2_report(struct ofp_ifnet *ifp, /*const*/ struct ofp_ip *ip,
 	 * Replace 0.0.0.0 with the subnet address if told to do so.
 	 */
 	if (V_igmp_recvifkludge && ofp_in_nullhost(ip->ip_src)) {
-		ip->ip_src.s_addr = ifp->ip_addr;
+		ip->ip_src.s_addr = ifp->ip_addr_info[0].ip_addr;
 	}
 
 	CTR3(KTR_IGMPV3, "process v2 report %s on ifp %p(%s)",

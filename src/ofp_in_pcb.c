@@ -780,7 +780,7 @@ in_pcbladdr(struct inpcb *inp, struct ofp_in_addr *faddr,
 	dev_out = ofp_get_ifnet(nh->port, nh->vlan);
 
 	if (dev_out) {
-		laddr->s_addr = dev_out->ip_addr;
+		laddr->s_addr = dev_out->ip_addr_info[0].ip_addr;
 		return 0;
 	}
 
@@ -843,7 +843,7 @@ ofp_in_pcbconnect_setup(struct inpcb *inp, struct ofp_sockaddr *nam,
 		 */
 		if (faddr.s_addr == OFP_INADDR_ANY) {
 			IN_IFADDR_RLOCK();
-			faddr.s_addr = OFP_TAILQ_FIRST(ofp_get_ifaddrhead())->ip_addr;
+			faddr.s_addr = OFP_TAILQ_FIRST(ofp_get_ifaddrhead())->ip_addr_info[0].ip_addr;
 			IN_IFADDR_RUNLOCK();
 		} else if (faddr.s_addr == (uint64_t)OFP_INADDR_BROADCAST) {
 			/* HJo: FIX
@@ -873,7 +873,7 @@ ofp_in_pcbconnect_setup(struct inpcb *inp, struct ofp_sockaddr *nam,
 			imo = inp->inp_moptions;
 			if (imo->imo_multicast_ifp != NULL) {
 				ifp = imo->imo_multicast_ifp;
-				laddr.s_addr = ifp->ip_addr;
+				laddr.s_addr = ifp->ip_addr_info[0].ip_addr;
 				error = 0;
 			}
 		}

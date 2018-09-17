@@ -111,9 +111,9 @@ static void assert_dev(struct ofp_ifnet *dev, int port, uint16_t vlan,
 	CU_ASSERT_EQUAL(dev->vlan, vlan);
 	CU_ASSERT_EQUAL(dev->vrf, vrf);
 	CU_ASSERT_EQUAL(dev->if_mtu, ifmtu);
-	CU_ASSERT_EQUAL(dev->ip_addr, ifaddr);
-	CU_ASSERT_EQUAL(dev->bcast_addr, bcast);
-	CU_ASSERT_EQUAL(dev->masklen, masklen);
+	CU_ASSERT_EQUAL(dev->ip_addr_info[0].ip_addr, ifaddr);
+	CU_ASSERT_EQUAL(dev->ip_addr_info[0].bcast_addr, bcast);
+	CU_ASSERT_EQUAL(dev->ip_addr_info[0].masklen, masklen);
 #ifdef SP
 	CU_ASSERT_EQUAL(dev->sp_status, sp_status);
 #endif
@@ -244,9 +244,9 @@ test_gre_port(void)
 	CU_ASSERT_PTR_NOT_NULL_FATAL(dev);
 	CU_ASSERT_EQUAL(dev->ip_local, ifaddr);
 	CU_ASSERT_EQUAL(dev->ip_remote, ifaddr + 1);
-	CU_ASSERT_EQUAL(dev->ip_addr, greaddr);
+	CU_ASSERT_EQUAL(dev->ip_addr_info[0].ip_addr , greaddr);
 	CU_ASSERT_EQUAL(dev->ip_p2p, grep2p);
-	CU_ASSERT_EQUAL(dev->masklen, gre_ml);
+	CU_ASSERT_EQUAL(dev->ip_addr_info[0].masklen, gre_ml);
 	CU_ASSERT_EQUAL(dev->if_mtu, ifmtu - 24);
 
 	nh = ofp_get_next_hop(vrf, grep2p, NULL);

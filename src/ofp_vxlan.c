@@ -466,7 +466,7 @@ void ofp_vxlan_restore_and_update_header(odp_packet_t pkt,
 			 sizeof(struct ofp_ether_header));
 
 	ip->ip_dst.s_addr = ip->ip_src.s_addr;
-	ip->ip_src.s_addr = outdev->ip_addr;
+	ip->ip_src.s_addr = outdev->ip_addr_info[0].ip_addr;
 	ip->ip_sum = 0;
 	ip->ip_sum = ofp_cksum_iph(ip, sizeof(*ip)>>2);
 

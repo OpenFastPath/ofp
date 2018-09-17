@@ -102,6 +102,9 @@
 /* Maximum number of VLANs. */
 #define OFP_NUM_VLAN 256
 
+/* Maximum number of IPs per ifnet */
+#define OFP_NUM_IFNET_IP_ADDRS 8
+
 /**Maximum number of output queues that can be configured for an
  * OFP interface*/
 #define OFP_PKTOUT_QUEUE_MAX 64

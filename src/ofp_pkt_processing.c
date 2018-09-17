@@ -333,14 +333,14 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 		return OFP_PKT_DROP;
 
 	/* TODO: handle broadcast */
-	if (dev->bcast_addr == ip->ip_dst.s_addr)
+	if (dev->ip_addr_info[0].bcast_addr == ip->ip_dst.s_addr)
 		return OFP_PKT_DROP;
 
 	OFP_DBG("Device IP: %s, Packet Dest IP: %s",
-		ofp_print_ip_addr(dev->ip_addr),
+		ofp_print_ip_addr(dev->ip_addr_info[0].ip_addr),
 		ofp_print_ip_addr(ip->ip_dst.s_addr));
 
-	is_ours = dev->ip_addr == ip->ip_dst.s_addr ||
+	is_ours = dev->ip_addr_info[0].ip_addr == ip->ip_dst.s_addr ||
 		OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr));
 
 	if (!is_ours) {
@@ -411,7 +411,7 @@ enum ofp_return_code ofp_ipv4_processing(odp_packet_t *pkt)
 	 * 3. Stack configured to send redirects.
 	 */
 #define INET_SUBNET_PREFIX(addr)				\
-	(odp_be_to_cpu_32(addr) & ((~0) << (32 - dev->masklen)))
+	(odp_be_to_cpu_32(addr) & ((~0) << (32 - dev->ip_addr_info[0].masklen)))
 
 	if (nh->port == dev->port &&
 		(INET_SUBNET_PREFIX(ip->ip_src.s_addr) ==
@@ -538,7 +538,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt)
 		ofp_add_mac(dev, arp->ip_src, arp->eth_src);
 
 	OFP_DBG("Device IP: %s, Packet Dest IP: %s",
-		ofp_print_ip_addr(dev->ip_addr),
+		ofp_print_ip_addr(dev->ip_addr_info[0].ip_addr),
 		ofp_print_ip_addr(arp->ip_dst));
 
 	/* Check for VXLAN interface */
@@ -547,7 +547,7 @@ enum ofp_return_code ofp_arp_processing(odp_packet_t *pkt)
 					 inner_from_mac);
 	}
 
-	is_ours = dev->ip_addr && dev->ip_addr == (ofp_in_addr_t)(arp->ip_dst);
+	is_ours = dev->ip_addr_info[0].ip_addr && dev->ip_addr_info[0].ip_addr == (ofp_in_addr_t)(arp->ip_dst);
 	if (!is_ours && !global_param->arp.check_interface) {
 		/* This may be for some other local interface. */
 		uint32_t flags;
@@ -654,7 +654,7 @@ static void send_arp_request(struct ofp_ifnet *dev, uint32_t gw)
 	arp->pln = sizeof(struct ofp_in_addr);
 	arp->op  = odp_cpu_to_be_16(OFP_ARPOP_REQUEST);
 	memcpy(arp->eth_src, e1->ether_shost, OFP_ETHER_ADDR_LEN);
-	arp->ip_src = dev->ip_addr;
+	arp->ip_src = dev->ip_addr_info[0].ip_addr;
 	memcpy(arp->eth_dst, e1->ether_dhost, OFP_ETHER_ADDR_LEN);
 	arp->ip_dst = gw;
 
@@ -962,7 +962,7 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 		eth->ether_dhost[3] = (addr >> 16) & 0x7f;
 		eth->ether_dhost[4] = (addr >> 8) & 0xff;
 		eth->ether_dhost[5] = addr & 0xff;
-	} else if (odata->dev_out->ip_addr == odata->ip->ip_dst.s_addr ||
+	} else if (odata->dev_out->ip_addr_info[0].ip_addr == odata->ip->ip_dst.s_addr ||
 		   ofp_if_type(odata->dev_out) == OFP_IFT_LOOP) {
 		odata->is_local_address = 1;
 		ofp_copy_mac(eth->ether_dhost, odata->dev_out->mac);
@@ -1025,7 +1025,7 @@ static enum ofp_return_code ofp_ip_output_find_route(struct ip_out *odata)
 
 	/* User has not filled in the source addess */
 	if (odata->ip->ip_src.s_addr == 0)
-		odata->ip->ip_src.s_addr = odata->dev_out->ip_addr;
+		odata->ip->ip_src.s_addr = odata->dev_out->ip_addr_info[0].ip_addr;
 
 	return OFP_PKT_CONTINUE;
 }
@@ -1228,7 +1228,7 @@ enum ofp_return_code  ofp_ip_output_opt(odp_packet_t pkt, odp_packet_t opt,
 			nh.vlan = imo->imo_multicast_ifp->vlan;
 			nh.gw = ip->ip_dst.s_addr;
 			nh_param = &nh;
-			ip->ip_src.s_addr = imo->imo_multicast_ifp->ip_addr;
+			ip->ip_src.s_addr = imo->imo_multicast_ifp->ip_addr_info[0].ip_addr;
 		}
 
 	}

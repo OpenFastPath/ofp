@@ -246,16 +246,16 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 	if (if_entry->ifa_family == AF_INET)	{
 		if (ofp_if_type(dev) == OFP_IFT_GRE) {
 			dev->ip_p2p = *((uint32_t *)addr);
-			dev->ip_addr = *((uint32_t *)laddr);
+			dev->ip_addr_info[0].ip_addr = *((uint32_t *)laddr);
 		} else {
-			dev->ip_addr = *((uint32_t *)addr);
+			dev->ip_addr_info[0].ip_addr = *((uint32_t *)addr);
 			if(dev->vlan == 0)
 				ofp_ifaddr_elem_add(dev);
 		}
 		/* dev->linux_index = if_entry->ifa_index;*/
 		dev->vrf = vrf;
-		dev->masklen = if_entry->ifa_prefixlen;
-		dev->bcast_addr = bcast ? *(uint32_t *)bcast : 0;
+		dev->ip_addr_info[0].masklen = if_entry->ifa_prefixlen;
+		dev->ip_addr_info[0].bcast_addr = bcast ? *(uint32_t *)bcast : 0;
 		dev->sp_status = OFP_SP_UP;
 		/* update quick access table */
 		ofp_update_ifindex_lookup_tab(dev);
@@ -265,7 +265,7 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 				ofp_get_ifnet(dev->physport, dev->physvlan);
 
 			OFP_DBG(" - vrf=%d ip_addr=%x masklen=%d vlan=%d group=%x phys=%d/%d",
-				vrf, dev->ip_addr, dev->masklen,
+				vrf, dev->ip_addr_info[0].ip_addr, dev->ip_addr_info[0].masklen,
 				dev->vlan, dev->ip_p2p,
 				dev->physport, dev->physvlan);
 
@@ -273,7 +273,7 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 			ofp_ifaddr_elem_add(dev);
 
 			ofp_set_route_params(OFP_ROUTE_ADD, dev->vrf, dev->vlan, VXLAN_PORTS,
-					     dev->ip_addr, dev->masklen, 0, OFP_RTF_LOCAL);
+					     dev->ip_addr_info[0].ip_addr, dev->ip_addr_info[0].masklen, 0, OFP_RTF_LOCAL);
 
 			ofp_leave_multicast_group(dev);
 			if (dev_root)
@@ -317,9 +317,9 @@ static int del_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 			*((uint32_t *)laddr));
 		ofp_set_route_params(
 			OFP_ROUTE_DEL, dev->vrf, dev->vlan,dev->port,
-			(if_type == OFP_IFT_GRE) ? dev->ip_p2p : dev->ip_addr,
-			dev->masklen, 0 /*gw*/, 0);
-		dev->ip_addr = 0;
+			(if_type == OFP_IFT_GRE) ? dev->ip_p2p : dev->ip_addr_info[0].ip_addr,
+			dev->ip_addr_info[0].masklen, 0 /*gw*/, 0);
+		dev->ip_addr_info[0].ip_addr = 0;
 		if (if_type == OFP_IFT_GRE)
 			dev->ip_p2p = 0;
 		else if (dev->vlan == 0 || if_type == OFP_IFT_VXLAN)

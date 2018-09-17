@@ -375,7 +375,7 @@ test_ofp_packet_input_local_hook(void)
 	 * that matches the local ip on ifnet.
 	 * The packet is terminated in local hook */
 	my_test_val = TEST_LOCAL_HOOK;
-	ifnet->ip_addr = dst_ipaddr;
+	ifnet->ip_addr_info[0].ip_addr = dst_ipaddr;
 	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame),
 				  dst_ipaddr, 0)) {
 		CU_FAIL("Fail to create packet");
@@ -389,7 +389,7 @@ test_ofp_packet_input_local_hook(void)
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->spq_def), ODP_EVENT_INVALID);
 #endif /* SP */
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
-	ifnet->ip_addr = 0;
+	ifnet->ip_addr_info[0].ip_addr = 0;
 	CU_PASS("ofp_packet_input_local_hook");
 }
 
@@ -403,7 +403,7 @@ test_ofp_packet_input_local_IPv4_hook(void)
 	 * that matches the local ip on ifnet.
 	 * The packet is terminated in local IPv4 hook */
 	my_test_val = TEST_LOCAL_IPv4_HOOK;
-	ifnet->ip_addr = dst_ipaddr;
+	ifnet->ip_addr_info[0].ip_addr = dst_ipaddr;
 	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame),
 				  dst_ipaddr, 0)) {
 		CU_FAIL("Fail to create packet");
@@ -417,7 +417,7 @@ test_ofp_packet_input_local_IPv4_hook(void)
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->spq_def), ODP_EVENT_INVALID);
 #endif /* SP */
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
-	ifnet->ip_addr = 0;
+	ifnet->ip_addr_info[0].ip_addr = 0;
 	CU_PASS("ofp_packet_input_local_IPv4_hook");
 }
 
@@ -431,7 +431,7 @@ test_ofp_packet_input_local_UDPv4_hook(void)
 	 * that matches the local ip on ifnet.
 	 * The packet is terminated in local UDPv4 hook */
 	my_test_val = TEST_LOCAL_UDPv4_HOOK;
-	ifnet->ip_addr = dst_ipaddr;
+	ifnet->ip_addr_info[0].ip_addr = dst_ipaddr;
 	if (create_odp_packet_ip4(&pkt, test_frame, sizeof(test_frame),
 				  dst_ipaddr, 0)) {
 		CU_FAIL("Fail to create packet");
@@ -445,7 +445,7 @@ test_ofp_packet_input_local_UDPv4_hook(void)
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->spq_def), ODP_EVENT_INVALID);
 #endif /* SP */
 	CU_ASSERT_EQUAL(odp_queue_deq(ifnet->outq_def), ODP_EVENT_INVALID);
-	ifnet->ip_addr = 0;
+	ifnet->ip_addr_info[0].ip_addr = 0;
 	CU_PASS("ofp_packet_input_local_UDPv4_hook");
 }
 
@@ -634,7 +634,7 @@ test_ofp_packet_input_gre_processed_inner_pkt_forwarded(void)
 	 * Inner packet does not match local ip, route found,
 	 * packet forwarded */
 
-	ifnet->ip_addr = local_ip;
+	ifnet->ip_addr_info[0].ip_addr = local_ip;
 	if (create_odp_packet_ip4(&pkt, gre_frame, sizeof(gre_frame),
 				  local_ip, tun_rem_ip)) {
 		CU_FAIL("Fail to create packet");
@@ -680,7 +680,7 @@ test_ofp_packet_input_gre_processed_inner_pkt_forwarded(void)
 		CU_FAIL("corrupt l3 + data");
 
 	odp_packet_free(odp_packet_from_event(ev));
-	ifnet->ip_addr = 0;
+	ifnet->ip_addr_info[0].ip_addr = 0;
 	CU_PASS("ofp_packet_input_gre_processed_inner_pkt_to_sp");
 }
 
@@ -698,7 +698,7 @@ static void test_ofp_packet_input_gre_orig_pkt_to_sp(void)
 	 * packet offered to GRE hook, returns continue.
 	 * Full packet sent to slowpath */
 
-	ifnet->ip_addr = local_ip;
+	ifnet->ip_addr_info[0].ip_addr = local_ip;
 	if (create_odp_packet_ip4(&pkt, gre_frame, sizeof(gre_frame),
 				  local_ip, tun_rem_ip + 1)) {
 		CU_FAIL("Fail to create packet");
@@ -721,7 +721,7 @@ static void test_ofp_packet_input_gre_orig_pkt_to_sp(void)
 		CU_FAIL("corrupt data sent to slow path");
 
 	odp_packet_free(odp_packet_from_event(ev));
-	ifnet->ip_addr = 0;
+	ifnet->ip_addr_info[0].ip_addr = 0;
 	CU_PASS("ofp_packet_input_gre_orig_pkt_to_sp");
 #else
 	CU_ASSERT_EQUAL(res, OFP_PKT_DROP);

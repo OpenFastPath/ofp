@@ -596,7 +596,7 @@ icmp_reflect(odp_packet_t pkt)
 	 * own addresses, use dst as the src for the reply.
 	 */
 	if ((dev_out = ofp_get_ifnet_match(t.s_addr, ifp->vrf, ifp->vlan))) {
-		t.s_addr = dev_out->ip_addr;
+		t.s_addr = dev_out->ip_addr_info[0].ip_addr;
 		goto match;
 	}
 
@@ -630,7 +630,7 @@ icmp_reflect(odp_packet_t pkt)
 	 */
 	t.s_addr = 0;
 	if (1 /*V_icmp_rfi*/)
-		t.s_addr = ifp->ip_addr;
+		t.s_addr = ifp->ip_addr_info[0].ip_addr;
 	/*
 	 * If the packet was transiting through us, use the address of
 	 * the interface that is the closest to the packet source.
@@ -648,7 +648,7 @@ icmp_reflect(odp_packet_t pkt)
 
 	}
 	dev_out = ofp_get_ifnet(nh->port, nh->vlan);
-	t.s_addr = dev_out->ip_addr;
+	t.s_addr = dev_out->ip_addr_info[0].ip_addr;
 match:
 #ifdef MAC
 	mac_netinet_icmp_replyinplace(m);
