@@ -844,7 +844,7 @@ static void parse_args(int argc, char *argv[], appl_args_t *args)
 	args->single_thread = 1;
 
 	while (1) {
-		opt = getopt_long(argc, argv, "+c:f:hi:l:p:s:t:",
+		opt = getopt_long(argc, argv, "+c:f:hi:l:p:st:",
 				  longopts, &long_index);
 
 		if (opt == -1)
