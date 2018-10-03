@@ -2026,7 +2026,7 @@ uint32_t ofp_port_get_ipv4_addr(int port, uint16_t vlan,
 static inline int get_first_free_ifnet_pos(struct ofp_ifnet *dev)
 {
 	int free_idx = 0;
-	while(dev->ip_addr_info[free_idx].ip_addr && free_idx < OFP_NUM_IFNET_IP_ADDRS)
+	while(free_idx < OFP_NUM_IFNET_IP_ADDRS && dev->ip_addr_info[free_idx].ip_addr)
 	{
 		free_idx++;
 	}
@@ -2073,7 +2073,7 @@ inline void ofp_ifnet_ip_remove(struct ofp_ifnet *dev, uint32_t addr)
 
 inline int ofp_ifnet_ip_find(struct ofp_ifnet *dev, uint32_t addr)
 {
-	for (int i=0; dev->ip_addr_info[i].ip_addr && i < OFP_NUM_IFNET_IP_ADDRS; i++)
+	for (int i=0; i < OFP_NUM_IFNET_IP_ADDRS && dev->ip_addr_info[i].ip_addr; i++)
 	{
 		if (addr == dev->ip_addr_info[i].ip_addr)
 			return i;
@@ -2116,7 +2116,7 @@ inline void ofp_ifnet_print_ip_addrs(struct ofp_ifnet *dev)
 	int i;
 
 	IP_ADDR_LIST_RLOCK(dev);
-	for(i=0; dev->ip_addr_info[i].ip_addr && i < OFP_NUM_IFNET_IP_ADDRS; i++)
+	for(i=0; i < OFP_NUM_IFNET_IP_ADDRS && dev->ip_addr_info[i].ip_addr; i++)
 	{
 		uint32_t mask = ~0;
 		mask = odp_cpu_to_be_32(mask << (32 - dev->ip_addr_info[i].masklen));
@@ -2160,14 +2160,14 @@ inline void ofp_free_ifnet_ip_list(struct ofp_ifnet *dev)
 	}
 	memset(ip_addr_info, 0, size*sizeof(struct ofp_ifnet_ipaddr));
 
-	for(i=0; dev->ip_addr_info[i].ip_addr && i < OFP_NUM_IFNET_IP_ADDRS; i++)
+	for(i=0; i < OFP_NUM_IFNET_IP_ADDRS && dev->ip_addr_info[i].ip_addr; i++)
 	{
 		ip_addr_info[i].ip_addr = dev->ip_addr_info[i].ip_addr;
 		ip_addr_info[i].masklen = dev->ip_addr_info[i].masklen;
 	}
 	IP_ADDR_LIST_RUNLOCK(dev);
 
-	for(i=0; ip_addr_info[i].ip_addr && i < size; i++)
+	for(i=0; i < size && ip_addr_info[i].ip_addr; i++)
 	{
 		mask = ~0;
 		mask = odp_cpu_to_be_32(mask << (32 - dev->ip_addr_info[i].masklen));
@@ -2202,7 +2202,7 @@ inline void ofp_ifnet_print_ip_info(int fd, struct ofp_ifnet *dev)
 			(dev->vlan) ? buf:"",
 			dev->if_name);
 	IP_ADDR_LIST_RLOCK(dev);
-	for(i=0; dev->ip_addr_info[i].ip_addr && i < OFP_NUM_IFNET_IP_ADDRS; i++)
+	for(i=0; i < OFP_NUM_IFNET_IP_ADDRS && dev->ip_addr_info[i].ip_addr; i++)
 	{
 		uint32_t mask = ~0;
 		mask = odp_cpu_to_be_32(mask << (32 - dev->ip_addr_info[i].masklen));
