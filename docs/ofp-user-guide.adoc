@@ -718,7 +718,7 @@ examples of OFP socket API usage.
 
 == Using OFP with ODP-DPDK
 
-DPDK is supported by OFP master at commit:33e2aab through the ODP-DPDK implementation of ODP. OFP
+DPDK is supported by OFP through the ODP-DPDK implementation of ODP. OFP
 repository contains a script (scripts/devbuild_ofp_odp_dpdk.sh) for building OFP
 on top of ODP-DPDK.
 

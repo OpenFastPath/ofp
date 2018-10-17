@@ -1,50 +1,51 @@
-#!/bin/bash
+#!/bin/bash -xe
 
-export ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export REPOS="${REPOS:-${ROOT_DIR}}"
+JOBS=${JOBS:-16}
+TARGET=${TARGET:-"x86_64-native-linuxapp-gcc"}
 
+export ROOT_DIR=$(readlink -e $(dirname $0))
+export REPOS="${REPOS:-${ROOT_DIR}/devbuild_ofp_odp_dpdk}"
+
+mkdir ${REPOS}
 cd ${REPOS}
 
-# Clone check-odp
-rm -Rf ./check-odp/
-git clone https://git.linaro.org/lng/check-odp.git
-pushd check-odp
-git checkout fc9e45ad1cb3b08b30ebabc150a0926757052b7b
+echo '#include "pcap.h"' | cpp -H -o /dev/null 2>&1 || \
+    echo "Warning: pcap is not installed. You may need to install libpcap-dev"
+
+echo '#include "numa.h"' | cpp -H -o /dev/null 2>&1 || \
+    echo "Warning: NUMA library is not installed. You need to install libnuma-dev"
+
+git -c advice.detachedHead=false clone -q --depth=1 --branch=17.11 http://dpdk.org/git/dpdk-stable dpdk
+pushd dpdk
+git log --oneline --decorate
+
+#Make and edit DPDK configuration
+make config T=${TARGET} O=${TARGET}
+pushd ${TARGET}
+#To use I/O without DPDK supported NIC's enable pcap pmd:
+sed -ri 's,(CONFIG_RTE_LIBRTE_PMD_PCAP=).*,\1y,' .config
 popd
 
+#Build DPDK
+make -j${JOBS} build O=${TARGET} EXTRA_CFLAGS="-fPIC"
+make install O=${TARGET} DESTDIR=${TARGET}
+popd
 
-# Clone odp-dpdk: v1.7.0.0 + multi-queue support
-rm -Rf ./odp-dpdk/
-git clone https://git.linaro.org/lng/odp-dpdk.git
+# Clone odp-dpdk
+git clone -q https://github.com/Linaro/odp-dpdk
 pushd odp-dpdk
-git checkout v1.15.0.0_DPDK_17.02
-popd
+git checkout v1.19.0.2_DPDK_17.11
 
-# Clone/build DPDK
-echo '#include "pcap.h"' | cpp -H -o /dev/null 2>&1
-if [ "$?" != "0" ]; then
-    echo "Error: pcap.h is not detected. You may need to install libpcap-dev package."
-fi
-
-rm -Rf ./dpdk/
-odp-dpdk/scripts/devbuild.sh dpdk
-if [ "$?" != "0" ]; then
-    echo "Instaling dpdk failed" 1>$2
-    exit 1
-fi
-
-# Build ODP-DPDK
 export CONFIGURE_FLAGS="--enable-shared=yes --enable-helper-linux"
-odp-dpdk/scripts/devbuild.sh odp
-if [ "$?" != "0" ]; then
-    echo "Instaling dpdk failed"
-    exit 1
-fi
 
-pushd ${ROOT_DIR}/..
+#Build ODP
 ./bootstrap
-./configure --with-odp=$REPOS/check-odp/new-build --enable-cunit --prefix=$REPOS/check-odp/new-build --with-odp-lib=odp-dpdk
-make clean
-make
-make install
+./configure  --enable-debug --enable-debug-print \
+	     --with-dpdk-path=`pwd`/../dpdk/${TARGET}/usr/local --prefix=$(pwd)/install
+make -j${JOBS} install
 popd
+
+cd ${ROOT_DIR}/..
+./bootstrap
+./configure --with-odp=$REPOS/odp-dpdk/install --enable-cunit --prefix=$REPOS/install
+make -j${JOBS} install
