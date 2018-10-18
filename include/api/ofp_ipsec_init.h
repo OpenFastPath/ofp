@@ -9,6 +9,10 @@
 
 #include <odp_api.h>
 
+#if __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 /**
  * Default values for the corresponding initialization parameters
  */
@@ -71,5 +75,9 @@ struct ofp_ipsec_param {
 	 */
 	odp_queue_t outbound_queue;
 };
+
+#if __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #endif /* OFP_IPSEC_INIT_H */
