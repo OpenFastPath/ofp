@@ -32,6 +32,9 @@
 #include "ofpi_portconf.h"
 
 #ifdef CLI
+
+void ofpcli_ipsec_init(void);
+
 /*
  * Only core 0 runs this.
  */
@@ -1145,6 +1148,9 @@ static void cli_init_commands(void)
 	/* Add regular commands */
 	for (i = 0; commands[i].command; i++)
 		start = add_command(start, &commands[i]);
+
+	/* Add IPsec commands */
+	ofpcli_ipsec_init();
 
 	/* Print nodes */
 	if (ofp_debug_logging_enabled()) {

@@ -121,5 +121,6 @@ cli/ofp_cli_alias.c \
 cli/ofp_cli_stat.c \
 cli/ofp_cli_ifconfig.c \
 cli/ofp_cli_address.c \
-cli/ofp_cli_sysctl.c
+cli/ofp_cli_sysctl.c \
+cli/ofp_cli_ipsec.c
 endif
