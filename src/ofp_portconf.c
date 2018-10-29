@@ -683,6 +683,8 @@ const char *ofp_config_interface_del_ip_v4(int port, uint16_t vlan, int vrf,
 	int idx;
 	static char msg[64];
 
+	(void)vrf; /* Suppress unused parameter warning when SP is not enabled. */
+
 	if (port < 0 || port >= OFP_FP_INTERFACE_MAX)
 		return "Wrong port number";
 
