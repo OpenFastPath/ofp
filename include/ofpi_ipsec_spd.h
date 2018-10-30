@@ -81,4 +81,10 @@ ofp_ipsec_action_t ofp_ipsec_sp_out_lookup(uint16_t vrf, odp_packet_t pkt,
  */
 ofp_ipsec_action_t ofp_ipsec_sp_in_lookup(uint16_t vrf, odp_packet_t pkt);
 
+/*
+ * Return true if a packet matches given selectors. The packet passed
+ * is supposed to be an inbound packet after IPsec decapsulation.
+ */
+int ofp_ipsec_selector_match(odp_packet_t pkt, ofp_ipsec_selectors_t *sel);
+
 #endif /* OFPI_IPSEC_SPD_H */

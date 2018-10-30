@@ -27,6 +27,8 @@ struct ofp_ipsec_sa {
 	odp_ipsec_sa_t odp_sa;
 	odp_atomic_u32_t disabled;   /* Do not start new operations */
 	ofp_ipsec_sa_param_t param;
+	odp_atomic_u32_t selectors_set;  /* Selectors field has been set */
+	ofp_ipsec_selectors_t selectors; /* For inbound SAs */
 	uint32_t refcount;
 	int destroyed;		     /* SA has been destroyed */
 	struct ofp_ipsec_sa *next;   /* next SA in a linked list */
@@ -259,6 +261,7 @@ static int sa_init(struct ofp_ipsec_sa *sa,
 
 	sa->param = *param;
 	odp_atomic_store_u32(&sa->disabled, 0);
+	odp_atomic_store_u32(&sa->selectors_set, 0);
 	sa->destroyed = 0;
 
 	odp_mb_full();
@@ -477,4 +480,26 @@ const ofp_ipsec_sa_param_t *ofp_ipsec_sa_get_param(struct ofp_ipsec_sa *sa)
 int ofp_ipsec_sa_disabled(struct ofp_ipsec_sa *sa)
 {
 	return !sa || odp_atomic_load_u32(&sa->disabled);
+}
+
+int ofp_ipsec_sa_set_selectors(struct ofp_ipsec_sa *sa,
+			       const ofp_ipsec_selectors_t *sel)
+{
+	odp_rwlock_write_lock(&shm->lock);
+	if (odp_atomic_load_acq_u32(&sa->selectors_set)) {
+		odp_rwlock_write_unlock(&shm->lock);
+		OFP_ERR("Selectors already set in an SA");
+		return -1;
+	}
+	sa->selectors = *sel;
+	odp_atomic_store_rel_u32(&sa->selectors_set, 1);
+	odp_rwlock_write_unlock(&shm->lock);
+	return 0;
+}
+
+ofp_ipsec_selectors_t *ofp_ipsec_sa_get_selectors(struct ofp_ipsec_sa *sa)
+{
+	if (odp_likely(odp_atomic_load_acq_u32(&sa->selectors_set)))
+		return &sa->selectors;
+	return NULL;
 }

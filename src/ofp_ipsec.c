@@ -31,6 +31,7 @@ static enum ofp_return_code ipsec_output(odp_packet_t pkt,
 static enum ofp_return_code ipsec_output_continue(odp_packet_t pkt);
 
 static enum ofp_return_code ipsec_input_continue(odp_packet_t *pktp,
+						 struct ofp_ipsec_sa *sa,
 						 const ofp_ipsec_sa_param_t *sa_param,
 						 int *lock_held);
 
@@ -399,11 +400,22 @@ enum ofp_return_code ofp_ipsec_input(odp_packet_t *pkt, int off)
  * Continue IPsec input after ODP IPsec processing
  */
 static enum ofp_return_code ipsec_input_continue(odp_packet_t *pktp,
+						 struct ofp_ipsec_sa *sa,
 						 const ofp_ipsec_sa_param_t *sa_param,
 						 int *lock_held)
 {
 	odp_packet_t pkt = *pktp;
 	ofp_ipsec_mode_t  mode = sa_param->mode;
+	ofp_ipsec_selectors_t *sel;
+
+	/*
+	 * Drop the decapsulated packet if it does not match the policy
+	 * set in the SA.
+	 */
+	sel = ofp_ipsec_sa_get_selectors(sa);
+	if (sel == NULL || !ofp_ipsec_selector_match(pkt, sel)) {
+		return OFP_PKT_DROP;
+	}
 
 	ofp_ipsec_flags_set(pkt, OFP_IPSEC_INBOUND_DONE);
 
@@ -575,7 +587,7 @@ static enum ofp_return_code process_result(odp_packet_t *pkt_ptr,
 			}
 			ret = ipsec_output_continue(pkt);
 		} else {
-			ret = ipsec_input_continue(pkt_ptr, sa_param,
+			ret = ipsec_input_continue(pkt_ptr, sa, sa_param,
 						   lock_held);
 		}
 	}
@@ -674,9 +686,12 @@ int ofp_ipsec_sp_bind(ofp_ipsec_sp_handle sp, ofp_ipsec_sa_handle sa)
 			"directions do not match");
 		return -1;
 	}
-	if (sp_param->dir == OFP_IPSEC_DIR_INBOUND) {
-		OFP_ERR("Post-decapsulation policy check not yet implemented.");
+	if (sp_param->vrf != sa_param->vrf) {
+		OFP_ERR("Cannot bind IPsec SP and SA: VRFs do not match");
 		return -1;
+	}
+	if (sp_param->dir == OFP_IPSEC_DIR_INBOUND) {
+		return ofp_ipsec_sa_set_selectors(sa, &sp_param->selectors);
 	}
 
 	sa_ptr = ofp_ipsec_sp_get_sa_area(sp);

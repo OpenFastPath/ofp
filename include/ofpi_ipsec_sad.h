@@ -68,4 +68,15 @@ odp_ipsec_sa_t ofp_ipsec_sa_get_odp_sa(struct ofp_ipsec_sa *sa);
  */
 const ofp_ipsec_sa_param_t *ofp_ipsec_sa_get_param(struct ofp_ipsec_sa *sa);
 
+/*
+ * Set selectors in an SA. Return 0 on success.
+ */
+int ofp_ipsec_sa_set_selectors(struct ofp_ipsec_sa *sa,
+			       const ofp_ipsec_selectors_t *sel);
+
+/*
+ * Get selectors associated with an SA.
+ */
+ofp_ipsec_selectors_t *ofp_ipsec_sa_get_selectors(struct ofp_ipsec_sa *sa);
+
 #endif /* OFPI_IPSEC_SAD_H */

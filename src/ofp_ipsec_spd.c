@@ -10,6 +10,7 @@
 #include "api/ofp_pkt_processing.h"
 #include "api/ofp_log.h"
 #include "api/ofp_ipsec.h"
+#include "api/ofp_icmp.h"
 #include "ofpi_in.h"
 #include "ofpi_ip.h"
 #include "ofpi_shared_mem.h"
@@ -364,11 +365,9 @@ static void get_selector_values(odp_packet_t pkt,
 	s->ip_proto = ip->ip_p;
 }
 
-static int sp_match(const struct ofp_ipsec_sp *sp,
-		    const struct ofp_ipsec_selector_values *sel)
+static int sel_match(const struct ofp_ipsec_selectors_t *pol_sel,
+		     const struct ofp_ipsec_selector_values *sel)
 {
-	const ofp_ipsec_selectors_t *pol_sel = &sp->param.selectors;
-
 	if (pol_sel->type != OFP_IPSEC_SELECTOR_IPV4)
 		return 0;
 	if (sel->src_addr < pol_sel->src_ipv4_range.first_addr.s_addr ||
@@ -421,7 +420,8 @@ static inline ofp_ipsec_action_t sp_lookup(struct ofp_ipsec_sp *sp,
 	get_selector_values(pkt, &sel);
 
 	while (sp) {
-		if (sp->param.vrf == vrf && sp_match(sp, &sel))
+		if (sp->param.vrf == vrf &&
+		    sel_match(&sp->param.selectors, &sel))
 			break;
 		sp = sp->next_in_lookup;
 	}
@@ -449,4 +449,63 @@ ofp_ipsec_action_t ofp_ipsec_sp_out_lookup(uint16_t vrf, odp_packet_t pkt,
 ofp_ipsec_action_t ofp_ipsec_sp_in_lookup(uint16_t vrf, odp_packet_t pkt)
 {
 	return sp_lookup(shm->inbound_lookup_list, vrf, pkt, NULL);
+}
+
+/*
+ * Length of common (to the types we handle below) ICMP header before the
+ * payload containing the triggering packets.
+ */
+#define ICMP_COMMON_LEN 8
+
+/*
+ * Check if a packet is ICMP and if so, match the header of the tiggering
+ * packet (contained in the ICMP payload) against the provided selectors.
+ * See RFC 4301, section 6.2.
+ */
+static int icmp_match(odp_packet_t pkt, ofp_ipsec_selectors_t *sel)
+{
+	struct ofp_ip *ip;
+	uint32_t len;
+	struct ofp_icmp *icmp;
+	struct ofp_ipsec_selector_values sel_values;
+
+	ip = odp_packet_l3_ptr(pkt, &len);
+	if (!ip || len < sizeof(*ip))
+		return 0;
+	if (ip->ip_p != OFP_IPPROTO_ICMP)
+		return 0;
+	if (len < ip->ip_hl * 4 + ICMP_COMMON_LEN + sizeof(*ip))
+		return 0;
+
+	icmp = (struct ofp_icmp *)((uint8_t *)ip + ip->ip_hl);
+	switch (icmp->icmp_type) {
+	case OFP_ICMP_UNREACH:
+	case OFP_ICMP_TIMXCEED:
+	case OFP_ICMP_PARAMPROB:
+	case OFP_ICMP_SOURCEQUENCH:
+		break;
+	default:
+		return 0;
+	}
+
+	/* IP header of the triggering packet */
+	ip = (struct ofp_ip *)((uint8_t *)icmp + ICMP_COMMON_LEN);
+
+	/* Swap source and destination addresses of the triggering packet. */
+	sel_values.src_addr = odp_be_to_cpu_32(ip->ip_dst.s_addr);
+	sel_values.dst_addr = odp_be_to_cpu_32(ip->ip_src.s_addr);
+	sel_values.ip_proto = ip->ip_p;
+	return sel_match(sel, &sel_values);
+}
+
+int ofp_ipsec_selector_match(odp_packet_t pkt, ofp_ipsec_selectors_t *sel)
+{
+	struct ofp_ipsec_selector_values sel_values;
+
+	get_selector_values(pkt, &sel_values);
+
+	if (odp_unlikely(!sel_match(sel, &sel_values))) {
+		return icmp_match(pkt, sel);
+	}
+	return 1;
 }
