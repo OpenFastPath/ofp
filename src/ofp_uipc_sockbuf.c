@@ -443,7 +443,6 @@ void
 ofp_sowakeup(struct socket *so, struct sockbuf *sb)
 {
 	(void)so;
-	SOCKBUF_UNLOCK(sb);
 
 	SOCKBUF_LOCK_ASSERT(sb);
 
