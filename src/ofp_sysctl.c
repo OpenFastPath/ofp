@@ -1150,13 +1150,6 @@ sysctl_handle_64(OFP_SYSCTL_HANDLER_ARGS)
 	return (error);
 }
 
-static size_t strlcpy(char *dst, const char *src, size_t size)
-{
-	strncpy(dst, src, size);
-	dst[size-1] = 0;
-	return strlen(src);
-}
-
 /*
  * Handle our generic '\0' terminated 'C' string.
  * Two cases:
@@ -1176,14 +1169,10 @@ sysctl_handle_string(OFP_SYSCTL_HANDLER_ARGS)
 	 * Attempt to get a coherent snapshot by copying to a
 	 * temporary kernel buffer.
 	 */
-retry:
 	outlen = strlen((char *)arg1)+1;
 	tmparg = malloc(outlen, M_SYSCTLTMP, M_WAITOK);
-
-	if (strlcpy(tmparg, (char *)arg1, outlen) >= outlen) {
-		free(tmparg, M_SYSCTLTMP);
-		goto retry;
-	}
+	memcpy(tmparg, (char *)arg1, outlen);
+	tmparg[outlen-1] = 0;
 
 	error = SYSCTL_OUT(req, tmparg, outlen);
 	free(tmparg, M_SYSCTLTMP);
