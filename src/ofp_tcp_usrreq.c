@@ -1625,6 +1625,7 @@ ofp_tcp_ctloutput(struct socket *so, struct sockopt *sopt)
 #else
 	int error, optval;
 	struct inpcb *inp = sotoinpcb(so);
+	struct tcpcb *tp;
 
 	if (sopt->sopt_level != OFP_IPPROTO_TCP)
 		return 0;
@@ -1632,13 +1633,29 @@ ofp_tcp_ctloutput(struct socket *so, struct sockopt *sopt)
 	switch (sopt->sopt_dir) {
 	case SOPT_SET:
 		switch (sopt->sopt_name) {
+		case OFP_TCP_NOPUSH:
+			error = ofp_sooptcopyin(sopt, &optval, sizeof(optval), sizeof(optval));
+			if (error) return error;
+
+			INP_WLOCK(inp);
+			tp = intotcpcb(inp);
+			if (optval) {
+				t_flags_or(tp->t_flags, TF_NOPUSH);
+			}
+			else if (tp->t_flags & TF_NOPUSH) {
+				t_flags_and(tp->t_flags, ~TF_NOPUSH);
+				if (TCPS_HAVEESTABLISHED(tp->t_state))
+					error = ofp_tcp_output(tp);
+			}
+			INP_WUNLOCK(inp);
+			break;
 		case OFP_TCP_CORK:
 			error = ofp_sooptcopyin(sopt, &optval, sizeof(optval), sizeof(optval));
 			if (error) return error;
 
 			if (!optval) {
 				INP_WLOCK(inp);
-				struct tcpcb *tp = intotcpcb(inp);
+				tp = intotcpcb(inp);
 				if (TCPS_HAVEESTABLISHED(tp->t_state)) {
 					t_flags_or(tp->t_flags, TF_FORCEDATA);
 					ofp_tcp_output(tp);
