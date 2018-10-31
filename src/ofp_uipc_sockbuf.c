@@ -187,25 +187,25 @@ int
 ofp_sbappendaddr_locked(struct sockbuf *sb,
 		    odp_packet_t pkt, odp_packet_t control)
 {
+	int next = sb->sb_put + 1;
+
 	SOCKBUF_LOCK_ASSERT(sb);
 
 	if (control != ODP_PACKET_INVALID)
 		odp_packet_free(control);
 
-	sb->sb_mb[sb->sb_put++] = pkt;
-	if (sb->sb_put >= SOCKBUF_LEN)
-		sb->sb_put = 0;
+	if (next >= SOCKBUF_LEN)
+		next = 0;
 
-	if (sb->sb_put == sb->sb_get) {
-		sb->sb_put--;
-		if (sb->sb_put < 0)
-			sb->sb_put = SOCKBUF_LEN-1;
+	if (next == sb->sb_get) {
 		OFP_ERR("Buffers full, sb_get=%d max_num=%d",
 			  sb->sb_get, SOCKBUF_LEN);
 		return 0;
 	}
 
+	sb->sb_mb[sb->sb_put] = pkt;
 	sballoc(sb, pkt);
+	sb->sb_put = next;
 	return (1);
 }
 
