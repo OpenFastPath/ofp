@@ -128,6 +128,7 @@ void		 ofp_udp_ctlinput(int, struct ofp_sockaddr *, void *);
 int		 ofp_udp_ctloutput(struct socket *, struct sockopt *);
 void		 ofp_udp_init(void);
 void		 ofp_udp_destroy(void);
+void		 ofp_udp_netstat(int fd);
 enum ofp_return_code ofp_udp_input(odp_packet_t *, int);
 struct inpcb	*ofp_udp_notify(struct inpcb *, int);
 int		 ofp_udp_shutdown(struct socket *so);

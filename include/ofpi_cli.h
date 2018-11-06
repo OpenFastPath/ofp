@@ -100,4 +100,8 @@ void f_sysctl_dump(struct cli_conn *conn, const char *s);
 void f_sysctl_read(struct cli_conn *conn, const char *s);
 void f_sysctl_write(struct cli_conn *conn, const char *s);
 
+void f_netstat_all(struct cli_conn *conn, const char *s);
+void f_netstat_tcp(struct cli_conn *conn, const char *s);
+void f_netstat_udp(struct cli_conn *conn, const char *s);
+
 #endif

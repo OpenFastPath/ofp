@@ -165,6 +165,30 @@ ofp_udp_destroy(void)
 	uma_zdestroy(ofp_udbinfo.ipi_zone);
 }
 
+void
+ofp_udp_netstat(int fd)
+{
+	struct inpcb *inp, *inp_temp;
+	struct inpcbhead *ipi_listhead;
+
+	ipi_listhead = ofp_udbinfo.ipi_listhead;
+
+	OFP_LIST_FOREACH_SAFE(inp, ipi_listhead, inp_list, inp_temp) {
+#ifdef INET6
+		if (inp->inp_inc.inc_flags & INC_ISIPV6)
+			ofp_sendf(fd, "udp6\t%s:%d\r\n",
+				ofp_print_ip6_addr(inp->inp_inc.
+					inc6_laddr.__u6_addr.__u6_addr8),
+				odp_be_to_cpu_16(inp->inp_inc.inc_lport));
+		else
+#endif
+			ofp_sendf(fd, "udp\t%s:%d\r\n",
+				ofp_print_ip_addr(inp->inp_inc.
+					inc_laddr.s_addr),
+				odp_be_to_cpu_16(inp->inp_inc.inc_lport));
+	}
+}
+
 /*
  * Subroutine of ofp_udp_input(), which appends the provided mbuf chain to the
  * passed pcb/socket.  The caller must provide a sockaddr_in via udp_in that

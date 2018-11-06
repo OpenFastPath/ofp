@@ -952,6 +952,21 @@ struct cli_command commands[] = {
 		"Set sysctl variable",
 		f_sysctl_write
 	},
+	{
+		"netstat",
+		"Show all open ports",
+		f_netstat_all
+	},
+	{
+		"netstat -t",
+		"Show TCP open ports",
+		f_netstat_tcp
+	},
+	{
+		"netstat -u",
+		"Show UDP open ports",
+		f_netstat_udp
+	},
 	{ NULL, NULL, NULL }
 };
 
