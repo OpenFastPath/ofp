@@ -93,6 +93,9 @@ static void get_file(int s, char *url)
 		sendf(s, "HTTP/1.0 404 NOK\r\n\r\n");
 		return;
 	}
+	int state = 1;
+	/* disable push messages */
+	ofp_setsockopt(s, OFP_IPPROTO_TCP, OFP_TCP_NOPUSH, &state, sizeof(state));
 
 	sendf(s, "HTTP/1.0 200 OK\r\n");
 	if (mime)
@@ -103,6 +106,10 @@ static void get_file(int s, char *url)
 	while ((n = fread(bufo, 1, sizeof(bufo), f)) > 0)
 		if ((w = mysend(s, bufo, n)) < 0)
 			break;
+	/* flush the file */
+	state = 0;
+	ofp_setsockopt(s, OFP_IPPROTO_TCP, OFP_TCP_NOPUSH, &state, sizeof(state));
+
 	fclose(f);
 }
 
