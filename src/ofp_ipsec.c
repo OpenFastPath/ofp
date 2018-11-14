@@ -407,6 +407,8 @@ static enum ofp_return_code ipsec_input_continue(odp_packet_t *pktp,
 	odp_packet_t pkt = *pktp;
 	ofp_ipsec_mode_t  mode = sa_param->mode;
 	ofp_ipsec_selectors_t *sel;
+	struct ofp_ifnet *ifnet = odp_packet_user_ptr(pkt);
+	uint16_t vrf = ifnet ? ifnet->vrf : 0;
 
 	/*
 	 * Drop the decapsulated packet if it does not match the policy
@@ -416,6 +418,13 @@ static enum ofp_return_code ipsec_input_continue(odp_packet_t *pktp,
 	if (sel == NULL || !ofp_ipsec_selector_match(pkt, sel)) {
 		return OFP_PKT_DROP;
 	}
+
+	/*
+	 * ODP IPsec API does not know VRFs and may (with the offloaded SA
+	 * lookup) apply an SA of a wrong VRF. Drop the packet in such case.
+	 */
+	if (odp_unlikely(vrf != sa_param->vrf))
+		return OFP_PKT_DROP;
 
 	ofp_ipsec_flags_set(pkt, OFP_IPSEC_INBOUND_DONE);
 
