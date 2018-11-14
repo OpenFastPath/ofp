@@ -178,7 +178,8 @@ int ofp_ipsec_init_global(const struct ofp_ipsec_param *param)
 
 	if (odp_ipsec_capability(&capa)) {
 		OFP_ERR("odp_ipsec_capability failed");
-		return -1;
+		OFP_ERR("Setting maximum number of IPsec SAs to zero");
+		max_num_sa = 0;
 	}
 
 #ifdef SP
