@@ -247,6 +247,11 @@ static int add_ipv4v6_addr(struct ifaddrmsg *if_entry, struct ofp_ifnet *dev,
 	int masklen;
 	uint32_t bcast_addr;
 
+	if (vrf >= global_param->num_vrf) {
+		OFP_DBG("VRF ID too big\n");
+		return -1;
+	}
+
 	if (if_entry->ifa_family == AF_INET)	{
 		if (ofp_if_type(dev) == OFP_IFT_GRE) {
 			dev->ip_p2p = *((uint32_t *)addr);
@@ -495,6 +500,10 @@ static int add_link(struct ifinfomsg *ifinfo_entry, int vlan, int link,
 	OFP_DBG("ADD LINK ix=%d vlan=%d link=%d mtu=%d loc=%x rem=%x vrf=%d",
 		ifinfo_entry->ifi_index, vlan, link, mtu, tun_loc, tun_rem, vrf);
 	if (vlan != -1) {
+		if (vrf >= global_param->num_vrf) {
+			OFP_DBG(" - VRF ID too big.");
+			return -1;
+		}
 		if (ifinfo_entry->ifi_type == ARPHRD_IPGRE) {
 			dev_root = ofp_get_ifnet(GRE_PORTS, 0);
 			if (ofp_get_ifnet_by_ip(tun_loc, vrf) == NULL) {

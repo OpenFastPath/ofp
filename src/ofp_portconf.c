@@ -505,6 +505,9 @@ const char *ofp_config_interface_up_v4(int port, uint16_t vlan, uint16_t vrf,
 	if (port < 0 || port >= OFP_FP_INTERFACE_MAX)
 		return "Wrong port number";
 
+	if (vrf >= global_param->num_vrf)
+		return "VRF ID too big";
+
 	mask = ~0;
 	mask = odp_cpu_to_be_32(mask << (32 - masklen));
 
@@ -752,6 +755,9 @@ const char *ofp_config_interface_up_tun(int port, uint16_t greid,
 	if (port != GRE_PORTS || greid == 0)
 		return "Wrong port number or tunnel ID.";
 
+	if (vrf >= global_param->num_vrf)
+		return "VRF ID too big";
+
 	dev_root = ofp_get_ifnet_by_ip(tun_loc, vrf);
 	if (dev_root == NULL)
 		return "Tunnel local ip not configured.";
@@ -937,6 +943,10 @@ const char *ofp_config_interface_up_local(uint16_t id, uint16_t vrf,
 #ifdef SP
 	(void)ret;
 #endif /*SP*/
+
+	if (vrf >= global_param->num_vrf)
+		return "VRF ID too big";
+
 	mask = ~0;
 	mask = odp_cpu_to_be_32(mask << (32 - masklen));
 
