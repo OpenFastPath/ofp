@@ -1,0 +1,175 @@
+# Example IPsec config: tunnel between two VRFs of single OFP instance.
+#
+# There is an IPsec tunnel between tunnel endpoints 10.2.0.1 and 10.2.0.2
+# located in VRF-0 and VRF-1, respectively. The tunnel protects all traffic
+# between subnets 10.0.0.0/24 and 10.1.0.0./24. Subnet 10.2.0.0/24 is
+# an untrusted network.
+#
+# Anti-replay is left disabled to make it easier to replace either VRF
+# with a separate security GW.
+#
+# Interface configuration is depicted below.
+#
+#  10.0.0.0/24
+#      |
+#    (fp0)
+#    VRF-0
+#    (fp2)
+#      |
+#  10.2.0.0/24
+#      |
+#    (fp3)
+#    VRF-1
+#    (fp1)
+#      |
+#  10.1.0.0/24
+#
+
+######################################################################
+# Interfaces and routes in VRF 0
+######################################################################
+
+ifconfig fp0 10.0.0.1/24
+ifconfig fp2 10.2.0.1/24
+route add 10.1.0.0/24 gw 10.2.0.2 dev fp2
+
+######################################################################
+# Interfaces and routes in VRF 1
+######################################################################
+
+ifconfig fp1 10.1.0.1/24 vrf 1
+ifconfig fp3 10.2.0.2/24 vrf 1
+route add vrf 1 10.0.0.0/24 gw 10.2.0.1 dev fp3
+
+######################################################################
+# IPsec in VRF 0
+######################################################################
+
+# Create an outbound policy rule to require IPsec protection
+
+ipsec sp-template add v0-out
+ipsec sp-template set v0-out vrf 0
+ipsec sp-template set v0-out dir out
+ipsec sp-template set v0-out proto 17
+ipsec sp-template set v0-out action protect
+ipsec sp-template set v0-out src-range 10.0.0.0 10.0.0.255
+ipsec sp-template set v0-out dst-range 10.1.0.0 10.1.0.255
+
+ipsec sp add 10 priority 1 template v0-out
+
+# Create an outbound SA:
+
+ipsec sa-template add v0-out
+ipsec sa-template set v0-out vrf 0
+ipsec sa-template set v0-out dir out
+ipsec sa-template set v0-out cipher aes-cbc
+ipsec sa-template set v0-out cipher-key 299F31D0082EFA98EC4E6C89452821E6
+ipsec sa-template set v0-out auth sha-1
+ipsec sa-template set v0-out auth-key 38D01377BE5466CF34E90C6CC0AC29B7
+ipsec sa-template set v0-out tun-src 10.2.0.1
+ipsec sa-template set v0-out tun-dst 10.2.0.2
+
+ipsec sa add 20 spi 1 template v0-out
+
+# Associate the outbound policy rule with the newly created SA:
+
+ipsec sp bind 10 sa 20
+
+# Create an inbound policy rule to discard received unencrypted packets that
+# should have been IPsec-encapsulated:
+
+ipsec sp-template add v0-in
+ipsec sp-template set v0-in vrf 0
+ipsec sp-template set v0-in dir in
+ipsec sp-template set v0-in proto 17
+ipsec sp-template set v0-in action discard
+ipsec sp-template set v0-in src-range 10.1.0.0 10.1.0.255
+ipsec sp-template set v0-in dst-range 10.0.0.0 10.0.0.255
+
+ipsec sp add 11 priority 2 template v0-in
+
+# Create an inbound SA:
+
+ipsec sa-template add v0-in
+ipsec sa-template set v0-in vrf 0
+ipsec sa-template set v0-in dir in
+ipsec sa-template set v0-in cipher aes-cbc
+ipsec sa-template set v0-in cipher-key C97C50DD3F84D5B5B54709179216D5D9
+ipsec sa-template set v0-in auth sha-1
+ipsec sa-template set v0-in auth-key 8979FB1BD1310BA698DFB5AC2FFD72DB
+ipsec sa-template set v0-in tun-src 10.2.0.2
+ipsec sa-template set v0-in tun-dst 10.2.0.1
+
+ipsec sa add 21 spi 2 template v0-in
+
+# Attach the selectors from the inbound policy rule to the inbound SA
+# to allow reception of matching traffic through the SA:
+
+ipsec sp bind 11 sa 21
+
+
+######################################################################
+# IPsec in VRF 1
+######################################################################
+
+# Create an outbound policy rule to require IPsec protection
+
+ipsec sp-template add v1-out
+ipsec sp-template set v1-out vrf 1
+ipsec sp-template set v1-out dir out
+ipsec sp-template set v1-out proto 17
+ipsec sp-template set v1-out action protect
+ipsec sp-template set v1-out src-range 10.1.0.0 10.1.0.255
+ipsec sp-template set v1-out dst-range 10.0.0.0 10.0.0.255
+
+ipsec sp add 110 priority 1 template v1-out
+
+# Create an outbound SA (corresponding to the inbound SA in VRF 0):
+
+ipsec sa-template add v1-out
+ipsec sa-template set v1-out vrf 1
+ipsec sa-template set v1-out dir out
+ipsec sa-template set v1-out cipher aes-cbc
+ipsec sa-template set v1-out cipher-key C97C50DD3F84D5B5B54709179216D5D9
+ipsec sa-template set v1-out auth sha-1
+ipsec sa-template set v1-out auth-key 8979FB1BD1310BA698DFB5AC2FFD72DB
+ipsec sa-template set v1-out tun-src 10.2.0.2
+ipsec sa-template set v1-out tun-dst 10.2.0.1
+
+ipsec sa add 120 spi 2 template v1-out
+
+# Associate the outbound policy rule with the newly created SA:
+
+ipsec sp bind 110 sa 120
+
+# Create an inbound policy rule to discard received unencrypted packets that
+# should have been IPsec-encapsulated:
+
+ipsec sp-template add v1-in
+ipsec sp-template set v1-in vrf 1
+ipsec sp-template set v1-in dir in
+ipsec sp-template set v1-in proto 17
+ipsec sp-template set v1-in action discard
+ipsec sp-template set v1-in src-range 10.0.0.0 10.0.0.255
+ipsec sp-template set v1-in dst-range 10.1.0.0 10.1.0.255
+
+ipsec sp add 111 priority 2 template v1-in
+
+# Create an inbound SA (corresponding to the outbound SA in VRF 0):
+
+ipsec sa-template add v1-in
+ipsec sa-template set v1-in vrf 1
+ipsec sa-template set v1-in dir in
+ipsec sa-template set v1-in cipher aes-cbc
+ipsec sa-template set v1-in cipher-key 299F31D0082EFA98EC4E6C89452821E6
+ipsec sa-template set v1-in auth sha-1
+ipsec sa-template set v1-in auth-key 38D01377BE5466CF34E90C6CC0AC29B7
+ipsec sa-template set v1-in tun-src 10.2.0.1
+ipsec sa-template set v1-in tun-dst 10.2.0.2
+
+ipsec sa add 121 spi 1 template v1-in
+
+# Attach the selectors from the inbound policy rule to the inbound SA
+# to allow reception of matching traffic through the SA:
+
+ipsec sp bind 111 sa 121
