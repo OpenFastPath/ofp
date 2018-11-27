@@ -72,7 +72,7 @@ Download and build OpenDataPlane (ODP) library:
 
     git clone https://git.linaro.org/lng/odp.git
     cd odp
-    git checkout v1.17.0.0
+    git checkout v1.19.0.2
     ./bootstrap
     ./configure --prefix=<INSTALL ODP TO THIS DIR>
     make
