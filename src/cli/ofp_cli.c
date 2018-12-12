@@ -460,7 +460,7 @@ static void f_help(struct cli_conn *conn, const char *s)
 	ofp_sendf(conn->fd, "Display help information for CLI commands:\r\n"
 		"  help <command>\r\n"
 		"    command: alias, arp, debug, exit, ifconfig, loglevel, address, "
-		"route, show, stat\r\n\r\n");
+		"route, show, stat, netstat\r\n\r\n");
 	sendcrlf(conn);
 }
 
@@ -479,7 +479,7 @@ static void f_help_show(struct cli_conn *conn, const char *s)
 	ofp_sendf(conn->fd, "Display current status:\r\n"
 		"  show <command>\r\n"
 		"    command: alias, arp, debug, ifconfig, loglevel, route, address, "
-		"stat\r\n\r\n");
+		"stat, netstat\r\n\r\n");
 	sendcrlf(conn);
 }
 
@@ -607,6 +607,11 @@ struct cli_command commands[] = {
 		f_ifconfig_show
 	},
 	{
+		"show netstat",
+		NULL,
+		f_netstat_all
+	},
+	{
 		"debug",
 		"Print traffic to file (and console) or to a pcap file",
 		f_debug_show
@@ -710,6 +715,11 @@ struct cli_command commands[] = {
 		"help ifconfig",
 		NULL,
 		f_help_ifconfig
+	},
+	{
+		"help netstat",
+		NULL,
+		f_help_netstat
 	},
 	{
 		"arp",
@@ -966,6 +976,11 @@ struct cli_command commands[] = {
 		"netstat -u",
 		"Show UDP open ports",
 		f_netstat_udp
+	},
+	{
+		"netstat help",
+		NULL,
+		f_help_netstat
 	},
 	{ NULL, NULL, NULL }
 };

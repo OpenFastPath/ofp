@@ -33,3 +33,26 @@ void f_netstat_udp(struct cli_conn *conn, const char *s)
 
 	sendcrlf(conn);
 }
+
+/* "help netstat" */
+void f_help_netstat(struct cli_conn *conn, const char *s)
+{
+	(void)s;
+	ofp_sendf(conn->fd,
+		"Show all open ports:\r\n"
+		"  netstat\r\n\r\n");
+
+	ofp_sendf(conn->fd,
+		"Show TCP open ports:\r\n"
+		"  netstat -t\r\n\r\n");
+
+	ofp_sendf(conn->fd,
+		"Show UDP open ports:\r\n"
+		"  netstat -u\r\n\r\n");
+
+	ofp_sendf(conn->fd,
+		"Show (this) help:\r\n"
+		"  netstat help\r\n\r\n");
+
+	sendcrlf(conn);
+}
