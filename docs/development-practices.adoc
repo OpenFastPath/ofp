@@ -224,9 +224,16 @@ in <<relpol>>. The release process may begin once the TSC decides that
 development is ready, and sufficient time, defined in <<relpol>>, has
 passed since announcing the End of Life of the previous release.
 
-. Library versions are incremented on master according to what kind of
-  changes have been made to the ABI of each library since the previous
-  release. The usual rules are followed:
+. A release branch is created by branching from master. The branch
+  point may be master HEAD or some earlier commit on master.
+
+. If the branch point is not master head, some cherry-picks may be
+  needed in this stage. Merging or cherry-picking from elsewhere than
+  master should be avoided.
+
+. Library versions are incremented on the relase branch according to
+  what kind of changes have been made to the ABI of each library since
+  the previous release. The usual rules are followed:
 
     * If there are only bug fixes, then the patch version is
       incremented.
@@ -236,13 +243,6 @@ passed since announcing the End of Life of the previous release.
 
     * If there are incompatible ABI changes, then the major version is
       incremented and minor and patch versions set to zero.
-
-. A release branch is created by branching from master. The branch
-  point may be master HEAD or some earlier commit on master.
-
-. If the branch point is not master head, some cherry-picks may be
-  needed in this stage. Merging or cherry-picking from elsewhere than
-  master should be avoided.
 
 . Once the release criteria is met and the TSC makes the decision, the
   release branch is tagged with a release candidate tag.
