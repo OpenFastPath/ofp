@@ -448,7 +448,6 @@ tcp_fields_to_host(struct ofp_tcphdr *th)
 	th->th_urp = odp_be_to_cpu_16(th->th_urp);
 }
 
-#ifdef TCP_SIGNATURE
 static inline void
 tcp_fields_to_net(struct ofp_tcphdr *th)
 {
@@ -458,6 +457,7 @@ tcp_fields_to_net(struct ofp_tcphdr *th)
 	th->th_urp = odp_cpu_to_be_16(th->th_urp);
 }
 
+#ifdef TCP_SIGNATURE
 static inline int
 tcp_signature_verify_input(odp_packet_t m, int off0, int tlen, int optlen,
     struct tcpopt *to, struct ofp_tcphdr *th, uint32_t tcpbflag)
@@ -580,13 +580,14 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 	short ostate = 0;
 #endif
 	/* HJo: remove vlan hdr */
+	/*
 	odp_packet_pull_head(*m, odp_packet_l3_offset(*m));
 	odp_packet_l2_offset_set(*m, 0);
 	odp_packet_l3_offset_set(*m, 0);
 	odp_packet_l4_offset_set(*m, off0);
-
+	*/
 #ifdef INET6
-	isipv6 = (((struct ofp_ip *)odp_packet_data(*m))->ip_v == 6) ? 1 : 0;
+	isipv6 = (((struct ofp_ip *)odp_packet_l3_ptr(*m, 0))->ip_v == 6) ? 1 : 0;
 #endif
 
 	to.to_flags = 0;
@@ -606,7 +607,7 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 		}
 #endif
 
-		ip6 = (struct ofp_ip6_hdr *)odp_packet_data(*m);
+		ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(*m, 0);
 		th = (struct ofp_tcphdr *)((char *)ip6 + off0);
 		tlen = sizeof(*ip6) + odp_be_to_cpu_16(ip6->ofp_ip6_plen) - off0;
 
@@ -660,7 +661,7 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 		}
 		*/
 
-		ip = (struct ofp_ip *)odp_packet_data(*m);
+		ip = (struct ofp_ip *)odp_packet_l3_ptr(*m, 0);
 		th = (struct ofp_tcphdr *)((char *)ip + off0);
 
 #ifdef OFP_IPv4_TCP_CSUM_VALIDATE
@@ -691,12 +692,12 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 		/*
 		 * Convert fields to host representation.
 		 */
-		ip->ip_len = odp_be_to_cpu_16(ip->ip_len);
-		ip->ip_off = odp_be_to_cpu_16(ip->ip_off);
+		// ip->ip_len = odp_be_to_cpu_16(ip->ip_len);
+		// ip->ip_off = odp_be_to_cpu_16(ip->ip_off);
 		/* HJo: see bsd ip_input() */
-		ip->ip_len -= ip->ip_hl << 2;
+		// ip->ip_len -= ip->ip_hl << 2;
 
-		tlen = ip->ip_len;
+		tlen = odp_be_to_cpu_16(ip->ip_len) - (ip->ip_hl << 2);
 
 		/* Re-initialization for later version check */
 		ip->ip_v = OFP_IPVERSION;
@@ -723,7 +724,7 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 #ifdef INET6
 		if (isipv6) {
 			OFP_IP6_EXTHDR_CHECK(*m, off0, off, OFP_PKT_DROP);
-			ip6 = (struct ofp_ip6_hdr *)odp_packet_data(*m);
+			ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(*m, 0);
 			th = (struct ofp_tcphdr *)((char *)ip6 + off0);
 		}
 		else
@@ -792,6 +793,12 @@ findpcb:
 	 * XXX MRT Send RST using which routing table?
 	 */
 	if (inp == NULL) {
+
+		/*
+		 *  recover for slow path process
+		 */
+		tcp_fields_to_net(th);
+
 		/*
 		 * Log communication attempts to ports that are not
 		 * in use.
@@ -3083,8 +3090,8 @@ tcp_dropwithreset(odp_packet_t m, struct ofp_tcphdr *th, struct tcpcb *tp,
 	    odp_packet_is_bcast(m) || odp_packet_is_mcast(m))
 		goto drop;
 #ifdef INET6
-	if (((struct ofp_ip *)odp_packet_data(m))->ip_v == 6) {
-		ip6 = (struct ofp_ip6_hdr *)odp_packet_data(m);
+	if (((struct ofp_ip *)odp_packet_l3_ptr(m, 0))->ip_v == 6) {
+		ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(m, 0);
 		if (OFP_IN6_IS_ADDR_MULTICAST(&ip6->ip6_dst) ||
 		    OFP_IN6_IS_ADDR_MULTICAST(&ip6->ip6_src))
 			goto drop;
@@ -3096,7 +3103,7 @@ tcp_dropwithreset(odp_packet_t m, struct ofp_tcphdr *th, struct tcpcb *tp,
 #endif
 #ifdef INET
 	{
-		ip = (struct ofp_ip *)odp_packet_data(m);
+		ip = (struct ofp_ip *)odp_packet_l3_ptr(m, 0);
 		if (OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_dst.s_addr)) ||
 		    OFP_IN_MULTICAST(odp_be_to_cpu_32(ip->ip_src.s_addr)) ||
 		    ip->ip_src.s_addr == odp_cpu_to_be_32(OFP_INADDR_BROADCAST) ||
@@ -3113,12 +3120,12 @@ tcp_dropwithreset(odp_packet_t m, struct ofp_tcphdr *th, struct tcpcb *tp,
 
 	/* ofp_tcp_respond consumes the mbuf chain. */
 	if (th->th_flags & OFP_TH_ACK) {
-		ofp_tcp_respond(tp, (void *)odp_packet_data(m), th, m, (tcp_seq)0,
+		ofp_tcp_respond(tp, (void *)odp_packet_l3_ptr(m, 0), th, m, (tcp_seq)0,
 		    th->th_ack, OFP_TH_RST);
 	} else {
 		if (th->th_flags & OFP_TH_SYN)
 			tlen++;
-		ofp_tcp_respond(tp, (void *)odp_packet_data(m), th, m, th->th_seq+tlen,
+		ofp_tcp_respond(tp, (void *)odp_packet_l3_ptr(m, 0), th, m, th->th_seq+tlen,
 		    (tcp_seq)0, OFP_TH_RST|OFP_TH_ACK);
 	}
 	return;
