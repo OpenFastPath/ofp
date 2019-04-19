@@ -527,6 +527,12 @@ after_sack_rexmit:
 
 	}
 
+	/* Don't send TCP window updates right after first received data */
+	if (!(tp->t_flags & TF_WND_UPDATES) &&
+	    tp->rcv_nxt != tp->irs + 1) {
+		tp->t_flags |= TF_WND_UPDATES;
+	}
+
 	/*
 	 * Sending of standalone window updates.
 	 *
@@ -555,9 +561,12 @@ after_sack_rexmit:
 	 * remote side already has done a half-close and won't send
 	 * more data.  Skip this if the connection is in T/TCP
 	 * half-open state.
+	 *
+	 * Don't send TCP window updates right after first received data
 	 */
 	if (recwin > 0 && !(tp->t_flags & TF_NEEDSYN) &&
 	    !(tp->t_flags & TF_DELACK) &&
+	    (tp->t_flags & TF_WND_UPDATES) &&
 	    !TCPS_HAVERCVDFIN(tp->t_state)) {
 		/*
 		 * "adv" is the amount we could increase the window,
