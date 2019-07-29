@@ -25,6 +25,8 @@ LT_INIT([])
 AC_SUBST([LIBTOOL_DEPS])
 AM_PROG_LIBTOOL
 
+PKG_PROG_PKG_CONFIG
+
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h memory.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
@@ -191,7 +193,24 @@ AC_ARG_WITH([odp-lib],
     [ODP_LIB=$withval],
     [])
 
-# introduce optional configure parameter for ofp configuration flavor
+if test "x$enable_static" = "xyes" ; then
+	export PKG_CONFIG="pkg-config --static"
+fi
+
+PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= 1.18.0.0], [], [])
+AC_SUBST([ODP_CFLAGS])
+AC_SUBST([ODP_LIBS])
+
+PKG_CHECK_MODULES([ODPHELPER], [libodphelper], [], [])
+AC_SUBST([ODPHELPER_CFLAGS])
+AC_SUBST([ODPHELPER_LIBS])
+
+AM_CPPFLAGS="$AM_CPPFLAGS $ODP_CFLAGS $ODPHELPER_CFLAGS"
+
+# prepending lib to the files to link
+LIBS="$ODP_LIBS $ODPHELPER_LIBS $LIBS"
+
+# Introduce optional configure parameter for ofp configuration flavor
 OFP_CONFIG_FLV=default
 AC_ARG_WITH([config-flv],
     [AS_HELP_STRING([--with-config-flv=NAME],
@@ -205,35 +224,6 @@ case "${OFP_CONFIG_FLV}" in
 	netwrap-webserver) AM_CFLAGS="$AM_CFLAGS -DOFP_CONFIG_NETWRAP_WEBSERVER" ;;
 	*) AC_MSG_ERROR([bad value '${OFP_CONFIG_FLV}' for --with-config-flv]) ;;
 esac
-
-##########################################################################
-# Save and set temporary compilation flags
-##########################################################################
-OLD_LDFLAGS=$LDFLAGS
-OLD_CPPFLAGS=$CPPFLAGS
-LDFLAGS="$AM_LDFLAGS $LDFLAGS"
-CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS"
-
-PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= 1.18.0.0], [], [])
-AC_SUBST([ODP_CFLAGS])
-AC_SUBST([ODP_LIBS])
-
-AC_CHECK_HEADERS([odp_api.h], [], [AC_MSG_FAILURE(["Can't find ODP headers"])])
-
-PKG_CHECK_MODULES([ODPHELPER], [libodphelper], [], [])
-AC_SUBST([ODPHELPER_CFLAGS])
-AC_SUBST([ODPHELPER_LIBS])
-
-AM_CPPFLAGS="$AM_CPPFLAGS $ODP_CFLAGS $ODPHELPER_CFLAGS"
-
-# prepending lib to the files to link
-LIBS="$ODP_LIBS $ODPHELPER_LIBS $LIBS"
-
-##########################################################################
-# Restore old saved variables
-##########################################################################
-LDFLAGS=$OLD_LDFLAGS
-CPPFLAGS=$OLD_CPPFLAGS
 
 AM_CPPFLAGS="$AM_CPPFLAGS -DINET"
 
