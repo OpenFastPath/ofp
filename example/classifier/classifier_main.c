@@ -13,6 +13,10 @@
 
 #include "ofp.h"
 
+#if ODP_VERSION_API_GENERATION <= 1 && ODP_VERSION_API_MAJOR < 20
+	#define ODP_PMR_INVALID ODP_PMR_INVAL
+#endif
+
 #define MAX_WORKERS		32
 #define TEST_PORT 54321
 
@@ -348,7 +352,7 @@ int build_classifier(int if_count, char **if_names)
 		}
 
 		pmr_udp = build_udp_prm(cos_def, cos_udp);
-		if (pmr_udp == ODP_PMR_INVAL) {
+		if (pmr_udp == ODP_PMR_INVALID) {
 			OFP_ERR("Failed to create UDP PRM");
 			return -1;
 		}
