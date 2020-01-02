@@ -87,6 +87,11 @@ void initialize_odp(void)
 {
 	CU_ASSERT_FALSE_FATAL(odp_init_global(&instance, NULL, NULL));
 	CU_ASSERT_FALSE_FATAL(odp_init_local(instance, ODP_THREAD_WORKER));
+
+#if ODP_VERSION_API_GENERATION >= 1 && ODP_VERSION_API_MAJOR >= 21
+	odp_schedule_config(NULL);
+#endif
+
 }
 
 void initialize_ofp_timer(int resolution_us)
