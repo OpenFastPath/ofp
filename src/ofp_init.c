@@ -425,6 +425,10 @@ int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 
 	ofp_init_global_called = 1;
 
+#if ODP_VERSION_API_GENERATION >= 1 && ODP_VERSION_API_MAJOR >= 21
+	odp_schedule_config(NULL);
+#endif
+
 	HANDLE_ERROR(ofp_init_pre_global(params));
 
 	/* cpu mask for slow path threads */
