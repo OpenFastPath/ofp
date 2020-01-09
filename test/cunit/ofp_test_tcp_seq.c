@@ -117,11 +117,14 @@ uint32_t getticks(void)
 {
 	const __useconds_t one_ms = 1E3;
 	uint32_t ticks;
+	uint32_t ticks_start;
 
-	while ((ticks = tcp_ts_getticks()) == 0)
+	ticks_start = tcp_ts_getticks();
+
+	while ((ticks = tcp_ts_getticks()) == ticks_start)
 		usleep(one_ms);
 
-	return ticks;
+	return ticks - ticks_start;
 }
 
 static uint32_t one_tick_in_ms(int resolution_us)

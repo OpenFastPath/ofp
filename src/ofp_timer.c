@@ -537,10 +537,18 @@ void ofp_timer_evt_cleanup(odp_event_t ev)
    there is only one timer. */
 int ofp_timer_ticks(int timer_num)
 {
+	odp_timer_pool_t timer_pool;
+	uint64_t ns;
 	(void)timer_num;
 	if (!shm)
 		return 0;
-	return odp_timer_current_tick(shm->socket_timer_pool);
+
+	timer_pool = shm->socket_timer_pool;
+	ns =  odp_timer_tick_to_ns(timer_pool,
+				   odp_timer_current_tick(timer_pool));
+
+	/* Convert to OFP_TIMER_RESOLUTION_US ticks */
+	return ns / (OFP_TIMER_RESOLUTION_US * 1000);
 }
 
 odp_timer_pool_t ofp_timer(int timer_num)
