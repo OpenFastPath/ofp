@@ -426,6 +426,7 @@ odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
 		t = odp_timer_set_abs(timer, tick, &bufdata->t_ev);
 
 		if (t != ODP_TIMER_SUCCESS) {
+			odp_timer_free(timer);
 			odp_timeout_free(tmo);
 			odp_buffer_free(buf);
 			OFP_ERR("odp_timer_set_abs failed");
