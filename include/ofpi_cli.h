@@ -62,6 +62,7 @@ void f_loglevel_show(struct cli_conn *conn, const char *s);
 void f_arp(struct cli_conn *conn, const char *s);
 void f_arp_flush(struct cli_conn *conn, const char *s);
 void f_arp_cleanup(struct cli_conn *conn, const char *s);
+void f_arp_add(struct cli_conn *conn, const char *s);
 void f_help_arp(struct cli_conn *conn, const char *s);
 
 #define ALIAS_TABLE_LEN 16
