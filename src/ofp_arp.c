@@ -662,7 +662,8 @@ void ofp_arp_show_table(int fd)
 {
 	int i;
 
-	for (i = 0; i < NUM_ARPS; ++i)
+	/* zeroth entry is used as the invalid entry.*/
+	for (i = 1; i < NUM_ARPS; ++i)
 		if (shm->arp.entries[i].key.ipv4_addr &&
 		    OFP_SLIST_FIRST(&shm->arp.entries[i].pkt_list_head) == NULL)
 			show_arp_entry(fd, &shm->arp.entries[i]);
@@ -675,7 +676,9 @@ void ofp_arp_show_saved_packets(int fd)
 	struct arp_entry *entry;
 
 	ofp_sendf(fd, "Saved packets:\r\n");
-	for (i = 0; i < NUM_ARPS; ++i) {
+
+	/* zeroth entry is used as the invalid entry.*/
+	for (i = 1; i < NUM_ARPS; ++i) {
 		entry = &shm->arp.entries[i];
 		if (entry->key.ipv4_addr &&
 		    OFP_SLIST_FIRST(&entry->pkt_list_head) != NULL) {

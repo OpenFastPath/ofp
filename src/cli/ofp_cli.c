@@ -186,6 +186,41 @@ static int ip4net_ok(char *val)
 	return 1;
 }
 
+static int mac_ok(char *val)
+{
+	char *tk_start, *tk_end, *val_end, *pch;
+	int tk_cnt;
+
+	val_end = val + strlen(val);
+	tk_start = val;
+	tk_cnt = 0;
+
+	while (tk_start != val_end) {
+		tk_end = strchr(tk_start, ':');
+		if (tk_end == NULL)
+			tk_end = val_end;
+
+		for (pch = tk_start; pch != tk_end; pch++)
+			if (!((*pch >= '0' && *pch <= '9') ||
+			      (*pch >= 'a' && *pch <= 'f') ||
+			      (*pch >= 'A' && *pch <= 'F')))
+				return 0;
+
+		if ((tk_end - tk_start) != 2 &&
+		    (tk_end - tk_start) != 1)
+			return 0;
+
+		tk_cnt++;
+
+		tk_start = (tk_end == val_end) ? tk_end : tk_end + 1;
+	}
+
+	if (tk_cnt != OFP_ETHER_ADDR_LEN)
+		return 0;
+
+	return 1;
+}
+
 static int ip6addr_check_ok(char *val, int len)
 {
 	char *it, *last;
@@ -512,6 +547,7 @@ static char DEV[] = "<dev>";
 static char IP4NET[] = "<a.b.c.d/n>";
 static char IP6ADDR[] = "<a:b:c:d:e:f:g:h>";
 static char IP6NET[] = "<a:b:c:d:e:f:g:h/n>";
+static char MAC[] = "<a:b:c:d:e:f>";
 
 /** Check if the given word is a built-in "Parameter Keyword",
  *  and if so returns the Parameter string address, used as an identifier in the parser;
@@ -542,6 +578,8 @@ static char *get_param_string(const char *str)
 		return IP6NET;
 	if IS_PARAM(str, IP6ADDR)
 		return IP6ADDR;
+	if IS_PARAM(str, MAC)
+		return MAC;
 
 #undef IS_PARAM
 	return NULL;
@@ -751,6 +789,11 @@ struct cli_command commands[] = {
 		"arp cleanup",
 		"Clean old entries from arp table",
 		f_arp_cleanup
+	},
+	{
+		"arp set IP4ADDR MAC dev DEV",
+		"Add static entry to arp table",
+		f_arp_add
 	},
 	{
 		"arp help",
@@ -1278,7 +1321,8 @@ static struct cli_node *find_next_vertical(struct cli_node *s, char *word)
 			(s->word == IP4NET && ip4net_ok(word)) ||
 			(s->word == STRING) ||
 			(s->word == IP6ADDR && ip6addr_ok(word)) ||
-			(s->word == IP6NET && ip6net_ok(word))) {
+			(s->word == IP6NET && ip6net_ok(word)) ||
+			(s->word == MAC && mac_ok(word))) {
 			foundcnt++;
 			if (foundcnt > 1) return 0;
 			found = s;
@@ -1297,7 +1341,8 @@ static int is_parameter(struct cli_node *s)
 		(s->word == IP4NET) ||
 		(s->word == STRING) ||
 		(s->word == IP6ADDR) ||
-		(s->word == IP6NET));
+		(s->word == IP6NET) ||
+		(s->word == MAC));
 }
 
 /** parse(): parse a Command line
@@ -1364,7 +1409,8 @@ static void parse(struct cli_conn *conn, int extra)
 				(found->word == IP4NET && ip4net_ok(*token)) ||
 				(found->word == STRING) ||
 				(found->word == IP6ADDR && ip6addr_ok(*token)) ||
-				(found->word == IP6NET && ip6net_ok(*token))) {
+				(found->word == IP6NET && ip6net_ok(*token)) ||
+				(found->word == MAC && mac_ok(*token))) {
 				paramlen += sprintf(paramlist + paramlen,
 						"%s ", *token);
 			}
