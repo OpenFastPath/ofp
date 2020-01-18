@@ -459,8 +459,9 @@ static void f_help(struct cli_conn *conn, const char *s)
 	(void)s;
 	ofp_sendf(conn->fd, "Display help information for CLI commands:\r\n"
 		"  help <command>\r\n"
-		"    command: alias, arp, debug, exit, ifconfig, loglevel, address, "
-		"route, show, stat, netstat\r\n\r\n");
+		"    command: alias, address, arp, debug, exit, ifconfig, ");
+	ofp_sendf(conn->fd, "ipsec, loglevel, netstat, route, show, stat, ");
+	ofp_sendf(conn->fd, "sysctl\r\n\r\n");
 	sendcrlf(conn);
 }
 
@@ -478,8 +479,8 @@ static void f_help_show(struct cli_conn *conn, const char *s)
 	(void)s;
 	ofp_sendf(conn->fd, "Display current status:\r\n"
 		"  show <command>\r\n"
-		"    command: alias, arp, debug, ifconfig, loglevel, route, address, "
-		"stat, netstat\r\n\r\n");
+		"    command: alias, address, arp, debug, ifconfig, ipsec, ");
+	ofp_sendf(conn->fd, "loglevel, netstat, route, stat sysctl\r\n\r\n");
 	sendcrlf(conn);
 }
 
@@ -612,6 +613,16 @@ struct cli_command commands[] = {
 		f_netstat_all
 	},
 	{
+		"show address",
+		NULL,
+		f_address_show
+	},
+	{
+		"show sysctl",
+		NULL,
+		f_sysctl_dump
+	},
+	{
 		"debug",
 		"Print traffic to file (and console) or to a pcap file",
 		f_debug_show
@@ -720,6 +731,11 @@ struct cli_command commands[] = {
 		"help netstat",
 		NULL,
 		f_help_netstat
+	},
+	{
+		"help sysctl",
+		NULL,
+		f_help_sysctl
 	},
 	{
 		"arp",
@@ -961,6 +977,11 @@ struct cli_command commands[] = {
 		"sysctl w STRING STRING",
 		"Set sysctl variable",
 		f_sysctl_write
+	},
+	{
+		"sysctl help",
+		NULL,
+		f_help_sysctl
 	},
 	{
 		"netstat",

@@ -17,6 +17,31 @@
 #include "ofpi_sysctl.h"
 
 
+void f_help_sysctl(struct cli_conn *conn, const char *s)
+{
+	(void)s;
+	ofp_sendf(conn->fd, "sysctl - configure system parameters at ");
+	ofp_sendf(conn->fd, "runtime.\r\n\r\n");
+
+	ofp_sendf(conn->fd, "Show sysctl tree:\r\n"
+				"  sysctl dump\r\n\r\n");
+
+	ofp_sendf(conn->fd, "Read sysctl variable value:\r\n"
+				"  sysctl r VARIABLE\r\n"
+				"  Example:\r\n"
+				"    sysctl r net.inet.udp.checksum\r\n\r\n");
+
+	ofp_sendf(conn->fd, "Write sysctl variable value:\r\n"
+				"  sysctl w VARIABLE VALUE\r\n"
+				"  Example:\r\n"
+				"    sysctl w net.inet.udp.checksum 0\r\n\r\n");
+
+	ofp_sendf(conn->fd, "Show (this) help:\r\n"
+				"  sysctl help\r\n\r\n");
+
+	sendcrlf(conn);
+}
+
 void f_sysctl_dump(struct cli_conn *conn, const char *s)
 {
 	(void)s;
