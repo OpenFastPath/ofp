@@ -972,6 +972,15 @@ static void cmd_show_sp(struct cli_conn *conn, const char *s)
 	sendcrlf(conn);
 }
 
+static void cmd_show_ipsec(struct cli_conn *conn, const char *s)
+{
+	ofp_sendf(conn->fd, "IPsec SPD:\r\n");
+	cmd_show_sp(conn, s);
+
+	ofp_sendf(conn->fd, "IPsec SAD:\r\n");
+	cmd_show_sa(conn, s);
+}
+
 static const char *help_text[] = {
 	"Create IPsec security policy (SP) template:",
 	"  ipsec sp-template add <name>",
@@ -1208,6 +1217,11 @@ static struct cli_command commands[] = {
 		"ipsec show sp",
 		"Show IPsec SPs",
 		cmd_show_sp
+	},
+	{
+		"show ipsec",
+		NULL,
+		cmd_show_ipsec
 	},
 	/*
 	 * Help
