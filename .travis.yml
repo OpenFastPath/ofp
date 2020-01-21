@@ -18,6 +18,10 @@ addons:
             - libtool
             - pkg-config
 
+compiler:
+    - gcc
+    - clang
+
 script: ./scripts/travis.sh
 
 jobs:
