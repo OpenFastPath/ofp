@@ -9,6 +9,7 @@ arch:
 addons:
     apt:
         packages:
+            - codespell
             - libconfig-dev
 
 install:
@@ -23,3 +24,17 @@ install:
 
 script: ./scripts/travis.sh
 
+jobs:
+    include:
+        - stage: test
+          canfail: yes
+          env: TEST=checkpatch
+          compiler: gcc
+          install:
+                - true
+          script:
+                - echo ${TRAVIS_COMMIT_RANGE};
+                - OFP_PATCHES=`echo ${TRAVIS_COMMIT_RANGE} | sed 's/\.//'`;
+                - ./scripts/ci-checkpatches.sh ${OFP_PATCHES};
+    allow_failures:
+      - canfail: yes
