@@ -9,18 +9,14 @@ arch:
 addons:
     apt:
         packages:
+            - automake
+            - autoconf
             - codespell
             - libconfig-dev
-
-install:
-    - curl -sSL https://github.com/Linaro/libcunit/releases/download/2.1-3/CUnit-2.1-3.tar.bz2 | tar jx
-    - cd CUnit-2.1-3
-    - ./bootstrap
-    - ./configure --prefix=$(pwd)/install
-    - make install
-    - export CPPFLAGS="-I$(pwd)/install/include $CPPFLAGS"
-    - export LDFLAGS="-L$(pwd)/install/lib $LDFLAGS"
-    - cd ..
+            - libcunit1-dev
+            - libssl-dev
+            - libtool
+            - pkg-config
 
 script: ./scripts/travis.sh
 
