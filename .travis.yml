@@ -1,7 +1,10 @@
 language: c
-
-dist: trusty
+dist: xenial
 sudo: required
+
+arch:
+    - amd64
+    - arm64
 
 addons:
     apt:
