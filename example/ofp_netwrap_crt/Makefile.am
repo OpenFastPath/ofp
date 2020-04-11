@@ -17,6 +17,8 @@ noinst_HEADERS = \
 		 $(srcdir)/netwrap_uio.h \
 		 $(srcdir)/netwrap_epoll.h
 
+__LIB__libofp_netwrap_crt_la_LDFLAGS = -shared
+
 __LIB__libofp_netwrap_crt_la_SOURCES = netwrap.c \
 				netwrap_socket.c \
 				netwrap_sockopt.c \
