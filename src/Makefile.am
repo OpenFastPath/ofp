@@ -15,6 +15,8 @@ AM_CFLAGS +=  -I$(top_srcdir)/include
 AM_CFLAGS +=  -I$(top_srcdir)/include/api
 AM_CFLAGS +=  $(VISIBILITY_CFLAGS)
 
+LIBS  += $(OFP_LIBS)
+
 __LIB__libofp_la_SOURCES = \
 ofp_pkt_processing.c \
 ofp_pkt_send_burst.c \
