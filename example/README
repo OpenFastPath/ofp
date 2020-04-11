@@ -83,18 +83,26 @@ setsockopt(), writev(), sendfile64(), select(), epoll_create(), epoll_ctl(), epo
 ioctl() and fork().
 
 A script is provided in order to make utilization of this feature friendlier.
-
-# ./scripts/ofp_netwrap.sh  YOUR_NATIVE_APPLICATION
-
 Script's default configuration (see OFP_NETWRAP_ENV environment variable):
  - Interface eth1 is used and 192.168.100.1 is configured.
  - All cores (except for core 0) are used.
  - CLI file ./scripts/ofp_netwrap.cli is used for additional settings
 
+Execution:
+ - Set the path to the shared libraries.
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<Your path>/ofp/lib/.libs
+ or
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<OFP install path>/lib
+
+ - Set OFP execution parameters (interfaces, cores, cli file)
+# export OFP_NETWRAP_ENV="-i 0 -f <Your path>/ofp/scripts/ofp_netwrap.cli"
+
+ - Run application
+# <Your path>/ofp/scripts/ofp_netwrap.sh YOUR_NATIVE_APPLICATION
+
 Restrictions:
  - Application needs to run as super user
  - Slow path support needs to be disabled (use --enable-sp=no in configuration line)
- - Specific socket configuration needs to be activated in include/api/ofp_config.h:
-set OFP_CONFIG to OFP_CONFIG_NETWRAP_WEBSERVER
+ - Specific socket configuration needs to be activated (use --with-config-flv=netwrap-webserver)
 e.g.
-#define OFP_CONFIG OFP_CONFIG_NETWRAP_WEBSERVER
+./configure --enable-sp=no --with-config-flv=netwrap-webserver
