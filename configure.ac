@@ -62,7 +62,7 @@ AX_PTHREAD([], [
 	       echo "Error! We require pthreads to be available"
 	       exit -1
 	       ])
-LIBS="$PTHREAD_LIBS $LIBS"
+OFP_LIBS="$PTHREAD_LIBS $OFP_LIBS"
 AM_CFLAGS="$AM_CFLAGS $PTHREAD_CFLAGS"
 AM_LDFLAGS="$AM_LDFLAGS $PTHREAD_LDFLAGS"
 CC="$PTHREAD_CC"
@@ -208,9 +208,11 @@ AC_SUBST([ODPHELPER_LIBS])
 AM_CPPFLAGS="$AM_CPPFLAGS $ODP_CFLAGS $ODPHELPER_CFLAGS"
 
 # prepending lib to the files to link
-LIBS="$ODP_LIBS $ODPHELPER_LIBS $LIBS"
+OFP_LIBS="$ODP_LIBS $ODPHELPER_LIBS $OFP_LIBS"
 
+##########################################################################
 # Introduce optional configure parameter for ofp configuration flavor
+##########################################################################
 OFP_CONFIG_FLV=default
 AC_ARG_WITH([config-flv],
     [AS_HELP_STRING([--with-config-flv=NAME],
@@ -363,7 +365,7 @@ if test x$use_ck = xtrue ; then
       # extend the compiler and linker flags according to the path set
       AM_CPPFLAGS="$AM_CPPFLAGS -I$with_libck/include"
       AM_LDFLAGS="$AM_LDFLAGS -L$with_libck/lib -L$with_libck/src"
-      LIBS="-lck $LIBS"
+      OFP_LIBS="-lck $OFP_LIBS"
       AC_DEFINE(HAVE_LIBCK, [1], [Have libconcurrencykit])
    else
       AC_CHECK_HEADERS([ck_epoch.h], [
@@ -391,7 +393,7 @@ if test $RUMPPATHSET = 1 ; then
     AM_CPPFLAGS="$AM_CPPFLAGS -I$with_buildrump/rump/include"
     AM_LDFLAGS="$AM_LDFLAGS -L$with_buildrump/rump/lib/"
     AC_DEFINE(HAVE_BUILDRUMP, [1], [Have buildrump libs ?])
-    LIBS="-lrumpclient -lrumpnet_shmif -lrumpnet_config -lrumpnet_netinet6 -lrumpnet_net -lrumpnet -lrump -lrumpuser $LIBS"
+    OFP_LIBS="-lrumpclient -lrumpnet_shmif -lrumpnet_config -lrumpnet_netinet6 -lrumpnet_net -lrumpnet -lrump -lrumpuser $OFP_LIBS"
 else
     AC_CHECK_HEADERS([rump/rump.h], [
 		    AC_DEFINE(HAVE_BUILDRUMP, [1], [Have buildrump libs ?])],
@@ -409,7 +411,7 @@ fi
 
 ##########################################################################
 # distribute the changed variables among the Makefiles
-AC_SUBST([LIBS])
+AC_SUBST([OFP_LIBS])
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS])
 AC_SUBST([AM_CXXFLAGS])
@@ -438,7 +440,7 @@ AC_MSG_RESULT([
 	odp_library:		${ODP_LIB}
 	odp_version:		$(pkg-config --modversion lib$ODP_LIB)
 	odp_cflags:		${ODP_CFLAGS}
-	odp_libs:		${ODP_LIBS}
+	ofp_libs:		${OFP_LIBS}
 	odphelper_cflags:	${ODPHELPER_CFLAGS}
 	odphelper_libs:		${ODPHELPER_LIBS}
 	cunit:			${cunit_support}

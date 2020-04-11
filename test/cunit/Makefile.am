@@ -11,6 +11,7 @@ endif
 AM_LDFLAGS += -static -lcunit
 
 LDADD = $(top_builddir)/lib/libofp.la
+LIBS  += $(OFP_LIBS)
 
 bin_PROGRAMS = \
 	ofp_test_arp \

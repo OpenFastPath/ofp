@@ -10,3 +10,5 @@ AM_CPPFLAGS += \
 	     -I$(top_srcdir)/example/common
 
 AM_LDFLAGS += -L$(LIB)
+
+LIBS  += $(OFP_LIBS)
