@@ -77,7 +77,7 @@
 /**Maximum number of sockets. */
 # define OFP_NUM_SOCKETS_MAX 1000
 /**First socket number value. */
-# define OFP_SOCK_NUM_OFFSET 20
+# define OFP_SOCK_NUM_OFFSET 300
 /**Maximum number of TCP PCBs. */
 # define OFP_NUM_PCB_TCP_MAX 65534
 # define OFP_TCP_MAX_CONNECTION_RATE
