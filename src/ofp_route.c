@@ -105,7 +105,7 @@ int ofp_add_mac(struct ofp_ifnet *dev, uint32_t addr, uint8_t *mac)
 		ofp_print_mac(mac), ofp_print_ip_addr(addr),
 		dev->port, dev->vlan, dev->vrf);
 
-	return ofp_arp_ipv4_insert(addr, mac, dev);
+	return ofp_arp_ipv4_insert(addr, mac, dev, FALSE);
 }
 
 int ofp_get_mac(struct ofp_ifnet *dev, struct ofp_nh_entry *nh_data,
@@ -190,7 +190,7 @@ static int add_route(struct ofp_route_msg *msg)
 	if (ofp_ipv4_lookup_arp_entry_idx(msg->gw, msg->vrf,
 					  &tmp.arp_ent_idx) < 0) {
 		if (ofp_arp_ipv4_insert_entry(msg->gw, eth_addr,
-					      msg->vrf, FALSE,
+					      msg->vrf, FALSE, FALSE,
 					      &tmp.arp_ent_idx, NULL) < 0) {
 			OFP_DBG("ARP insert failure in add route.");
 			return -1;
@@ -427,8 +427,6 @@ void ofp_show_routes(int fd, int what)
 
 	switch (what) {
 	case OFP_SHOW_ARP:
-		ofp_sendf(fd,
-			    "VRF  ADDRESS          MAC                AGE\r\n");
 		ofp_arp_show_table(fd);
 		break;
 	case OFP_SHOW_ROUTES:

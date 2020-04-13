@@ -48,6 +48,15 @@ struct pkt_list {
 	struct pkt_entry *slh_first;
 }; /* OFP_SLIST_HEAD */
 
+union arp_entry_flags {
+	uint8_t all;
+
+	struct  {
+		uint8_t is_complete : 1;
+		uint8_t is_manual : 1;
+	};
+};
+
 struct arp_entry {
 	struct arp_key key;
 
@@ -56,6 +65,7 @@ struct arp_entry {
 	odp_rwlock_t usetime_rwlock;
 
 	odp_bool_t is_valid;
+	union arp_entry_flags flags;
 	uint64_t macaddr;
 	struct pkt_list pkt_list_head;
 	odp_timer_t pkt_tmo;
@@ -95,12 +105,15 @@ int ofp_arp_init_global(void);
 int ofp_arp_term_global(void);
 int ofp_arp_init_local(void);
 void ofp_arp_term_local(void);
+#ifndef OFP_USE_LIBCK
 int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
 			      uint16_t vrf, odp_bool_t is_valid,
+			      odp_bool_t is_manual,
 			      uint32_t *entry_idx_out,
 			      struct pkt_list *send_list);
+#endif /* OFP_USE_LIBCK */
 int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
-			struct ofp_ifnet *dev);
+			struct ofp_ifnet *dev, odp_bool_t is_manual);
 void ofp_arp_ipv4_remove_entry(uint32_t set, struct arp_entry *entry);
 void ofp_arp_ipv4_remove_entry_idx(uint32_t entry_idx);
 int ofp_arp_inc_ref_count(uint32_t entry_idx);

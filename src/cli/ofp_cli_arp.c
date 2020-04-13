@@ -82,7 +82,7 @@ void f_arp_add(struct cli_conn *conn, const char *s)
 		return;
 	}
 
-	if (ofp_arp_ipv4_insert(ipv4_addr, mac, itf)) {
+	if (ofp_arp_ipv4_insert(ipv4_addr, mac, itf, TRUE)) {
 		ofp_sendf(conn->fd, "Failed to insert arp entry.\r\n");
 		sendcrlf(conn);
 		return;

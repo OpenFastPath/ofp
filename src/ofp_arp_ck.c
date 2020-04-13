@@ -99,11 +99,13 @@ static inline struct arp_entry *arp_lookup(struct arp_key *key)
 }
 
 inline int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
-			        struct ofp_ifnet *dev)
+			       struct ofp_ifnet *dev, odp_bool_t is_manual)
 {
 	struct arp_entry *new;
 	struct arp_key key;
 	int set;
+
+	(void)is_manual;
 
 	key.vrf = dev->vrf;
 	key.ipv4_addr = ipv4_addr;
@@ -204,6 +206,8 @@ static inline void show_arp_entry(int fd, int s, int e)
 void ofp_arp_show_table(int fd)
 {
 	uint32_t i, j;
+
+	ofp_sendf(fd, "VRF  ADDRESS          MAC\r\n");
 
 	ck_epoch_begin(&record, &section);
 	for (i = 0; i < NUM_SETS; ++i)
