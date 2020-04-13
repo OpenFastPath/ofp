@@ -767,7 +767,8 @@ int ofp_arp_init_tables(void)
 		odp_rwlock_write_lock(&shm->arp.set[i].table_rwlock);
 	odp_rwlock_write_lock(&shm->arp.fr_ent_rwlock);
 
-	for (i = 0; i < NUM_ARPS; ++i)
+	/* zeroth entry is used as the invalid entry.*/
+	for (i = 1; i < NUM_ARPS; ++i)
 		CHECK_ERROR(ofp_arp_entry_reset(&shm->arp.entries[i]), rc);
 
 	for (i = 0; i < NUM_SETS; ++i) {
