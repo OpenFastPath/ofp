@@ -241,7 +241,7 @@ static inline void show_arp_entry(int fd, struct arp_entry *entry)
 		mac_addr = ofp_print_mac((uint8_t *)&entry->macaddr);
 
 	/* Age */
-	if (entry->flags.is_complete) {
+	if (entry->flags.is_complete && !entry->flags.is_manual) {
 		odp_time_t t, time_diff;
 
 		t = odp_time_global();
@@ -513,9 +513,11 @@ int ofp_ipv4_lookup_arp_entry_idx(uint32_t ipv4_addr, uint16_t vrf,
 	}
 
 
-	if (odp_unlikely(entry->usetime_upd_tmo == ODP_TIMER_INVALID)) {
+	if (!entry->flags.is_manual &&
+	    odp_unlikely(entry->usetime_upd_tmo == ODP_TIMER_INVALID)) {
 		odp_rwlock_write_lock(&entry->usetime_rwlock);
-		if (entry->usetime_upd_tmo == ODP_TIMER_INVALID) {
+		if (!entry->flags.is_manual &&
+		    entry->usetime_upd_tmo == ODP_TIMER_INVALID) {
 			tnew = odp_time_global();
 			entry->usetime = tnew;
 
@@ -677,8 +679,9 @@ void ofp_arp_age_cb(void *arg)
 		entry = OFP_STAILQ_FIRST(&shm->arp.set[i].table);
 		while (entry) {
 			next_entry = OFP_STAILQ_NEXT(entry, next);
-			if (OFP_SLIST_FIRST(&entry->pkt_list_head) == NULL &&
-					ofp_arp_entry_is_timeout(entry, now))
+			if (!entry->flags.is_manual &&
+			    OFP_SLIST_FIRST(&entry->pkt_list_head) == NULL &&
+			    ofp_arp_entry_is_timeout(entry, now))
 				ofp_arp_entry_cleanup_on_tmo(i, entry);
 			entry = next_entry;
 		}
