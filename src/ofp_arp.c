@@ -123,6 +123,7 @@ static int ofp_arp_entry_reset(struct arp_entry *entry)
 	entry->macaddr = 0;
 	entry->ref_count = 0;
 	entry->is_valid = FALSE;
+	entry->flags.all = 0;
 
 	return rc;
 }
@@ -227,17 +228,42 @@ static inline int remove_entry(int set, struct arp_entry *entry)
 	return rc;
 }
 
+#define APR_FLAGS_SIZE_MAX 3
 static inline void show_arp_entry(int fd, struct arp_entry *entry)
 {
-	odp_time_t t, time_diff;
+	char flags[APR_FLAGS_SIZE_MAX];
+	uint8_t flags_idx = 0;
+	char *mac_addr = (char *)(uintptr_t)("(incomplete)");
+	uint64_t age = 0;
 
-	t = odp_time_global();
-	time_diff = odp_time_diff(t, entry->usetime);
-	ofp_sendf(fd, "%3d  %-15s %-17s %4u\r\n",
-		    entry->key.vrf,
-		    ofp_print_ip_addr(entry->key.ipv4_addr),
-		    ofp_print_mac((uint8_t *)&entry->macaddr),
-		    odp_time_to_ns(time_diff) / ODP_TIME_SEC_IN_NS);
+	/* MAC */
+	if (entry->flags.is_complete)
+		mac_addr = ofp_print_mac((uint8_t *)&entry->macaddr);
+
+	/* Age */
+	if (entry->flags.is_complete) {
+		odp_time_t t, time_diff;
+
+		t = odp_time_global();
+		time_diff = odp_time_diff(t, entry->usetime);
+
+		age = odp_time_to_ns(time_diff) / ODP_TIME_SEC_IN_NS;
+	}
+
+	/* Flags */
+	if (entry->flags.is_complete) {
+		flags[flags_idx++] = 'C';
+		if (entry->flags.is_manual)
+			flags[flags_idx++] = 'M';
+	}
+	flags[flags_idx] = 0;
+
+	ofp_sendf(fd, "%3d  %-15s %-17s %4u    %s\r\n",
+		  entry->key.vrf,
+		  ofp_print_ip_addr(entry->key.ipv4_addr),
+		  mac_addr,
+		  age,
+		  flags);
 }
 
 static inline void *pkt_entry_alloc(void)
@@ -267,6 +293,7 @@ static inline void pkt_entry_free(struct pkt_entry *pktentry)
 
 int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
 			      uint16_t vrf, odp_bool_t is_valid,
+			      odp_bool_t is_manual,
 			      uint32_t *entry_idx_out, struct pkt_list *send_list)
 {
 	struct arp_entry *new;
@@ -288,6 +315,13 @@ int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
 
 	new->is_valid = is_valid;
+
+	if (new->is_valid) {
+		new->flags.is_complete = 1;
+
+		if (is_manual)
+			new->flags.is_manual = 1;
+	}
 
 	if (new->is_valid == TRUE && send_list != NULL) {
 
@@ -319,7 +353,7 @@ int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
  * Public functions
  */
 int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
-			struct ofp_ifnet *dev)
+			struct ofp_ifnet *dev, odp_bool_t is_manual)
 {
 	struct pkt_entry *pktentry;
 	struct pkt_list send_list;
@@ -327,7 +361,8 @@ int ofp_arp_ipv4_insert(uint32_t ipv4_addr, unsigned char *ll_addr,
 	int ret_val;
 
 	ret_val = ofp_arp_ipv4_insert_entry(ipv4_addr, ll_addr, dev->vrf,
-					    TRUE, &entry_idx, &send_list);
+					    TRUE, is_manual, &entry_idx,
+					    &send_list);
 	if (ret_val < 0)
 		return ret_val;
 
@@ -661,12 +696,18 @@ void ofp_arp_age_cb(void *arg)
 void ofp_arp_show_table(int fd)
 {
 	int i;
+	struct arp_entry *entry;
+
+	ofp_sendf(fd,
+		  "VRF  ADDRESS          MAC                AGE    FLAGS\r\n");
 
 	/* zeroth entry is used as the invalid entry.*/
-	for (i = 1; i < NUM_ARPS; ++i)
-		if (shm->arp.entries[i].key.ipv4_addr &&
-		    OFP_SLIST_FIRST(&shm->arp.entries[i].pkt_list_head) == NULL)
-			show_arp_entry(fd, &shm->arp.entries[i]);
+	for (i = 1; i < NUM_ARPS; ++i) {
+		entry = &shm->arp.entries[i];
+
+		if (entry->flags.is_complete)
+			show_arp_entry(fd, entry);
+	}
 }
 
 void ofp_arp_show_saved_packets(int fd)
