@@ -592,29 +592,43 @@ static void ofp_arp_cleanup_pkt_list(void *arg)
 	ofp_arp_ipv4_remove_entry_idx(args->entry_idx);
 }
 
-enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
-			    uint32_t ipv4_addr, struct ofp_ifnet *dev)
+enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt,
+					   struct ofp_nh_entry *nh_param,
+					   uint32_t ipv4_addr,
+					   uint32_t is_link_local,
+					   struct ofp_ifnet *dev)
 {
 	struct arp_entry *newarp;
 	struct arp_key key;
 	struct pkt_entry *newpkt;
 	uint32_t set;
 	struct cleanup_arg cl_arg;
+	odp_rwlock_t *lock;
 
 	OFP_DBG("Saving packet %" PRIX64 " to %s", odp_packet_to_u64(pkt),
 		  ofp_print_ip_addr(ipv4_addr));
 
 	set = set_key_and_hash(dev->vrf, ipv4_addr, &key);
 
-	odp_rwlock_write_lock(&shm->arp.set[set].table_rwlock);
+	lock = &shm->arp.set[set].table_rwlock;
 
-#if (ARP_SANITY_CHECK)
-	newarp = arp_lookup(set, &key);
-       if (newarp && newarp->is_valid)
-		OFP_ERR("ARP Entry failed the sanity check!");
-#endif
+	odp_rwlock_write_lock(lock);
 
-	newarp = ARP_GET_ENTRY(nh_param->arp_ent_idx);
+	if (is_link_local) {
+		newarp = insert_new_entry(set, &key);
+		if (!newarp) {
+			OFP_ERR("ARP Entry lookup/alloc failed!");
+			odp_rwlock_write_unlock(lock);
+			return OFP_PKT_DROP;
+		}
+		if (newarp->is_valid) {
+			OFP_ERR("ARP Entry failed the sanity check!");
+			odp_rwlock_write_unlock(lock);
+			return OFP_PKT_DROP;
+		}
+	} else {
+		newarp = ARP_GET_ENTRY(nh_param->arp_ent_idx);
+	}
 	newarp->usetime = ODP_TIME_NULL;
 
 	newpkt = pkt_entry_alloc();
@@ -624,7 +638,7 @@ enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry
 			  ofp_print_ip_addr(ipv4_addr));
 		if (OFP_SLIST_FIRST(&newarp->pkt_list_head) == NULL)
 			ofp_arp_ipv4_remove_entry(set, newarp);
-		odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
+		odp_rwlock_write_unlock(lock);
 		return OFP_PKT_DROP;
 	}
 	newpkt->pkt = pkt;
@@ -640,7 +654,7 @@ enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry
 
 	OFP_SLIST_INSERT_HEAD(&newarp->pkt_list_head, newpkt, next);
 
-	odp_rwlock_write_unlock(&shm->arp.set[set].table_rwlock);
+	odp_rwlock_write_unlock(lock);
 
 	return OFP_PKT_PROCESSED;
 }
@@ -708,7 +722,8 @@ void ofp_arp_show_table(int fd)
 	for (i = 1; i < NUM_ARPS; ++i) {
 		entry = &shm->arp.entries[i];
 
-		if (entry->flags.is_complete)
+		if (entry->flags.is_complete ||
+		    OFP_SLIST_FIRST(&entry->pkt_list_head) != NULL)
 			show_arp_entry(fd, entry);
 	}
 }

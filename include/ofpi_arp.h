@@ -124,8 +124,11 @@ int ofp_ipv4_lookup_arp_entry_idx(uint32_t ipv4_addr, uint16_t vrf,
 int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 			struct ofp_ifnet *dev);
 int ofp_ipv4_get_mac_by_idx(unsigned char *ll_addr, uint32_t entry_idx);
-enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
-				uint32_t ipv4_addr, struct ofp_ifnet *dev);
+enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt,
+					   struct ofp_nh_entry *nh_param,
+					   uint32_t ipv4_addr,
+					   uint32_t is_link_local,
+					   struct ofp_ifnet *dev);
 
 void ofp_arp_show_table(int fd);
 void ofp_arp_show_saved_packets(int fd);
