@@ -220,12 +220,16 @@ void ofp_arp_show_table(int fd)
  * TODO, stubs
  */
 
-enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt, struct ofp_nh_entry *nh_param,
-					   uint32_t ipv4_addr, struct ofp_ifnet *dev)
+enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt,
+					   struct ofp_nh_entry *nh_param,
+					   uint32_t ipv4_addr,
+					   uint32_t is_link_local,
+					   struct ofp_ifnet *dev)
 {
 	(void) pkt;
 	(void) nh_param;
 	(void) ipv4_addr;
+	(void)is_link_local;
 	(void) dev;
 
 	return OFP_PKT_DROP;

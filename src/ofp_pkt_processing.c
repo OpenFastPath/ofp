@@ -1000,7 +1000,7 @@ static enum ofp_return_code ofp_ip_output_add_eth(odp_packet_t pkt,
 			       eth->ether_dhost) < 0) {
 		send_arp_request(odata->dev_out, gw);
 		return ofp_arp_save_ipv4_pkt(pkt, odata->nh,
-					     gw, odata->dev_out);
+					     gw, is_link_local, odata->dev_out);
 	}
 	ofp_copy_mac(eth->ether_shost, odata->dev_out->mac);
 

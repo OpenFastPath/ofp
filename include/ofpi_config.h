@@ -9,8 +9,6 @@
 
 #include "api/ofp_config.h"
 
-#define ARP_SANITY_CHECK 1
-
 /**Maximum number of CPUs.
  * Used to define the size of internal structures. */
 #define OFP_MAX_NUM_CPU 64
