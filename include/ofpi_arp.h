@@ -52,6 +52,7 @@ union arp_entry_flags {
 	uint8_t all;
 
 	struct  {
+		uint8_t is_used : 1;
 		uint8_t is_complete : 1;
 		uint8_t is_manual : 1;
 	};
@@ -64,7 +65,6 @@ struct arp_entry {
 	odp_timer_t usetime_upd_tmo;
 	odp_rwlock_t usetime_rwlock;
 
-	odp_bool_t is_valid;
 	union arp_entry_flags flags;
 	uint64_t macaddr;
 	struct pkt_list pkt_list_head;
