@@ -122,7 +122,6 @@ static int ofp_arp_entry_reset(struct arp_entry *entry)
 	memset(&entry->key, 0, sizeof(entry->key));
 	entry->macaddr = 0;
 	entry->ref_count = 0;
-	entry->is_valid = FALSE;
 	entry->flags.all = 0;
 
 	return rc;
@@ -190,6 +189,7 @@ static inline void *insert_new_entry(int set, struct arp_key *key)
 		new->key.ipv4_addr = key->ipv4_addr;
 		new->key.vrf = key->vrf;
 		new->usetime_upd_tmo = ODP_TIMER_INVALID;
+		new->flags.is_used = 1;
 		OFP_STAILQ_INSERT_HEAD(&shm->arp.set[set].table, new, next);
 	}
 
@@ -220,6 +220,7 @@ static inline int remove_entry(int set, struct arp_entry *entry)
 		CHECK_ERROR(ofp_timer_cancel(entry->usetime_upd_tmo), rc);
 		entry->usetime_upd_tmo = ODP_TIMER_INVALID;
 	}
+	entry->flags.all = 0;
 
 	odp_rwlock_write_unlock(&entry->usetime_rwlock);
 
@@ -314,8 +315,6 @@ int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
 
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
 
-	new->is_valid = is_complete;
-
 	if (is_complete) {
 		new->flags.is_complete = 1;
 
@@ -390,15 +389,15 @@ void ofp_arp_ipv4_remove_entry(uint32_t set, struct arp_entry *entry)
 {
 	struct pkt_entry *pktentry;
 
-	if (entry->ref_count == 0 && !entry->is_valid) {
+	if (entry->ref_count == 0 && entry->flags.is_used) {
 		while ((pktentry = OFP_SLIST_FIRST(&entry->pkt_list_head))) {
 			OFP_SLIST_REMOVE_HEAD(&entry->pkt_list_head, next);
 			pkt_entry_free(pktentry);
 		}
 		remove_entry(set, entry);
 	} else {
-	        OFP_DBG("Remove ARP entry bypassed as ref_count= %u > 0 validity = %s",
-			entry->ref_count, entry->is_valid ? "True":"False");
+		OFP_DBG("Remove ARP entry bypassed as ref_count= %u > 0",
+			entry->ref_count);
 	}
 }
 
@@ -673,8 +672,6 @@ static odp_bool_t ofp_arp_entry_is_timeout(struct arp_entry *entry,
 {
 	odp_time_t end = odp_time_sum(entry->usetime, shm->entry_timeout);
 	odp_bool_t res = odp_time_cmp(now, end) > 0;
-	if (res)
-		entry->is_valid = FALSE;
 	return res;
 }
 
