@@ -107,7 +107,7 @@ int ofp_arp_init_local(void);
 void ofp_arp_term_local(void);
 #ifndef OFP_USE_LIBCK
 int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
-			      uint16_t vrf, odp_bool_t is_valid,
+			      uint16_t vrf, odp_bool_t is_complete,
 			      odp_bool_t is_manual,
 			      uint32_t *entry_idx_out,
 			      struct pkt_list *send_list);
@@ -118,7 +118,7 @@ void ofp_arp_ipv4_remove_entry(uint32_t set, struct arp_entry *entry);
 void ofp_arp_ipv4_remove_entry_idx(uint32_t entry_idx);
 int ofp_arp_inc_ref_count(uint32_t entry_idx);
 int ofp_arp_dec_ref_count(uint32_t entry_idx);
-odp_bool_t ofp_arp_entry_validity(uint32_t entry_idx);
+odp_bool_t ofp_arp_entry_is_complete(uint32_t entry_idx);
 int ofp_ipv4_lookup_arp_entry_idx(uint32_t ipv4_addr, uint16_t vrf,
 				       uint32_t *entry_idx);
 int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,

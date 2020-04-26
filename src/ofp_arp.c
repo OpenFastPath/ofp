@@ -292,7 +292,7 @@ static inline void pkt_entry_free(struct pkt_entry *pktentry)
 }
 
 int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
-			      uint16_t vrf, odp_bool_t is_valid,
+			      uint16_t vrf, odp_bool_t is_complete,
 			      odp_bool_t is_manual,
 			      uint32_t *entry_idx_out, struct pkt_list *send_list)
 {
@@ -314,16 +314,16 @@ int ofp_arp_ipv4_insert_entry(uint32_t ipv4_addr, unsigned char *ll_addr,
 
 	memcpy(&new->macaddr, ll_addr, OFP_ETHER_ADDR_LEN);
 
-	new->is_valid = is_valid;
+	new->is_valid = is_complete;
 
-	if (new->is_valid) {
+	if (is_complete) {
 		new->flags.is_complete = 1;
 
 		if (is_manual)
 			new->flags.is_manual = 1;
 	}
 
-	if (new->is_valid == TRUE && send_list != NULL) {
+	if (new->flags.is_complete && send_list != NULL) {
 
 		tnow = odp_time_global();
 		new->usetime = tnow;
@@ -455,13 +455,13 @@ int ofp_arp_dec_ref_count(uint32_t entry_idx)
 	return 0;
 }
 
-odp_bool_t ofp_arp_entry_validity(uint32_t entry_idx)
+odp_bool_t ofp_arp_entry_is_complete(uint32_t entry_idx)
 {
 	struct arp_entry *entry;
 
 	entry = ARP_GET_ENTRY(entry_idx);
 
-	return entry->is_valid;
+	return entry->flags.is_complete;
 }
 
 static void ofp_arp_entry_usetime_tmo(void *arg)
@@ -548,7 +548,7 @@ int ofp_ipv4_lookup_mac(uint32_t ipv4_addr, unsigned char *ll_addr,
 					  &entry_idx) < 0)
 		return -1;
 
-	if (!ofp_arp_entry_validity(entry_idx))
+	if (!ofp_arp_entry_is_complete(entry_idx))
 		return -1;
 
 	entry = ARP_GET_ENTRY(entry_idx);
@@ -562,7 +562,7 @@ int ofp_ipv4_get_mac_by_idx(unsigned char *ll_addr, uint32_t entry_idx)
 {
 	struct arp_entry *entry;
 
-	if (!ofp_arp_entry_validity(entry_idx))
+	if (!ofp_arp_entry_is_complete(entry_idx))
 		return -1;
 
 	OFP_DBG("ARP Lookup Index Idx: %u", entry_idx);
@@ -621,7 +621,7 @@ enum ofp_return_code ofp_arp_save_ipv4_pkt(odp_packet_t pkt,
 			odp_rwlock_write_unlock(lock);
 			return OFP_PKT_DROP;
 		}
-		if (newarp->is_valid) {
+		if (newarp->flags.is_complete) {
 			OFP_ERR("ARP Entry failed the sanity check!");
 			odp_rwlock_write_unlock(lock);
 			return OFP_PKT_DROP;
