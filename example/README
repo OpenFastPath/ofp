@@ -1,3 +1,20 @@
+Environment considerations
+===============================================================================
+
+Socket pktio
+=============
+Before running example applications with linux interfaces as socket pktios
+you need to block access for the other applications to those linux interfaces:
+
+# ./scripts/ofp_linux_interface_acquire.sh <interface_name>
+
+To restore access to a linux interface, call:
+
+# ./scripts/ofp_linux_interface_release.sh.sh <interface_name>
+
+Note: Super user rights are required to run those scripts.
+
+
 Open IP Fast Path Examples
 ===============================================================================
 
@@ -28,15 +45,15 @@ local sockets opened for forwarding. More information available on the OpenFastP
 
 webserver
 -------------------------------------------------------------------------------
-This is a simple web server that uses sockets as expected.
+This is a simple web server that uses ofp sockets.
 
-To setup and run the web server:
-# setup www_dir (default: /var/www) do:
+To setup the web server:
+Set the environment variable www_dir to the path of the folder containing
+the web pages:
 export www_dir=/path/to/your/www
-./scripts/start_webserver.sh <ethX> <IP>
 
-# To stop the web server:
-./scripts/start_webserver.sh <ethX>
+To run the web server:
+# ./webserver -i <interface_name> -c <core_number>
 
 By default the webserver uses ofp_select to monitor the file descriptors. By
 defining CPPFLAGS='-DUSE_EPOLL' when running configure the webserver can be set to
