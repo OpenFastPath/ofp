@@ -344,7 +344,7 @@ set_ready_fds(int nfds, ofp_fd_set *fd_set, int (*is_ready)(int fd))
 	int fd;
 	int ready = 0;
 
-	for (fd = OFP_SOCK_NUM_OFFSET; fd < nfds && fd_set; ++fd)
+	for (fd = global_param->socket.sd_offset; fd < nfds && fd_set; ++fd)
 		ready += set_ready_fd(fd, fd_set, is_ready);
 
 	return ready;
@@ -355,7 +355,7 @@ none_of_ready(int nfds, ofp_fd_set *fd_set, int (*is_ready)(int fd))
 {
 	int fd;
 
-	for (fd = OFP_SOCK_NUM_OFFSET; fd < nfds && fd_set; ++fd)
+	for (fd = global_param->socket.sd_offset; fd < nfds && fd_set; ++fd)
 		if (OFP_FD_ISSET(fd, fd_set) && is_ready(fd))
 			return 0;
 
@@ -386,13 +386,13 @@ _ofp_select(int nfds, ofp_fd_set *readfds, ofp_fd_set *writefds,
 static inline int
 to_bit_index(int fd)
 {
-	return ((fd - OFP_SOCK_NUM_OFFSET) / 8);
+	return ((fd - global_param->socket.sd_offset) / 8);
 }
 
 static inline uint8_t
 to_bit(int fd)
 {
-	return (1 << (fd - OFP_SOCK_NUM_OFFSET) % 8);
+	return (1 << (fd - global_param->socket.sd_offset) % 8);
 }
 
 void

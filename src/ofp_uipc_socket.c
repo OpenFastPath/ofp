@@ -229,6 +229,7 @@ static int ofp_socket_alloc_shared_memory(void)
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -272,7 +273,8 @@ int ofp_socket_init_global(odp_pool_t pool)
 	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
 		shm->socket_list[i].next = (i == OFP_NUM_SOCKETS_MAX - 1) ?
 			NULL : &(shm->socket_list[i+1]);
-		shm->socket_list[i].so_number = i + OFP_SOCK_NUM_OFFSET;
+		shm->socket_list[i].so_number = i +
+			global_param->socket.sd_offset;
 	}
 	shm->free_sockets = &(shm->socket_list[0]);
 
@@ -317,7 +319,7 @@ int ofp_socket_term_global(void)
 
 struct socket *ofp_get_sock_by_fd(int fd)
 {
-	return &shm->socket_list[fd - OFP_SOCK_NUM_OFFSET];
+	return &shm->socket_list[fd - global_param->socket.sd_offset];
 }
 
 /*
