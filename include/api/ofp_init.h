@@ -235,6 +235,14 @@ typedef struct ofp_global_param_t {
 	 * IPsec parameters
 	 */
 	struct ofp_ipsec_param ipsec;
+
+	/*
+	 * Socket parameters
+	 */
+	struct socket_s {
+		/** Maximum number of sockets */
+		uint32_t num_max;
+	} socket;
 } ofp_global_param_t;
 
 /**
