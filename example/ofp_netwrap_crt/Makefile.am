@@ -20,6 +20,7 @@ noinst_HEADERS = \
 __LIB__libofp_netwrap_crt_la_LDFLAGS = -shared
 
 __LIB__libofp_netwrap_crt_la_SOURCES = netwrap.c \
+				netwrap_common.c \
 				netwrap_socket.c \
 				netwrap_sockopt.c \
 				netwrap_ioctl.c \

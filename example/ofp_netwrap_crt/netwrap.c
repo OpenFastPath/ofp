@@ -16,9 +16,12 @@
 #include "netwrap_uio.h"
 #include "netwrap_sendfile.h"
 #include "netwrap_epoll.h"
+#include "netwrap_common.h"
 
 __attribute__((constructor)) static void setup_wrappers(void)
 {
+	if (setup_common_vars())
+		return;
 	setup_socket_wrappers();
 	setup_sockopt_wrappers();
 	setup_ioctl_wrappers();

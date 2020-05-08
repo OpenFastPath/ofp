@@ -25,7 +25,6 @@ union _ofp_sockaddr_storage {
 	struct ofp_sockaddr_in6 addr_in6;
 };
 
-static int setup_socket_wrappers_called;
 static int (*libc_socket)(int, int, int);
 static int (*libc_shutdown)(int, int);
 static int (*libc_close)(int);
@@ -53,15 +52,13 @@ void setup_socket_wrappers(void)
 	LIBC_FUNCTION(write);
 	LIBC_FUNCTION(recv);
 	LIBC_FUNCTION(send);
-
-	setup_socket_wrappers_called = 1;
 }
 
 int socket(int domain, int type, int protocol)
 {
 	int sockfd = -1;
 
-	if (setup_socket_wrappers_called) {
+	if (netwrap_constructor_called) {
 		if (domain != AF_INET)
 			sockfd = (*libc_socket)(domain, type, protocol);
 		else {

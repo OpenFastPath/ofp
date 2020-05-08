@@ -45,7 +45,7 @@ int select(int nfds, fd_set *readfds, fd_set *writefds,
 		}
 
 		OFP_FD_ZERO(&ofp_readfds_bku);
-		for (i = OFP_SOCK_NUM_OFFSET; i < nfds; i++)
+		for (i = ofp_global_params.socket.sd_offset; i < nfds; i++)
 			if (FD_ISSET(i, readfds))
 				OFP_FD_SET(i, &ofp_readfds_bku);
 
@@ -79,7 +79,8 @@ int select(int nfds, fd_set *readfds, fd_set *writefds,
 		errno = NETWRAP_ERRNO(ofp_errno);
 
 		if (select_value > 0) {
-			for (i = OFP_SOCK_NUM_OFFSET; i < nfds; i++)
+			for (i = ofp_global_params.socket.sd_offset;
+			     i < nfds; i++)
 				if (FD_ISSET(i, readfds) &&
 					!OFP_FD_ISSET(i, &ofp_readfds))
 						FD_CLR(i, readfds);
