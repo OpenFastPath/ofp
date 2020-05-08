@@ -430,6 +430,17 @@ void ofp_stop_processing(void);
 
 odp_bool_t *ofp_get_processing_state(void);
 
+/**
+ * Get OFP global parameters
+ *
+ * @param params Structure to be filled with OFP global parameters
+ *
+ * @retval 0 on success
+ * @retval -1 on failure
+ */
+
+int ofp_get_global_parameters(ofp_global_param_t *params);
+
 #if __GNUC__ >= 4
 #pragma GCC visibility pop
 #endif
