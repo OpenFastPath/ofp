@@ -438,7 +438,7 @@ struct ofp_timeval {
 };
 
 typedef struct {
-	uint8_t fd_set_buf[OFP_NUM_SOCKETS_MAX / 8 + 1];
+	uint8_t fd_set_buf[(SELECT_SET_SIZE + 7) / 8];
 } ofp_fd_set;
 
 void OFP_FD_CLR(int fd, ofp_fd_set *set);
