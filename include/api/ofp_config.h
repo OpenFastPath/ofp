@@ -95,6 +95,13 @@
 /** Epoll set size */
 #define EPOLL_SET_SIZE 16
 
+/**Select set size
+ * select() can monitor only socket descriptor numbers that are
+ * less then SELECT_SET_SIZE + 'socket number offset' (that is
+ * OFP_SOCK_NUM_OFFSET or configured runtime value).
+*/
+#define SELECT_SET_SIZE 65536
+
 /**Maximum number of fastpath interfaces used.
  * For each fastpath interface a PKTIO in opened by OFP.*/
 #define OFP_FP_INTERFACE_MAX 8
