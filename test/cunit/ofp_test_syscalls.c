@@ -35,6 +35,7 @@ odp_pool_t ofp_packet_pool;
 int (*pru_attach)(struct socket *so, int proto, struct thread *td);
 int sleeper_called;
 uint32_t sleeper_timeout;
+ofp_global_param_t oig = {0};
 
 static int pru_attach_stub(struct socket *so, int proto, struct thread *td);
 static int init(void)
@@ -43,6 +44,10 @@ static int init(void)
 
 	pru_attach = prp->pr_usrreqs->pru_attach;
 	prp->pr_usrreqs->pru_attach = pru_attach_stub;
+
+	global_param = &oig;
+	global_param->socket.num_max = OFP_NUM_SOCKETS_MAX;
+	global_param->socket.sd_offset = OFP_SOCK_NUM_OFFSET;
 	return 0;
 }
 
