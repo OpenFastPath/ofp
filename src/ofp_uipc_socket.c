@@ -1051,6 +1051,8 @@ ofp_sosend_dgram(struct socket *so, struct ofp_sockaddr *addr, struct uio *uio,
 	clen = 0;
 	control = ODP_PACKET_INVALID;
 	top = ODP_PACKET_INVALID;
+	if (!error && uio)
+		uio->uio_resid = resid;
 out:
 	if (top != ODP_PACKET_INVALID)
 		odp_packet_free(top);
