@@ -58,6 +58,10 @@
 static inline enum ofp_return_code ofp_ip_output_continue(odp_packet_t pkt,
 							  struct ip_out *odata);
 
+static inline void ofp_chksum_insert(odp_packet_t pkt,
+				     struct ofp_ip *ip,
+				     uint32_t offload_flags);
+
 extern odp_pool_t ofp_packet_pool;
 
 __thread struct ofp_global_ip_state *ofp_ip_shm;
@@ -1023,6 +1027,8 @@ static inline enum ofp_return_code ofp_ip_output_send(odp_packet_t pkt,
 						      struct ip_out *odata)
 {
 	if (odata->is_local_address) {
+		if (odata->insert_checksum)
+			ofp_chksum_insert(pkt, odata->ip, 0);
 		return send_pkt_loop(odata->dev_out, pkt);
 	} else {
 		return send_pkt_out(odata->dev_out, pkt);
@@ -1453,14 +1459,21 @@ enum ofp_return_code ofp_packet_input(odp_packet_t pkt,
 		ofp_packet_user_area_reset(pkt);
 	}
 
-	if (ifnet->chksum_offload_flags & OFP_IF_IPV4_RX_CHKSUM)
-		ofp_packet_user_area(pkt)->chksum_flags |=
-			OFP_L3_CHKSUM_STATUS_VALID;
+	/*
+	 * The packets received on loopback queue do not have csum
+	 * information filled, regardless of offload capabilities of
+	 * the interface.
+	 */
+	if (in_queue != ifnet->loopq_def) {
+		if (ifnet->chksum_offload_flags & OFP_IF_IPV4_RX_CHKSUM)
+			ofp_packet_user_area(pkt)->chksum_flags |=
+				OFP_L3_CHKSUM_STATUS_VALID;
 
-	if (ifnet->chksum_offload_flags & 
-		(OFP_IF_UDP_RX_CHKSUM | OFP_IF_TCP_RX_CHKSUM))
-		ofp_packet_user_area(pkt)->chksum_flags |=
-			OFP_L4_CHKSUM_STATUS_VALID;
+		if (ifnet->chksum_offload_flags &
+		    (OFP_IF_UDP_RX_CHKSUM | OFP_IF_TCP_RX_CHKSUM))
+			ofp_packet_user_area(pkt)->chksum_flags |=
+				OFP_L4_CHKSUM_STATUS_VALID;
+	}
 
 	OFP_DEBUG_PACKET(OFP_DEBUG_PKT_RECV_NIC, pkt, ifnet->port);
 
