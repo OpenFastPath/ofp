@@ -213,7 +213,7 @@ int send_ip4_udp_local_ip(int fd)
 		return -1;
 	}
 
-	if (ofp_send(fd, buf, strlen(buf), 0) == -1) {
+	if (ofp_send(fd, buf, strlen(buf), 0) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
@@ -234,7 +234,7 @@ int sendto_ip4_udp_local_ip(int fd)
 
 	if (ofp_sendto(fd, buf, strlen(buf), 0,
 		(struct ofp_sockaddr *)&dest_addr,
-		sizeof(dest_addr)) == -1) {
+		sizeof(dest_addr)) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
@@ -262,7 +262,7 @@ int send_ip4_udp_any(int fd)
 		return -1;
 	}
 
-	if (ofp_send(fd, buf, strlen(buf), 0) == -1) {
+	if (ofp_send(fd, buf, strlen(buf), 0) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
@@ -284,7 +284,7 @@ int sendto_ip4_udp_any(int fd)
 
 	if (ofp_sendto(fd, buf, strlen(buf), 0,
 		(struct ofp_sockaddr *)&dest_addr,
-		sizeof(dest_addr)) == -1) {
+		sizeof(dest_addr)) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
@@ -313,7 +313,7 @@ int send_ip6_udp_local_ip(int fd)
 			ofp_errno);
 		return -1;
 	}
-	if (ofp_send(fd, buf, strlen(buf), 0) == -1) {
+	if (ofp_send(fd, buf, strlen(buf), 0) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
@@ -335,7 +335,7 @@ int sendto_ip6_udp_local_ip(int fd)
 
 	if (ofp_sendto(fd, buf, strlen(buf), 0,
 		(struct ofp_sockaddr *)&dest_addr,
-		sizeof(dest_addr)) == -1) {
+		sizeof(dest_addr)) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
@@ -364,7 +364,7 @@ int send_ip6_udp_any(int fd)
 		return -1;
 	}
 
-	if (ofp_send(fd, buf, strlen(buf), 0) == -1) {
+	if (ofp_send(fd, buf, strlen(buf), 0) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
@@ -387,7 +387,7 @@ int sendto_ip6_udp_any(int fd)
 
 	if (ofp_sendto(fd, buf, strlen(buf), 0,
 		(struct ofp_sockaddr *)&dest_addr,
-		sizeof(dest_addr)) == -1) {
+		sizeof(dest_addr)) != (ofp_ssize_t)strlen(buf)) {
 		OFP_ERR("Faild to send data(errno = %d)\n", ofp_errno);
 		return -1;
 	}
