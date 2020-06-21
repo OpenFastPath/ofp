@@ -140,7 +140,7 @@
  * Shared data
  */
 struct ofp_socket_mem {
-	struct socket socket_list[OFP_NUM_SOCKETS_MAX];
+	struct socket *socket_list;
 	struct socket *free_sockets;
 	int sockets_allocated, max_sockets_allocated;
 	int socket_zone;
@@ -158,7 +158,7 @@ struct ofp_socket_mem {
 		odp_timer_t tmo;
 		int woke_by_timer;
 	} *sleep_list;
-	struct sleeper sleeper_list[OFP_NUM_SOCKETS_MAX];
+	struct sleeper *sleeper_list;
 	struct sleeper *free_sleepers;
 	odp_spinlock_t sleep_lock;
 };
@@ -176,7 +176,7 @@ void ofp_print_long_counters(void);
 void ofp_print_sockets(void)
 {
 	int i;
-	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
+	for (i = 0; i < global_param->socket.num_max; i++) {
 		struct socket *so = &shm->socket_list[i];
 		if (!so->so_proto)
 			continue;
@@ -222,9 +222,17 @@ void ofp_accept_unlock(void)
 	odp_rwlock_write_unlock(&shm->ofp_accept_mtx);
 }
 
+static uint64_t ofp_socket_get_shm_size(void)
+{
+	return sizeof(*shm) +
+		global_param->socket.num_max * sizeof(struct socket) +
+		global_param->socket.num_max * sizeof(struct sleeper);
+}
+
 static int ofp_socket_alloc_shared_memory(void)
 {
-	shm = ofp_shared_memory_alloc(SHM_NAME_SOCKET, sizeof(*shm));
+	shm = ofp_shared_memory_alloc(SHM_NAME_SOCKET,
+				      ofp_socket_get_shm_size());
 	if (shm == NULL) {
 		OFP_ERR("ofp_shared_memory_alloc failed");
 		return -1;
@@ -257,28 +265,36 @@ int ofp_socket_lookup_shared_memory(void)
 
 void ofp_socket_init_prepare(void)
 {
-	ofp_shared_memory_prealloc(SHM_NAME_SOCKET, sizeof(*shm));
+	ofp_shared_memory_prealloc(SHM_NAME_SOCKET,
+				   ofp_socket_get_shm_size());
 }
 
 int ofp_socket_init_global(odp_pool_t pool)
 {
 	uint32_t i;
+	struct socket *so;
+	struct sleeper *sl;
 
 	HANDLE_ERROR(ofp_socket_alloc_shared_memory());
 
-	memset(shm, 0, sizeof(*shm));
+	memset(shm, 0, ofp_socket_get_shm_size());
 	shm->pool = ODP_POOL_INVALID;
+	shm->socket_list = (struct socket *)((uint8_t *)shm + sizeof(*shm));
+	shm->sleeper_list = (struct sleeper *)((uint8_t *)shm->socket_list +
+		global_param->socket.num_max * sizeof(struct socket));
 
-	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
-		shm->socket_list[i].next = (i == OFP_NUM_SOCKETS_MAX - 1) ?
-			NULL : &(shm->socket_list[i+1]);
-		shm->socket_list[i].so_number = i + OFP_SOCK_NUM_OFFSET;
+	for (i = 0; i < global_param->socket.num_max; i++) {
+		so = &shm->socket_list[i];
+		so->next = (i == global_param->socket.num_max - 1) ?
+			NULL : &(shm->socket_list[i + 1]);
+		so->so_number = i + OFP_SOCK_NUM_OFFSET;
 	}
 	shm->free_sockets = &(shm->socket_list[0]);
 
-	for (i = 0; i < OFP_NUM_SOCKETS_MAX; i++) {
-		shm->sleeper_list[i].next = (i == OFP_NUM_SOCKETS_MAX - 1) ?
-			NULL : &(shm->sleeper_list[i+1]);
+	for (i = 0; i < global_param->socket.num_max; i++) {
+		sl = &shm->sleeper_list[i];
+		sl->next = (i == global_param->socket.num_max - 1) ?
+			NULL : &(shm->sleeper_list[i + 1]);
 	}
 	shm->free_sleepers = &(shm->sleeper_list[0]);
 

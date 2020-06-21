@@ -157,7 +157,7 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
     const char *inpcbzone_name, uma_init inpcbzone_init, uma_fini inpcbzone_fini,
     uint32_t inpcbzone_flags)
 {
-	int pcb_size = OFP_NUM_SOCKETS_MAX;
+	int pcb_size = global_param->socket.num_max;
 
 	/* make compiler happy */
 	(void)inpcbzone_init;
