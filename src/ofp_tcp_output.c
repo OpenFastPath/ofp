@@ -1014,6 +1014,20 @@ send:
 		th->th_off = (sizeof (struct ofp_tcphdr) + optlen) >> 2;
 	}
 	th->th_flags = flags;
+
+	/*
+	 * Make sure to send the "real" so->so_rcv containing space.
+	 * Unlike the FreeBSD stack,
+	 * we shrink the receive window packet-by-packet, not byte-by-byte.
+	 * So we cannot use (long)(tp->rcv_adv - tp->rcv_nxt)) to calculate the size of the window.
+	 * Also, since recwin varies packet-by-packet,
+	 * we don't need to care about silly window syndrome,
+	 * since it always has a minimum delta of global_param->pkt_pool.buffer_size.
+	 */
+	 /* Actually it should be recwin = recwin * tp->t_maxseg / global_param->pkt_pool.buffer_size
+	  * But whatever. Just reduce the calculation here
+	 */
+#if 0
 	/*
 	 * Calculate receive window.  Don't shrink window,
 	 * but avoid silly window syndrome.
@@ -1024,6 +1038,7 @@ send:
 	if (SEQ_GT(tp->rcv_adv, tp->rcv_nxt) &&
 	    recwin < (long)(tp->rcv_adv - tp->rcv_nxt))
 		recwin = (long)(tp->rcv_adv - tp->rcv_nxt);
+#endif
 	if (recwin > (long)OFP_TCP_MAXWIN << tp->rcv_scale)
 		recwin = (long)OFP_TCP_MAXWIN << tp->rcv_scale;
 
