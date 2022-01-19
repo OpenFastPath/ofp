@@ -269,6 +269,7 @@ ofp_in_pcballoc(struct socket *so, struct inpcbinfo *pcbinfo)
 	if (inp == NULL)
 		return (OFP_ENOBUFS);
 	bzero(inp, inp_zero_size);
+	INP_LOCK_INIT(inp, "inp", "inptcp");
 	inp->inp_pcbinfo = pcbinfo;
 	inp->inp_socket = so;
 	inp->inp_cred = so->so_cred; // HJo: ref inc removed
