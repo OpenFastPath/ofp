@@ -54,14 +54,14 @@
 /*
  * Helper definitions
  */
-#define	__CONCAT(x,y)	x ## y
+#define	_OFP_CONCAT(x, y)	x ## y
 #define SET_DECLARE(set, ptype)						\
-	extern ptype *__CONCAT(__start_set_,set);			\
-	extern ptype *__CONCAT(__stop_set_,set)
+	extern ptype *_OFP_CONCAT(__start_set_, set);			\
+	extern ptype *_OFP_CONCAT(__stop_set_, set)
 #define SET_BEGIN(set)							\
-	(&__CONCAT(__start_set_,set))
+	(&_OFP_CONCAT(__start_set_, set))
 #define SET_LIMIT(set)							\
-	(&__CONCAT(__stop_set_,set))
+	(&_OFP_CONCAT(__stop_set_, set))
 #define SET_FOREACH(pvar, set)						\
 	for (pvar = SET_BEGIN(set); pvar < SET_LIMIT(set); pvar++)
 #define SET_ITEM(set, i)						\
@@ -72,8 +72,8 @@
 #define	__GLOBL1(sym)	__asm__(".globl " #sym)
 #define	__GLOBL(sym)	__GLOBL1(sym)
 #define __MAKE_SET(set, sym)						\
-	__GLOBL(__CONCAT(__start_set_,set));				\
-	__GLOBL(__CONCAT(__stop_set_,set));				\
+	__GLOBL(_OFP_CONCAT(__start_set_, set));				\
+	__GLOBL(_OFP_CONCAT(__stop_set_, set));				\
 	static void const * const __set_##set##_sym_##sym 		\
 	__attribute__ ((section ("set_" #set)))				\
 	__attribute__ ((used)) = &sym
