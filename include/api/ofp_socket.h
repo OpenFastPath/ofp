@@ -219,7 +219,7 @@ struct sockproto {
 /*
  * Maximum queue length specifiable by listen.
  */
-#define	SOMAXCONN	128
+#define	OFP_SOMAXCONN	128
 
 /*
  * Message header for recvmsg and sendmsg calls.
