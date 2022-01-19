@@ -177,7 +177,7 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
 			pcbinfo->ipi_hashbase);
 
 		pcbinfo->ipi_porthashbase = shm_tcp->ofp_porthashtbl;
-		ofp_tcp_hashinit(porthash_nelements, &pcbinfo->ipi_hashmask,
+		ofp_tcp_hashinit(porthash_nelements, &pcbinfo->ipi_porthashmask,
                         pcbinfo->ipi_porthashbase);
 		pcb_size = global_param->pcb_tcp_max;
 	} else {
