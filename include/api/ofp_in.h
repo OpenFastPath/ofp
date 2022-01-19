@@ -79,9 +79,9 @@ typedef	uint32_t ofp_in_addr_t;
 #define OFP__IN_ADDR_T_DECLARED
 #endif
 
-#ifndef _IN_PORT_T_DECLARED
+#ifndef OFP__IN_PORT_T_DECLARED
 typedef	uint16_t ofp_in_port_t;
-#define	_IN_PORT_T_DECLARED
+#define	OFP__IN_PORT_T_DECLARED
 #endif
 
 #ifndef OFP__SA_FAMILY_T_DECLARED
