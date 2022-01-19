@@ -169,6 +169,7 @@ ofp_in_pcbinfo_init(struct inpcbinfo *pcbinfo, const char *name,
 	pcbinfo->ipi_listhead = listhead;
 	OFP_LIST_INIT(pcbinfo->ipi_listhead);
 	pcbinfo->ipi_count = 0;
+	pcbinfo->ipi_gencnt = 0;
 
 	if (strcmp(name, "tcp") == 0) {
 		pcbinfo->ipi_hashbase = shm_tcp->ofp_hashtbl;
