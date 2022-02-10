@@ -1,0 +1,55 @@
+name: CI
+
+on: [push, pull_request]
+env:
+  ARCH: x86_64
+  CC: gcc
+
+jobs:
+  Checkpatch:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install codespell
+
+    - name: Check pull request
+      if: github.event_name == 'pull_request'
+      env:
+        CHECKPATCH_COMMAND: ./scripts/checkpatch.pl
+      uses: webispy/checkpatch-action@v7
+
+    - name: Check push
+      if: github.event_name == 'push' && github.ref != 'refs/heads/master'
+      run: |
+        AFTER=${{ github.event.after }}
+        BEFORE=${{ github.event.before }}
+        if [ -z "${BEFORE//0}" ] || [ -z "${AFTER//0}" ]; then
+          COMMIT_RANGE=""
+        else
+          COMMIT_RANGE="${BEFORE}..${AFTER}"
+        fi
+        ./scripts/ci-checkpatches.sh ${COMMIT_RANGE}
+
+  Run_x86:
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install automake autoconf libconfig-dev libcunit1-dev libssl-dev libtool pkg-config
+    - name: Run
+      run: |
+        less ./scripts/check.sh
+        ls -la ./scripts/check.sh
+        CC="${{matrix.cc}}" ./scripts/check.sh
