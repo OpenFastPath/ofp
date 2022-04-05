@@ -185,14 +185,14 @@ static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 
 	odp_ipsec_sa_param_init(&odp_param);
 
-	crypto->cipher_alg = param->crypto.cipher_alg;
+	crypto->cipher_alg = (odp_cipher_alg_t)param->crypto.cipher_alg;
 	crypto->cipher_key.data = param->crypto.cipher_key.key_data;
 	crypto->cipher_key.length = param->crypto.cipher_key.key_len;
 	crypto->cipher_key_extra.data = NULL;
 	crypto->cipher_key_extra.length = 0;
 	if (crypto->cipher_alg == ODP_CIPHER_ALG_AES_GCM)
 		extract_salt(crypto, &crypto->cipher_key);
-	crypto->auth_alg = param->crypto.auth_alg;
+	crypto->auth_alg = (odp_auth_alg_t)param->crypto.auth_alg;
 	crypto->auth_key.data = param->crypto.auth_key.key_data;
 	crypto->auth_key.length = param->crypto.auth_key.key_len;
 	if (crypto->auth_alg == ODP_AUTH_ALG_AES_GCM ||
@@ -206,9 +206,9 @@ static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 	opt->copy_df = 0;
 	opt->dec_ttl = 0;
 
-	odp_param.dir = param->dir;
-	odp_param.proto = param->proto;
-	odp_param.mode = param->mode;
+	odp_param.dir = (odp_ipsec_dir_t)param->dir;
+	odp_param.proto = (odp_ipsec_protocol_t)param->proto;
+	odp_param.mode = (odp_ipsec_mode_t)param->mode;
 	odp_param.lifetime = param->lifetime;
 	odp_param.spi = param->spi;
 	odp_param.context = sa;
@@ -220,7 +220,7 @@ static odp_ipsec_sa_t create_odp_sa(struct ofp_ipsec_sa *sa)
 		odp_param.inbound.pipeline = ODP_IPSEC_PIPELINE_NONE;
 		odp_param.dest_queue = shm->inbound_queue;
 	} else {
-		tunnel->type = param->tunnel.type;
+		tunnel->type = (odp_ipsec_tunnel_type_t)param->tunnel.type;
 		tunnel->ipv4.src_addr = &param->tunnel.ipv4.src_addr;
 		tunnel->ipv4.dst_addr = &param->tunnel.ipv4.dst_addr;
 		tunnel->ipv4.dscp = param->tunnel.ipv4.dscp;
