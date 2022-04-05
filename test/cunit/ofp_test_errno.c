@@ -55,25 +55,27 @@ int other_thread(void *arg);
 static void test_tls_errno(void)
 {
 	odp_cpumask_t cpumask;
-	odph_odpthread_t threads;
+	odph_thread_t threads;
 	odp_barrier_t barrier__;
 	odp_barrier_t *barrier;
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 
 	CU_ASSERT(1 == odp_cpumask_default_worker(&cpumask, 1));
 
 	barrier = &barrier__;
 	odp_barrier_init(barrier, 2);
 
-
+	odph_thread_param_init(&thr_params);
 	thr_params.start = other_thread;
 	thr_params.arg = (void *)barrier;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	CU_ASSERT(1 == odph_odpthreads_create(
-			  &threads,
-			  &cpumask,
-			  &thr_params));
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpumask;
+	thr_common.share_param = 1;
+
+	CU_ASSERT(odph_thread_create(&threads, &thr_common, &thr_params, 1) == 1);
 
 	/* Initialize this thread's ofp_errno. */
 	ofp_errno = 0;
@@ -92,7 +94,7 @@ static void test_tls_errno(void)
 	odp_barrier_wait(barrier);
 	CU_ASSERT_EQUAL(ofp_errno, OFP_EPERM);
 
-	odph_odpthreads_join(&threads);
+	odph_thread_join(&threads, 1);
 }
 
 int other_thread(void *arg)

@@ -7,7 +7,7 @@ if [ "${CC#clang}" != "${CC}" ] ; then
 fi
 
 cd $ROOTDIR
-git clone --depth 1 -b v1.19.0.1 https://github.com/OpenDataPlane/odp.git
+git clone --depth 1 -b v1.35.0.0 https://github.com/OpenDataPlane/odp.git
 cd odp
 ./bootstrap
 ODPDIR=$(pwd)/install

@@ -178,12 +178,11 @@ static void ofp_vlan_free(struct ofp_ifnet *vlan)
 static void print_eth_stats (odp_pktio_stats_t stats, int fd)
 {
 	ofp_sendf(fd,
-		"\tRX: bytes:%lu packets:%lu dropped:%lu errors:%lu unknown:%lu\r\n",
+		"\tRX: bytes:%lu packets:%lu dropped:%lu errors:%lu\r\n",
 		stats.in_octets,
 		stats.in_ucast_pkts,
 		stats.in_discards,
-		stats.in_errors,
-		stats.in_unknown_protos);
+		stats.in_errors);
 
 	ofp_sendf(fd,
 		"\tTX: bytes:%lu packets:%lu dropped:%lu error:%lu\r\n\r\n",

@@ -36,32 +36,39 @@ int init_suite(init_function init_func)
 void run_suite(odp_instance_t instance,
 	run_function run_func1, run_function run_func2)
 {
-	odph_odpthread_t sock_pthread1;
-	odph_odpthread_t sock_pthread2;
+	odph_thread_t sock_pthread1;
+	odph_thread_t sock_pthread2;
 	odp_cpumask_t sock_cpumask;
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 
 	odp_cpumask_zero(&sock_cpumask);
 	odp_cpumask_set(&sock_cpumask, core_id);
 
+	odph_thread_param_init(&thr_params);
 	thr_params.start = suite_thread1;
 	thr_params.arg = run_func1;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	odph_odpthreads_create(&sock_pthread1,
-			       &sock_cpumask,
-			       &thr_params);
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &sock_cpumask;
+	thr_common.share_param = 1;
+
+	if (odph_thread_create(&sock_pthread1, &thr_common, &thr_params, 1) != 1) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	thr_params.start = suite_thread2;
 	thr_params.arg = run_func2;
-	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	odph_odpthreads_create(&sock_pthread2,
-			       &sock_cpumask,
-			       &thr_params);
 
-	odph_odpthreads_join(&sock_pthread1);
-	odph_odpthreads_join(&sock_pthread2);
+	if (odph_thread_create(&sock_pthread2, &thr_common, &thr_params, 1) != 1) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	odph_thread_join(&sock_pthread1, 1);
+	odph_thread_join(&sock_pthread2, 1);
 }
 
 void end_suite(void)

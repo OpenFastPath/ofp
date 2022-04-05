@@ -980,7 +980,7 @@ static void print_info(char *progname, appl_args_t *appl_args)
  */
 int main(int argc, char *argv[])
 {
-	odph_odpthread_t thread_tbl[NUM_WORKERS];
+	odph_thread_t thread_tbl[NUM_WORKERS];
 	odp_shm_t shm;
 	int num_workers, next_worker;
 	odp_cpumask_t cpu_mask;
@@ -988,7 +988,8 @@ int main(int argc, char *argv[])
 	odp_pktio_param_t pktio_param;
 	odp_pktin_queue_param_t pktin_param;
 	odp_pktout_queue_param_t pktout_param;
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 	odp_instance_t instance;
 	odp_pktio_t pktio;
 	odp_pktio_capability_t capa;
@@ -1126,6 +1127,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	odph_thread_param_init(&thr_params);
+	thr_params.arg = &thr_args;
+	thr_params.thr_type = ODP_THREAD_WORKER;
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpu_mask;
+	thr_common.share_param = 1;
+
 	/*
 	 * We don't need a second thread iff we are a single thread
 	 * client.
@@ -1138,12 +1147,14 @@ int main(int argc, char *argv[])
 		 */
 		if (gbl_args->appl.single_thread == 1 && gbl_args->appl.mode == MODE_SERVER)
 			thr_params.start = run_server;
-		thr_params.arg = &thr_args;
-		thr_params.thr_type = ODP_THREAD_WORKER;
-		thr_params.instance = instance;
+
 		odp_cpumask_zero(&cpu_mask);
 		odp_cpumask_set(&cpu_mask, next_worker);
-		odph_odpthreads_create(&thread_tbl[0], &cpu_mask, &thr_params);
+
+		if (odph_thread_create(&thread_tbl[0], &thr_common, &thr_params, 1) != 1) {
+			OFP_ERR("Error: odph_thread_create() failed.\n");
+			exit(EXIT_FAILURE);
+		}
 		next_worker++;
 	}
 
@@ -1155,16 +1166,18 @@ int main(int argc, char *argv[])
 		thr_params.start = (gbl_args->appl.mode == MODE_SERVER) ?
 			run_server : run_client;
 	}
-	thr_params.arg = &thr_args;
-	thr_params.thr_type = ODP_THREAD_WORKER;
-	thr_params.instance = instance;
+
 	odp_cpumask_zero(&cpu_mask);
 	odp_cpumask_set(&cpu_mask, next_worker);
-	odph_odpthreads_create(&thread_tbl[next_worker-1], &cpu_mask, &thr_params);
+	if (odph_thread_create(&thread_tbl[next_worker - 1], &thr_common,
+			       &thr_params, 1) != 1) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	print_global_stats();
 
-	odph_odpthreads_join(thread_tbl);
+	odph_thread_join(thread_tbl, num_workers);
 
 	if (gbl_args->client_fd >= 0)
 		ofp_close(gbl_args->client_fd);
