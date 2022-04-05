@@ -84,7 +84,8 @@ _ofp_in6_cksum_pseudo(struct ofp_ip6_hdr *ip6, uint32_t len,
 		uint8_t nxt, uint16_t csum)
 {
 	int sum;
-	uint16_t scope = 0, *w;
+	uint16_t scope = 0;
+	odp_una_u16_t *w;
 
 	union {
 		uint16_t phs[4];

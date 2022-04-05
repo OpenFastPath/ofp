@@ -43,7 +43,7 @@
 /*
  * Overlay for ip header used by other protocols (tcp, udp).
  */
-struct ipovly {
+struct ODP_PACKED ipovly {
 	uint8_t	ih_x1[9];		/* (unused) */
 	uint8_t	ih_pr;			/* protocol */
 	uint16_t	ih_len;			/* protocol length */
