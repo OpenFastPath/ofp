@@ -86,7 +86,7 @@ typedef	__ofp_socklen_t	ofp_socklen_t;
 /*
  * IPv6 address
  */
-struct ofp_in6_addr {
+struct ODP_PACKED ofp_in6_addr {
 	union {
 		uint8_t		__u6_addr8[16];
 		uint16_t	__u6_addr16[8];
