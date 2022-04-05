@@ -94,7 +94,6 @@ int		ofp_udp_log_in_vain = 0;
 int		ofp_udp_blackhole = 0;
 uint64_t	ofp_udp_sendspace = 9216;		/* really max datagram size */
 uint64_t	ofp_udp_recvspace = 40 * (1024 + sizeof(struct ofp_sockaddr_in6));
-int		ofp_max_linkhdr;
 VNET_DEFINE(int, ofp_ip_defttl) = 255;
 
 struct inpcbhead ofp_udb;		/* from udp_var.h */

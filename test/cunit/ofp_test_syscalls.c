@@ -31,7 +31,7 @@
 #endif
 
 void *shm;
-odp_pool_t ofp_packet_pool;
+extern odp_pool_t ofp_packet_pool;
 int (*pru_attach)(struct socket *so, int proto, struct thread *td);
 int sleeper_called;
 uint32_t sleeper_timeout;
