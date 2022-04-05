@@ -30,9 +30,9 @@ void ofp_nd6_ns_input(odp_packet_t m, int off, int icmp6len)
 	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(m, NULL);
 	icmp6 = (struct ofp_icmp6_hdr *)((uint8_t *)ip6 + off);
 
-	if (icmp6->ofp_icmp6_data8[20] == OFP_ND_OPT_SOURCE_LINKADDR &&
-		!OFP_IN6_IS_ADDR_UNSPECIFIED(&ip6->ip6_src) &&
-		!OFP_IN6_IS_ADDR_LINKLOCAL(&ip6->ip6_src)) {
+	if (icmp6_data(icmp6)[20] == OFP_ND_OPT_SOURCE_LINKADDR &&
+	    !OFP_IN6_IS_ADDR_UNSPECIFIED(&ip6->ip6_src) &&
+	    !OFP_IN6_IS_ADDR_LINKLOCAL(&ip6->ip6_src)) {
 		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, ifp->vlan,
 				      ifp->port, ip6->ip6_src.ofp_s6_addr,
 				      128 /*masklen*/,
@@ -125,12 +125,12 @@ enum ofp_return_code ofp_nd6_ns_output(struct ofp_ifnet *dev,
 	icmp->icmp6_cksum = 0;
 	icmp->ofp_icmp6_data32[0] = 0; /* Reserved */
 
-	memcpy(&icmp->ofp_icmp6_data8[4], taddr6, 16);
+	memcpy(&icmp6_data(icmp)[4], taddr6, 16);
 
 	/* Option: Source link-layer address */
-	icmp->ofp_icmp6_data8[20] = OFP_ND_OPT_SOURCE_LINKADDR;
-	icmp->ofp_icmp6_data8[21] = 1; /* 8 octets */
-	memcpy(&icmp->ofp_icmp6_data8[22], dev->mac, 6);
+	icmp6_data(icmp)[20] = OFP_ND_OPT_SOURCE_LINKADDR;
+	icmp6_data(icmp)[21] = 1; /* 8 octets */
+	memcpy(&icmp6_data(icmp)[22], dev->mac, 6);
 
 	icmp->icmp6_cksum = ofp_cksum_buffer(&ip6hdr->ofp_ip6_plen, 68);
 
@@ -160,15 +160,15 @@ void ofp_nd6_na_input(odp_packet_t m, int off, int icmp6len)
 	ip6 = (struct ofp_ip6_hdr *)odp_packet_l3_ptr(m, NULL);
 	icmp6 = (struct ofp_icmp6_hdr *)((uint8_t *)ip6 + off);
 
-	if (icmp6->ofp_icmp6_data8[20] == OFP_ND_OPT_TARGET_LINKADDR) {
+	if (icmp6_data(icmp6)[20] == OFP_ND_OPT_TARGET_LINKADDR) {
 		ofp_set_route6_params(OFP_ROUTE6_ADD, 0 /*vrf*/, ifp->vlan,
-				      ifp->port, &icmp6->ofp_icmp6_data8[4],
+				      ifp->port, &icmp6_data(icmp6)[4],
 				      128 /*masklen*/,
 				      ofp_in6addr_any.ofp_s6_addr,
 				      OFP_RTF_HOST);
 
 		ofp_add_mac6(ifp,
-			&icmp6->ofp_icmp6_data8[4],
+			&icmp6_data(icmp6)[4],
 			(uint8_t *)&eth->ether_shost);
 	}
 }
@@ -253,12 +253,12 @@ enum ofp_return_code ofp_nd6_na_output(struct ofp_ifnet *dev,
 	icmp->icmp6_cksum = 0;
 	icmp->ofp_icmp6_data32[0] = 0; /* Reserved */
 
-	memcpy(&icmp->ofp_icmp6_data8[4], taddr6, 16);
+	memcpy(&icmp6_data(icmp)[4], taddr6, 16);
 
 	/* Option: Source link-layer address */
-	icmp->ofp_icmp6_data8[20] = OFP_ND_OPT_TARGET_LINKADDR;
-	icmp->ofp_icmp6_data8[21] = 1; /* 8 octets */
-	memcpy(&icmp->ofp_icmp6_data8[22], dev->mac, 6);
+	icmp6_data(icmp)[20] = OFP_ND_OPT_TARGET_LINKADDR;
+	icmp6_data(icmp)[21] = 1; /* 8 octets */
+	memcpy(&icmp6_data(icmp)[22], dev->mac, 6);
 
 	icmp->icmp6_cksum = ofp_cksum_buffer(&ip6hdr->ofp_ip6_plen, 68);
 

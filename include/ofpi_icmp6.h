@@ -30,6 +30,7 @@ struct	ip6ctlparam;
 void	icmp6_mtudisc_update(struct ip6ctlparam *, int);
 */
 
+#define icmp6_data(p) ((uint8_t *)(p) + 4)
 
 #define ofp_icmp6_ifstat_inc(ifp, tag)
 #define ofp_icmp6_ifoutstat_inc(ifp, type, code)
