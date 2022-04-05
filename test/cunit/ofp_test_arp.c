@@ -32,13 +32,14 @@
 
 static odp_instance_t instance;
 static odp_atomic_u32_t still_running;
-static odph_odpthread_t pp_thread_handle;
+static odph_thread_t pp_thread_handle;
 int pp_thread(void *arg);
 
 static int init_suite(void)
 {
 	ofp_global_param_t params;
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
@@ -67,15 +68,22 @@ static int init_suite(void)
 	odp_atomic_store_u32(&still_running, 1);
 
 	odp_cpumask_t cpumask;
+
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, 0x1);
+
+	odph_thread_param_init(&thr_params);
 	thr_params.start = pp_thread;
-	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_WORKER;
-	thr_params.instance = instance;
-	odph_odpthreads_create(&pp_thread_handle,
-			       &cpumask,
-			       &thr_params);
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpumask;
+	thr_common.share_param = 1;
+
+	if (odph_thread_create(&pp_thread_handle, &thr_common, &thr_params, 1) != 1) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		return -1;
+	}
 
 	return 0;
 }
@@ -84,7 +92,7 @@ static int end_suite(void)
 {
 	odp_atomic_store_u32(&still_running, 0);
 
-	odph_odpthreads_join(&pp_thread_handle);
+	odph_thread_join(&pp_thread_handle, 1);
 
 	ofp_term_local();
 	ofp_term_global();

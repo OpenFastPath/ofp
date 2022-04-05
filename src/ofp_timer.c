@@ -131,7 +131,7 @@ static int ofp_timer_create_queues(odp_schedule_group_t sched_group)
 
 	odp_queue_param_init(&param);
 	param.type = ODP_QUEUE_TYPE_SCHED;
-	param.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
+	param.sched.prio  = odp_schedule_default_prio();
 	param.sched.sync  = ODP_SCHED_SYNC_PARALLEL;
 	param.sched.group = sched_group;
 

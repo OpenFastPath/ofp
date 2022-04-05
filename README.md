@@ -72,7 +72,7 @@ Download and build OpenDataPlane (ODP) library:
 
     git clone https://github.com/OpenDataPlane/odp
     cd odp
-    git checkout v1.19.0.2
+    git checkout v1.35.0.0
     ./bootstrap
     ./configure --prefix=<INSTALL ODP TO THIS DIR>
     make

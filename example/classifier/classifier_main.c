@@ -58,12 +58,13 @@ ofp_global_param_t app_init_params; /**< global OFP init parms */
  */
 int main(int argc, char *argv[])
 {
-	odph_odpthread_t thread_tbl[MAX_WORKERS];
+	odph_thread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
 	int core_count, num_workers;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
@@ -126,17 +127,24 @@ int main(int argc, char *argv[])
 
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	/* Start dataplane dispatcher worker threads */
+	odph_thread_param_init(&thr_params);
 	thr_params.start = default_event_dispatcher;
 	thr_params.arg = ofp_udp4_processing;
 	thr_params.thr_type = ODP_THREAD_WORKER;
-	thr_params.instance = instance;
-	odph_odpthreads_create(thread_tbl,
-			       &cpumask,
-			       &thr_params);
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpumask;
+	thr_common.share_param = 1;
+
+	if (odph_thread_create(thread_tbl, &thr_common, &thr_params,
+			       num_workers) != num_workers) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	app_processing();
 
-	odph_odpthreads_join(thread_tbl);
+	odph_thread_join(thread_tbl, num_workers);
 
 	printf("End Main()\n");
 	return 0;
@@ -370,7 +378,7 @@ static odp_cos_t build_cos_w_queue(const char *name)
 
 	odp_queue_param_init(&qparam);
 	qparam.type = ODP_QUEUE_TYPE_SCHED;
-	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
+	qparam.sched.prio  = odp_schedule_default_prio();
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 

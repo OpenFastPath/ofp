@@ -201,8 +201,8 @@ struct ODP_ALIGNED_CACHE ofp_ifnet {
 #define OFP_SP_DOWN 0
 #define OFP_SP_UP 1
 	int		sp_status;
-	odph_odpthread_t	rx_tbl[1];
-	odph_odpthread_t	tx_tbl[1];
+	odph_thread_t	rx_tbl[1];
+	odph_thread_t	tx_tbl[1];
 #endif /*SP */
 
 	OFP_LIST_ENTRY(ofp_ifnet) ia_hash; /* entry in bucket of inet addresses */

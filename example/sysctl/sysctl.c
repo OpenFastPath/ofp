@@ -272,18 +272,25 @@ sysctl(void *arg)
 
 void ofp_start_sysctl_thread(odp_instance_t instance, int core_id)
 {
-	static odph_odpthread_t test_linux_sysctl_pthread;
+	static odph_thread_t test_linux_sysctl_pthread;
 	odp_cpumask_t cpumask;
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
+	odph_thread_param_init(&thr_params);
 	thr_params.start = sysctl;
-	thr_params.arg = NULL;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	odph_odpthreads_create(&test_linux_sysctl_pthread,
-			       &cpumask,
-			       &thr_params);
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpumask;
+	thr_common.share_param = 1;
+
+	if (odph_thread_create(&test_linux_sysctl_pthread, &thr_common,
+			       &thr_params, 1) != 1) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
 }

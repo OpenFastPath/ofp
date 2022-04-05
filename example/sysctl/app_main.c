@@ -63,12 +63,13 @@ static enum ofp_return_code fastpath_local_hook(odp_packet_t pkt, void *arg)
  */
 int main(int argc, char *argv[])
 {
-	odph_odpthread_t thread_tbl[MAX_WORKERS];
+	odph_thread_t thread_tbl[MAX_WORKERS];
 	appl_args_t params;
 	int core_count, num_workers;
 	odp_cpumask_t cpumask;
 	char cpumaskstr[64];
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 	odp_instance_t instance;
 
 	/* Parse and store the application arguments */
@@ -121,13 +122,20 @@ int main(int argc, char *argv[])
 	memset(thread_tbl, 0, sizeof(thread_tbl));
 	/* Start dataplane dispatcher worker threads */
 
+	odph_thread_param_init(&thr_params);
 	thr_params.start = default_event_dispatcher;
 	thr_params.arg = ofp_eth_vlan_processing;
 	thr_params.thr_type = ODP_THREAD_WORKER;
-	thr_params.instance = instance;
-	odph_odpthreads_create(thread_tbl,
-			       &cpumask,
-			       &thr_params);
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpumask;
+	thr_common.share_param = 1;
+
+	if (odph_thread_create(thread_tbl, &thr_common, &thr_params,
+			       num_workers) != num_workers) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	/* other app code here.*/
 	/* Start CLI */
@@ -137,7 +145,7 @@ int main(int argc, char *argv[])
 	/* sysctl test thread */
 	ofp_start_sysctl_thread(instance, app_init_params.linux_core_id);
 
-	odph_odpthreads_join(thread_tbl);
+	odph_thread_join(thread_tbl, num_workers);
 	printf("End Main()\n");
 
 	return 0;

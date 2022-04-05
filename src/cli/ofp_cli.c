@@ -1826,7 +1826,8 @@ int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *cli_file)
 {
 	odp_cpumask_t cpumask;
 	struct ofp_global_config_mem *ofp_global_cfg;
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 
 	ofp_global_cfg = ofp_get_global_config();
 	if (!ofp_global_cfg) {
@@ -1840,14 +1841,17 @@ int ofp_start_cli_thread(odp_instance_t instance, int core_id, char *cli_file)
 	odp_cpumask_zero(&cpumask);
 	odp_cpumask_set(&cpumask, core_id);
 
+	odph_thread_param_init(&thr_params);
 	thr_params.start = cli_server;
 	thr_params.arg = cli_file;
 	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpumask;
+	thr_common.share_param = 1;
 
-	if (odph_odpthreads_create(&ofp_global_cfg->cli_thread,
-				   &cpumask,
-				   &thr_params) == 0) {
+	if (odph_thread_create(&ofp_global_cfg->cli_thread, &thr_common,
+			       &thr_params, 1) != 1) {
 		OFP_ERR("Failed to start CLI thread.");
 		ofp_global_cfg->cli_thread_is_running = 0;
 		return -1;
@@ -1869,7 +1873,7 @@ int ofp_stop_cli_thread(void)
 
 	if (ofp_global_cfg->cli_thread_is_running) {
 		close_connection(NULL);
-		odph_odpthreads_join(&ofp_global_cfg->cli_thread);
+		odph_thread_join(&ofp_global_cfg->cli_thread, 1);
 		ofp_global_cfg->cli_thread_is_running = 0;
 	}
 

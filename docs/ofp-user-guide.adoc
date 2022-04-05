@@ -64,7 +64,7 @@ Download and install ODP:
 
  git clone https://github.com/OpenDataPlane/odp
  cd odp
- git checkout v1.11.0.0_monarch
+ git checkout v1.35.0.0
  ./bootstrap
  ./configure --prefix=/usr/local
  make install
@@ -73,7 +73,6 @@ Download and install OFP:
 
  git clone https://github.com/OpenFastPath/ofp
  cd ofp
- git checkout 2.0.1
  ./bootstrap
  ./configure --prefix=/usr/local --with-odp=/usr/local
  make install
@@ -455,7 +454,7 @@ default core 0 is used for operating system background tasks (this value is a
 part of OFP initialization parameter structure) so it is recommended to start
 mapping from core 1. odp_cpumask_* functions of ODP API can be used for
 initializing the CPU mask. Defined CPU mask can be later given as a parameter to
-odph_odpthreads_create() ODP helper function which will create and start worker
+odph_thread_create() ODP helper function which will create and start worker
 threads or processes on the assigned cores.
 
 See <<ODP_API>> for more information about ODP API and helper functions.
@@ -563,7 +562,7 @@ same input queue.
 
 ==== Starting worker and control threads
 
-OFP application can use ODP helper function odph_odpthreads_create() for
+OFP application can use ODP helper function odph_thread_create() for
 creating worker and control threads/processes. The function takes two input
 arguments, CPU mask and ODP thread parameter table. CPU mask is used for setting
 CPU affinity for the created threads/processes and can be initialized e.g. with
@@ -578,7 +577,7 @@ populated with following thread specific parameters:
 
 - ODP instance handle (returned earlier by odp_init_global)
 
-Created threads can be joined with odph_odpthreads_join() helper function.
+Created threads can be joined with odph_thread_join() helper function.
 
 ==== Default/user event dispatcher
 
@@ -587,7 +586,7 @@ OFP library implements default event dispatcher function (void
 OFP applications on each dedicated processor core. This function provides basic
 event handling functionality for packet receiving, timer expiration, buffer
 freeing and crypto API completion events. It can be provided as a parameter when
-creating worker threads/processes with odph_odpthreads_create() function.
+creating worker threads/processes with odph_thread_create() function.
 Default event dispatcher function takes one parameter which is a function to be
 used for processing incoming packets (e.g. ofp_eth_vlan_processing() implemented
 by OFP).

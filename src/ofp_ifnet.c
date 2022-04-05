@@ -120,7 +120,7 @@ void ofp_pktin_queue_param_init(odp_pktin_queue_param_t *param,
 		queue_param->enq_mode = ODP_QUEUE_OP_MT;
 		queue_param->deq_mode = ODP_QUEUE_OP_MT;
 		queue_param->context = NULL;
-		queue_param->sched.prio = ODP_SCHED_PRIO_DEFAULT;
+		queue_param->sched.prio = odp_schedule_default_prio();
 		queue_param->sched.sync = sched_sync;
 		queue_param->sched.group = sched_group;
 	} else if (in_mode == ODP_PKTIN_MODE_QUEUE) {
@@ -180,7 +180,7 @@ int ofp_loopq_create(struct ofp_ifnet *ifnet)
 
 	odp_queue_param_init(&qparam);
 	qparam.type = ODP_QUEUE_TYPE_SCHED;
-	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
+	qparam.sched.prio  = odp_schedule_default_prio();
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
@@ -256,7 +256,7 @@ int ofp_sp_inq_create(struct ofp_ifnet *ifnet)
 
 	odp_queue_param_init(&qparam);
 	qparam.type = ODP_QUEUE_TYPE_PLAIN;
-	qparam.sched.prio  = ODP_SCHED_PRIO_DEFAULT;
+	qparam.sched.prio  = odp_schedule_default_prio();
 	qparam.sched.sync  = ODP_SCHED_SYNC_ATOMIC;
 	qparam.sched.group = ODP_SCHED_GROUP_ALL;
 
@@ -286,7 +286,8 @@ int ofp_ifnet_create(odp_instance_t instance,
 	odp_pktin_queue_param_t pktin_param_local;
 	odp_pktout_queue_param_t pktout_param_local;
 #ifdef SP
-	odph_odpthread_params_t thr_params;
+	odph_thread_param_t thr_params;
+	odph_thread_common_param_t thr_common;
 #endif /* SP */
 
 	(void)instance;
@@ -394,23 +395,29 @@ int ofp_ifnet_create(odp_instance_t instance,
 	odp_pktio_stats_reset(ifnet->pktio);
 
 #ifdef SP
+	odph_thread_param_init(&thr_params);
+	thr_params.thr_type = ODP_THREAD_CONTROL;
+	thr_params.arg = ifnet;
+	odph_thread_common_param_init(&thr_common);
+	thr_common.instance = instance;
+	thr_common.cpumask = &cpumask;
+	thr_common.share_param = 1;
+
 	/* Start VIF slowpath receiver thread */
 	thr_params.start = sp_rx_thread;
-	thr_params.arg = ifnet;
-	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	odph_odpthreads_create(ifnet->rx_tbl,
-			       &cpumask,
-			       &thr_params);
+
+	if (odph_thread_create(ifnet->rx_tbl, &thr_common, &thr_params, 1) != 1) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	/* Start VIF slowpath transmitter thread */
 	thr_params.start = sp_tx_thread;
-	thr_params.arg = ifnet;
-	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	odph_odpthreads_create(ifnet->tx_tbl,
-			       &cpumask,
-			       &thr_params);
+
+	if (odph_thread_create(ifnet->tx_tbl, &thr_common, &thr_params, 1) != 1) {
+		OFP_ERR("Error: odph_thread_create() failed.\n");
+		exit(EXIT_FAILURE);
+	}
 #endif /* SP */
 
 	return 0;
