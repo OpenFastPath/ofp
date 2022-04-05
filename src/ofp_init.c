@@ -272,7 +272,7 @@ void ofp_init_global_param_from_file(ofp_global_param_t *params, const char *fil
 {
 	memset(params, 0, sizeof(*params));
 	params->pktin_mode = ODP_PKTIN_MODE_SCHED;
-	params->pktout_mode = ODP_PKTIN_MODE_DIRECT;
+	params->pktout_mode = ODP_PKTOUT_MODE_DIRECT;
 	params->sched_sync = ODP_SCHED_SYNC_ATOMIC;
 	params->sched_group = ODP_SCHED_GROUP_ALL;
 #ifdef SP
