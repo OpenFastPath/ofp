@@ -53,3 +53,6 @@ jobs:
         less ./scripts/check.sh
         ls -la ./scripts/check.sh
         CC="${{matrix.cc}}" ./scripts/check.sh
+    - name: Failure log
+      if: ${{ failure() }}
+      run: find . -name "*.trs" | xargs grep -l '^.test-result. FAIL' | while read trs ; do echo FAILURE detected at $trs; cat ${trs%%.trs}.log ; done
