@@ -36,14 +36,14 @@ uint8_t ip6addr[16] = {
 };
 uint8_t macaddr[6] = { 0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA };
 
+static odp_instance_t instance;
+
 /*
  * INIT
  */
 static int
 init_suite(void)
 {
-	odp_instance_t instance;
-
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
 		printf("Error: ODP global init failed.\n");
@@ -61,6 +61,12 @@ init_suite(void)
 static int
 clean_suite(void)
 {
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
 

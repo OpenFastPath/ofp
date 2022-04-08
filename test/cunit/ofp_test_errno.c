@@ -21,7 +21,7 @@
 
 #include <unistd.h>
 
-odp_instance_t instance;
+static odp_instance_t instance;
 
 static int init_suite(void)
 {
@@ -30,6 +30,15 @@ static int init_suite(void)
 		CU_FAIL("Error: odp_init_global failed");
 		return -1;
 	}
+	return 0;
+}
+
+static int
+clean_suite(void)
+{
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
 
@@ -119,7 +128,7 @@ int main(void)
 		return CU_get_error();
 
 	/* add a suite to the registry */
-	ptr_suite = CU_add_suite("ofp errno", init_suite, NULL);
+	ptr_suite = CU_add_suite("ofp errno", init_suite, clean_suite);
 	if (NULL == ptr_suite) {
 		CU_cleanup_registry();
 		return CU_get_error();

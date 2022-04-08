@@ -54,6 +54,7 @@ static uint8_t dst_mac[6] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
 static uint8_t orig_pkt_data[PKT_BUF_SIZE];
 static struct ofp_nh_entry nexthop;
 static struct ofp_ifnet *dev;
+static odp_instance_t instance;
 
 /*
  * Helpers
@@ -90,7 +91,6 @@ static int
 init_suite(void)
 {
 	ofp_global_param_t params;
-	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
@@ -127,7 +127,18 @@ init_suite(void)
 static int
 clean_suite(void)
 {
-	ofp_term_local();
+	if (ofp_term_local())
+		OFP_ERR("Error: OFP local term failed.\n");
+
+	if (ofp_term_global())
+		OFP_ERR("Error: OFP global term failed.\n");
+
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
 

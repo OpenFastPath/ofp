@@ -111,6 +111,7 @@ static uint32_t tun_rem_ip = 0x660AA8C0;   /* C0.A8.0A.66 = 192.168.10.102 */
 static uint32_t tun_addr = 0x010A0A0A;   /* 0A.0A.0A.01 = 10.10.10.1 */
 static uint32_t tun_p2p = 0x020A0A0A;   /* 0A.0A.0A.02 = 10.10.10.2 */
 static uint16_t tun_mask = 32; /* p-t-p */
+static odp_instance_t instance;
 
 static enum ofp_return_code fastpath_ip4_forward_hook(odp_packet_t pkt,
 		void *nh)
@@ -252,7 +253,6 @@ static int
 init_suite(void)
 {
 	ofp_global_param_t params;
-	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
@@ -287,6 +287,18 @@ init_suite(void)
 static int
 clean_suite(void)
 {
+	if (ofp_term_local())
+		OFP_ERR("Error: OFP local term failed.\n");
+
+	if (ofp_term_global())
+		OFP_ERR("Error: OFP global term failed.\n");
+
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
 
@@ -830,7 +842,7 @@ main(void)
 		return CU_get_error();
 	}
 
-	ptr_suite = CU_add_suite("test VRF", NULL , NULL);
+	ptr_suite = CU_add_suite("test VRF", init_suite, clean_suite);
 	if (NULL == ptr_suite) {
 		CU_cleanup_registry();
 		return CU_get_error();
@@ -890,8 +902,6 @@ main(void)
 	nr_of_failed_tests = CU_get_number_of_tests_failed();
 	nr_of_failed_suites = CU_get_number_of_suites_failed();
 	CU_cleanup_registry();
-
-	ofp_term_local();
 
 	return (nr_of_failed_suites > 0 ?
 		nr_of_failed_suites : nr_of_failed_tests);

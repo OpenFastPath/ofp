@@ -39,6 +39,8 @@ uint8_t ip6addr[16] = {
 };
 uint8_t macaddr[6] = { 0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA };
 
+static odp_instance_t instance;
+
 /*
  * INIT
  */
@@ -47,7 +49,6 @@ init_suite(void)
 {
 	odp_pool_param_t pool_params;
 	odp_pool_t pool;
-	odp_instance_t instance;
 
 	(void)pkt1_frag1;
 	(void)pkt1_frag2;
@@ -83,6 +84,12 @@ init_suite(void)
 static int
 clean_suite(void)
 {
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
 

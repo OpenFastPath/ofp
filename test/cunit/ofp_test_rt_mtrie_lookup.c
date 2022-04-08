@@ -575,6 +575,12 @@ int main(void)
 
 	CU_cleanup_registry();
 
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return (nr_of_failed_suites > 0 ?
 		nr_of_failed_suites : nr_of_failed_tests);
 }
