@@ -21,14 +21,14 @@
 #include <odp_api.h>
 #include "../../src/ofp_stat.c"
 
+static odp_instance_t instance;
+
 /*
  * INIT
  */
 static int
 init_suite(void)
 {
-	odp_instance_t instance;
-
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
 		OFP_ERR("Error: ODP global init failed.\n");
@@ -54,6 +54,12 @@ init_suite(void)
 static int
 clean_suite(void)
 {
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
 

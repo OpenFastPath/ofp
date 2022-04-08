@@ -46,6 +46,8 @@ uint8_t pcap_header[24] = {
 0xff, 0xff, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
 };
 
+static odp_instance_t instance;
+
 /*
  * INIT
  */
@@ -54,7 +56,6 @@ init_suite(void)
 {
 	odp_pool_param_t pool_params;
 	odp_pool_t pool;
-	odp_instance_t instance;
 
 	/* Init ODP before calling anything else */
 	if (odp_init_global(&instance, NULL, NULL)) {
@@ -91,6 +92,12 @@ init_suite(void)
 static int
 clean_suite(void)
 {
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
 

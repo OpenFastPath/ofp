@@ -76,5 +76,15 @@ int main(void)
 	}
 
 	OFP_INFO("Init successful.\n");
+
+	if (ofp_term_global())
+		OFP_ERR("Error: OFP global term failed.\n");
+
+	if (odp_term_local())
+		OFP_ERR("Error: ODP local term failed.\n");
+
+	if (odp_term_global(instance))
+		OFP_ERR("Error: ODP global term failed.\n");
+
 	return 0;
 }
