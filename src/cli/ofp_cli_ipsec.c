@@ -201,6 +201,12 @@ static void cmd_sat_add(struct cli_conn *conn, const char *s)
 
 	sscanf(s, "%"SCNs, name); /* strip whitespace */
 
+	if (strlen(name) >= sizeof(sat->name) - 1) {
+		ofp_sendf(conn->fd, "Name too long\r\n");
+		sendcrlf(conn);
+		return;
+	}
+
 	if (find_sat(name)) {
 		ofp_sendf(conn->fd, "Template already exists\r\n");
 		sendcrlf(conn);
@@ -214,8 +220,7 @@ static void cmd_sat_add(struct cli_conn *conn, const char *s)
 		return;
 	}
 	memset(sat, 0, sizeof(*sat));
-	strncpy(sat->name, name, sizeof(sat->name));
-	sat->name[sizeof(sat->name) - 1] = 0;
+	strcpy(sat->name, name);
 	sat->allocated = 1;
 	sendcrlf(conn);
 }
@@ -226,6 +231,12 @@ static void cmd_spt_add(struct cli_conn *conn, const char *s)
 	char name[MAX_STR];
 
 	sscanf(s, "%"SCNs, name); /* strip whitespace */
+
+	if (strlen(name) >= sizeof(spt->name) - 1) {
+		ofp_sendf(conn->fd, "Name too long\r\n");
+		sendcrlf(conn);
+		return;
+	}
 
 	if (find_spt(name)) {
 		ofp_sendf(conn->fd, "Template already exists\r\n");
@@ -240,8 +251,7 @@ static void cmd_spt_add(struct cli_conn *conn, const char *s)
 		return;
 	}
 	memset(spt, 0, sizeof(*spt));
-	strncpy(spt->name, name, sizeof(spt->name));
-	spt->name[sizeof(spt->name) - 1] = 0;
+	strcpy(spt->name, name);
 	spt->allocated = 1;
 	sendcrlf(conn);
 }
