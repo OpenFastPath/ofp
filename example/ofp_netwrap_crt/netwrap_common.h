@@ -9,7 +9,9 @@
 #define __NETWRAP_COMMON_H__
 
 #ifndef RTLD_NEXT
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #endif
 #include <dlfcn.h>
 
