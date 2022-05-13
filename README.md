@@ -80,9 +80,6 @@ Download and build OpenDataPlane (ODP) library:
 
 (`make install` may require root permissions)
 
-Instructions for building OFP on top of ODP-DPDK and ODP-ThunderX can be found
-from OFP User Guide (`docs/ofp-user-guide.adoc`).
-
 
 Compiling and building OFP:
 -------------------------------------------------------------------------------

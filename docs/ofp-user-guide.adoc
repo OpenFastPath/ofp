@@ -19,7 +19,6 @@ Currently OFP can be used on top of:
 
 - linux-generic implementation of ODP
 - DPDK-based platforms (ODP DPDK)
-- ThunderX platform (ODP ThunderX)
 
 Support for other operating systems (like BSD) is planned in the future.
 
@@ -770,72 +769,6 @@ in the example below) and start your OFP application with commands like:
 
 Check <<DPDK>> documentation for more DPDK related information.
 
-== Using OFP with ThunderX ODP
-
-ThunderX ODP platform should be cross-compiled or compiled natively with
-`aarch64-thunderx-linux-gnu-gcc` toolchain provided by Cavium.
-
-The build procedure is a standard procedure for ODP platfrom with
-following notes:
-
-  - Certain OpenSSL versions may require `-ldl` library for linking
-against dlopen()
-  - The best CFLAGS for performance are `-O3 -static -flto`
-
-Download ThunderX ODP and run bootstrap:
-
- git clone https://github.com/Linaro/odp-thunderx.git
- cd odp-thunderx
- ./bootstrap
-
-Run configuration script. Below are some examples:
-
-- typical configuration with shared library and standard CFLAGS (-O2):
-
- ./configure --host=aarch64-thunderx-linux-gnu \
-    --with-platform=linux-thunder \
-    --with-openssl-path=${OPENSSL_DIR} \
-    --disable-debug-print \
-    --disable-debug \
-    --prefix=${ODP_DIR} \
-    LIBS="-ldl"
-
-- recommended, performance optimized configuration (static library and
-aggresive optimizations):
-
- ./configure --host=aarch64-thunderx-linux-gnu \
-    --with-platform=linux-thunder \
-    --with-openssl-path=${OPENSSL_DIR} \
-    --disable-debug-print \
-    --disable-debug \
-    --prefix=${ODP_DIR} \
-    CFLAGS="-O3 -static -flto -g" LIBS="-ldl"
-
-- configuration for debugging purposes:
-
- ./configure --host=aarch64-thunderx-linux-gnu \
-    --with-platform=linux-thunder \
-    --with-openssl-path=${OPENSSL_DIR} \
-    --enable-debug-print \
-    --enable-debug \
-    --prefix=${ODP_DIR} \
-    CFLAGS="-O0 -static -g" LIBS="-ldl"
-
-Build ThunderX ODP:
-
- make install
-
-Download and build OFP:
-
- git clone https://github.com/OpenFastPath/ofp
- cd ofp
- ./bootstrap
- ./configure --prefix= <OFP DIR> --with-odp=<ODP DIR> 
- make install
-
-See <<ThunderX>> implimentation of ODP for more details about compiling and
-building ThunderX ODP.
-
 == Using OFP in virtualized environments and containers
 
 In addition to baremetal environment, OFP applications can be run in virtual
@@ -974,9 +907,6 @@ received by the same worker thread/process.
 
 * [[[DPDK]]] DPDK documentation
   http://dpdk.org/doc/guides/index.html
-
-* [[[ThunderX]]] Cavium ThunderX implimentation of ODP
-  https://github.com/Linaro/odp-thunderx
 
 * [[[wrk]]] HTTP benchmarking tool
   https://github.com/wg/wrk
