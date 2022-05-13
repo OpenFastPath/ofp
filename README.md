@@ -1,4 +1,4 @@
-OpenFastPath general info [![Build Status](https://travis-ci.org/OpenFastPath/ofp.svg?branch=master)](https://travis-ci.org/OpenFastPath/ofp)
+OpenFastPath general info
 ===============================================================================
 
 
