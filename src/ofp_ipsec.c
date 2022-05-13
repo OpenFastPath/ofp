@@ -213,6 +213,16 @@ int ofp_ipsec_init_global(const struct ofp_ipsec_param *param)
 		max_num_sa = 0;
 	}
 
+	if (max_num_sa > 0 &&
+	    (param->inbound_op_mode == ODP_IPSEC_OP_MODE_ASYNC ||
+	     param->outbound_op_mode == ODP_IPSEC_OP_MODE_ASYNC) &&
+	    !capa.queue_type_sched) {
+		OFP_INFO("IPsec inbound or outbound op mode is async, "
+			 "but scheduled queues are not supported.");
+		OFP_INFO("Setting maximum number of IPsec SAs to zero.");
+		max_num_sa = 0;
+	}
+
 	if (capa.max_num_sa < max_num_sa) {
 		OFP_ERR("Used ODP does not support enough IPsec SAs "
 			"(%" PRIu32 " requested, %" PRIu32 " supported)",
