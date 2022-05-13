@@ -70,7 +70,7 @@ configure option.
 
 Download and build OpenDataPlane (ODP) library:
 
-    git clone https://git.linaro.org/lng/odp.git
+    git clone https://github.com/OpenDataPlane/odp
     cd odp
     git checkout v1.19.0.2
     ./bootstrap

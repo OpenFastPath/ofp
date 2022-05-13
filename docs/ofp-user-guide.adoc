@@ -62,7 +62,7 @@ Ensure first that needed SW and testing tools are installed in your environment:
 
 Download and install ODP:
 
- git clone https://git.linaro.org/lng/odp.git
+ git clone https://github.com/OpenDataPlane/odp
  cd odp
  git checkout v1.11.0.0_monarch
  ./bootstrap
