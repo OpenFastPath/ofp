@@ -206,7 +206,7 @@ int ofp_timer_init_global(int resolution_us,
 	}
 
 	/* Timer pool */
-	memset(&timer_params, 0, sizeof(timer_params));
+	odp_timer_pool_param_init(&timer_params);
 	timer_params.res_ns = resolution_us*ODP_TIME_USEC_IN_NS;
 	timer_params.min_tmo = min_us*ODP_TIME_USEC_IN_NS;
 	timer_params.max_tmo = max_us*ODP_TIME_USEC_IN_NS;
