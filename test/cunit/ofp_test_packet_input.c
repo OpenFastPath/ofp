@@ -250,7 +250,7 @@ test_init_ifnet(void)
 }
 
 static int
-init_suite(void)
+init_global(void)
 {
 	ofp_global_param_t params;
 
@@ -285,7 +285,7 @@ init_suite(void)
 }
 
 static int
-clean_suite(void)
+term_global(void)
 {
 	if (ofp_term_local())
 		OFP_ERR("Error: OFP local term failed.\n");
@@ -778,7 +778,7 @@ main(void)
 		return CU_get_error();
 
 	/* add a suite to the registry */
-	ptr_suite = CU_add_suite("ofp packet input", init_suite, clean_suite);
+	ptr_suite = CU_add_suite("ofp packet input", NULL, NULL);
 	if (NULL == ptr_suite) {
 		CU_cleanup_registry();
 		return CU_get_error();
@@ -842,7 +842,7 @@ main(void)
 		return CU_get_error();
 	}
 
-	ptr_suite = CU_add_suite("test VRF", init_suite, clean_suite);
+	ptr_suite = CU_add_suite("test VRF", NULL, NULL);
 	if (NULL == ptr_suite) {
 		CU_cleanup_registry();
 		return CU_get_error();
@@ -890,6 +890,11 @@ main(void)
 		return CU_get_error();
 	}
 
+	if (init_global()) {
+		CU_cleanup_registry();
+		return 1;
+	}
+
 #if OFP_TESTMODE_AUTO
 	CU_set_output_filename("CUnit-PKT-IN");
 	CU_automated_run_tests();
@@ -898,6 +903,8 @@ main(void)
 	CU_basic_set_mode(CU_BRM_VERBOSE);
 	CU_basic_run_tests();
 #endif
+
+	(void)term_global();
 
 	nr_of_failed_tests = CU_get_number_of_tests_failed();
 	nr_of_failed_suites = CU_get_number_of_suites_failed();
