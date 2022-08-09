@@ -229,6 +229,10 @@ int ofp_timer_init_global(int resolution_us,
 
 	/* Start one second timeouts */
 	shm->timer_1s = ofp_timer_start(1000000UL, one_sec, NULL, 0);
+	if (shm->timer_1s == ODP_TIMER_INVALID) {
+		OFP_ERR("ofp_timer_start");
+		return -1;
+	}
 
 	return 0;
 }
