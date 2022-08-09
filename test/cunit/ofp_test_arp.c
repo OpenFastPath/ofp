@@ -70,7 +70,7 @@ static int init_suite(void)
 	odp_cpumask_t cpumask;
 
 	odp_cpumask_zero(&cpumask);
-	odp_cpumask_set(&cpumask, 0x1);
+	odp_cpumask_set(&cpumask, 0);
 
 	odph_thread_param_init(&thr_params);
 	thr_params.start = pp_thread;
