@@ -140,8 +140,6 @@ static void test_arp(void)
 	 */
 	uint8_t mac_result[OFP_ETHER_ADDR_LEN + 2];
 
-	CU_ASSERT(0 == ofp_init_local());
-
 	memset(&mock_ifnet, 0, sizeof(mock_ifnet));
 	CU_ASSERT(0 != inet_aton("1.1.1.1", &ip));
 
