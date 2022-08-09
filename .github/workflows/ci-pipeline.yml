@@ -4,6 +4,8 @@ on: [push, pull_request]
 env:
   ARCH: x86_64
   CC: gcc
+  CONTAINER_NAMESPACE: ghcr.io/opendataplane/odp-docker-images
+  OS: ubuntu_18.04
 
 jobs:
   Checkpatch:
@@ -56,3 +58,19 @@ jobs:
     - name: Failure log
       if: ${{ failure() }}
       run: find . -name "*.trs" | xargs grep -l '^.test-result. FAIL' | while read trs ; do echo FAILURE detected at $trs; cat ${trs%%.trs}.log ; done
+
+  Run_dpdk:
+    runs-on: ubuntu-18.04
+    env:
+      OS: ubuntu_20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo docker run -i -v `pwd`:/ofp --privileged --shm-size 8g -e CC="${{matrix.cc}}" -e ARCH="${ARCH}"
+               -e CXX=g++-10 $CONTAINER_NAMESPACE/odp-ci-${OS}-${ARCH}-dpdk_20.11 /bin/bash -c "apt-get update && apt install g++-10 && /ofp/scripts/check-dpdk.sh"
+      - name: Failure log
+        if: ${{ failure() }}
+        run: find . -name "*.trs" | xargs grep -l '^.test-result. FAIL' | while read trs ; do echo FAILURE detected at $trs; cat ${trs%%.trs}.log ; done
