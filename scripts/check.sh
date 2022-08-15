@@ -12,7 +12,7 @@ cd $(readlink -e $(dirname $0))/..
 git clone https://github.com/OpenDataPlane/odp --branch v1.35.0.0 --depth 1
 pushd odp
 ./bootstrap
-./configure --prefix=$(pwd)/install --enable-deprecated
+./configure --prefix=$(pwd)/install --enable-deprecated --without-tests --without-examples
 make -j${JOBS} install
 popd
 
