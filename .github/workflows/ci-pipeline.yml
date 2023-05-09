@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: sudo docker run -i -v `pwd`:/ofp --privileged --shm-size 8g -e CC="${{matrix.cc}}" -e ARCH="${ARCH}"
-               -e CXX=g++-10 $CONTAINER_NAMESPACE/odp-ci-${OS}-${ARCH}-dpdk_20.11 /bin/bash -c "apt-get update && apt install g++-10 && /ofp/scripts/check-dpdk.sh"
+               -e CXX=g++-10 $CONTAINER_NAMESPACE/odp-ci-${OS}-${ARCH}-dpdk_22.11 /bin/bash -c "apt-get update && apt install g++-10 && /ofp/scripts/check-dpdk.sh"
       - name: Failure log
         if: ${{ failure() }}
         run: find . -name "*.trs" | xargs grep -l '^.test-result. FAIL' | while read trs ; do echo FAILURE detected at $trs; cat ${trs%%.trs}.log ; done
