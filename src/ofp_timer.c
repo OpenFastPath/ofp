@@ -212,7 +212,7 @@ int ofp_timer_init_global(int resolution_us,
 	timer_params.max_tmo = max_us*ODP_TIME_USEC_IN_NS;
 	timer_params.num_timers = TIMER_NUM_TIMERS;
 	timer_params.priv = 0; /* Shared */
-	timer_params.clk_src = ODP_CLOCK_CPU;
+	timer_params.clk_src = ODP_CLOCK_DEFAULT;
 	shm->socket_timer_pool = odp_timer_pool_create("TmrPool",
 						       &timer_params);
 
