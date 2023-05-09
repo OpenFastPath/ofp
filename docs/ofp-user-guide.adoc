@@ -63,7 +63,7 @@ Download and install ODP:
 
  git clone https://github.com/OpenDataPlane/odp
  cd odp
- git checkout v1.35.0.0
+ git checkout v1.41.0.0
  ./bootstrap
  ./configure --prefix=/usr/local
  make install

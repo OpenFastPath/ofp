@@ -9,7 +9,7 @@ fi
 cd $(readlink -e $(dirname $0))/..
 
 # Build ODP
-git clone https://github.com/OpenDataPlane/odp --branch v1.35.0.0 --depth 1
+git clone https://github.com/OpenDataPlane/odp --branch v1.41.0.0 --depth 1
 pushd odp
 ./bootstrap
 ./configure --prefix=$(pwd)/install --enable-deprecated --without-tests --without-examples
