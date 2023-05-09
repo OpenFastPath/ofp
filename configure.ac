@@ -197,7 +197,7 @@ if test "x$enable_static" = "xyes" ; then
 	export PKG_CONFIG="pkg-config --static"
 fi
 
-PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= 1.33.0.0], [], [])
+PKG_CHECK_MODULES([ODP], [lib$ODP_LIB >= 1.35.0.0], [], [])
 AC_SUBST([ODP_CFLAGS])
 AC_SUBST([ODP_LIBS])
 
