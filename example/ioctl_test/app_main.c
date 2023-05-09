@@ -97,17 +97,7 @@ static int app_dispatcher_thread(void *arg)
 		printf("App_dispatcher: Error, unexpected event type: %u\n",
 		       odp_event_type(ev));
 
-		/* Free events by type */
-		if (odp_event_type(ev) == ODP_EVENT_BUFFER) {
-			odp_buffer_free(odp_buffer_from_event(ev));
-			continue;
-		}
-
-		if (odp_event_type(ev) == ODP_EVENT_CRYPTO_COMPL) {
-			odp_crypto_compl_free(odp_crypto_compl_from_event(ev));
-			continue;
-		}
-
+		odp_event_free(ev);
 	}
 
 	/* Never reached */
