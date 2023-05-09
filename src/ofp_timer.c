@@ -427,13 +427,18 @@ odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
 			return ODP_TIMER_INVALID;
 		}
 
-		t = odp_timer_set_abs(timer, tick, &bufdata->t_ev);
+		odp_timer_start_t param;
+
+		param.tick_type = ODP_TIMER_TICK_ABS;
+		param.tick = tick;
+		param.tmo_ev = bufdata->t_ev;
+		t = odp_timer_start(timer, &param);
 
 		if (t != ODP_TIMER_SUCCESS) {
 			odp_timer_free(timer);
 			odp_timeout_free(tmo);
 			odp_buffer_free(buf);
-			OFP_ERR("odp_timer_set_abs failed");
+			OFP_ERR("odp_timer_start failed");
 			return ODP_TIMER_INVALID;
 		}
 
