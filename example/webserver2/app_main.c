@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
 		odp_cpumask_set(&cpu_mask, first_worker + i);
 
 		if (odph_thread_create(&thread_tbl[i], &thr_common, &thr_params,
-				       num_workers) != num_workers) {
+				       1) != 1) {
 			OFP_ERR("Error: odph_thread_create() failed.\n");
 			exit(EXIT_FAILURE);
 		}
