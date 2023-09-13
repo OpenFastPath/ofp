@@ -297,19 +297,13 @@ int main(int argc, char *argv[])
 	thr_common.cpumask = &cpu_mask;
 	thr_common.share_param = 1;
 
-	if (odph_thread_create(thread_tbl, &thr_common, &thr_params,
-			       num_workers) != num_workers) {
-		OFP_ERR("Error: odph_thread_create() failed.\n");
-		exit(EXIT_FAILURE);
-	}
-
 	/* Create worker threads */
 	for (i = 0; i < num_workers; ++i) {
 		thr_params.arg = &workers_arg[i];
 		odp_cpumask_zero(&cpu_mask);
 		odp_cpumask_set(&cpu_mask, first_worker + i);
 
-		if (odph_thread_create(thread_tbl, &thr_common, &thr_params, 1) != 1) {
+		if (odph_thread_create(&thread_tbl[i], &thr_common, &thr_params, 1) != 1) {
 			OFP_ERR("Error: odph_thread_create() failed.\n");
 			exit(EXIT_FAILURE);
 		}
