@@ -220,7 +220,7 @@ int ofp_mac_set(struct ofp_ifnet *ifnet)
 /* Set interface MTU*/
 int ofp_mtu_set(struct ofp_ifnet *ifnet)
 {
-	uint16_t max_frame_size = odp_pktout_maxlen(ifnet->pktio);
+	uint32_t max_frame_size = odp_pktout_maxlen(ifnet->pktio);
 
 	ifnet->if_mtu = OFP_MTU_SIZE;
 
