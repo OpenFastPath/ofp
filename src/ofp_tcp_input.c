@@ -448,7 +448,6 @@ tcp_fields_to_host(struct ofp_tcphdr *th)
 	th->th_urp = odp_be_to_cpu_16(th->th_urp);
 }
 
-#ifdef TCP_SIGNATURE
 static inline void
 tcp_fields_to_net(struct ofp_tcphdr *th)
 {
@@ -458,6 +457,7 @@ tcp_fields_to_net(struct ofp_tcphdr *th)
 	th->th_urp = odp_cpu_to_be_16(th->th_urp);
 }
 
+#ifdef TCP_SIGNATURE
 static inline int
 tcp_signature_verify_input(odp_packet_t m, int off0, int tlen, int optlen,
     struct tcpopt *to, struct ofp_tcphdr *th, uint32_t tcpbflag)
@@ -570,6 +570,7 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 	struct tcpopt to;		/* options in this segment */
 	char *s = NULL;			/* address and port logging */
 	int ti_locked;
+	int old_l3_offset = 0;
 #ifdef TCPDEBUG
 	/*
 	 * The size of tcp_saveipgen must be the size of the max ip header,
@@ -580,7 +581,8 @@ ofp_tcp_input(odp_packet_t *m, int off0)
 	short ostate = 0;
 #endif
 	/* HJo: remove vlan hdr */
-	odp_packet_pull_head(*m, odp_packet_l3_offset(*m));
+	old_l3_offset = odp_packet_l3_offset(*m);
+	odp_packet_pull_head(*m, old_l3_offset);
 	odp_packet_l2_offset_set(*m, 0);
 	odp_packet_l3_offset_set(*m, 0);
 	odp_packet_l4_offset_set(*m, off0);
@@ -792,6 +794,21 @@ findpcb:
 	 * XXX MRT Send RST using which routing table?
 	 */
 	if (inp == NULL) {
+		/*
+		 * recove for slow path
+		 */
+
+		tcp_fields_to_net(th);
+
+		ip->ip_len += ip->ip_hl << 2;
+		ip->ip_off = odp_cpu_to_be_16(ip->ip_off);
+		ip->ip_len = odp_cpu_to_be_16(ip->ip_len);
+
+		odp_packet_push_head(*m, old_l3_offset);
+		odp_packet_l2_offset_set(*m, 0);
+		odp_packet_l3_offset_set(*m, old_l3_offset);
+		odp_packet_l4_offset_set(*m, old_l3_offset + off0);
+
 		/*
 		 * Log communication attempts to ports that are not
 		 * in use.
