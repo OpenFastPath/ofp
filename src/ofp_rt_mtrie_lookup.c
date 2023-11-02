@@ -587,10 +587,14 @@ ofp_rtl_remove(struct ofp_rtl_tree *tree, uint32_t addr_be, uint32_t masklen)
 
 struct ofp_nh_entry *ofp_rtl_search(struct ofp_rtl_tree *tree, uint32_t addr_be)
 {
-	struct ofp_nh_entry *nh = NULL;
 	struct ofp_rtl_node *elem, *node = tree->root;
+	struct ofp_nh_entry *nh = &node->data[0];
 	uint32_t addr = odp_be_to_cpu_32(addr_be);
 	uint32_t low = 0, high = IPV4_FIRST_LEVEL;
+
+	if (!(nh->flags & OFP_RTL_FLAGS_GATEWAY)) {
+		nh = NULL;
+	};
 
 	for (; high <= IPV4_LENGTH ; low = high, high += IPV4_LEVEL) {
 		elem = find_node(node, addr, low, high);
