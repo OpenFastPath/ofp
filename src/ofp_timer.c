@@ -356,7 +356,6 @@ odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
 	uint64_t period_ns;
 	struct ofp_timer_internal *bufdata;
 	odp_buffer_t buf;
-	odp_timer_set_t t;
 	odp_timeout_t tmo;
 
 	/* Init shm if not done yet. */
@@ -432,9 +431,8 @@ odp_timer_t ofp_timer_start_cpu_id(uint64_t tmo_us, ofp_timer_callback callback,
 		param.tick_type = ODP_TIMER_TICK_ABS;
 		param.tick = tick;
 		param.tmo_ev = bufdata->t_ev;
-		t = odp_timer_start(timer, &param);
 
-		if (t != ODP_TIMER_SUCCESS) {
+		if (odp_timer_start(timer, &param) != ODP_TIMER_SUCCESS) {
 			odp_timer_free(timer);
 			odp_timeout_free(tmo);
 			odp_buffer_free(buf);
