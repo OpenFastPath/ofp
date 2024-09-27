@@ -495,7 +495,7 @@ int ofp_timer_cancel(odp_timer_t tim)
 			return -1;
 		}
 
-		if (odp_timer_free(tim) != ODP_EVENT_INVALID) {
+		if (odp_timer_free(tim)) {
 			OFP_ERR("odp_timer_free failed");
 			return -1;
 		}
