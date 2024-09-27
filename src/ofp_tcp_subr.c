@@ -2358,7 +2358,7 @@ tcp_log_addr(struct in_conninfo *inc, struct ofp_tcphdr *th, void *ip4hdr,
 	if (s == NULL)
 		return (NULL);
 
-	strcat(s, "TCP: [");
+	strcpy(s, "TCP: [");
 	sp = s + strlen(s);
 
 	if (inc && ((inc->inc_flags & INC_ISIPV6) == 0)) {
