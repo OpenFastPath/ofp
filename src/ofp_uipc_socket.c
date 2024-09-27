@@ -1765,7 +1765,7 @@ dontblock:
 			 * We could receive some data while was notifying
 			 * the protocol. Skip blocking in this case.
 			 */
-			if (so->so_rcv.sb_mb == NULL) {
+			if (ofp_sockbuf_get_first(&so->so_rcv) == ODP_PACKET_INVALID) {
 				error = ofp_sbwait(&so->so_rcv);
 				if (error) {
 					SOCKBUF_UNLOCK(&so->so_rcv);
