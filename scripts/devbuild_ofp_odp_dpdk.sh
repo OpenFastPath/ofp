@@ -19,7 +19,7 @@ popd
 popd
 
 # Build ODP
-git clone https://github.com/OpenDataPlane/odp-dpdk --branch v1.41.0.0_DPDK_22.11 --depth 1
+git clone https://github.com/OpenDataPlane/odp-dpdk --branch v1.45.1.0_DPDK_22.11 --depth 1
 pushd odp-dpdk
 ./bootstrap
 PKG_CONFIG_PATH=$(pwd)/../dpdk/install/lib64/pkgconfig:${PKG_CONFIG_PATH} ./configure --prefix=$(pwd)/install
