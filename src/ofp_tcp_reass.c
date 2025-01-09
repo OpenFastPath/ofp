@@ -140,6 +140,7 @@ ofp_tcp_reass_flush(struct tcpcb *tp)
 
 	while ((qe = OFP_LIST_FIRST(&tp->t_segq)) != NULL) {
 		OFP_LIST_REMOVE(qe, tqe_q);
+		odp_packet_free(qe->tqe_m);
 		uma_zfree(V_tcp_reass_zone, qe);
 		tp->t_segqlen--;
 	}
